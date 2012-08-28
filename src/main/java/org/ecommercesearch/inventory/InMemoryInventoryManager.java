@@ -16,7 +16,20 @@ import atg.nucleus.GenericService;
 import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 
+/**
+ * This class implements an in-memory inventory manager to help speeding up the feed
+ * process. This inventory manager doesn't implement all the methods provided by the
+ * interface, but only the methods required by search feed. This functionality can
+ * be customized by tweaking the SQL query properties.
+ *
+ * This inventory manager is intended for full feeds only. For better performance,
+ * its TTL should be long enough to last the whole feed generation process. Specially,
+ * if the inventory is large.
+ *
+ * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
+ */
 public class InMemoryInventoryManager extends GenericService implements InventoryManager {
+
     private Map<String, Long> inventoryMap = null;
     private String inventoryName = "In Memory Inventory";
     private String inventoryCountSql;
@@ -73,6 +86,9 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
         loadInventory();
     }
 
+    /**
+     * Loads the inventory items into a hash map
+     */
     private void loadInventory() {
         Connection connection = null;
         try {
@@ -122,7 +138,10 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
             }
         }
     }
-    
+
+    /**
+     *  Just a helper method to load inventory items
+     */
     private void loadInventory(PreparedStatement inventoryStmt, int count) throws SQLException {
         if (count > 0) {
             long startTime = System.currentTimeMillis();
@@ -165,6 +184,10 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
         }
     }
 
+    /**
+     * Helper method to check the last time the inventory was loaded. If the TTL
+     * has expired, the inventory will be reloaded.
+     */
     private void checkTimeToLive() {
         if (System.currentTimeMillis() - lastInitTime > timeToLive) {
             loadInventory();
@@ -277,6 +300,7 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
 
     @Override
     public long queryStockLevel(String id) throws InventoryException {
+        // @TODO: check TTL
         // checkTimeToLive();
         Long stockLevel = inventoryMap.get(id);
         if (stockLevel == null) {
@@ -287,8 +311,7 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
 
     @Override
     public long queryStockThreshold(String id) throws InventoryException {
-        // TODO Auto-generated method stub
-        return 0;
+        throw new UnsupportedOperationException();
     }
 
     @Override

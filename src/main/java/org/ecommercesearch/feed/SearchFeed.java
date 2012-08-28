@@ -21,6 +21,13 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 
+/**
+ * This class provides a basic functionality to generate a search feed. This includes:
+ *  - Product loading
+ *  - Category tokens
+ *
+ * @TODO implement default feed functionality
+ */
 public class SearchFeed extends GenericService {
 
     private Repository productRepository;
@@ -230,12 +237,10 @@ public class SearchFeed extends GenericService {
      * 
      * @param document
      *            The document to set the attributes to.
-     * @param categoryItem
+     * @param category
      *            The repositoryItem of the current level
      * @param hierarchyCategories
      *            The list where we store the categories during the recursion
-     * @throws ProductLoadingException
-     *             If any exception is thrown while processing
      */
     private void loadCategoryPaths(SolrInputDocument document, RepositoryItem category,
             List<RepositoryItem> hierarchyCategories) {
@@ -266,12 +271,10 @@ public class SearchFeed extends GenericService {
      * 
      * @param document
      *            The document to set the attributes to.
-     * @param categories
-     *            The list of categories
-     * @param categories
-     *            The list of categories
-     * @param catalogId
-     *            to prefix the categoryIds string
+     * @param hierarchyCategories
+     *
+     * @param catalog
+     *            
      */
     private void generateCategoryTokens(SolrInputDocument document, List<RepositoryItem> hierarchyCategories,
             String catalog) {
