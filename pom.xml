@@ -23,6 +23,30 @@
         <url>http://github.com/rmerizalde/ecommercesearch</url>
     </scm>
 
+    <dependencies>
+      <dependency>
+	      <groupId>org.apache.solr</groupId>
+	      <artifactId>solr-solrj</artifactId>
+	      <version>4.0.0-BETA</version>
+      </dependency>
+      <!-- ATG Dynamo Application Server (local repo) -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>das</artifactId>
+          <version>10.0.1</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG Dynamo Commerce Server (local repo) -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>dcs</artifactId>
+          <version>10.0.1</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DCS/lib/classes.jar</systemPath>
+      </dependency>
+    </dependencies>
+
     <build>
         <resources>
             <resource>

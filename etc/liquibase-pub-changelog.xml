@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+
+
+  <changeSet author="ecommercesearch" id="1">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="es_synonym"/></not>
+    </preConditions>
+    <createTable tableName="es_synonym">
+      <column name="synonym_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="mapping" type="VARCHAR2(512 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="workspace_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="branch_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_head" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_deleted" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_editable" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="pred_version" type="NUMBER(19)"/>
+      <column name="checkin_date" type="TIMESTAMP"/>
+    </createTable>
+    <addPrimaryKey tableName="es_synonym" columnNames="synonym_id,asset_version" constraintName="es_synonym_pk"/>
+  </changeSet>
+
+</databaseChangeLog>

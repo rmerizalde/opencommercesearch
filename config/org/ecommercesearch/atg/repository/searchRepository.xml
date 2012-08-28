@@ -7,10 +7,11 @@
         <author>rmerizalde</author>
         <version>1.0</version>
     </header>
-
-    <item-descriptor display-name="Synonym" name="synonym" display-property="assetName" item-cache-size="1000" query-cache-size="1000">
+                              
+    <item-descriptor display-name="Synonym" name="synonym" display-property="mapping" item-cache-size="1000" query-cache-size="1000">
         <table name="es_synonym" type="primary" id-column-name="synonym_id">
-            <property name="term" data-type="string" display-name="Term"/>
+            <property name="mapping" data-type="string" display-name="Mapping"
+                    column-name="mapping" required="true"/>
         </table>
     </item-descriptor>
 </gsa-template>    
