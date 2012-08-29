@@ -167,7 +167,7 @@ public class SearchFeed extends GenericService {
     }
 
     protected void processProduct(RepositoryItem product, List<SolrInputDocument> documents)
-            throws RepositoryException, InventoryException, SQLException {
+            throws RepositoryException, InventoryException {
         throw new UnsupportedOperationException("Default implementation not ready yet");
     }
 
@@ -180,25 +180,25 @@ public class SearchFeed extends GenericService {
      * 
      * @param document
      *            The document to set the attributes to.
-     * @param productItem
+     * @param product
      *            The RepositoryItem for the product item descriptor
      * @param catalogAssignments
      *            If the product is belongs to a category in any of those
      *            catalogs then that category is part of the returned value.
      */
-    protected void loadCategoryPaths(SolrInputDocument document, RepositoryItem productItem,
+    protected void loadCategoryPaths(SolrInputDocument document, RepositoryItem product,
             Set<RepositoryItem> catalogAssignments) {
-        if (productItem != null) {
+        if (product != null) {
             try {
-                Set<RepositoryItem> productCategories = (Set<RepositoryItem>) productItem
+                Set<RepositoryItem> productCategories = (Set<RepositoryItem>) product
                         .getPropertyValue("parentCategories");
 
                 if (productCategories != null) {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
-                        if (isCategoryInCatalogAssignments(productCategory, catalogAssignments)) {
+                        if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
                             if (isCategoryIndexable(productCategory)) {
-                                loadCategoryPaths(document, productCategory, categoryIds);
+                                loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments);
                             }
                             document.addField("categoryid", productCategory.getRepositoryId());
                         }
@@ -213,26 +213,33 @@ public class SearchFeed extends GenericService {
     }
 
     /**
-     * Helper method
+     * Helper method to test if category is assigned to and of catalogs in the
+     * given set
      * 
      * @param category
-     * @param catalogAssignments
+     *            the category to be tested
+     * @param catalogs
+     *            the set of categories to search in
      * @return
      */
-    private boolean isCategoryInCatalogAssignments(RepositoryItem category, Set<RepositoryItem> catalogAssignments) {
-        Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
-        if (catalogs != null) {
-            for (RepositoryItem catalog : catalogs) {
-                if (catalogAssignments.contains(catalog)) {
-                    return true;
-                }
-            }
+    private boolean isCategoryInCatalogs(RepositoryItem category, Set<RepositoryItem> catalogs) {
+        // @TODO support multipler parent catalogs per category.
+        /*
+         * Set<RepositoryItem> categoryCatalogs = (Set<RepositoryItem>)
+         * category.getPropertyValue("catalogs"); if (categoryCatalogs != null)
+         * { for (RepositoryItem categoryCatalog : categoryCatalogs) { if
+         * (!catalogs.contains(categoryCatalog)) { return true; } } }
+         */
+        // Use legacy property parentCatalog
+        if (catalogs == null || catalogs.size() == 0) {
+            return false;
         }
-        return false;
+        RepositoryItem parentCatalog = (RepositoryItem) category.getPropertyValue("catalog");
+        return parentCatalog != null && catalogs.contains(parentCatalog);
     }
 
     /**
-     * Helper method to generate the category tokens recurively
+     * Helper method to generate the category tokens recursively
      * 
      * 
      * @param document
@@ -241,21 +248,23 @@ public class SearchFeed extends GenericService {
      *            The repositoryItem of the current level
      * @param hierarchyCategories
      *            The list where we store the categories during the recursion
+     * @param catalogAssignments
+     *            The list of catalogs to restrict the category token generation
      */
     private void loadCategoryPaths(SolrInputDocument document, RepositoryItem category,
-            List<RepositoryItem> hierarchyCategories) {
+            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments) {
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
 
         if (parentCategories != null && parentCategories.size() > 0) {
             hierarchyCategories.add(0, category);
             for (RepositoryItem parentCategory : parentCategories) {
-                loadCategoryPaths(document, parentCategory, hierarchyCategories);
+                loadCategoryPaths(document, parentCategory, hierarchyCategories, catalogAssignments);
             }
             hierarchyCategories.remove(0);
         } else {
             // TODO: support categories assigned to multiple catalogs
             RepositoryItem catalog = (RepositoryItem) category.getPropertyValue("catalog");
-            if (catalog != null) {
+            if (catalog != null && catalogAssignments.contains(catalog)) {
                 generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId());
             }
         }
