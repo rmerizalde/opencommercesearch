@@ -37,3 +37,7 @@ Installation
 
 * Add the repository to the initialRepositories in atg/registry/ContentRepositories.properties
 
+* Configure the deployment agents atg/epub/DeploymentAgent.properties to add the IndexingDeploymentListener
+
+deploymentEventListeners+=/org/ecommercesearch/deployment/IndexingDeploymentListener
+

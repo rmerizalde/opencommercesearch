@@ -29,7 +29,7 @@
 	      <artifactId>solr-solrj</artifactId>
 	      <version>4.0.0-BETA</version>
       </dependency>
-      <!-- ATG Dynamo Application Server (local repo) -->
+      <!-- ATG Dynamo Application Server -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>das</artifactId>
@@ -37,7 +37,7 @@
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
       </dependency>
-      <!-- ATG Dynamo Commerce Server (local repo) -->
+      <!-- ATG Dynamo Commerce Server -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>dcs</artifactId>
@@ -45,6 +45,14 @@
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/DCS/lib/classes.jar</systemPath>
       </dependency>
+      <!-- ATG Publishing -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>epub</artifactId>
+          <version>10.0.1</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/Publishing/base/lib/classes.jar</systemPath>
+      </dependency>      
     </dependencies>
 
     <build>
