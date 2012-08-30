@@ -1,20 +1,17 @@
 package org.ecommercesearch.feed;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrServer;
-import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.ecommercesearch.SearchServer;
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
-import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
@@ -30,12 +27,20 @@ import atg.repository.rql.RqlStatement;
  */
 public class SearchFeed extends GenericService {
 
+    private SearchServer searchServer;
     private Repository productRepository;
     private String productItemDescriptorName;
     private RqlStatement productCountRql;
     private RqlStatement productRql;
     private int productBatchSize;
-    private CloudSolrServer solrServer;
+
+    public SearchServer getSearchServer() {
+        return searchServer;
+    }
+
+    public void setSearchServer(SearchServer searchServer) {
+        this.searchServer = searchServer;
+    }
 
     public Repository getProductRepository() {
         return productRepository;
@@ -77,12 +82,6 @@ public class SearchFeed extends GenericService {
         this.productBatchSize = productBatchSize;
     }
 
-    @Override
-    public void doStartService() throws ServiceException {
-        super.doStartService();
-        initSolrServer();
-    }
-
     public boolean isProductIndexable(RepositoryItem product) {
         return true;
     }
@@ -93,20 +92,6 @@ public class SearchFeed extends GenericService {
 
     public boolean isCategoryIndexable(RepositoryItem category) {
         return true;
-    }
-
-    public void initSolrServer() throws ServiceException {
-        try {
-            solrServer = new CloudSolrServer("localhost:9983");
-            solrServer.setDefaultCollection("catalog2");
-        } catch (MalformedURLException ex) {
-            throw new ServiceException(ex);
-        }
-    }
-
-    public void pingServer() throws IOException, SolrServerException {
-        SolrPingResponse response = solrServer.ping();
-        logInfo("Ping: " + response.getQTime());
     }
 
     public void startFullFeed() throws IOException, SolrServerException, RepositoryException, SQLException,
@@ -121,8 +106,8 @@ public class SearchFeed extends GenericService {
         }
 
         // temporal
-        solrServer.deleteByQuery("*:*");
-        solrServer.commit();
+        getSearchServer().deleteByQuery("*:*");
+        getSearchServer().commit();
         // temporal
 
         int processedProductCount = 0;
@@ -144,8 +129,8 @@ public class SearchFeed extends GenericService {
 
             if (documents.size() > 0) {
                 try {
-                    solrServer.add(documents);
-                    solrServer.commit();
+                    getSearchServer().add(documents);
+                    getSearchServer().commit();
                 } finally {
                     documents.clear();
                 }
