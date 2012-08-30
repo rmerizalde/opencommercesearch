@@ -3,8 +3,6 @@ package org.ecommercesearch.deployment;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.zookeeper.KeeperException;
@@ -14,6 +12,7 @@ import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
+import atg.nucleus.ServiceMap;
 
 /**
  * This class implements DeploymentEventListener and should be added to the
@@ -34,7 +33,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 
     private SearchServer searchServer;
     private String triggerStatus;
-    private Set<String> triggerItemTypes;
+    private ServiceMap triggerItemTypes;
 
     public SearchServer getSearchServer() {
         return searchServer;
@@ -52,25 +51,36 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         this.triggerStatus = triggerStatus;
     }
 
-    public Set<String> getTriggerItemTypes() {
+    public ServiceMap getTriggerItemTypes() {
         return triggerItemTypes;
     }
 
-    public void setTriggerItemTypes(Set<String> triggerItemTypes) {
+    public void setTriggerItemTypes(ServiceMap triggerItemTypes) {
         this.triggerItemTypes = triggerItemTypes;
     }
 
     @Override
     public void deploymentEvent(DeploymentEvent event) {
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
+            if (isLoggingInfo()) {
+                logInfo("Received event " + getTriggerStatus());
+            }
             Map<String, String> affectedItemTypes = event.getAffectedItemTypes();
+            logDebug(affectedItemTypes.toString());
+            logDebug("" + event.getAffectedRepositories());
+            // @TODO implement this
             if (affectedItemTypes != null) {
-                for (Entry<String, String> entry : affectedItemTypes.entrySet()) {
-                    String key = entry.getKey() + ":" + entry.getValue();
-                    if (triggerItemTypes.contains(key)) {
-                        pushConfigurations(affectedItemTypes.values());
-                    }
-                }
+                // for (Entry<String, String> entry :
+                // affectedItemTypes.entrySet()) {
+
+                // Repository repository = (Repository)
+                // triggerItemTypes.get(entry.getValue());
+                // logDebug(repository.getRepositoryName());
+                // if (repository != null &&
+                // repository.getRepositoryName().equals(entry.getKey())) {
+                // pushConfigurations(affectedItemTypes.values());
+                // }
+                // }
             }
         }
     }
@@ -82,7 +92,6 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     }
 
     public void test() throws SolrServerException, IOException, KeeperException, InterruptedException {
-        logDebug(">>>> ZK");
         getSearchServer().ping();
         /*
          * ZkStateReader stateReader = solrServer.getZkStateReader(); if

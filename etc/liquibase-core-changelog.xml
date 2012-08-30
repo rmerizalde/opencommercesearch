@@ -5,16 +5,5 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
 
-  <changeSet author="ecommercesearch" id="1">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">select count(*) from das_id_generator where id_space_name = 'synonym'</sqlCheck>
-    </preConditions>
-    <insert tableName="das_id_generator">
-      <column name="id_space_name" value="synonym"/>
-      <column name="seed" value="1"/>
-      <column name="batch_size" value="1000"/>
-      <column name="prefix" value="syn"/>
-    </insert>
-  </changeSet>
 
 </databaseChangeLog>
