@@ -7,10 +7,56 @@
 
   <changeSet author="ecommercesearch" id="1">
     <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="es_synonym_list"/></not>
+      <not><tableExists tableName="es_syn_list_mapping"/></not>
       <not><tableExists tableName="es_synonym"/></not>
     </preConditions>
+
+    <createTable tableName="es_synonym_list">
+      <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="workspace_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="branch_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_head" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_deleted" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_editable" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="pred_version" type="NUMBER(19)"/>
+      <column name="checkin_date" type="TIMESTAMP"/>      
+    </createTable>
+    <addPrimaryKey tableName="es_synonym_list" columnNames="syn_list_id,asset_version" constraintName="es_syn_list_pk"/>
+
+    <createTable tableName="es_syn_list_mapping">
+       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+       </column>
+       <column name="syn_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+       </column>
+       <column name="asset_version" type="NUMBER(19)">
+            <constraints nullable="false"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id,asset_version" constraintName="es_syn_list_map_pk"/>
+
     <createTable tableName="es_synonym">
-      <column name="synonym_id" type="VARCHAR2(40 BYTE)">
+      <column name="syn_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
       <column name="mapping" type="VARCHAR2(512 BYTE)">
@@ -37,7 +83,127 @@
       <column name="pred_version" type="NUMBER(19)"/>
       <column name="checkin_date" type="TIMESTAMP"/>
     </createTable>
-    <addPrimaryKey tableName="es_synonym" columnNames="synonym_id,asset_version" constraintName="es_synonym_pk"/>
+    <addPrimaryKey tableName="es_synonym" columnNames="syn_id,asset_version" constraintName="es_synonym_pk"/>
   </changeSet>
+
+  <changeSet author="ecommercesearch" id="2">
+    <preConditions onFail="MARK_RAN">
+        <sqlCheck expectedResult="0">        
+        SELECT COUNT(*)
+            FROM vmap_pv
+            WHERE id='EsPvSynonymMapping'
+        </sqlCheck>
+    </preConditions>
+    <!-- Property View for Synonym's mapping property -->
+    <insert tableName="vmap_pv">
+        <column name="id" value="EsPvSynonymMapping"/>
+        <column name="name" value="Synonym Mapping Editor"/>
+        <column name="type" value="string"/>
+        <column name="component_type" value=""/>
+        <column name="description" value="Synonym Mapping Editor"/>
+        <column name="uri" value=""/>
+        <column name="view_component" value="atg.assetmanager.editor.view.property.DefaultEditor"/>
+        <column name="app_name" value="eCommerce Search"/>
+        <column name="mode_id" value="AmMmDef"/>
+        <column name="container_family" value=""/>
+        <column name="is_default" valueNumeric="0"/>
+        <column name="is_readonly" valueNumeric="0"/>
+        <column name="is_component" valueNumeric="0"/>
+    </insert>
+
+    <!-- Define Property View attributes -->
+    <insert tableName="vmap_pvattrdef">
+        <column name="id" value="EsPvAdDefSynonymMappingPropSvc"/>
+        <column name="description" value=""/>
+        <column name="default_value" value="/org/ecommercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService"/>
+    </insert>
+
+    <insert tableName="vmap_pvattrdef">
+        <column name="id" value="EsPvAdSynonymMappingResBund"/>
+        <column name="description" value=""/>
+        <column name="default_value" value="atg.remote.commerce.Resources"/>
+    </insert>
+
+    <!-- linke Propevety VIew attributes to Property View -->
+    <insert tableName="vmap_pv2pvad_rel">
+      <column name="view_id" value="EsPvSynonymMapping"/>
+      <column name="attr_id" value="EsPvAdDefSynonymMappingPropSvc"/>
+      <column name="name" value="customAssetPropertyService"/>
+    </insert>
+
+    <insert tableName="vmap_pv2pvad_rel">
+      <column name="view_id" value="EsPvSynonymMapping"/>
+      <column name="attr_id" value="EsPvAdSynonymMappingResBund"/>
+      <column name="name" value="resourceBundle"/>
+    </insert>
+
+    <!-- Property View Mapping for Synonym's Mapping property -->
+    <insert tableName="vmap_pvm">
+      <column name="id" value="EsPvmSynonymMapping"/>
+      <column name="description" value="Synonym Mapping Editor Property Mapping"/>
+      <column name="pview_id" value="EsPvSynonymMapping"/>
+      <column name="cpview_id" value=""/>
+    </insert>
+
+    <!-- Item View Mapping -->
+    <insert tableName="vmap_ivm">
+      <column name="id" value="EsIvmSynonymMapping"/>
+      <column name="name" value="SynonymMapping"/>
+      <column name="display_name" value="EsIvmSynonymMapping.displayName"/>
+      <column name="view_id" value="AmIvDef"/>
+      <column name="description" value="Synonym Mapping"/>
+    </insert>
+
+    <!-- Define Property View Mapping attributes -->
+    <insert tableName="vmap_attrval">
+      <column name="id" value="EsAvSynonymAdvProp"/>
+      <column name="attr_value" value="false"/>
+    </insert>
+
+    <insert tableName="vmap_attrval">
+      <column name="id" value="EsAvSynonymBnd"/>
+      <column name="attr_value" value="org.ecommercesearch.ca.BCCResources"/>
+    </insert>
+
+    <!-- Linke Property View Mapping attributes -->
+    <insert tableName="vmap_attrval_rel">
+      <column name="mapper_id" value="EsIvmSynonymMapping"/>
+      <column name="attribute_id" value="EsAvSynonymAdvProp"/>
+      <column name="name" value="includeNewProperties"/>
+    </insert>
+
+    <insert tableName="vmap_attrval_rel">
+      <column name="mapper_id" value="EsImSynonymMapping"/>
+      <column name="attribute_id" value="EsAvSynonymBnd"/>
+      <column name="name" value="resourceBundle"/>
+    </insert>
+
+    <!-- Link Item View Mapping with Property VIew Mapping -->
+    <insert tableName="vmap_ivm2pvm_rel">
+      <column name="ivm_id" value="EsIvmSynonymMapping"/>
+      <column name="pvm_id" value="EsPvmSynonymMapping"/>
+      <column name="name" value="mapping"/>
+    </insert>
+
+    <!-- Item Mapping -->
+    <insert tableName="vmap_im">
+      <column name="id" value="EsImSynonymMapping"/>
+      <column name="name" value="AssetManager"/>
+      <column name="item_path" value="/org/ecommercesearch/repository/SearchRepository"/>
+      <column name="item_name" value="synonym"/>
+      <column name="is_readonly" value=""/>
+      <column name="form_handler" value="AmFhDef"/>
+      <column name="mode_id" value="AmMmDef"/>
+      <column name="description" value="Synonym Mapping Item Mapping"/>
+    </insert>
+
+    <!-- Link Item Mapping to Item View Mapping -->
+    <insert tableName="vmap_im2ivm_rel">
+      <column name="item_id" value="EsImSynonymMapping"/>
+      <column name="sequence_num" value="0"/>
+      <column name="view_id" value="EsIvmSynonymMapping"/>
+    </insert>
+  </changeSet>
+
 
 </databaseChangeLog>

@@ -7,17 +7,42 @@
 
   <changeSet author="ecommercesearch" id="1">
     <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="es_synonym_list"/></not>
+      <not><tableExists tableName="es_syn_list_mapping"/></not>
       <not><tableExists tableName="es_synonym"/></not>
     </preConditions>
+
+    <createTable tableName="es_synonym_list">
+      <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="es_synonym_list" columnNames="syn_list_id" constraintName="es_syn_list_pk"/>
+
     <createTable tableName="es_synonym">
-      <column name="synonym_id" type="VARCHAR2(40 BYTE)">
+      <column name="syn_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
       <column name="mapping" type="VARCHAR2(512 BYTE)">
         <constraints nullable="false"/>
       </column>
     </createTable>
-    <addPrimaryKey tableName="es_synonym" columnNames="synonym_id" constraintName="es_synonym_pk"/>
+    <addPrimaryKey tableName="es_synonym" columnNames="syn_id" constraintName="es_synonym_pk"/>
+
+    <createTable tableName="es_syn_list_mapping">
+       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"
+                   foreignKeyName="es_syn_mapping_list_fk" references="es_synonym_list(syn_list_id)"/>
+       </column>
+       <column name="syn_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"
+                   foreignKeyName="es_syn_mapping_syn_fk" references="es_synonym(syn_id)"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="es_syn_list_map_pk"/>
   </changeSet>
 
 </databaseChangeLog>

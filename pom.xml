@@ -17,6 +17,14 @@
         </license>
     </licenses>
 
+    <properties>
+        <solr.version>4.0.0-BETA</solr.version>
+        <atg.version>10.0.1</atg.version>
+        <junit.version>4.10</junit.version>
+        <mockito.version>1.9.0</mockito.version>
+        <powermock.version>1.4.12</powermock.version>
+    </properties>
+
     <scm>
         <connection>scm:git:git@github.com:rmerizalde/ecommercesearch.git</connection>
         <developerConnection>scm:git:git@github.com:rmerizalde/ecommercesearch.git</developerConnection>
@@ -24,16 +32,18 @@
     </scm>
 
     <dependencies>
+      <!-- Solr -->
       <dependency>
 	      <groupId>org.apache.solr</groupId>
 	      <artifactId>solr-solrj</artifactId>
-	      <version>4.0.0-BETA</version>
+	      <version>${solr.version}</version>
       </dependency>
+      
       <!-- ATG Dynamo Application Server -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>das</artifactId>
-          <version>10.0.1</version>
+          <version>${atg.version}</version>
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
       </dependency>
@@ -41,18 +51,88 @@
       <dependency>
           <groupId>atg</groupId>
           <artifactId>dcs</artifactId>
-          <version>10.0.1</version>
+          <version>${atg.version}</version>
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/DCS/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG Dynamo Personalization Server -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>dps</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DPS/lib/classes.jar</systemPath>        
       </dependency>
       <!-- ATG Publishing -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>epub</artifactId>
-          <version>10.0.1</version>
+          <version>${atg.version}</version>
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/Publishing/base/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG BCC -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>bcc</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/BCC/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG WebUI -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>webui</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/WebUI/lib/classes.jar</systemPath>
+      </dependency>
+
+      <!-- provided -->
+
+      <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>servlet-api</artifactId>
+        <version>2.4</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-fileupload</groupId>
+        <artifactId>commons-fileupload</artifactId>
+        <version>1.2.2</version>
+        <scope>provided</scope>
       </dependency>      
+
+      <!-- Test depedencies -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.powermock</groupId>
+        <artifactId>powermock-module-junit4</artifactId>
+        <version>${powermock.version}</version>
+        <scope>test</scope>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.powermock</groupId>
+        <artifactId>powermock-api-mockito</artifactId>
+        <version>${powermock.version}</version>
+        <scope>test</scope>
+      </dependency>
+
     </dependencies>
 
     <build>
@@ -76,6 +156,16 @@
         </testResources>
 
         <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>2.12.3</version>
+              <configuration>
+                <parallel>methods</parallel>
+                <threadCount>10</threadCount>
+              </configuration>
+            </plugin>
+          
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

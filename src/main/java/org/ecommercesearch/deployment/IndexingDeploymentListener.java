@@ -1,8 +1,10 @@
 package org.ecommercesearch.deployment;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.zookeeper.KeeperException;
@@ -12,7 +14,7 @@ import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
-import atg.nucleus.ServiceMap;
+import atg.versionmanager.VersionManager;
 
 /**
  * This class implements DeploymentEventListener and should be added to the
@@ -33,7 +35,8 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 
     private SearchServer searchServer;
     private String triggerStatus;
-    private ServiceMap triggerItemTypes;
+    private List<String> triggerItemDescriptorNames;
+    private VersionManager versionManager;
 
     public SearchServer getSearchServer() {
         return searchServer;
@@ -51,43 +54,39 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         this.triggerStatus = triggerStatus;
     }
 
-    public ServiceMap getTriggerItemTypes() {
-        return triggerItemTypes;
+    public List<String> getTriggerItemDescriptorNames() {
+        return triggerItemDescriptorNames;
     }
 
-    public void setTriggerItemTypes(ServiceMap triggerItemTypes) {
-        this.triggerItemTypes = triggerItemTypes;
+    public void setTriggerItemDescriptorNames(List<String> triggerItemDescriptorNames) {
+        this.triggerItemDescriptorNames = triggerItemDescriptorNames;
     }
 
     @Override
     public void deploymentEvent(DeploymentEvent event) {
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
-            if (isLoggingInfo()) {
-                logInfo("Received event " + getTriggerStatus());
+            Map<String, Set<String>> affectedItemTypes = event.getAffectedItemTypes();
+            if (isLoggingDebug()) {
+                logDebug("Received event " + getTriggerStatus() + " -> " + affectedItemTypes);
             }
-            Map<String, String> affectedItemTypes = event.getAffectedItemTypes();
-            logDebug(affectedItemTypes.toString());
-            logDebug("" + event.getAffectedRepositories());
-            // @TODO implement this
             if (affectedItemTypes != null) {
-                // for (Entry<String, String> entry :
-                // affectedItemTypes.entrySet()) {
-
-                // Repository repository = (Repository)
-                // triggerItemTypes.get(entry.getValue());
-                // logDebug(repository.getRepositoryName());
-                // if (repository != null &&
-                // repository.getRepositoryName().equals(entry.getKey())) {
-                // pushConfigurations(affectedItemTypes.values());
-                // }
-                // }
+                for (Entry<String, Set<String>> entry : affectedItemTypes.entrySet()) {
+                    String repositoryName = entry.getKey();
+                    Set<String> itemDescriptorNames = (Set<String>) entry.getValue();
+                    for (String itemDescriptorName : itemDescriptorNames) {
+                        if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
+                            pushConfigurations(repositoryName, itemDescriptorName);
+                        }
+                    }
+                }
             }
         }
     }
 
-    public void pushConfigurations(Collection<String> itemTypes) {
+    public void pushConfigurations(String repositoryName, String itemDescriptorName) {
         if (isLoggingInfo()) {
-            logInfo("Pushing search configurations for " + itemTypes);
+            logInfo("Pushing search configurations for repository '" + repositoryName + "' and item descriptor name '"
+                    + itemDescriptorName + "'");
         }
     }
 
