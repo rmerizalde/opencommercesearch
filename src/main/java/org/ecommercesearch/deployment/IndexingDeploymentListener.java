@@ -1,20 +1,18 @@
 package org.ecommercesearch.deployment;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.zookeeper.KeeperException;
 import org.ecommercesearch.SearchServer;
+import org.ecommercesearch.SearchServerException;
 
 import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
-import atg.versionmanager.VersionManager;
+import atg.repository.RepositoryException;
 
 /**
  * This class implements DeploymentEventListener and should be added to the
@@ -36,7 +34,6 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private SearchServer searchServer;
     private String triggerStatus;
     private List<String> triggerItemDescriptorNames;
-    private VersionManager versionManager;
 
     public SearchServer getSearchServer() {
         return searchServer;
@@ -75,7 +72,8 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                     Set<String> itemDescriptorNames = (Set<String>) entry.getValue();
                     for (String itemDescriptorName : itemDescriptorNames) {
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
-                            pushConfigurations(repositoryName, itemDescriptorName);
+                            pushConfigurations(repositoryName, itemDescriptorNames);
+                            break;
                         }
                     }
                 }
@@ -83,31 +81,23 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         }
     }
 
-    public void pushConfigurations(String repositoryName, String itemDescriptorName) {
+    public void pushConfigurations(String repositoryName, Set<String> itemDescriptorNames) {
         if (isLoggingInfo()) {
-            logInfo("Pushing search configurations for repository '" + repositoryName + "' and item descriptor name '"
-                    + itemDescriptorName + "'");
+            logInfo("Notifying search server of changes in repository " + repositoryName + " for item descriptors "
+                    + itemDescriptorNames);
+        }
+        try {
+            getSearchServer().onRepositoryItemChanged(repositoryName, itemDescriptorNames);
+        } catch (RepositoryException ex) {
+            if (isLoggingError()) {
+                logError("Exception while processing deployemnt event for repository " + repositoryName
+                        + "with item descriptors " + itemDescriptorNames, ex);
+            }
+        } catch (SearchServerException ex) {
+            if (isLoggingError()) {
+                logError("Exception while processing deployemnt event for repository " + repositoryName
+                        + "with item descriptors " + itemDescriptorNames, ex);
+            }
         }
     }
-
-    public void test() throws SolrServerException, IOException, KeeperException, InterruptedException {
-        getSearchServer().ping();
-        /*
-         * ZkStateReader stateReader = solrServer.getZkStateReader(); if
-         * (stateReader != null) { SolrZkClient client =
-         * stateReader.getZkClient(); if (client != null) {
-         * ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-         * OutputStreamWriter out = new OutputStreamWriter(byteStream);
-         * 
-         * out.write("Helo world!!\n"); out.write("This is a test!!!!");
-         * out.close();
-         * 
-         * byte[] data = byteStream.toByteArray(); String path =
-         * "/configs/catalog2/test.txt"; if (!client.exists(path, true)) {
-         * client.makePath(path, data, CreateMode.PERSISTENT, true); } else {
-         * client.setData(path, data, true); } } }
-         */
-    }
-
-
 }

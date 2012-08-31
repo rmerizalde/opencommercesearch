@@ -30,7 +30,7 @@ Installation
 Add this to home at beggining <browse-item reference-id="search"/>
 
   <browse-item id="search" label="Search" is-root="true">
-    <list-definition show-count-on-header="false" id="searchFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/ecommercesearch/repository/SearchRepository:synonym">
+    <list-definition show-count-on-header="false" id="searchFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/ecommercesearch/repository/SearchRepository:synonymList">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>
   </browse-item>

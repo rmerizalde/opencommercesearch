@@ -6,5 +6,6 @@ package org.ecommercesearch.repository;
  * @rmerizalde
  */
 public class SearchRepositoryItemDescriptor {
+    public static final String SYNONYM_LIST = "synonymList";
     public static final String SYNONYM = "synonym";
 }

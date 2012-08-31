@@ -1,9 +1,9 @@
 package org.ecommercesearch.repository;
 
 /**
- * Constants for the the property names in the item descriptor synonym
- *
- * T@author rmerizalde
+ * Constants for the property names in the synonym item descriptor
+ * 
+ * @author rmerizalde
  */
 public class SynonymProperty {
     private SynonymProperty() {}
