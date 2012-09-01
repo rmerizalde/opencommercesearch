@@ -68,7 +68,37 @@ Create the /org/ecommercesearch/repository/SearchRepository.properties under Pub
     versionItemsByDefault=true
     dataSource=/atg/dynamo/service/jdbc/JTDataSource
 
+* Deploy SearchServer configuration files to use different collection/server    
+
 NOTE:
 
 After starting the bcc BCC, map the SearchRepository to each target SearchRepository. Make changss live!!
+
+
+* SOLR
+
+Workaround for reloading all cores
+
+    <Get id="oldhandler" name="handler"/>
+    <Set name="handler">
+        <New id="Rewrite" class="org.eclipse.jetty.rewrite.handler.RewriteHandler">
+          <Set name="handler">
+            <Ref id="oldhandler"/>
+          </Set>
+          <Set name="rewriteRequestURI">true</Set>
+          <Set name="rewritePathInfo">true</Set>
+          <Set name="originalPathAttribute">requestedPath</Set>
+
+          <Call name="addRule">
+            <Arg>
+              <New class="org.eclipse.jetty.rewrite.handler.RewriteRegexRule">
+                <Set name="regex">/solr/.+?/admin/cores</Set>
+                <Set name="replacement">/solr/admin/cores</Set>
+              </New>
+            </Arg>
+          </Call>
+        </New>
+    </Set>
+
+Add the jetty rewrite lib and include the options to start it.    
 

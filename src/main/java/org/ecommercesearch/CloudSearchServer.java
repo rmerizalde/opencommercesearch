@@ -5,16 +5,27 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.client.HttpClient;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
+import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.request.CoreAdminRequest;
+import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.cloud.ClusterState;
+import org.apache.solr.common.cloud.Slice;
 import org.apache.solr.common.cloud.SolrZkClient;
+import org.apache.solr.common.cloud.ZkCoreNodeProps;
+import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
+import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.ecommercesearch.repository.SearchRepositoryItemDescriptor;
@@ -41,6 +52,8 @@ import atg.repository.rql.RqlStatement;
  * 
  */
 public class CloudSearchServer extends GenericService implements SearchServer {
+    private static final BinaryResponseParser binaryParser = new BinaryResponseParser();
+
     private CloudSolrServer solrServer;
     private SolrZkClient zkClient;
     private String host;
@@ -152,10 +165,15 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST)) {
                 try {
                     exportSynonyms();
+                    reloadCore();
                 } catch (KeeperException ex) {
                     throw new SearchServerException("Exception exporting synonyms", ex);
                 } catch (InterruptedException ex) {
                     throw new SearchServerException("Exception exporting synonyms", ex);
+                } catch (SolrServerException ex) {
+                    throw new SearchServerException("Exception reloading core " + getCollection(), ex);
+                } catch (IOException ex) {
+                    throw new SearchServerException("Exception reloading core " + getCollection(), ex);
                 }
             }
         }
@@ -193,6 +211,63 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         } else {
             if (isLoggingInfo()) {
                 logInfo("No synomym lists were exported to ZooKeeper");
+            }
+        }
+    }
+
+    /**
+     * Reloads the core
+     * 
+     * @throws SolrServerException
+     *             if an error occurs while reloading the core for the synonyms
+     *             to take effect
+     * @throws IOException
+     *             if an error occurs while reloading the core for the synonyms
+     *             to take effect
+     */
+    public void reloadCore() throws IOException, SolrServerException, KeeperException, InterruptedException {
+        CoreAdminRequest adminRequest = new CoreAdminRequest();
+        adminRequest.setCoreName(getCollection());
+        adminRequest.setAction(CoreAdminAction.RELOAD);
+
+        ClusterState clusterState = solrServer.getZkStateReader().getClusterState();
+        Set<String> liveNodes = clusterState.getLiveNodes();
+
+        if (liveNodes.size() == 0) {
+            if (isLoggingInfo()) {
+                logInfo("No live nodes found, 0 cores were reloaded");
+            }
+            return;
+        }
+
+        Map<String, Slice> slices = clusterState.getSlices(getCollection());
+        if (slices.size() == 0) {
+            if (isLoggingInfo()) {
+                logInfo("No slices found, 0 cores were reloaded");
+            }
+        }
+
+        for (Slice slice : slices.values()) {
+            for (ZkNodeProps nodeProps : slice.getShards().values()) {
+                ZkCoreNodeProps coreNodeProps = new ZkCoreNodeProps(nodeProps);
+                String node = coreNodeProps.getNodeName();
+                if (!liveNodes.contains(coreNodeProps.getNodeName())
+                        || !coreNodeProps.getState().equals(ZkStateReader.ACTIVE)) {
+                    if (isLoggingInfo()) {
+                        logInfo("Node " + node + " is not live, unable to reload core " + getCollection());
+                    }
+                    continue;
+                }
+
+                if (isLoggingInfo()) {
+                    logInfo("Reloading core " + getCollection() + " on " + node);
+                }
+                HttpClient httpClient = solrServer.getLbServer().getHttpClient();
+                HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, binaryParser);
+                CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
+                if (isLoggingInfo()) {
+                    logInfo("Reladed core " + getCollection() + ", current status is " + adminResponse.getCoreStatus());
+                }
             }
         }
     }
