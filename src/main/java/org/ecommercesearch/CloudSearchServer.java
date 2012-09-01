@@ -230,6 +230,6 @@ public class CloudSearchServer extends GenericService implements SearchServer {
     }
 
     private String formatSynonymListFileName(String synonymListName) {
-        return StringUtils.replaceChars(synonymListName, ' ', '-').toLowerCase() + ".txt";
+        return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase() + ".txt";
     }
 }
