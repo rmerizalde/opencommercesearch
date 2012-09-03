@@ -45,4 +45,63 @@
     <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="es_syn_list_map_pk"/>
   </changeSet>
 
+  <changeSet author="ecommercesearch" id="2">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="es_rule"/></not>
+      <not><tableExists tableName="es_rule_cats"/></not>
+    </preConditions>
+    
+    <createTable tableName="es_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="query" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="start_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+      <column name="end_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="es_rule" columnNames="rule_id" constraintName="es_rule_pk"/>
+
+    <createTable tableName="es_rule_sites">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_sites_pk"
+               foreignKeyName="es_rule_site_rule_fk" references="es_rule(rule_id)" />
+      </column>
+      <column name="site_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_sites_pk"
+              foreignKeyName="es_rule_site_site_fk" references="site_configuration(id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="es_rule_catalogs">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_catalogs_pk"
+               foreignKeyName="es_rule_catalog_rule_fk" references="es_rule(rule_id)" />
+      </column>
+      <column name="catalog_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_catalogs_pk"
+              foreignKeyName="es_rule_catalog_cat_fk" references="dcs_catalog(catalog_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="es_rule_cats">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_cats_pk"
+               foreignKeyName="es_rule_cat_rule_fk" references="es_rule(rule_id)" />
+      </column>
+      <column name="category_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_cats_pk"
+              foreignKeyName="es_rule_cat_cat_fk" references="dcs_category(category_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
+
 </databaseChangeLog>

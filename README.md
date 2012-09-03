@@ -25,6 +25,7 @@ Installation
 * Add this atg/dynamo/service/idspaces.xml
   <id-space name="synonym" prefix="syn" seed="1" batch-size="1000"/>
   <id-space name="synonymList" prefix="synList" seed="1" batch-size="1000"/>
+  <id-space name="rule" prefix="rule" seed="1" batch-size="1000"/>
 * Add this to atg/remote/commerce/browse/MerchandisingBrowseHierarchy.xml
 
 Add this to home at beggining <browse-item reference-id="search"/>

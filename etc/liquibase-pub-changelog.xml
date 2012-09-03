@@ -205,5 +205,90 @@
     </insert>
   </changeSet>
 
+  <changeSet author="ecommercesearch" id="3">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="es_rule"/></not>
+      <not><tableExists tableName="es_rule_cats"/></not>
+    </preConditions>
+
+    <createTable tableName="es_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="query" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>      
+      <column name="start_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+      <column name="end_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="workspace_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="branch_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_head" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_deleted" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_editable" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="pred_version" type="NUMBER(19)"/>
+      <column name="checkin_date" type="TIMESTAMP"/>
+    </createTable>
+    <addPrimaryKey tableName="es_rule" columnNames="rule_id,asset_version" constraintName="es_rule_pk"/>
+
+    <createTable tableName="es_rule_sites">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="site_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+            <constraints nullable="false"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="es_rule_sites" columnNames="rule_id,site_id,asset_version" constraintName="es_rule_sites_pk"/>     
+
+    <createTable tableName="es_rule_catalogs">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="catalog_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+            <constraints nullable="false"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="es_rule_catalogs" columnNames="rule_id,catalog_id,asset_version" constraintName="es_rule_catalogs_pk"/>    
+
+    <createTable tableName="es_rule_cats">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="category_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+            <constraints nullable="false"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="es_rule_cats" columnNames="rule_id,category_id,asset_version" constraintName="es_rule_cats_pk"/>
+  </changeSet>
+
 
 </databaseChangeLog>

@@ -29,5 +29,50 @@
                     column-name="mapping" required="true"/>
         </table>
     </item-descriptor>
+
+    <item-descriptor display-name="Rule" name="rule" display-property="name" item-cache-size="1000" query-cache-size="100">
+      <table name="es_rule" type="primary" id-column-name="rule_id">
+        <property name="name" data-type="string" display-name="Name"
+                  column-name="name" required="false" category="General">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
+        <property name="query" data-type="string" display-name="Query"
+                  column-name="query" required="false" category="Trigger">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="startDate" data-type="timestamp" display-name="Start Date"
+            column-name="start_date" required="false" category="Rule Lifetime">
+            <attribute name="propertySortPriority" value="6" />
+        </property>
+        <property name="endDate" data-type="timestamp" display-name="End Date"
+            column-name="end_date" required="false" category="Rule Lifetime">
+            <attribute name="propertySortPriority" value="7" />
+        </property>
+      </table>
+
+      <table name="es_rule_sites" type="multi" id-column-name="rule_id" shared-table-sequence="1">
+        <property name="sites" display-name="Sites" data-type="set" component-item-type="siteConfiguration"
+            column-name="site_id" repository="/atg/multisite/SiteRepository" category="Trigger">
+            <attribute name="cacheReferencesById" value="true"/>
+            <attribute name="propertySortPriority" value="3" />
+        </property>
+      </table>
+
+      <table name="es_rule_catalogs" type="multi" id-column-name="rule_id" shared-table-sequence="1">
+        <property name="catalogs" display-name="Catalogs" data-type="set" component-item-type="catalog"
+            column-name="catalog_id" repository="/atg/commerce/catalog/ProductCatalog" category="Trigger">
+            <attribute name="cacheReferencesById" value="true"/>
+            <attribute name="propertySortPriority" value="4" />
+        </property>
+       </table>
+
+      <table name="es_rule_cats" type="multi" id-column-name="rule_id" shared-table-sequence="1">
+        <property name="categories" display-name="Categories" data-type="set" component-item-type="category"
+            column-name="category_id" repository="/atg/commerce/catalog/ProductCatalog" category="Trigger">
+            <attribute name="cacheReferencesById" value="true"/>
+            <attribute name="propertySortPriority" value="5" />
+        </property>
+       </table>
+    </item-descriptor>
 </gsa-template>    
 

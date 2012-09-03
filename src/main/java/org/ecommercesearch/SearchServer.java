@@ -21,6 +21,12 @@ import atg.repository.RepositoryItem;
  */
 public interface SearchServer {
 
+    UpdateResponse search(String query);
+
+    UpdateResponse search(String query, String siteId);
+
+    UpdateResponse search(String query, String siteId, String catalogId);
+
     UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException;
 
     UpdateResponse commit() throws IOException, SolrServerException;
