@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.commercesearch</groupId>
+    <artifactId>commercesearch-solr</artifactId>
+    <packaging>jar</packaging>
+    <version>0.1</version>
+    <inceptionYear>2012</inceptionYear>
+
+    <properties>
+        <solr.version>4.0.0-BETA</solr.version>
+    </properties>  
+
+    <scm>
+        <connection>scm:git:git@github.com:rmerizalde/ecommercesearch-solr.git</connection>
+        <developerConnection>scm:git:git@github.com:rmerizalde/ecommercesearch-solr.git</developerConnection>
+        <url>http://github.com/rmerizalde/ecommercesearch</url>
+    </scm>  
+
+    <dependencies>
+      <!-- Solr -->
+      <dependency>
+	      <groupId>org.apache.solr</groupId>
+	      <artifactId>solr-core</artifactId>
+	      <version>${solr.version}</version>
+        <scope>provided</scope>
+      </dependency>
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/java</directory>
+            </resource>
+        </resources>
+    </build>
+    
+</project>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE browse-hierarchy
+  PUBLIC "-//Art Technology Group, Inc.//DTD Asset Manager Browse Hierarchy//EN"
+  'http://www.atg.com/dtds/toolbar/toolbar_1.0.dtd'>
+
+<toolbar xml-combine="append">
+  
+  <operation-menu id="browseSearchOperationMenu">
+    <toolbar-scope pane-id="browse" asset-area="search"/>
+    <operation-menu-item id="edit" divider="false" submenu="false"/>
+    <operation-menu-item id="duplicate" divider="false" submenu="false"/>
+    <operation-menu-item id="delete" divider="false" submenu="false"/>
+    <operation-menu-item divider="true" submenu="false"/>
+    <operation-menu-item id="addToProject" divider="false" submenu="false"/>
+    <operation-menu-item id="export" divider="false" submenu="false"/>
+  </operation-menu>
+
+</toolbar>      

@@ -5,7 +5,7 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
 
-  <changeSet author="ecommercesearch" id="1">
+  <changeSet author="commercesearch" id="1">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="es_synonym_list"/></not>
       <not><tableExists tableName="es_syn_list_mapping"/></not>
@@ -86,7 +86,7 @@
     <addPrimaryKey tableName="es_synonym" columnNames="syn_id,asset_version" constraintName="es_synonym_pk"/>
   </changeSet>
 
-  <changeSet author="ecommercesearch" id="2">
+  <changeSet author="commercesearch" id="2">
     <preConditions onFail="MARK_RAN">
         <sqlCheck expectedResult="0">        
         SELECT COUNT(*)
@@ -103,7 +103,7 @@
         <column name="description" value="Synonym Mapping Editor"/>
         <column name="uri" value=""/>
         <column name="view_component" value="atg.assetmanager.editor.view.property.DefaultEditor"/>
-        <column name="app_name" value="eCommerce Search"/>
+        <column name="app_name" value="Commerce Search"/>
         <column name="mode_id" value="AmMmDef"/>
         <column name="container_family" value=""/>
         <column name="is_default" valueNumeric="0"/>
@@ -115,7 +115,7 @@
     <insert tableName="vmap_pvattrdef">
         <column name="id" value="EsPvAdDefSynonymMappingPropSvc"/>
         <column name="description" value=""/>
-        <column name="default_value" value="/org/ecommercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService"/>
+        <column name="default_value" value="/org/commercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService"/>
     </insert>
 
     <insert tableName="vmap_pvattrdef">
@@ -162,7 +162,7 @@
 
     <insert tableName="vmap_attrval">
       <column name="id" value="EsAvSynonymBnd"/>
-      <column name="attr_value" value="org.ecommercesearch.ca.BCCResources"/>
+      <column name="attr_value" value="org.commercesearch.ca.BCCResources"/>
     </insert>
 
     <!-- Linke Property View Mapping attributes -->
@@ -189,7 +189,7 @@
     <insert tableName="vmap_im">
       <column name="id" value="EsImSynonymMapping"/>
       <column name="name" value="AssetManager"/>
-      <column name="item_path" value="/org/ecommercesearch/repository/SearchRepository"/>
+      <column name="item_path" value="/org/commercesearch/repository/SearchRepository"/>
       <column name="item_name" value="synonym"/>
       <column name="is_readonly" value=""/>
       <column name="form_handler" value="AmFhDef"/>
@@ -205,7 +205,7 @@
     </insert>
   </changeSet>
 
-  <changeSet author="ecommercesearch" id="3">
+  <changeSet author="commercesearch" id="3">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="es_rule"/></not>
       <not><tableExists tableName="es_rule_cats"/></not>

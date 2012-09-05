@@ -5,7 +5,7 @@
     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
 
-  <changeSet author="ecommercesearch" id="1">
+  <changeSet author="commercesearch" id="1">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="es_synonym_list"/></not>
       <not><tableExists tableName="es_syn_list_mapping"/></not>
@@ -45,7 +45,7 @@
     <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="es_syn_list_map_pk"/>
   </changeSet>
 
-  <changeSet author="ecommercesearch" id="2">
+  <changeSet author="commercesearch" id="2">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="es_rule"/></not>
       <not><tableExists tableName="es_rule_cats"/></not>
