@@ -75,7 +75,6 @@
         <systemPath>${basedir}/../commercesearch-common/target/commercesearch-common-0.1.jar</systemPath>
       </dependency>
 
-
       <dependency>
         <groupId>javax.servlet</groupId>
         <artifactId>servlet-api</artifactId>

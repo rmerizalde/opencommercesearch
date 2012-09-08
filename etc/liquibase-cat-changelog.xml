@@ -7,12 +7,12 @@
 
   <changeSet author="commercesearch" id="1">
     <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="es_synonym_list"/></not>
-      <not><tableExists tableName="es_syn_list_mapping"/></not>
-      <not><tableExists tableName="es_synonym"/></not>
+      <not><tableExists tableName="cs_synonym_list"/></not>
+      <not><tableExists tableName="cs_syn_list_mapping"/></not>
+      <not><tableExists tableName="cs_synonym"/></not>
     </preConditions>
 
-    <createTable tableName="es_synonym_list">
+    <createTable tableName="cs_synonym_list">
       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
@@ -20,9 +20,9 @@
         <constraints nullable="false" />
       </column>
     </createTable>
-    <addPrimaryKey tableName="es_synonym_list" columnNames="syn_list_id" constraintName="es_syn_list_pk"/>
+    <addPrimaryKey tableName="cs_synonym_list" columnNames="syn_list_id" constraintName="cs_syn_list_pk"/>
 
-    <createTable tableName="es_synonym">
+    <createTable tableName="cs_synonym">
       <column name="syn_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
@@ -30,30 +30,33 @@
         <constraints nullable="false"/>
       </column>
     </createTable>
-    <addPrimaryKey tableName="es_synonym" columnNames="syn_id" constraintName="es_synonym_pk"/>
+    <addPrimaryKey tableName="cs_synonym" columnNames="syn_id" constraintName="cs_synonym_pk"/>
 
-    <createTable tableName="es_syn_list_mapping">
+    <createTable tableName="cs_syn_list_mapping">
        <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"
-                   foreignKeyName="es_syn_mapping_list_fk" references="es_synonym_list(syn_list_id)"/>
+                   foreignKeyName="cs_syn_mapping_list_fk" references="cs_synonym_list(syn_list_id)"/>
        </column>
        <column name="syn_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"
-                   foreignKeyName="es_syn_mapping_syn_fk" references="es_synonym(syn_id)"/>
+                   foreignKeyName="cs_syn_mapping_syn_fk" references="cs_synonym(syn_id)"/>
        </column>
     </createTable>
-    <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="es_syn_list_map_pk"/>
+    <addPrimaryKey tableName="cs_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="cs_syn_list_map_pk"/>
   </changeSet>
 
   <changeSet author="commercesearch" id="2">
     <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="es_rule"/></not>
-      <not><tableExists tableName="es_rule_cats"/></not>
+      <not><tableExists tableName="cs_rule"/></not>
+      <not><tableExists tableName="cs_rule_cats"/></not>
     </preConditions>
     
-    <createTable tableName="es_rule">
+    <createTable tableName="cs_rule">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
+      </column>
+      <column name="type" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="false" />
       </column>
       <column name="name" type="VARCHAR2(30 BYTE)">
         <constraints nullable="false" />
@@ -68,40 +71,90 @@
         <constraints nullable="true" />
       </column>
     </createTable>
-    <addPrimaryKey tableName="es_rule" columnNames="rule_id" constraintName="es_rule_pk"/>
+    <addPrimaryKey tableName="cs_rule" columnNames="rule_id" constraintName="cs_rule_pk"/>
 
-    <createTable tableName="es_rule_sites">
+    <createTable tableName="cs_rule_sites">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_sites_pk"
-               foreignKeyName="es_rule_site_rule_fk" references="es_rule(rule_id)" />
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_sites_pk"
+               foreignKeyName="cs_rule_site_rule_fk" references="cs_rule(rule_id)" />
       </column>
       <column name="site_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_sites_pk"
-              foreignKeyName="es_rule_site_site_fk" references="site_configuration(id)"/>
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_sites_pk"
+              foreignKeyName="cs_rule_site_site_fk" references="site_configuration(id)"/>
       </column>
     </createTable>
 
-    <createTable tableName="es_rule_catalogs">
+    <createTable tableName="cs_rule_catalogs">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_catalogs_pk"
-               foreignKeyName="es_rule_catalog_rule_fk" references="es_rule(rule_id)" />
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_catalogs_pk"
+               foreignKeyName="cs_rule_catalog_rule_fk" references="cs_rule(rule_id)" />
       </column>
       <column name="catalog_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_catalogs_pk"
-              foreignKeyName="es_rule_catalog_cat_fk" references="dcs_catalog(catalog_id)"/>
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_catalogs_pk"
+              foreignKeyName="cs_rule_catalog_cat_fk" references="dcs_catalog(catalog_id)"/>
       </column>
     </createTable>
 
-    <createTable tableName="es_rule_cats">
+    <createTable tableName="cs_rule_cats">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_cats_pk"
-               foreignKeyName="es_rule_cat_rule_fk" references="es_rule(rule_id)" />
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_cats_pk"
+               foreignKeyName="cs_rule_cat_rule_fk" references="cs_rule(rule_id)" />
       </column>
       <column name="category_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" primaryKey="true" primaryKeyName="es_rule_cats_pk"
-              foreignKeyName="es_rule_cat_cat_fk" references="dcs_category(category_id)"/>
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_cats_pk"
+              foreignKeyName="cs_rule_cat_cat_fk" references="dcs_category(category_id)"/>
       </column>
     </createTable>
   </changeSet>
+
+  <changeSet author="commercesearch" id="4">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_boost_rule"/></not>
+      <not><tableExists tableName="cs_boost_rule_prods"/></not>
+    </preConditions>
+    
+    <createTable tableName="cs_boost_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_pk"
+          foreignKeyName="cs_boost_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_boost_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_prod_pk"
+               foreignKeyName="cs_boot_rule_prod_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_prod_pk"
+              foreignKeyName="cs_boot_rule_prod_prod_fk" references="dcs_product(product_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_block_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_pk"
+          foreignKeyName="cs_block_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_block_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_prod_pk"
+               foreignKeyName="cs_block_rule_prod_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_prod_pk"
+              foreignKeyName="cs_block_rule_prod_prod_fk" references="dcs_product(product_id)"/>
+      </column>
+    </createTable>    
+  </changeSet>
+
+
+
+
 
 </databaseChangeLog>

@@ -1,3 +1,4 @@
+
 package org.commercesearch;
 
 import java.io.ByteArrayOutputStream;
@@ -13,6 +14,8 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
@@ -20,6 +23,7 @@ import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -32,11 +36,12 @@ import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.commercesearch.repository.RuleProperty;
 import org.commercesearch.repository.SearchRepositoryItemDescriptor;
 import org.commercesearch.repository.SynonymListProperty;
 import org.commercesearch.repository.SynonymProperty;
 
+import atg.multisite.Site;
+import atg.multisite.SiteContextManager;
 import atg.nucleus.GenericService;
 import atg.nucleus.ServiceException;
 import atg.repository.Repository;
@@ -72,6 +77,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
     private RqlStatement ruleCountRql;
     private RqlStatement ruleRql;
     private int ruleBatchSize;
+    private RuleManager ruleManager;
 
     public CloudSolrServer getSolrServer() {
         return catalogSolrServer;
@@ -186,25 +192,102 @@ public class CloudSearchServer extends GenericService implements SearchServer {
 
     public void initSolrServer() throws ServiceException {
         try {
+            if (catalogSolrServer != null) {
+                catalogSolrServer.shutdown();
+            }
             catalogSolrServer = new CloudSolrServer(getHost());
             catalogSolrServer.setDefaultCollection(getCatalogCollection());
+            if (ruleSolrServer != null) {
+                ruleSolrServer.shutdown();
+            }
             ruleSolrServer = new CloudSolrServer(getHost());
             ruleSolrServer.setDefaultCollection(getRuleCollection());
+            ruleManager = new RuleManager(searchRepository, ruleSolrServer);
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
         }
     }
     
-    public UpdateResponse search(String query) {
-        throw new UnsupportedOperationException();
+    public QueryResponse search(SolrQuery query, String... filterQueries) throws SolrServerException {
+        return search(query, SiteContextManager.getCurrentSite(), filterQueries);
     }
 
-    public UpdateResponse search(String query, String siteId) {
-        throw new UnsupportedOperationException();
+    public QueryResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException {
+        return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
     }
 
-    public UpdateResponse search(String query, String siteId, String catalogId) {
-        throw new UnsupportedOperationException();
+    public QueryResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
+            throws SolrServerException {
+        if (site == null) {
+            throw new IllegalArgumentException("Missing site");
+        }
+        if (catalog == null) {
+            throw new IllegalArgumentException("Missing catalog");
+        }
+        long startTime = System.currentTimeMillis();
+        query.addFacetField("category");
+        query.set("f.category.facet.mincount", 1);
+
+        query.set("group", true);
+        query.set("group.ngroups", true);
+        query.set("group.limit", 50);
+        query.set("group.field", "productId");
+        query.set("group.facet", true);
+        String categoryFilterQuery = setFilterQueries(query, filterQueries, catalog.getRepositoryId());
+        try {
+            ruleManager.setRuleParams(query, categoryFilterQuery);
+        } catch (RepositoryException ex) {
+            if (isLoggingError()) {
+                logError("Unable to load search rules", ex);
+            }
+        } catch (SolrServerException ex) {
+            if (isLoggingError()) {
+                logError("Unable to load search rules", ex);
+            }
+        } finally {
+            if (query.getSortFields() == null || query.getSortFields().length == 0) {
+                query.addSortField("isToos", ORDER.asc);
+                query.addSortField("score", ORDER.desc);
+            }
+        }
+        QueryResponse res = getSolrServer().query(query);
+
+        long searchTime = System.currentTimeMillis() - startTime;
+        // @TODO change ths to debug mode
+        if (isLoggingInfo()) {
+            logInfo("Search time is " + searchTime + ", search engine time is " + res.getQTime());
+        }
+        return res;
+    }
+
+    private String setFilterQueries(SolrQuery query, String[] filterQueries, String catalogId) {
+        String categoryFilterQuery = null;
+
+        query.setFacetPrefix("1." + catalogId);
+        query.addFilterQuery("category:" + "0." + catalogId);
+
+        if (filterQueries == null) {
+            return categoryFilterQuery;
+        }
+
+        for (final String filterQuery : filterQueries) {
+            if (filterQuery.startsWith("category:")) {
+                String[] parts = StringUtils.split(filterQuery, ':');
+                if (parts.length > 0) {
+                    String category = categoryFilterQuery = parts[1];
+                    int index = category.indexOf(SearchConstants.CATEGORY_SEPARATOR);
+                    if (index != -1) {
+                        int level = Integer.parseInt(category.substring(0, index));
+                        category = ++level + category.substring(index).replace("\\", "");
+
+                        query.setFacetPrefix("category", category);
+                    }
+                }
+            }
+            query.addFilterQuery(filterQuery);
+        }
+
+        return categoryFilterQuery;
     }
 
     public UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException {
@@ -261,7 +344,9 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                     throw new SearchServerException("Exception exporting synonyms", ex);
                 }
             }
-            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)) {
+            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)) {
                 try {
                     indexRules();
                 } catch (IOException ex) {
@@ -489,7 +574,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         while (rules != null) {
 
             for (RepositoryItem rule : rules) {
-                docs.add(createRuleDocument(rule));
+                docs.add(ruleManager.createRuleDocument(rule));
                 ++processed;
             }
             add(docs, getRuleCollection());
@@ -509,83 +594,4 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         }
     }
 
-    /**
-     * Create a search document representing a rule
-     * 
-     * @param rule
-     *            the repository item to be indexed
-     * @return the search document to be indexed
-     * @throws RepositoryException
-     *             is an exception occurs while retrieving data from the
-     *             repository
-     */
-    private SolrInputDocument createRuleDocument(RepositoryItem rule) throws RepositoryException {
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.setField("id", rule.getRepositoryId());
-        String query = (String) rule.getPropertyValue(RuleProperty.QUERY);
-        if (query == null || query.equals("*")) {
-            query = "__all__";
-        }
-        doc.setField("query", query);
-
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
-
-        if (sites != null && sites.size() > 0) {
-            for (RepositoryItem site : sites) {
-                doc.addField("siteId", site.getRepositoryId());
-            }
-        } else {
-            doc.setField("siteId", "__all__");
-        }
-
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> catalogs = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATALOGS);
-
-        if (catalogs != null && sites.size() > 0) {
-            for (RepositoryItem catalog : catalogs) {
-                doc.addField("catalogId", catalog.getRepositoryId());
-            }
-        } else {
-            doc.setField("catalogId", "__all__");
-        }
-
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> categories = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATEGORIES);
-
-        if (categories != null && categories.size() > 0) {
-            for (RepositoryItem category : categories) {
-                setCategoryId(doc, category);
-            }
-        } else {
-            doc.setField("categoriId", "__all__");
-        }
-
-        return doc;
-    }
-
-    /**
-     * Helper method to set the category id for document
-     * 
-     * @param doc
-     *            the document to be indexed
-     * @param category
-     *            the category's repository item
-     * @throws RepositoryException
-     *             if an exception occurs while retrieving category info
-     */
-    private void setCategoryId(SolrInputDocument doc, RepositoryItem category) throws RepositoryException {
-        if (!"category".equals(category.getItemDescriptor().getItemDescriptorName())) {
-            return;
-        }
-        doc.addField("categoryId", category.getRepositoryId());
-        @SuppressWarnings("unchecked")
-        List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue("childCategories");
-
-        if (childCategories != null) {
-            for (RepositoryItem childCategory : childCategories) {
-                setCategoryId(doc, childCategory);
-            }
-        }
-    }
 }

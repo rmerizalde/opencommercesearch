@@ -4,11 +4,14 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
 
+import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 
+import atg.multisite.Site;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 
@@ -21,11 +24,12 @@ import atg.repository.RepositoryItem;
  */
 public interface SearchServer {
 
-    UpdateResponse search(String query);
+    QueryResponse search(SolrQuery query, String... filterQueries) throws SolrServerException;
 
-    UpdateResponse search(String query, String siteId);
+    QueryResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException;
 
-    UpdateResponse search(String query, String siteId, String catalogId);
+    QueryResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
+            throws SolrServerException;
 
     UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException;
 

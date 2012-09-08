@@ -71,8 +71,11 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                     String repositoryName = entry.getKey();
                     Set<String> itemDescriptorNames = (Set<String>) entry.getValue();
                     for (String itemDescriptorName : itemDescriptorNames) {
+                        if (isLoggingDebug()) {
+                            logDebug("Processing " + itemDescriptorName + " for repository " + repositoryName);
+                        }
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
-                            pushConfigurations(repositoryName, itemDescriptorNames);
+                            notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
                         }
                     }
@@ -81,7 +84,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         }
     }
 
-    public void pushConfigurations(String repositoryName, Set<String> itemDescriptorNames) {
+    public void notifyItemChange(String repositoryName, Set<String> itemDescriptorNames) {
         if (isLoggingInfo()) {
             logInfo("Notifying search server of changes in repository " + repositoryName + " for item descriptors "
                     + itemDescriptorNames);

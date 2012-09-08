@@ -292,9 +292,9 @@ public class SearchFeed extends GenericService {
         }
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i <= hierarchyCategories.size(); i++) {
-            builder.append(i).append("/").append(catalog).append("/");
+            builder.append(i).append(".").append(catalog).append(".");
             for (int j = 0; j < i; j++) {
-                builder.append(hierarchyCategories.get(j).getItemDisplayName()).append("/");
+                builder.append(hierarchyCategories.get(j).getItemDisplayName()).append(".");
             }
             builder.setLength(builder.length() - 1);
             document.addField("category", builder.toString());

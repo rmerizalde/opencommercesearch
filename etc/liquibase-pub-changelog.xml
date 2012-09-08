@@ -7,12 +7,12 @@
 
   <changeSet author="commercesearch" id="1">
     <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="es_synonym_list"/></not>
-      <not><tableExists tableName="es_syn_list_mapping"/></not>
-      <not><tableExists tableName="es_synonym"/></not>
+      <not><tableExists tableName="cs_synonym_list"/></not>
+      <not><tableExists tableName="cs_syn_list_mapping"/></not>
+      <not><tableExists tableName="cs_synonym"/></not>
     </preConditions>
 
-    <createTable tableName="es_synonym_list">
+    <createTable tableName="cs_synonym_list">
       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
@@ -40,9 +40,9 @@
       <column name="pred_version" type="NUMBER(19)"/>
       <column name="checkin_date" type="TIMESTAMP"/>      
     </createTable>
-    <addPrimaryKey tableName="es_synonym_list" columnNames="syn_list_id,asset_version" constraintName="es_syn_list_pk"/>
+    <addPrimaryKey tableName="cs_synonym_list" columnNames="syn_list_id,asset_version" constraintName="cs_syn_list_pk"/>
 
-    <createTable tableName="es_syn_list_mapping">
+    <createTable tableName="cs_syn_list_mapping">
        <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"/>
        </column>
@@ -53,9 +53,9 @@
             <constraints nullable="false"/>
        </column>
     </createTable>
-    <addPrimaryKey tableName="es_syn_list_mapping" columnNames="syn_list_id,syn_id,asset_version" constraintName="es_syn_list_map_pk"/>
+    <addPrimaryKey tableName="cs_syn_list_mapping" columnNames="syn_list_id,syn_id,asset_version" constraintName="cs_syn_list_map_pk"/>
 
-    <createTable tableName="es_synonym">
+    <createTable tableName="cs_synonym">
       <column name="syn_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
       </column>
@@ -83,7 +83,7 @@
       <column name="pred_version" type="NUMBER(19)"/>
       <column name="checkin_date" type="TIMESTAMP"/>
     </createTable>
-    <addPrimaryKey tableName="es_synonym" columnNames="syn_id,asset_version" constraintName="es_synonym_pk"/>
+    <addPrimaryKey tableName="cs_synonym" columnNames="syn_id,asset_version" constraintName="cs_synonym_pk"/>
   </changeSet>
 
   <changeSet author="commercesearch" id="2">
@@ -207,13 +207,16 @@
 
   <changeSet author="commercesearch" id="3">
     <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="es_rule"/></not>
-      <not><tableExists tableName="es_rule_cats"/></not>
+      <not><tableExists tableName="cs_rule"/></not>
+      <not><tableExists tableName="cs_rule_cats"/></not>
     </preConditions>
 
-    <createTable tableName="es_rule">
+    <createTable tableName="cs_rule">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
+      </column>
+      <column name="type" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="false" />
       </column>
       <column name="name" type="VARCHAR2(30 BYTE)">
         <constraints nullable="false" />
@@ -248,9 +251,9 @@
       <column name="pred_version" type="NUMBER(19)"/>
       <column name="checkin_date" type="TIMESTAMP"/>
     </createTable>
-    <addPrimaryKey tableName="es_rule" columnNames="rule_id,asset_version" constraintName="es_rule_pk"/>
+    <addPrimaryKey tableName="cs_rule" columnNames="rule_id,asset_version" constraintName="cs_rule_pk"/>
 
-    <createTable tableName="es_rule_sites">
+    <createTable tableName="cs_rule_sites">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"/>
       </column>
@@ -261,9 +264,9 @@
             <constraints nullable="false"/>
        </column>
     </createTable>
-    <addPrimaryKey tableName="es_rule_sites" columnNames="rule_id,site_id,asset_version" constraintName="es_rule_sites_pk"/>     
+    <addPrimaryKey tableName="cs_rule_sites" columnNames="rule_id,site_id,asset_version" constraintName="cs_rule_sites_pk"/>     
 
-    <createTable tableName="es_rule_catalogs">
+    <createTable tableName="cs_rule_catalogs">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"/>
       </column>
@@ -274,9 +277,9 @@
             <constraints nullable="false"/>
        </column>
     </createTable>
-    <addPrimaryKey tableName="es_rule_catalogs" columnNames="rule_id,catalog_id,asset_version" constraintName="es_rule_catalogs_pk"/>    
+    <addPrimaryKey tableName="cs_rule_catalogs" columnNames="rule_id,catalog_id,asset_version" constraintName="cs_rule_catalogs_pk"/>    
 
-    <createTable tableName="es_rule_cats">
+    <createTable tableName="cs_rule_cats">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
           <constraints nullable="false"/>
       </column>
@@ -287,7 +290,63 @@
             <constraints nullable="false"/>
        </column>
     </createTable>
-    <addPrimaryKey tableName="es_rule_cats" columnNames="rule_id,category_id,asset_version" constraintName="es_rule_cats_pk"/>
+    <addPrimaryKey tableName="cs_rule_cats" columnNames="rule_id,category_id,asset_version" constraintName="cs_rule_cats_pk"/>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="4">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_boost_rule"/></not>
+      <not><tableExists tableName="cs_boost_rule_prods"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_boost_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" />
+       </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_boost_rule" columnNames="rule_id,asset_version" constraintName="cs_boost_rule_pk"/>
+
+    <createTable tableName="cs_boost_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_boost_rule_prods" columnNames="rule_id,product_id,asset_version" constraintName="cs_boost_rule_prod_pk"/>
+
+    <createTable tableName="cs_block_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" />
+       </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_block_rule" columnNames="rule_id,asset_version" constraintName="cs_block_rule_pk"/>
+
+    <createTable tableName="cs_block_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_block_rule_prods" columnNames="rule_id,product_id,asset_version" constraintName="cs_block_rule_prod_pk"/>    
   </changeSet>
 
 

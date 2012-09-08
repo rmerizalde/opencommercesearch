@@ -6,7 +6,7 @@ package org.commercesearch.repository;
  * @author rmerizalde
  */
 public class RuleProperty {
-    private RuleProperty() {
+    protected RuleProperty() {
     }
 
     public static final String ID = "id";
@@ -16,4 +16,5 @@ public class RuleProperty {
     public static final String SITES = "sites";
     public static final String CATALOGS = "catalogs";
     public static final String CATEGORIES = "categories";
+    public static final String RULE_TYPE = "ruleType";
 }
