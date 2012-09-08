@@ -349,5 +349,81 @@
     <addPrimaryKey tableName="cs_block_rule_prods" columnNames="rule_id,product_id,asset_version" constraintName="cs_block_rule_prod_pk"/>    
   </changeSet>
 
+  <changeSet author="commercesearch" id="5">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet"/></not>
+      <not><tableExists tableName="cs_field_facet"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="type" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="is_multi_select" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="workspace_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="branch_id" type="VARCHAR2(40)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_head" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_deleted" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="version_editable" type="NUMBER(1)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="pred_version" type="NUMBER(19)"/>
+      <column name="checkin_date" type="TIMESTAMP"/>
+    </createTable>
+    <addPrimaryKey tableName="cs_facet" columnNames="facet_id,asset_version" constraintName="cs_facet_pk"/>
+
+    <createTable tableName="cs_field_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="sort" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="limit" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+      <column name="min_count" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+      <column name="missing" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+      <column name="prefix" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="method" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="min_df" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>      
+    </createTable>
+    <addPrimaryKey tableName="cs_field_facet" columnNames="facet_id,asset_version" constraintName="cs_field_facet_pk"/>
+  </changeSet>
 
 </databaseChangeLog>

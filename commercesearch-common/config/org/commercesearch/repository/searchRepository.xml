@@ -114,7 +114,75 @@
       </table>
     </item-descriptor>
 
+    <!-- facets -->
+    <item-descriptor display-name="Facet" name="facet" display-property="name" item-cache-size="100" query-cache-size="100"
+        sub-type-property="facetType" sub-type-value="facet">
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="OptionalPriority" value="2" />
+      <table name="cs_facet" type="primary" id-column-name="facet_id">
+        <property name="facetType" data-type="enumerated" column-name="type" hidden="false">
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="facet"      code="0"/>
+          <option value="fieldFacet" code="1"/>
+          <option value="rangeFacet" code="2"/>
+          <option value="queryFacet" code="3"/>
+          <option value="pivotRule"  code="4"/>
+        </property>
 
+        <property name="name" data-type="string" display-name="Name"
+                  column-name="name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
+        <property name="isMultiSelect" data-type="boolean" display-name="Allow Multiple Selection"
+                  column-name="is_multi_select" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
+      </table>
+    </item-descriptor>
+
+    <item-descriptor display-name="Field Facet" name="fieldFacet" super-type="facet" sub-type-value="fieldFacet">
+      <attribute name="AdvancedPriority" value="3" />
+      <table name="cs_field_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
+        <property name="fieldName" data-type="string" display-name="Field Name"
+                  column-name="field_name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="sort" data-type="enumerated" column-name="sort" required="false" hidden="false"
+                  display-name="Sort by (default count)" category="Optional">
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="count" code="0" />
+          <option value="index" code="1"/>
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="limit" data-type="int" display-name="Max Buckets (default 100)"
+                  column-name="limit" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="3" />
+        </property>
+        <property name="minCount" data-type="int" display-name="Min Count per Bucket (default 0)"
+                  column-name="min_count" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="4" />
+        </property>
+        <property name="missing" data-type="boolean" display-name="Display 'Missing' Bucket (default false)"
+                  column-name="missing" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="5" />
+        </property>
+        <property name="facetPrefix" data-type="string" display-name="Prefix"
+                  column-name="prefix" required="false" category="Advanced">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
+        <property name="facetMethod" data-type="enumerated" column-name="method" required="false" hidden="false" display-name="Method" category="Advanced">
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="enum" code="0" />
+          <option value="fc" code="1"/>
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="minDocumentFrequency" data-type="int" display-name="Min Document Frequency (enum cache)"
+                  column-name="min_df" required="false" category="Advanced">
+          <attribute name="propertySortPriority" value="3" />
+        </property>
+
+      </table>
+    </item-descriptor>
 
 </gsa-template>    
 
