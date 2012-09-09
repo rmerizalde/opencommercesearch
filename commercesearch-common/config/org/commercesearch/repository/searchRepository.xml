@@ -114,6 +114,19 @@
       </table>
     </item-descriptor>
 
+    <item-descriptor display-name="Facet Rule" name="facetRule" super-type="rule" sub-type-value="facetRule">
+      <attribute name="FacetsPriority" value="4" />
+
+      <table name="cs_facet_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1"/>
+
+      <table name="cs_facet_rule_facets" type="multi" id-column-name="rule_id" shared-table-sequence="1">
+          <property name="facets" display-name="Facets" data-type="set" component-item-type="facet"
+              column-name="facet_id" category="Facets">
+              <attribute name="cacheReferencesById" value="false"/>
+          </property>
+      </table>
+    </item-descriptor>
+
     <!-- facets -->
     <item-descriptor display-name="Facet" name="facet" display-property="name" item-cache-size="100" query-cache-size="100"
         sub-type-property="facetType" sub-type-value="facet">

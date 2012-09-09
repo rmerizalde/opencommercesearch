@@ -77,7 +77,6 @@ public class CloudSearchServer extends GenericService implements SearchServer {
     private RqlStatement ruleCountRql;
     private RqlStatement ruleRql;
     private int ruleBatchSize;
-    private RuleManager ruleManager;
 
     public CloudSolrServer getSolrServer() {
         return catalogSolrServer;
@@ -202,21 +201,20 @@ public class CloudSearchServer extends GenericService implements SearchServer {
             }
             ruleSolrServer = new CloudSolrServer(getHost());
             ruleSolrServer.setDefaultCollection(getRuleCollection());
-            ruleManager = new RuleManager(searchRepository, ruleSolrServer);
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
         }
     }
     
-    public QueryResponse search(SolrQuery query, String... filterQueries) throws SolrServerException {
+    public SearchResponse search(SolrQuery query, String... filterQueries) throws SolrServerException {
         return search(query, SiteContextManager.getCurrentSite(), filterQueries);
     }
 
-    public QueryResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException {
+    public SearchResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException {
         return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
     }
 
-    public QueryResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
+    public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
             throws SolrServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");
@@ -233,9 +231,10 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         query.set("group.limit", 50);
         query.set("group.field", "productId");
         query.set("group.facet", true);
-        String categoryFilterQuery = setFilterQueries(query, filterQueries, catalog.getRepositoryId());
+
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), ruleSolrServer);
         try {
-            ruleManager.setRuleParams(query, categoryFilterQuery);
+            ruleManager.setRuleParams(filterQueries, catalog, query);
         } catch (RepositoryException ex) {
             if (isLoggingError()) {
                 logError("Unable to load search rules", ex);
@@ -250,45 +249,16 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                 query.addSortField("score", ORDER.desc);
             }
         }
-        QueryResponse res = getSolrServer().query(query);
+        QueryResponse queryResponse = getSolrServer().query(query);
 
         long searchTime = System.currentTimeMillis() - startTime;
         // @TODO change ths to debug mode
         if (isLoggingInfo()) {
-            logInfo("Search time is " + searchTime + ", search engine time is " + res.getQTime());
+            logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
         }
-        return res;
+        return new SearchResponse(queryResponse, ruleManager);
     }
 
-    private String setFilterQueries(SolrQuery query, String[] filterQueries, String catalogId) {
-        String categoryFilterQuery = null;
-
-        query.setFacetPrefix("1." + catalogId);
-        query.addFilterQuery("category:" + "0." + catalogId);
-
-        if (filterQueries == null) {
-            return categoryFilterQuery;
-        }
-
-        for (final String filterQuery : filterQueries) {
-            if (filterQuery.startsWith("category:")) {
-                String[] parts = StringUtils.split(filterQuery, ':');
-                if (parts.length > 0) {
-                    String category = categoryFilterQuery = parts[1];
-                    int index = category.indexOf(SearchConstants.CATEGORY_SEPARATOR);
-                    if (index != -1) {
-                        int level = Integer.parseInt(category.substring(0, index));
-                        category = ++level + category.substring(index).replace("\\", "");
-
-                        query.setFacetPrefix("category", category);
-                    }
-                }
-            }
-            query.addFilterQuery(filterQuery);
-        }
-
-        return categoryFilterQuery;
-    }
 
     public UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException {
         return add(docs, getCatalogCollection());
@@ -346,7 +316,8 @@ public class CloudSearchServer extends GenericService implements SearchServer {
             }
             if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)) {
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)) {
                 try {
                     indexRules();
                 } catch (IOException ex) {
@@ -571,6 +542,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
 
         int processed = 0;
 
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), ruleSolrServer);
         while (rules != null) {
 
             for (RepositoryItem rule : rules) {

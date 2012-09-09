@@ -6,6 +6,9 @@
   </browse-item>
 
   <browse-item id="search" label="Search" is-root="true">
+    <list-definition show-count-on-header="false" id="searchFacetRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:facetRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
     <list-definition show-count-on-header="false" id="searchBoostRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:boostRule">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>

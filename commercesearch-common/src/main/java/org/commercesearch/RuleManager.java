@@ -20,6 +20,8 @@ import org.apache.solr.common.SolrInputDocument;
 import org.commercesearch.repository.BlockRuleProperty;
 import org.commercesearch.repository.BoostRuleProperty;
 import org.commercesearch.repository.CategoryProperty;
+import org.commercesearch.repository.FacetProperty;
+import org.commercesearch.repository.FacetRuleProperty;
 import org.commercesearch.repository.RuleProperty;
 import org.commercesearch.repository.SearchRepositoryItemDescriptor;
 
@@ -34,14 +36,31 @@ import atg.repository.RepositoryItem;
  * @author rmerizalde
  * 
  */
-class RuleManager {
+public class RuleManager {
     private static final String WILDCARD = "__all__";
     private static final String FIELD_CATEGORY = "category";
 
+    private Repository searchRepository;
+    private SolrServer server;
+    private FacetManager facetManager = new FacetManager();
+    private Map<String, List<RepositoryItem>> rules;
 
-    private enum RuleType {
+    enum RuleType {
+        facetRule() {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+                for (RepositoryItem rule : rules) {
+                    System.out.println("Matched facet: " + rule.getItemDisplayName());
+                    @SuppressWarnings("unchecked")
+                    Set<RepositoryItem> facets = (Set<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
+
+                    for (RepositoryItem facet : facets) {
+                        manager.getFacetManager().addFacet(query, facet);
+                    }
+                }
+            }
+        },
         boostRule() {
-            void setParams(SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
 
                 for (RepositoryItem rule : rules) {
 
@@ -66,7 +85,7 @@ class RuleManager {
             }
         },
         blockRule() {
-            void setParams(SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
 
                 for (RepositoryItem rule : rules) {
                     System.out.println("Matched block: " + rule.getRepositoryId());
@@ -76,7 +95,6 @@ class RuleManager {
 
                     if (products != null) {
                         for (RepositoryItem product : products) {
-                            System.out.println("adding: " + product.getRepositoryId());
                             query.addFilterQuery("-productId:" + product.getRepositoryId());
                         }
                     }
@@ -85,34 +103,37 @@ class RuleManager {
             }
         };
         
-        void setParams(SolrQuery query, List<RepositoryItem> rules) {
-        }
+        abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules);
     }
-
-    private Repository searchRepository;
-    private SolrServer server;
     
     RuleManager(Repository searchRepository, SolrServer server) {
         this.searchRepository = searchRepository;
       this.server = server;
     }
+    
+    public FacetManager getFacetManager() {
+        return facetManager;
+    }
+
+    public Map<String, List<RepositoryItem>> getRules() {
+        return rules;
+    }
+
 
     /**
      * Loads the rules that matches the given query
      * 
      * @param q
      *            is the user query
-     * @return a map containing the rules per rule type
      * @throws RepositoryException
      *             if an exception happens retrieving a rule from the repository
      * @throws SolrServerException
-     *             if an exception happens quering the search engine
+     *             if an exception happens querying the search engine
      */
-    Map<String, List<RepositoryItem>> getRules(String q, String categoryFilterQuery) throws RepositoryException,
+    void loadRules(String q, String categoryFilterQuery) throws RepositoryException,
             SolrServerException {
         if (StringUtils.isBlank(q)) {
-            // throw new IllegalArgumentException("Missing query ");
-            return Collections.emptyMap();
+            throw new IllegalArgumentException("Missing query ");
         }
         SolrQuery query = new SolrQuery("(" + q + ")^2 OR query:__all__");
         int start = 0;
@@ -133,13 +154,14 @@ class RuleManager {
         QueryResponse res = server.query(query);
 
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
-            return Collections.emptyMap();
+            rules = Collections.emptyMap();
+            return;
         }
 
         SolrDocumentList docs = res.getResults();
         int numFound = (int) docs.getNumFound();
 
-        Map<String, List<RepositoryItem>> rules = new HashMap<String, List<RepositoryItem>>(numFound);
+        rules = new HashMap<String, List<RepositoryItem>>(numFound);
         while (start < numFound) {
             for (SolrDocument doc : docs) {
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
@@ -160,12 +182,16 @@ class RuleManager {
                 res = server.query(query);
             }
         }
-
-        return rules;
     }
 
-    void setRuleParams(SolrQuery query, String categoryFilterQuery) throws RepositoryException, SolrServerException {
-        setRuleParams(query, getRules(query.getQuery(), categoryFilterQuery));
+    void setRuleParams(String[] filterQueries, RepositoryItem catalog, SolrQuery query) throws RepositoryException,
+            SolrServerException {
+        if (getRules() == null) {
+            String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
+            loadRules(query.getQuery(), categoryFilterQuery);
+        }
+        setRuleParams(query, getRules());
+        setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
     }
 
     void setRuleParams(SolrQuery query, Map<String, List<RepositoryItem>> rules) {
@@ -178,10 +204,66 @@ class RuleManager {
             RuleType type = RuleType.valueOf(entry.getKey());
 
             if (type != null) {
-                type.setParams(query, entry.getValue());
+                type.setParams(this, query, entry.getValue());
             }
         }
         query.addSortField("score", ORDER.desc);
+    }
+
+    private void setFilterQueries(String[] filterQueries, String catalogId, SolrQuery query) {
+        query.setFacetPrefix("category", "1." + catalogId);
+        query.addFilterQuery("category:" + "0." + catalogId);
+
+        if (filterQueries == null) {
+            return;
+        }
+
+        for (final String filterQuery : filterQueries) {
+            String[] parts = StringUtils.split(filterQuery, ':');
+            
+            if (parts.length != 2) {
+                continue;
+            }
+
+            String fieldName = parts[0];
+            
+            if (fieldName.equals("category:")) {
+                String category = parts[1];
+                int index = category.indexOf(SearchConstants.CATEGORY_SEPARATOR);
+                if (index != -1) {
+                    int level = Integer.parseInt(category.substring(0, index));
+                    category = ++level + category.substring(index).replace("\\", "");
+
+                    query.setFacetPrefix("category", category);
+                }
+            }
+            RepositoryItem facetItem = getFacetManager().getFieldFacet(fieldName);
+            if (facetItem != null) {
+                Boolean isMultiSelect = (Boolean) facetItem.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                if (isMultiSelect != null && isMultiSelect) {
+                    query.addFilterQuery("{!tag=" + fieldName + "}" + filterQuery);
+                    continue;
+                }
+            }
+            query.addFilterQuery(filterQuery);
+        }
+    }
+
+    private String extractCategoryFilterQuery(String[] filterQueries) {
+        if (filterQueries == null) {
+            return null;
+        }
+
+        for (final String filterQuery : filterQueries) {
+            if (filterQuery.startsWith("category:")) {
+                String[] parts = StringUtils.split(filterQuery, ':');
+                if (parts.length > 0) {
+                    return parts[1];
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

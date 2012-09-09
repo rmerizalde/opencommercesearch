@@ -11,4 +11,5 @@ public class SearchRepositoryItemDescriptor {
     public static final String RULE = "rule";
     public static final String BOOST_RULE = "boostRule";
     public static final String BLOCK_RULE = "blockRule";
+    public static final String FACET_RULE = "facetRule";
 }

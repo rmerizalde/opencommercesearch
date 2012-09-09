@@ -426,4 +426,34 @@
     <addPrimaryKey tableName="cs_field_facet" columnNames="facet_id,asset_version" constraintName="cs_field_facet_pk"/>
   </changeSet>
 
+  <changeSet author="commercesearch" id="6">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet_rule"/></not>
+      <not><tableExists tableName="cs_facet_rule_facets"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_facet_rule" columnNames="rule_id,asset_version" constraintName="cs_facet_rule_pk"/>
+
+    <createTable tableName="cs_facet_rule_facets">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,asset_version" constraintName="cs_facet_rule_facet_pk"/>
+  </changeSet>
+
 </databaseChangeLog>

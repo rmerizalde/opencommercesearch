@@ -205,11 +205,31 @@
         <constraints nullable="true" />
       </column>
     </createTable>
+  </changeSet>
 
-</changeSet>
+  <changeSet author="commercesearch" id="6">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet_rule"/></not>
+      <not><tableExists tableName="cs_facet_rule_facets"/></not>
+    </preConditions>
 
+    <createTable tableName="cs_facet_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_pk"
+          foreignKeyName="cs_facet_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
 
-
-
+    <createTable tableName="cs_facet_rule_facets">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_facet_pk"
+               foreignKeyName="cs_facet_rule_facet_rule_fk"  references="cs_rule(rule_id)" />
+      </column>
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_facet_pk"
+               foreignKeyName="cs_facet_rule_facet_facet_fk" references="cs_facet(facet_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
 
 </databaseChangeLog>
