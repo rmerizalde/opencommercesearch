@@ -23,11 +23,11 @@ import atg.repository.RepositoryItem;
  */
 public interface SearchServer {
 
-    SearchResponse search(SolrQuery query, String... filterQueries) throws SolrServerException;
+    SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException;
 
-    SearchResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException;
+    SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SolrServerException;
 
-    SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
+    SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
             throws SolrServerException;
 
     UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException;

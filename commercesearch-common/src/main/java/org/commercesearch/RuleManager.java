@@ -3,6 +3,7 @@ package org.commercesearch;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -184,7 +185,8 @@ public class RuleManager {
         }
     }
 
-    void setRuleParams(String[] filterQueries, RepositoryItem catalog, SolrQuery query) throws RepositoryException,
+    void setRuleParams(FilterQuery[] filterQueries, RepositoryItem catalog, SolrQuery query)
+            throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
@@ -210,56 +212,66 @@ public class RuleManager {
         query.addSortField("score", ORDER.desc);
     }
 
-    private void setFilterQueries(String[] filterQueries, String catalogId, SolrQuery query) {
+    private void setFilterQueries(FilterQuery[] filterQueries, String catalogId, SolrQuery query) {
         query.setFacetPrefix("category", "1." + catalogId);
         query.addFilterQuery("category:" + "0." + catalogId);
 
         if (filterQueries == null) {
             return;
         }
+        
+        Map<String, Set<String>> multiExpressionFilters = new HashMap<String, Set<String>>();
 
-        for (final String filterQuery : filterQueries) {
-            String[] parts = StringUtils.split(filterQuery, ':');
-            
-            if (parts.length != 2) {
-                continue;
-            }
-
-            String fieldName = parts[0];
-            
-            if (fieldName.equals("category:")) {
-                String category = parts[1];
+        for (FilterQuery filterQuery : filterQueries) {
+            if (filterQuery.getFieldName().equals("category")) {
+                String category = filterQuery.getExpression();
                 int index = category.indexOf(SearchConstants.CATEGORY_SEPARATOR);
                 if (index != -1) {
                     int level = Integer.parseInt(category.substring(0, index));
-                    category = ++level + category.substring(index).replace("\\", "");
 
+                    category = ++level + FilterQuery.unescapeQueryChars(category.substring(index));
                     query.setFacetPrefix("category", category);
                 }
             }
-            RepositoryItem facetItem = getFacetManager().getFieldFacet(fieldName);
+            RepositoryItem facetItem = getFacetManager().getFieldFacet(filterQuery.getFieldName());
             if (facetItem != null) {
                 Boolean isMultiSelect = (Boolean) facetItem.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
                 if (isMultiSelect != null && isMultiSelect) {
-                    query.addFilterQuery("{!tag=" + fieldName + "}" + filterQuery);
+                    //query.addFilterQuery( +  + + filterQuery);
+                    Set<String> expressions = multiExpressionFilters.get(filterQuery.getFieldName());
+                    if (expressions == null) {
+                        expressions = new HashSet<String>();
+                        multiExpressionFilters.put(filterQuery.getFieldName(), expressions);
+                    }
+                    expressions.add(filterQuery.getExpression());
                     continue;
                 }
             }
-            query.addFilterQuery(filterQuery);
+            query.addFilterQuery(filterQuery.toString());
+        }
+
+        StringBuffer b = new StringBuffer();
+        for (Entry<String, Set<String>> entry : multiExpressionFilters.entrySet()) {
+            String operator = " OR ";
+            String fieldName = entry.getKey();
+            b.append("{!tag=").append(fieldName).append("}");
+            for (String expression : entry.getValue()) {
+                b.append(fieldName).append(FilterQuery.SEPARATOR).append(expression).append(operator);
+            }
+            b.setLength(b.length() - operator.length());
+            query.addFilterQuery(b.toString());
+            b.setLength(0);
         }
     }
 
-    private String extractCategoryFilterQuery(String[] filterQueries) {
+    private String extractCategoryFilterQuery(FilterQuery[] filterQueries) {
         if (filterQueries == null) {
             return null;
         }
 
-        for (final String filterQuery : filterQueries) {
-            if (filterQuery.startsWith("category:")) {
-                String[] parts = StringUtils.split(filterQuery, ':');
-                if (parts.length > 0) {
-                    return parts[1];
-                }
+        for (FilterQuery filterQuery : filterQueries) {
+            if (filterQuery.getFieldName().equals("category")) {
+                return filterQuery.getExpression();
             }
         }
 

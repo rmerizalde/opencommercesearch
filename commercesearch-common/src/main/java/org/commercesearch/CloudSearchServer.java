@@ -206,15 +206,15 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         }
     }
     
-    public SearchResponse search(SolrQuery query, String... filterQueries) throws SolrServerException {
+    public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException {
         return search(query, SiteContextManager.getCurrentSite(), filterQueries);
     }
 
-    public SearchResponse search(SolrQuery query, Site site, String... filterQueries) throws SolrServerException {
+    public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SolrServerException {
         return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
     }
 
-    public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, String... filterQueries)
+    public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
             throws SolrServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");

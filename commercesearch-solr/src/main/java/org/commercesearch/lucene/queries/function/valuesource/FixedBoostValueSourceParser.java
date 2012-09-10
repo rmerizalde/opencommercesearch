@@ -35,7 +35,6 @@ public class FixedBoostValueSourceParser extends ValueSourceParser {
         while (fp.hasMoreArguments()) {
             values.add(fp.parseArg());
         }
-        System.out.println("Calling function for field " + field + " with the following ids" + values);
         Collections.reverse(values);
         return new FixedBoostValueSource(field, fieldValueSource, values);
     }
