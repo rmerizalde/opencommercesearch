@@ -232,4 +232,53 @@
     </createTable>
   </changeSet>
 
+  <changeSet author="commercesearch" id="7">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_range_facet"/></not>
+      <not><tableExists tableName="cs_date_facet"/></not>
+    </preConditions>
+    <createTable tableName="cs_range_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_range_facet_pk"
+               foreignKeyName="cs_range_facet_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+    <createTable tableName="cs_date_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_date_facet_pk"
+               foreignKeyName="cs_date_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+  </changeSet>
+
 </databaseChangeLog>

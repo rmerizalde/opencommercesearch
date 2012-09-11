@@ -456,4 +456,59 @@
     <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,asset_version" constraintName="cs_facet_rule_facet_pk"/>
   </changeSet>
 
+  <changeSet author="commercesearch" id="7">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_range_facet"/></not>
+      <not><tableExists tableName="cs_date_facet"/></not>
+    </preConditions>
+    <createTable tableName="cs_range_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_range_facet" columnNames="facet_id,asset_version" constraintName="cs_range_facet_pk"/>
+
+    <createTable tableName="cs_date_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_date_facet" columnNames="facet_id,asset_version" constraintName="cs_date_facet_pk"/>
+  </changeSet>
 </databaseChangeLog>

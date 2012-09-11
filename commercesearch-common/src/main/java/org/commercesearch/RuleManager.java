@@ -233,7 +233,7 @@ public class RuleManager {
                     query.setFacetPrefix("category", category);
                 }
             }
-            RepositoryItem facetItem = getFacetManager().getFieldFacet(filterQuery.getFieldName());
+            RepositoryItem facetItem = getFacetManager().getFacetItem(filterQuery.getFieldName());
             if (facetItem != null) {
                 Boolean isMultiSelect = (Boolean) facetItem.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
                 if (isMultiSelect != null && isMultiSelect) {

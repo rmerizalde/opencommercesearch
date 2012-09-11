@@ -10,8 +10,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
-import org.commercesearch.repository.FacetFieldProperty;
+import org.apache.solr.client.solrj.response.RangeFacet;
+import org.apache.solr.common.params.FacetParams;
 import org.commercesearch.repository.FacetProperty;
+import org.commercesearch.repository.FieldFacetProperty;
+import org.commercesearch.repository.RangeFacetProperty;
 
 import atg.repository.RepositoryItem;
 
@@ -31,33 +34,87 @@ public class FacetManager {
     enum FacetType {
         fieldFacet() {
             void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
-                String fieldName = (String) facet.getPropertyValue(FacetFieldProperty.FIELD);
-                if (manager.getFieldFacet(fieldName) == null) {
+                String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
+                if (manager.getFacetItem(fieldName) == null) {
                     String localParams = "";
                     Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
                     if (isMultiSelect != null && isMultiSelect) {
                         localParams = "{!ex=" + fieldName + "}";
                     }
                     query.addFacetField(localParams + fieldName);
-                    setParam(query, fieldName, "limit", (Integer) facet.getPropertyValue(FacetFieldProperty.LIMIT));
+                    setParam(query, fieldName, "limit", (Integer) facet.getPropertyValue(FieldFacetProperty.LIMIT));
                     setParam(query, fieldName, "mincount",
-                            (Integer) facet.getPropertyValue(FacetFieldProperty.MIN_COUNT));
-                    setParam(query, fieldName, "sort", (String) facet.getPropertyValue(FacetFieldProperty.SORT));
-                    setParam(query, fieldName, "missing", (Boolean) facet.getPropertyValue(FacetFieldProperty.MISSING));
+                            (Integer) facet.getPropertyValue(FieldFacetProperty.MIN_COUNT));
+                    setParam(query, fieldName, "sort", (String) facet.getPropertyValue(FieldFacetProperty.SORT));
+                    setParam(query, fieldName, "missing", (Boolean) facet.getPropertyValue(FieldFacetProperty.MISSING));
                     manager.addFieldFacet(fieldName, facet);
                 }
             }
+        },
+        rangeFacet() {
+            void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
+                String fieldName = (String) facet.getPropertyValue(RangeFacetProperty.FIELD);
+                if (manager.getFacetItem(fieldName) == null) {
+                    Integer start = (Integer) facet.getPropertyValue(RangeFacetProperty.START);
+                    Integer end = (Integer) facet.getPropertyValue(RangeFacetProperty.END);
+                    Integer gap = (Integer) facet.getPropertyValue(RangeFacetProperty.GAP);
+                    String localParams = "";
+                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                    if (isMultiSelect != null && isMultiSelect) {
+                        localParams = "{!ex=" + fieldName + "}";
+                    }
 
-            private void setParam(SolrQuery query, String fieldName, String paramName, Object value) {
-                if (value != null) {
-                    query.set("f." + fieldName + ".facet." + paramName, value.toString());
+                    query.addNumericRangeFacet(fieldName, start, end, gap);
+                    if (StringUtils.isNotBlank(localParams)) {
+                        query.add(FacetParams.FACET_RANGE, localParams + fieldName);
+                    }
+                    Boolean hardened = (Boolean) facet.getPropertyValue(RangeFacetProperty.HARDENED);
+                    if (hardened != null) {
+                        setParam(query, fieldName, "hardened", hardened);
+                    }
+                    setParam(query, fieldName, "mincount", 1);
+                    addRangeParam(query, fieldName, "include", "lower");
+                    addRangeParam(query, fieldName, "other", "before");
+                    addRangeParam(query, fieldName, "other", "after");
+
+
+                    manager.addFieldFacet(fieldName, facet);
                 }
+            }
+        },
+        dateFacet() {
+            void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
+
             }
         };
         abstract void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet);
+
+        void setParam(SolrQuery query, String fieldName, String paramName, Object value) {
+            if (value != null) {
+                query.set("f." + fieldName + ".facet." + paramName, value.toString());
+            }
+        }
+
+        void addParam(SolrQuery query, String fieldName, String paramName, Object value) {
+            if (value != null) {
+                query.add("f." + fieldName + ".facet." + paramName, value.toString());
+            }
+        }
+
+        void setRangeParam(SolrQuery query, String fieldName, String paramName, Object value) {
+            if (value != null) {
+                query.set("f." + fieldName + ".facet.range." + paramName, value.toString());
+            }
+        }
+
+        void addRangeParam(SolrQuery query, String fieldName, String paramName, Object value) {
+            if (value != null) {
+                query.add("f." + fieldName + ".facet.range." + paramName, value.toString());
+            }
+        }
     }
 
-    public RepositoryItem getFieldFacet(String fieldName) {
+    public RepositoryItem getFacetItem(String fieldName) {
         if (fieldFacets == null) {
             return null;
         }
@@ -91,7 +148,16 @@ public class FacetManager {
 
     public String getFacetName(FacetField facet) {
         String facetName = facet.getName();
-        RepositoryItem facetItem = getFieldFacet(facet.getName());
+        RepositoryItem facetItem = getFacetItem(facet.getName());
+        if (facetItem != null) {
+            facetName = facetItem.getItemDisplayName();
+        }
+        return facetName;
+    }
+
+    public String getFacetName(RangeFacet facet) {
+        String facetName = facet.getName();
+        RepositoryItem facetItem = getFacetItem(facet.getName());
         if (facetItem != null) {
             facetName = facetItem.getItemDisplayName();
         }
@@ -107,14 +173,21 @@ public class FacetManager {
         return name;
     }
 
+    public String getCountName(RangeFacet.Count count) {
+        return count.getValue();
+    }
+
     public String getCountPath(Count count, FilterQuery[] filterQueries) {
+        return getCountPath(count.getName(), count.getFacetField().getName(), count.getAsFilterQuery(), filterQueries);
+    }
+
+    public String getCountPath(String name, String fieldName, String filterQuery, FilterQuery[] filterQueries) {
         FilterQuery selectedFilterQuery = null;
         if (filterQueries != null) {
             for (FilterQuery query : filterQueries) {
-                if (query.getFieldName().equals(count.getFacetField().getName())
-                        && query.getUnescapeExpression().equals(count.getName())) {
+                if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(name)) {
                     selectedFilterQuery = query;
-                } else if (count.getFacetField().getName().equals("category")
+                } else if (fieldName.equals("category")
                         && query.getFieldName().equals("category")) {
                     selectedFilterQuery = query;
                 }
@@ -123,12 +196,12 @@ public class FacetManager {
 
 
         String path = Utils.createPath(filterQueries, selectedFilterQuery);
-        if (selectedFilterQuery != null && !count.getFacetField().getName().equals("category")) {
+        if (selectedFilterQuery != null && !fieldName.equals("category")) {
             return path;
         } else if (StringUtils.isNotBlank(path)) {
-            return path + Utils.PATH_SEPARATOR + count.getAsFilterQuery();
+            return path + Utils.PATH_SEPARATOR + filterQuery;
         } else {
-            return count.getAsFilterQuery();
+            return filterQuery;
         }
     }
 

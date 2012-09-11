@@ -256,7 +256,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         if (isLoggingInfo()) {
             logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
         }
-        return new SearchResponse(queryResponse, ruleManager);
+        return new SearchResponse(queryResponse, ruleManager, filterQueries);
     }
 
 

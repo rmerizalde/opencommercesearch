@@ -138,8 +138,9 @@
           <option value="facet"      code="0"/>
           <option value="fieldFacet" code="1"/>
           <option value="rangeFacet" code="2"/>
-          <option value="queryFacet" code="3"/>
-          <option value="pivotRule"  code="4"/>
+          <option value="dateFacet"  code="3"/>
+          <option value="queryFacet" code="4"/>
+          <option value="pivotRule"  code="5"/>
         </property>
 
         <property name="name" data-type="string" display-name="Name"
@@ -193,7 +194,58 @@
                   column-name="min_df" required="false" category="Advanced">
           <attribute name="propertySortPriority" value="3" />
         </property>
+      </table>
+    </item-descriptor>
 
+    <item-descriptor display-name="Range Facet" name="rangeFacet" super-type="facet" sub-type-value="rangeFacet">
+      <attribute name="AdvancedPriority" value="3" />
+      <table name="cs_range_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
+        <property name="fieldName" data-type="string" display-name="Field Name"
+                  column-name="field_name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="start" data-type="int" display-name="Range Start"
+                  column-name="range_start" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="3" />
+        </property>
+        <property name="end" data-type="int" display-name="Range End"
+                  column-name="range_end" required="false" category="Basic">
+          <attribute name="propertySortPriority" value="4" />
+        </property>
+        <property name="gap" data-type="int" display-name="Range Gap"
+                  column-name="range_gap" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="5" />
+        </property>
+        <property name="hardened" data-type="boolean" display-name="Hardened (default false)"
+                  column-name="hardened" required="true" category="Optional">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
+      </table>
+    </item-descriptor>
+
+    <item-descriptor display-name="Date Facet" name="dateFacet" super-type="facet" sub-type-value="dateFacet">
+      <attribute name="AdvancedPriority" value="3" />
+      <table name="cs_date_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
+        <property name="fieldName" data-type="string" display-name="Field Name"
+                  column-name="field_name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="start" data-type="timestamp" display-name="Range Start"
+                  column-name="range_start" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="3" />
+        </property>
+        <property name="end" data-type="timestamp" display-name="Range End"
+                  column-name="range_end" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="4" />
+        </property>
+        <property name="gap" data-type="string" display-name="Range Gap"
+                  column-name="range_gap" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="5" />
+        </property>
+        <property name="hardened" data-type="boolean" display-name="Hardened (default false)"
+                  column-name="hardened" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="1" />
+        </property>
       </table>
     </item-descriptor>
 

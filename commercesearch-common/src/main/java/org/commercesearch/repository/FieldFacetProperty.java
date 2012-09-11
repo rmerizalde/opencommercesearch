@@ -1,7 +1,7 @@
 package org.commercesearch.repository;
 
-public class FacetFieldProperty extends FacetProperty {
-    protected FacetFieldProperty() {
+public class FieldFacetProperty extends FacetProperty {
+    protected FieldFacetProperty() {
     }
 
     public static final String FIELD = "fieldName";

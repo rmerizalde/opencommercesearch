@@ -18,6 +18,12 @@
     <list-definition show-count-on-header="false" id="searchFiledFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:fieldFacet">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>
+    <list-definition show-count-on-header="false" id="searchRangeFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:rangeFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+    <list-definition show-count-on-header="false" id="searchDateFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:dateFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
     <list-definition show-count-on-header="false" id="searchSynonymListFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:synonymList">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>
