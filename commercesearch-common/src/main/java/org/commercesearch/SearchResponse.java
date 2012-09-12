@@ -2,7 +2,10 @@ package org.commercesearch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -23,6 +26,7 @@ public class SearchResponse {
 
     private QueryResponse queryResponse;
     private RuleManager ruleManager;
+    private FacetManager facetManager;
     private FilterQuery[] filterQueries;
 
     SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries) {
@@ -64,11 +68,17 @@ public class SearchResponse {
             facets.add(facet);
         }
         getRangeFacets(facets);
+        getQueryFacets(facets);
+
         return facets;
     }
     
     private void getRangeFacets(List<Facet> facets) {
         FacetManager manager = getRuleManager().getFacetManager();
+
+        if (getQueryResponse().getFacetRanges() == null) {
+            return;
+        }
 
         for (RangeFacet<Integer, Integer> range : getQueryResponse().getFacetRanges()) {
             Facet facet = new Facet();
@@ -162,4 +172,63 @@ public class SearchResponse {
         }
         return number;
     }
+
+    private void getQueryFacets(List<Facet> facets) {
+        FacetManager manager = getRuleManager().getFacetManager();
+
+        Map<String, Integer> queryFacets = getQueryResponse().getFacetQuery();
+
+        if (queryFacets == null) {
+            return;
+        }
+
+        Facet facet = null;
+        String facetFieldName = "";
+        List<Filter> filters = null;
+
+        for (Entry<String, Integer> entry : queryFacets.entrySet()) {
+
+            Integer count = entry.getValue();
+            if (count == 0) {
+                continue;
+            }
+
+            String query = entry.getKey();
+            String[] parts = getFacetQueryParts(query);
+            if (parts == null) {
+                continue;
+            }
+
+            String fieldName = parts[0];
+            String expression = parts[1];
+
+            if (!facetFieldName.equals(fieldName)) {
+                facetFieldName = fieldName;
+                facet = new Facet();
+
+                filters = new ArrayList<Filter>();
+                facet.setName(manager.getFacetName(fieldName));
+                facet.setFilter(filters);
+                facets.add(facet);
+            }
+            Filter filter = new Filter();
+            filter.setName(Utils.getRangeName(fieldName, expression));
+            filter.setPath(manager.getCountPath(query, fieldName, fieldName + ':' + expression, filterQueries));
+            filter.setCount(count);
+            filters.add(filter);
+        }
+    }
+
+    private String[] getFacetQueryParts(String query) {
+        String[] parts = StringUtils.split(query, ':');
+        if (parts.length == 2) {
+            int index = parts[0].indexOf('}');
+            if (index != -1) {
+                parts[0] = parts[0].substring(index + 1);
+            }
+            return parts;
+        }
+        return null;
+    }
+
 }

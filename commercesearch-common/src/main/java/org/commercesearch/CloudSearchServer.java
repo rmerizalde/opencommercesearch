@@ -232,6 +232,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         query.set("group.field", "productId");
         query.set("group.facet", true);
 
+
         RuleManager ruleManager = new RuleManager(getSearchRepository(), ruleSolrServer);
         try {
             ruleManager.setRuleParams(filterQueries, catalog, query);

@@ -281,4 +281,33 @@
     </createTable>
   </changeSet>
 
+  <changeSet author="commercesearch" id="8">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_query_facet"/></not>
+      <not><tableExists tableName="cs_query_facet_queries"/></not>
+    </preConditions>
+    <createTable tableName="cs_query_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_pk"
+               foreignKeyName="cs_query_facet_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>      
+    </createTable>
+
+    <createTable tableName="cs_query_facet_queries">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_q_pk"
+               foreignKeyName="cs_query_facet_q_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_q_pk"/>
+      </column>
+      <column name="query" type="VARCHAR2(200 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
 </databaseChangeLog>

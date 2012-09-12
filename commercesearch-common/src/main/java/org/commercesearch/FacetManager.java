@@ -14,6 +14,7 @@ import org.apache.solr.client.solrj.response.RangeFacet;
 import org.apache.solr.common.params.FacetParams;
 import org.commercesearch.repository.FacetProperty;
 import org.commercesearch.repository.FieldFacetProperty;
+import org.commercesearch.repository.QueryFacetProperty;
 import org.commercesearch.repository.RangeFacetProperty;
 
 import atg.repository.RepositoryItem;
@@ -84,9 +85,29 @@ public class FacetManager {
         },
         dateFacet() {
             void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
+            }
+        },
+        queryFacet() {
+            void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
+                String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
+                if (manager.getFacetItem(fieldName) == null) {
+                    String localParams = "";
+                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                    if (isMultiSelect != null && isMultiSelect) {
+                        localParams = "{!ex=" + fieldName + "}";
+                    }
+                    @SuppressWarnings("unchecked")
+                    List<String> queries = (List<String>) facet.getPropertyValue(QueryFacetProperty.QUERIES);
 
+                    if (queries != null) {
+                        for (String q : queries) {
+                            query.addFacetQuery(localParams + fieldName + ":" + q);
+                        }
+                    }
+                }
             }
         };
+
         abstract void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet);
 
         void setParam(SolrQuery query, String fieldName, String paramName, Object value) {
@@ -144,6 +165,15 @@ public class FacetManager {
             fieldFacets = new HashMap<String, RepositoryItem>();
         }
         fieldFacets.put(fieldName, fieldFacet);
+    }
+
+    public String getFacetName(String fieldName) {
+        String facetName = fieldName;
+        RepositoryItem facetItem = getFacetItem(fieldName);
+        if (facetItem != null) {
+            facetName = facetItem.getItemDisplayName();
+        }
+        return facetName;
     }
 
     public String getFacetName(FacetField facet) {

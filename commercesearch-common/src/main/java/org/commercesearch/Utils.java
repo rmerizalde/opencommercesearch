@@ -41,4 +41,20 @@ public class Utils {
         rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? "" : value2));
         return rangeName;
     }
+
+    public static String getRangeName(String fieldName, String expression) {
+        if (expression.startsWith("[") && expression.endsWith("]")) {
+            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            if (parts.length == 2) {
+                String key = Utils.RESOURCE_IN_RANGE;
+                if ("*".equals(parts[0])) {
+                    key = Utils.RESOURCE_BEFORE;
+                } else if ("*".equals(parts[1])) {
+                    key = Utils.RESOURCE_AFTER;
+                }
+                return Utils.getRangeName(fieldName, key, parts[0], parts[1]);
+            }
+        }
+        return expression;
+    }
 }

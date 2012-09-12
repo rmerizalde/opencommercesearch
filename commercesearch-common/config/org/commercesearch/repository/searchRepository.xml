@@ -249,5 +249,22 @@
       </table>
     </item-descriptor>
 
+    <item-descriptor display-name="Query Facet" name="queryFacet" super-type="facet" sub-type-value="queryFacet">
+      <attribute name="AdvancedPriority" value="3" />
+      <table name="cs_query_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
+        <property name="fieldName" data-type="string" display-name="Field Name"
+                  column-name="field_name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+      </table>
+
+      <table name="cs_query_facet_queries" id-column-name="facet_id" multi-column-name="seq_num" type="multi" shared-table-sequence="1">
+          <property name="queries" display-name="Queries" data-type="list" component-data-type="string"
+              column-name="query">
+              <attribute name="cacheReferencesById" value="false"/>
+          </property>
+      </table>
+    </item-descriptor>  
+
 </gsa-template>    
 
