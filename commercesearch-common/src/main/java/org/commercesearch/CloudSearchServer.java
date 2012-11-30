@@ -1,7 +1,10 @@
 
 package org.commercesearch;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
@@ -11,6 +14,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -26,6 +31,9 @@ import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.ClusterState;
 import org.apache.solr.common.cloud.Slice;
@@ -68,10 +76,12 @@ public class CloudSearchServer extends GenericService implements SearchServer {
     // collection property but once a collection is used it sticks to it
     private CloudSolrServer catalogSolrServer;
     private CloudSolrServer ruleSolrServer;
+    private CloudSolrServer autoSuggetSolrServer;
     private SolrZkClient zkClient;
     private String host;
     private String catalogCollection;
     private String ruleCollection;
+    private String autoSuggestCollection;
     private Repository searchRepository;
     private RqlStatement synonymRql;
     private RqlStatement ruleCountRql;
@@ -111,6 +121,14 @@ public class CloudSearchServer extends GenericService implements SearchServer {
 
     public void setRuleCollection(String ruleCollection) {
         this.ruleCollection = ruleCollection;
+    }
+
+    public String getAutoSuggestCollection() {
+        return autoSuggestCollection;
+    }
+
+    public void setAutoSuggestCollection(String autoSuggestCollection) {
+        this.autoSuggestCollection = autoSuggestCollection;
     }
 
     public Repository getSearchRepository() {
@@ -201,11 +219,35 @@ public class CloudSearchServer extends GenericService implements SearchServer {
             }
             ruleSolrServer = new CloudSolrServer(getHost());
             ruleSolrServer.setDefaultCollection(getRuleCollection());
+            if (autoSuggetSolrServer != null) {
+                autoSuggetSolrServer.shutdown();
+            }
+            autoSuggetSolrServer = new CloudSolrServer(getHost());
+            autoSuggetSolrServer.setDefaultCollection(getAutoSuggestCollection());
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
         }
     }
     
+    public String[] suggest(String q) throws SolrServerException {
+        SolrQuery query = new SolrQuery(q);
+        
+        query.setFields("userQuery");
+        query.addSortField("count", ORDER.desc);
+        QueryResponse response = autoSuggetSolrServer.query(query);
+        SolrDocumentList docs = response.getResults();
+
+        if (docs == null) {
+            return new String[0];
+        }
+        String[] suggestions = new String[docs.size()];
+        int i = 0;
+        for (SolrDocument doc : docs) {
+            suggestions[i++] = (String) doc.getFieldValue("userQuery");
+        }
+        return suggestions;
+    }
+
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException {
         return search(query, SiteContextManager.getCurrentSite(), filterQueries);
     }
@@ -565,6 +607,66 @@ public class CloudSearchServer extends GenericService implements SearchServer {
             logInfo("Rules feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
                     + processed + " rules were indexed");
         }
+    }
+
+    public void indexUserQueries() throws SolrServerException, IOException {
+        File topQueries = new File("/tmp/top_searches.csv");
+        BufferedReader in = new BufferedReader(new FileReader(topQueries));
+
+        String line = null;
+        int id = 1;
+
+        autoSuggetSolrServer.deleteByQuery("*:*");
+        SortedMap<Integer, Integer> sm = new TreeMap<Integer, Integer>();
+        while ((line = in.readLine()) != null) {
+            line = line.trim();
+
+            if (line.length() == 0 || line.charAt(0) == '#' || line.charAt(0) == ',') {
+                continue;
+            }
+
+            String[] fields = StringUtils.split(line, ',');
+
+            if (fields.length < 4) {
+                continue;
+            }
+            String query = fields[1];
+
+            try {
+                SolrQuery q = new SolrQuery(query);
+                q.setRows(1);
+                q.setFields("productId");
+                QueryResponse res = catalogSolrServer.query(q);
+                if (res.getResults() == null || res.getResults().size() == 0) {
+                    continue;
+                }
+            } catch (SolrException ex) {
+                if (isLoggingError()) {
+                    logError(ex);
+                }
+                continue;
+            }
+
+            String count = StringUtils.replaceChars(StringUtils.replaceChars(fields[2], "\"", ""), ",", "");
+
+            SolrInputDocument doc = new SolrInputDocument();
+
+            doc.setField("id", id++);
+            doc.setField("userQuery", query);
+            doc.setField("count", count);
+
+            autoSuggetSolrServer.add(doc);
+
+            Integer key = query.length();
+            Integer length = 0;
+            if (sm.get(key) != null) {
+                length = sm.get(key);
+            }
+            length++;
+            sm.put(key, length);
+        }
+        System.out.println(sm);
+        autoSuggetSolrServer.commit();
     }
 
 }

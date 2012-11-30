@@ -22,6 +22,7 @@ import atg.repository.RepositoryItem;
  * 
  */
 public interface SearchServer {
+    String[] suggest(String query) throws SolrServerException;
 
     SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException;
 
