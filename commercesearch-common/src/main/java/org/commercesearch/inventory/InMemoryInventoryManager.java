@@ -143,6 +143,9 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
      *  Just a helper method to load inventory items
      */
     private void loadInventory(PreparedStatement inventoryStmt, int count) throws SQLException {
+    	
+    	inventoryMap = new HashMap<String, Long>(count);
+    	
         if (count > 0) {
             long startTime = System.currentTimeMillis();
             
@@ -154,11 +157,10 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
             int hits = getBatchSize();
             int items = 0;
             
-            inventoryMap = new HashMap<String, Long>(count);
             inventoryStmt.setInt(1, offset);
             inventoryStmt.setInt(2, hits);
             
-            while (inventoryStmt.execute() && offset < count) {
+            while (inventoryStmt.execute() && offset <= count) {
                 ResultSet rs = inventoryStmt.getResultSet();
 
                 while (rs.next()) {

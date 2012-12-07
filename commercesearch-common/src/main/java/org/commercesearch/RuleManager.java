@@ -175,6 +175,8 @@ public class RuleManager {
                         rules.put(ruleType, ruleList);
                     }
                     ruleList.add(rule);
+                } else {
+                	//TODO gsegura: add logging that we couldn't find the rule item in the DB
                 }
                 ++start;
             }

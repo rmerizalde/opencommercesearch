@@ -103,6 +103,11 @@
         <scope>test</scope>
       </dependency>
 
+      <dependency>
+      	<groupId>com.google.guava</groupId>
+      	<artifactId>guava</artifactId>
+      	<version>13.0.1</version>
+      </dependency>
     </dependencies>
 
     <build>
@@ -143,6 +148,7 @@
                 <configuration>
                     <includes>
                         <include>**/*.class</include>
+                        <include>**/*.java</include>
                         <include>**/*.xml</include>
                         <include>**/*.properties</include>
                     </includes>

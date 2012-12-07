@@ -60,7 +60,7 @@ public class FacetManager {
                     Integer end = (Integer) facet.getPropertyValue(RangeFacetProperty.END);
                     Integer gap = (Integer) facet.getPropertyValue(RangeFacetProperty.GAP);
                     String localParams = "";
-                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(RangeFacetProperty.IS_MULTI_SELECT);
                     if (isMultiSelect != null && isMultiSelect) {
                         localParams = "{!ex=" + fieldName + "}";
                     }
@@ -92,7 +92,7 @@ public class FacetManager {
                 String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
                 if (manager.getFacetItem(fieldName) == null) {
                     String localParams = "";
-                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(QueryFacetProperty.IS_MULTI_SELECT);
                     if (isMultiSelect != null && isMultiSelect) {
                         localParams = "{!ex=" + fieldName + "}";
                     }
