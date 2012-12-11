@@ -34,6 +34,65 @@ public abstract class SearchFeed extends GenericService {
     private RqlStatement productRql;
     private int productBatchSize;
 
+    public SearchServer getSearchServer() {
+        return searchServer;
+    }
+
+    public void setSearchServer(SearchServer searchServer) {
+        this.searchServer = searchServer;
+    }
+
+    public Repository getProductRepository() {
+        return productRepository;
+    }
+
+    public void setProductRepository(Repository productRepository) {
+        this.productRepository = productRepository;
+    }
+
+    public String getProductItemDescriptorName() {
+        return productItemDescriptorName;
+    }
+
+    public void setProductItemDescriptorName(String productItemDescriptorName) {
+        this.productItemDescriptorName = productItemDescriptorName;
+    }
+
+    public RqlStatement getProductCountRql() {
+        return productCountRql;
+    }
+
+    public void setProductCountRql(RqlStatement productCountRql) {
+        this.productCountRql = productCountRql;
+    }
+
+    public RqlStatement getProductRql() {
+        return productRql;
+    }
+
+    public void setProductRql(RqlStatement productRql) {
+        this.productRql = productRql;
+    }
+
+    public int getProductBatchSize() {
+        return productBatchSize;
+    }
+
+    public void setProductBatchSize(int productBatchSize) {
+        this.productBatchSize = productBatchSize;
+    }
+
+    public boolean isProductIndexable(RepositoryItem product) {
+        return true;
+    }
+
+    public boolean isSkuIndexable(String sku) throws InventoryException {
+        return true;
+    }
+
+    public boolean isCategoryIndexable(RepositoryItem category) {
+        return true;
+    }
  
     public void startFullFeed() throws IOException, SolrServerException, RepositoryException, SQLException,
             InventoryException {
@@ -252,64 +311,4 @@ public abstract class SearchFeed extends GenericService {
         }
     }
     
-    
-    public SearchServer getSearchServer() {
-        return searchServer;
-    }
-
-    public void setSearchServer(SearchServer searchServer) {
-        this.searchServer = searchServer;
-    }
-
-    public Repository getProductRepository() {
-        return productRepository;
-    }
-
-    public void setProductRepository(Repository productRepository) {
-        this.productRepository = productRepository;
-    }
-
-    public String getProductItemDescriptorName() {
-        return productItemDescriptorName;
-    }
-
-    public void setProductItemDescriptorName(String productItemDescriptorName) {
-        this.productItemDescriptorName = productItemDescriptorName;
-    }
-
-    public RqlStatement getProductCountRql() {
-        return productCountRql;
-    }
-
-    public void setProductCountRql(RqlStatement productCountRql) {
-        this.productCountRql = productCountRql;
-    }
-
-    public RqlStatement getProductRql() {
-        return productRql;
-    }
-
-    public void setProductRql(RqlStatement productRql) {
-        this.productRql = productRql;
-    }
-
-    public int getProductBatchSize() {
-        return productBatchSize;
-    }
-
-    public void setProductBatchSize(int productBatchSize) {
-        this.productBatchSize = productBatchSize;
-    }
-
-    public boolean isProductIndexable(RepositoryItem product) {
-        return true;
-    }
-
-    public boolean isSkuIndexable(String sku) throws InventoryException {
-        return true;
-    }
-
-    public boolean isCategoryIndexable(RepositoryItem category) {
-        return true;
-    }
 }
