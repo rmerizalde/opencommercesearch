@@ -22,22 +22,21 @@ import atg.repository.RepositoryItem;
  * 
  */
 public interface SearchServer {
-    String[] suggest(String query) throws SolrServerException;
 
-    SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException;
+    SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException;
 
-    SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SolrServerException;
+    SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException;
 
     SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
-            throws SolrServerException;
+            throws SearchServerException;
 
-    UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException;
+    UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException;
 
-    UpdateResponse commit() throws IOException, SolrServerException;
+    UpdateResponse commit() throws SearchServerException;
 
-    UpdateResponse deleteByQuery(String query) throws IOException, SolrServerException;
+    UpdateResponse deleteByQuery(String query) throws SearchServerException;
 
-    SolrPingResponse ping() throws IOException, SolrServerException;
+    SolrPingResponse ping() throws SearchServerException;
 
     /**
      * This method can be used to notify the SearchServer that an item

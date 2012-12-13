@@ -1,0 +1,392 @@
+package org.commercesearch;
+
+import atg.multisite.Site;
+import atg.multisite.SiteContextManager;
+import atg.nucleus.GenericService;
+import atg.repository.Repository;
+import atg.repository.RepositoryException;
+import atg.repository.RepositoryItem;
+import atg.repository.RepositoryView;
+import atg.repository.rql.RqlStatement;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.SolrPingResponse;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrInputDocument;
+import org.commercesearch.repository.SearchRepositoryItemDescriptor;
+
+import static org.commercesearch.SearchServerException.create;
+import static org.commercesearch.SearchServerException.Code.*;
+import static org.commercesearch.SearchServerException.ExportSynonymException;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+
+/**
+ *
+ *
+ * @author gsegura
+ * @author rmerizalde
+ */
+public abstract class AbstractSearchServer<T extends SolrServer> extends GenericService implements SearchServer {     // Current cloud implementation seem to have a bug. It support the
+    // collection property but once a collection is used it sticks to it
+    private T catalogSolrServer;
+    private T rulesSolrServer;
+    private String catalogCollection;
+    private String ruleCollection;
+    private Repository searchRepository;
+    private RqlStatement synonymRql;
+    private RqlStatement ruleCountRql;
+    private RqlStatement ruleRql;
+    private int ruleBatchSize;
+
+    public T getRulesSolrServer() {
+        return rulesSolrServer;
+    }
+
+    public void setCatalogSolrServer(T catalogSolrServer) {
+        this.catalogSolrServer = catalogSolrServer;
+    }
+
+    public T getCatalogSolrServer() {
+        return catalogSolrServer;
+    }
+
+    public void setRulesSolrServer(T rulesSolrServer) {
+        this.rulesSolrServer = rulesSolrServer;
+    }
+
+    public T getSolrServer(String collection) {
+        if (ruleCollection.equals(collection)) {
+            return rulesSolrServer;
+        }
+        return catalogSolrServer;
+    }
+
+    public String getCatalogCollection() {
+        return catalogCollection;
+    }
+
+    public void setCatalogCollection(String catalogCollection) {
+        this.catalogCollection = catalogCollection;
+    }
+
+    public String getRuleCollection() {
+        return ruleCollection;
+    }
+
+    public void setRuleCollection(String ruleCollection) {
+        this.ruleCollection = ruleCollection;
+    }
+
+    public Repository getSearchRepository() {
+        return searchRepository;
+    }
+
+    public void setSearchRepository(Repository searchRepository) {
+        this.searchRepository = searchRepository;
+    }
+
+    public RqlStatement getSynonymRql() {
+        return synonymRql;
+    }
+
+    public void setSynonymRql(RqlStatement synonymRql) {
+        this.synonymRql = synonymRql;
+    }
+
+    public RqlStatement getRuleCountRql() {
+        return ruleCountRql;
+    }
+
+    public void setRuleCountRql(RqlStatement ruleCountRql) {
+        this.ruleCountRql = ruleCountRql;
+    }
+
+    public RqlStatement getRuleRql() {
+        return ruleRql;
+    }
+
+    public void setRuleRql(RqlStatement ruleRql) {
+        this.ruleRql = ruleRql;
+    }
+
+    public int getRuleBatchSize() {
+        return ruleBatchSize;
+    }
+
+    public void setRuleBatchSize(int ruleBatchSize) {
+        this.ruleBatchSize = ruleBatchSize;
+    }
+    
+
+    public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
+        return search(query, SiteContextManager.getCurrentSite(), filterQueries);
+    }
+
+    public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
+        return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
+    }
+
+    public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
+            throws SearchServerException {
+        if (site == null) {
+            throw new IllegalArgumentException("Missing site");
+        }
+        if (catalog == null) {
+            throw new IllegalArgumentException("Missing catalog");
+        }
+        long startTime = System.currentTimeMillis();
+        query.addFacetField("category");
+        query.set("f.category.facet.mincount", 1);
+
+        query.set("group", true);
+        query.set("group.ngroups", true);
+        query.set("group.limit", 50);
+        query.set("group.field", "productId");
+        query.set("group.facet", true);
+
+
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), rulesSolrServer);
+        try {
+            ruleManager.setRuleParams(filterQueries, catalog, query);
+        } catch (RepositoryException ex) {
+            if (isLoggingError()) {
+                logError("Unable to load search rules", ex);
+            }
+        } catch (SolrServerException ex) {
+            if (isLoggingError()) {
+                logError("Unable to load search rules", ex);
+            }
+        } finally {
+            if (query.getSortFields() == null || query.getSortFields().length == 0) {
+                query.addSortField("isToos", SolrQuery.ORDER.asc);
+                query.addSortField("score", SolrQuery.ORDER.desc);
+            }
+        }
+
+        try {
+            QueryResponse queryResponse = getCatalogSolrServer().query(query);
+
+            long searchTime = System.currentTimeMillis() - startTime;
+         // @TODO change ths to debug mode
+            if (isLoggingInfo()) {
+                logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
+            }
+            return new SearchResponse(queryResponse, ruleManager, filterQueries);
+        } catch (SolrServerException ex) {
+            throw create(SEARCH_EXCEPTION, ex);
+        }
+    }
+
+
+    public UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException {
+        return add(docs, getCatalogCollection());
+    }
+
+    public UpdateResponse add(Collection<SolrInputDocument> docs, String collection) throws SearchServerException {
+        UpdateRequest req = new UpdateRequest();
+        req.add(docs);
+        req.setCommitWithin(-1);
+        req.setParam("collection", collection);
+
+        try {
+            return req.process(getSolrServer(collection));
+        } catch (SolrServerException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        }
+    }
+
+    public SolrPingResponse ping() throws SearchServerException {
+        try {
+            return getCatalogSolrServer().ping();
+        } catch (SolrServerException ex) {
+            throw create(PING_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(PING_EXCEPTION, ex);
+        }
+    }
+
+    public UpdateResponse commit() throws SearchServerException {
+        return commit(getCatalogCollection());
+    }
+
+    public UpdateResponse commit(String collection) throws SearchServerException {
+        UpdateRequest req = new UpdateRequest();
+        req.setAction(UpdateRequest.ACTION.COMMIT, true, true);
+        req.setParam("collection", collection);
+
+        try {
+            return req.process(getSolrServer(collection));
+        } catch (SolrServerException ex) {
+            throw create(COMMIT_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(COMMIT_EXCEPTION, ex);
+        }
+
+    }
+
+    public UpdateResponse deleteByQuery(String query) throws SearchServerException {
+        return deleteByQuery(query, getCatalogCollection());
+    }
+
+    public UpdateResponse deleteByQuery(String query, String collection) throws SearchServerException {
+        UpdateRequest req = new UpdateRequest();
+        req.deleteByQuery(query);
+        req.setCommitWithin(-1);
+        req.setParam("collection", collection);
+
+        try {
+            return req.process(getSolrServer(collection));
+        } catch (SolrServerException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        }
+    }
+
+    public void onRepositoryItemChanged(String repositoryName, Set<String> itemDescriptorNames)
+            throws RepositoryException, SearchServerException {
+        if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
+            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST)) {
+                exportSynonyms();
+                reloadCollections();
+            }
+            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)) {
+                indexRules();
+            }
+        }
+    }
+
+    public void onProductChanged(RepositoryItem product) throws RepositoryException, SearchServerException {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Export the synonym lists in the search repository to Zoo Keeper. Each
+     * synonym list is exported into its own file. When renaming a new list or
+     * creating its synonyms won't have effect until its get configured in an
+     * analyzer.
+     *
+     * When renaming a list that is currently being use by an analyzer it won't
+     * be deleted to prevent the analyzer from breaking. However, new changes to
+     * the renamed list won't take effect.
+     *
+     * @throws RepositoryException
+     *             when an error occurs while retrieving synonyms from the
+     *             repository
+     * @throws ExportSynonymException
+     *             if an error occurs while exporting the synonym list
+     */
+    public void exportSynonyms() throws RepositoryException, SearchServerException {
+        RepositoryView view = searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST);
+        RepositoryItem[] synonymLists = getSynonymRql().executeQuery(view, null);
+        if (synonymLists != null) {
+            for (RepositoryItem synonymList : synonymLists) {
+                exportSynonymList(synonymList);
+            }
+        } else {
+            if (isLoggingInfo()) {
+                logInfo("No synomym lists were exported to ZooKeeper");
+            }
+        }
+    }
+
+    protected abstract void exportSynonymList(RepositoryItem synonymList) throws SearchServerException;
+
+    /**
+     * Reloads the catalog and rule collections
+     *
+     * @throws SearchServerException if an error occurs while reloading the core
+     */
+    public void reloadCollections() throws SearchServerException {
+        String collectionName = getCatalogCollection();
+        reloadCollection(collectionName);
+        collectionName = getRuleCollection();
+        reloadCollection(collectionName);
+    }
+
+    /**
+     * Reloads the core
+     *
+     * @param collectionName
+     *            the cored to be reloaded
+     *
+     * @throws SearchServerException if an error occurs while reloading the core
+     * 
+     */
+     public abstract void reloadCollection(String collectionName) throws SearchServerException;
+
+    /**
+     * Indexes all repository rules in the search index
+     *
+     * @throws RepositoryException
+     *             is an exception occurs while retrieving data from the
+     *             repository
+     * @throws SolrServerException
+     *             if an exception occurs while indexing the document
+     */
+    public void indexRules() throws RepositoryException, SearchServerException {
+        long startTime = System.currentTimeMillis();
+        RepositoryView view = getSearchRepository().getView(SearchRepositoryItemDescriptor.RULE);
+        int ruleCount = ruleCountRql.executeCountQuery(view, null);
+
+        if (ruleCount == 0) {
+            deleteByQuery("*:*", getRuleCollection());
+            commit(getRuleCollection());
+
+            if (isLoggingInfo()) {
+                logInfo("No rules found for indexing");
+            }
+            return;
+        }
+
+        if (isLoggingInfo()) {
+            logInfo("Started rule feed for " + ruleCount + " rules");
+        }
+
+        // TODO fix this
+        deleteByQuery("*:*", getRuleCollection());
+
+        List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+        Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
+        RepositoryItem[] rules = ruleRql.executeQueryUncached(view, rqlArgs);
+
+        int processed = 0;
+
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), rulesSolrServer);
+        while (rules != null) {
+
+            for (RepositoryItem rule : rules) {
+                docs.add(ruleManager.createRuleDocument(rule));
+                ++processed;
+            }
+            add(docs, getRuleCollection());
+            commit(getRuleCollection());
+
+            rqlArgs[0] += getRuleBatchSize();
+            rules = ruleRql.executeQueryUncached(view, rqlArgs);
+
+            if (isLoggingInfo()) {
+                logInfo("Processed " + processed + " out of " + ruleCount);
+            }
+        }
+
+        if (isLoggingInfo()) {
+            logInfo("Rules feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
+                    + processed + " rules were indexed");
+        }
+    }
+}

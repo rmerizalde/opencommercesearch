@@ -1,14 +1,13 @@
 package org.commercesearch.feed;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 import org.commercesearch.SearchServer;
+import org.commercesearch.SearchServerException;
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
@@ -94,7 +93,7 @@ public abstract class SearchFeed extends GenericService {
         return true;
     }
  
-    public void startFullFeed() throws IOException, SolrServerException, RepositoryException, SQLException,
+    public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
             InventoryException {
         long startTime = System.currentTimeMillis();
 

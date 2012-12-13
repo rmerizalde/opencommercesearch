@@ -1,40 +1,22 @@
 
 package org.commercesearch;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.impl.HttpSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
-import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.client.solrj.response.SolrPingResponse;
-import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrException;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.cloud.ClusterState;
 import org.apache.solr.common.cloud.Slice;
 import org.apache.solr.common.cloud.SolrZkClient;
@@ -44,19 +26,15 @@ import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.commercesearch.repository.SearchRepositoryItemDescriptor;
 import org.commercesearch.repository.SynonymListProperty;
 import org.commercesearch.repository.SynonymProperty;
 
-import atg.multisite.Site;
-import atg.multisite.SiteContextManager;
-import atg.nucleus.GenericService;
+import static org.commercesearch.SearchServerException.create;
+import static org.commercesearch.SearchServerException.Code.CORE_RELOAD_EXCEPTION;
+import static org.commercesearch.SearchServerException.Code.EXPORT_SYNONYM_EXCEPTION;
+
 import atg.nucleus.ServiceException;
-import atg.repository.Repository;
-import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-import atg.repository.RepositoryView;
-import atg.repository.rql.RqlStatement;
 
 /**
  * The class implements SearchServer interface. This implementation is intended
@@ -69,35 +47,11 @@ import atg.repository.rql.RqlStatement;
  * @author rmerizalde
  * 
  */
-public class CloudSearchServer extends GenericService implements SearchServer {
+public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> implements SearchServer {
     private static final BinaryResponseParser binaryParser = new BinaryResponseParser();
 
-    // Current cloud implementation seem to have a bug. It support the
-    // collection property but once a collection is used it sticks to it
-    private CloudSolrServer catalogSolrServer;
-    private CloudSolrServer ruleSolrServer;
-    private CloudSolrServer autoSuggetSolrServer;
     private SolrZkClient zkClient;
     private String host;
-    private String catalogCollection;
-    private String ruleCollection;
-    private String autoSuggestCollection;
-    private Repository searchRepository;
-    private RqlStatement synonymRql;
-    private RqlStatement ruleCountRql;
-    private RqlStatement ruleRql;
-    private int ruleBatchSize;
-
-    public CloudSolrServer getSolrServer() {
-        return catalogSolrServer;
-    }
-
-    public CloudSolrServer getSolrServer(String collection) {
-        if (ruleCollection.equals(collection)) {
-            return ruleSolrServer;
-        }
-        return catalogSolrServer;
-    }
 
     public String getHost() {
         return host;
@@ -107,77 +61,13 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         this.host = host;
     }
 
-    public String getCatalogCollection() {
-        return catalogCollection;
-    }
-
-    public void setCatalogCollection(String catalogCollection) {
-        this.catalogCollection = catalogCollection;
-    }
-
-    public String getRuleCollection() {
-        return ruleCollection;
-    }
-
-    public void setRuleCollection(String ruleCollection) {
-        this.ruleCollection = ruleCollection;
-    }
-
-    public String getAutoSuggestCollection() {
-        return autoSuggestCollection;
-    }
-
-    public void setAutoSuggestCollection(String autoSuggestCollection) {
-        this.autoSuggestCollection = autoSuggestCollection;
-    }
-
-    public Repository getSearchRepository() {
-        return searchRepository;
-    }
-
-    public void setSearchRepository(Repository searchRepository) {
-        this.searchRepository = searchRepository;
-    }
-
-    public RqlStatement getSynonymRql() {
-        return synonymRql;
-    }
-
-    public void setSynonymRql(RqlStatement synonymRql) {
-        this.synonymRql = synonymRql;
-    }
-
-    public RqlStatement getRuleCountRql() {
-        return ruleCountRql;
-    }
-
-    public void setRuleCountRql(RqlStatement ruleCountRql) {
-        this.ruleCountRql = ruleCountRql;
-    }
-
-    public RqlStatement getRuleRql() {
-        return ruleRql;
-    }
-
-    public void setRuleRql(RqlStatement ruleRql) {
-        this.ruleRql = ruleRql;
-    }
-
-    public int getRuleBatchSize() {
-        return ruleBatchSize;
-    }
-
-    public void setRuleBatchSize(int ruleBatchSize) {
-        this.ruleBatchSize = ruleBatchSize;
-    }
-
     private SolrZkClient getZkClient() {
         if (zkClient == null) {
-            ZkStateReader stateReader = getSolrServer().getZkStateReader();
+            ZkStateReader stateReader = getCatalogSolrServer().getZkStateReader();
 
             if (stateReader == null) {
                 try {
-                    getSolrServer().ping();
+                    getCatalogSolrServer().ping();
                 } catch (IOException ex) {
                     if (isLoggingDebug()) {
                         logDebug(ex);
@@ -187,7 +77,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                         logDebug(ex);
                     }
                 }
-                stateReader = getSolrServer().getZkStateReader();
+                stateReader = getCatalogSolrServer().getZkStateReader();
             }
 
             if (stateReader != null) {
@@ -209,216 +99,38 @@ public class CloudSearchServer extends GenericService implements SearchServer {
 
     public void initSolrServer() throws ServiceException {
         try {
+            CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection());
+            
             if (catalogSolrServer != null) {
                 catalogSolrServer.shutdown();
             }
             catalogSolrServer = new CloudSolrServer(getHost());
             catalogSolrServer.setDefaultCollection(getCatalogCollection());
-            if (ruleSolrServer != null) {
-                ruleSolrServer.shutdown();
+            setCatalogSolrServer(catalogSolrServer);
+
+            CloudSolrServer rulesSolrServer = getSolrServer(getRuleCollection());
+
+            if (rulesSolrServer != null) {
+                rulesSolrServer.shutdown();
             }
-            ruleSolrServer = new CloudSolrServer(getHost());
-            ruleSolrServer.setDefaultCollection(getRuleCollection());
-            if (autoSuggetSolrServer != null) {
-                autoSuggetSolrServer.shutdown();
-            }
-            autoSuggetSolrServer = new CloudSolrServer(getHost());
-            autoSuggetSolrServer.setDefaultCollection(getAutoSuggestCollection());
+            rulesSolrServer = new CloudSolrServer(getHost());
+            rulesSolrServer.setDefaultCollection(getRuleCollection());
+            setRulesSolrServer(rulesSolrServer);
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
         }
     }
-    
-    public String[] suggest(String q) throws SolrServerException {
-        SolrQuery query = new SolrQuery(q);
-        
-        query.setFields("userQuery");
-        query.addSortField("count", ORDER.desc);
-        QueryResponse response = autoSuggetSolrServer.query(query);
-        SolrDocumentList docs = response.getResults();
 
-        if (docs == null) {
-            return new String[0];
-        }
-        String[] suggestions = new String[docs.size()];
-        int i = 0;
-        for (SolrDocument doc : docs) {
-            suggestions[i++] = (String) doc.getFieldValue("userQuery");
-        }
-        return suggestions;
-    }
-
-    public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SolrServerException {
-        return search(query, SiteContextManager.getCurrentSite(), filterQueries);
-    }
-
-    public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SolrServerException {
-        return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
-    }
-
-    public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
-            throws SolrServerException {
-        if (site == null) {
-            throw new IllegalArgumentException("Missing site");
-        }
-        if (catalog == null) {
-            throw new IllegalArgumentException("Missing catalog");
-        }
-        long startTime = System.currentTimeMillis();
-        query.addFacetField("category");
-        query.set("f.category.facet.mincount", 1);
-
-        query.set("group", true);
-        query.set("group.ngroups", true);
-        query.set("group.limit", 50);
-        query.set("group.field", "productId");
-        query.set("group.facet", true);
-
-
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), ruleSolrServer);
-        try {
-            ruleManager.setRuleParams(filterQueries, catalog, query);
-        } catch (RepositoryException ex) {
-            if (isLoggingError()) {
-                logError("Unable to load search rules", ex);
-            }
-        } catch (SolrServerException ex) {
-            if (isLoggingError()) {
-                logError("Unable to load search rules", ex);
-            }
-        } finally {
-            if (query.getSortFields() == null || query.getSortFields().length == 0) {
-                query.addSortField("isToos", ORDER.asc);
-                query.addSortField("score", ORDER.desc);
-            }
-        }
-        QueryResponse queryResponse = getSolrServer().query(query);
-
-        long searchTime = System.currentTimeMillis() - startTime;
-        // @TODO change ths to debug mode
-        if (isLoggingInfo()) {
-            logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
-        }
-        return new SearchResponse(queryResponse, ruleManager, filterQueries);
-    }
-
-
-    public UpdateResponse add(Collection<SolrInputDocument> docs) throws IOException, SolrServerException {
-        return add(docs, getCatalogCollection());
-    }
-
-    public UpdateResponse add(Collection<SolrInputDocument> docs, String collection) throws IOException,
-            SolrServerException {
-        UpdateRequest req = new UpdateRequest();
-        req.add(docs);
-        req.setCommitWithin(-1);
-        req.setParam("collection", collection);
-        return req.process(getSolrServer(collection));
-    }
-
-    public SolrPingResponse ping() throws IOException, SolrServerException {
-        return getSolrServer().ping();
-    }
-
-    public UpdateResponse commit() throws IOException, SolrServerException {
-        return commit(getCatalogCollection());
-    }
-
-    public UpdateResponse commit(String collection) throws IOException, SolrServerException {
-        UpdateRequest req = new UpdateRequest();
-        req.setAction(UpdateRequest.ACTION.COMMIT, true, true);
-        req.setParam("collection", collection);
-        return req.process(getSolrServer(collection));
-    }
-
-    public UpdateResponse deleteByQuery(String query) throws IOException, SolrServerException {
-        return deleteByQuery(query, getCatalogCollection());
-    }
-
-    public UpdateResponse deleteByQuery(String query, String collection) throws IOException, SolrServerException {
-        UpdateRequest req = new UpdateRequest();
-        req.deleteByQuery(query);
-        req.setCommitWithin(-1);
-        req.setParam("collection", collection);
-        return req.process(getSolrServer(collection));
-    }
-
-    public void onRepositoryItemChanged(String repositoryName, Set<String> itemDescriptorNames)
-            throws RepositoryException, SearchServerException {
-        if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
-            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST)) {
-                try {
-                    exportSynonyms();
-                    reloadCollections();
-                } catch (KeeperException ex) {
-                    throw new SearchServerException("Exception exporting synonyms", ex);
-                } catch (InterruptedException ex) {
-                    throw new SearchServerException("Exception exporting synonyms", ex);
-                }
-            }
-            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)) {
-                try {
-                    indexRules();
-                } catch (IOException ex) {
-                    throw new SearchServerException("Exception indexing rules", ex);
-                } catch (SolrServerException ex) {
-                    throw new SearchServerException("Exception indexing rules", ex);
-                }
-            }
-        }
-    }
-
-    public void onProductChanged(RepositoryItem product) throws RepositoryException, SearchServerException {
-        throw new UnsupportedOperationException();
-    }
-
-    /**
-     * Export the synonym lists in the search repository to Zoo Keeper. Each
-     * synonym list is exported into its own file. When renaming a new list or
-     * creating its synonyms won't have effect until its get configured in an
-     * analyzer.
-     * 
-     * When renaming a list that is currently being use by an analyzer it won't
-     * be deleted to prevent the analyzer from breaking. However, new changes to
-     * the renamed list won't take effect.
-     * 
-     * @throws RepositoryException
-     *             when an error occurs while retrieving synonyms from the
-     *             repository
-     * @throws KeeperException
-     *             if an error occurs while writing a synonym list to ZooKeeper
-     * @throws InterruptedException
-     *             if an error occurs while writing a synonym list to ZooKeeper
-     */
-    public void exportSynonyms() throws RepositoryException, KeeperException, InterruptedException {
-        RepositoryView view = searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST);
-        RepositoryItem[] synonymLists = getSynonymRql().executeQuery(view, null);
-        if (synonymLists != null) {
-            for (RepositoryItem synonymList : synonymLists) {
-                exportSynonymList(synonymList);
-            }
-        } else {
-            if (isLoggingInfo()) {
-                logInfo("No synomym lists were exported to ZooKeeper");
-            }
-        }
-    }
 
     /**
      * Exports the given synonym list into a configuration file in ZooKeeper
      * 
      * @param synonymList
      *            the synonym list's repository item
-     * @throws KeeperException
-     *             if a problem occurs while writing the file in ZooKeeper
-     * @throws InterruptedException
+     * @throws SearchServerException
      *             if a problem occurs while writing the file in ZooKeeper
      */
-    private void exportSynonymList(RepositoryItem synonymList) throws KeeperException, InterruptedException {
+    protected void exportSynonymList(RepositoryItem synonymList) throws SearchServerException {
         SolrZkClient client = getZkClient();
 
         if (client != null) {
@@ -442,58 +154,38 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                 String path = new StringBuffer("/configs/").append(collection).append("/synonyms/")
                         .append(formatSynonymListFileName(synonymList.getItemDisplayName())).toString();
 
-                if (!client.exists(path, true)) {
-                    client.makePath(path, data, CreateMode.PERSISTENT, true);
-                } else {
-                    client.setData(path, data, true);
+                try {
+                    if (!client.exists(path, true)) {
+                        client.makePath(path, data, CreateMode.PERSISTENT, true);
+                    } else {
+                        client.setData(path, data, true);
+                    }
+                } catch (KeeperException ex) {
+                    throw create(EXPORT_SYNONYM_EXCEPTION, ex);
+                } catch (InterruptedException ex) {
+                    throw create(EXPORT_SYNONYM_EXCEPTION, ex);    
                 }
             }
         }
     }
 
     /**
-     * Reloads the catalog and rule collections
-     * 
-     * @throws SearchServerException
-     */
-    public void reloadCollections() throws SearchServerException {
-        String collectionName = getCatalogCollection();
-        try {
-            reloadCollection(collectionName);
-            collectionName = getRuleCollection();
-            reloadCollection(collectionName);
-        } catch (SolrServerException ex) {
-            throw new SearchServerException("Exception reloading core " + collectionName, ex);
-        } catch (IOException ex) {
-            throw new SearchServerException("Exception reloading core " + collectionName, ex);
-        } catch (InterruptedException ex) {
-            throw new SearchServerException("Exception reloading core " + collectionName, ex);
-        } catch (KeeperException ex) {
-            throw new SearchServerException("Exception reloading core " + collectionName, ex);
-        }
-        
-    }
-
-    /**
      * Reloads the core
-     * 
+     *
      * @param collectionName
      *            the cored to be reloaded
-     * 
-     * @throws SolrServerException
-     *             if an error occurs while reloading the core for the synonyms
-     *             to take effect
-     * @throws IOException
-     *             if an error occurs while reloading the core for the synonyms
-     *             to take effect
+     *
+     * @throws SearchServerException
+     *          if an error occurs while reloading the core
+     *
      */
-    public void reloadCollection(String collectionName) throws IOException, SolrServerException, KeeperException,
-            InterruptedException {
+    public void reloadCollection(String collectionName) throws SearchServerException
+             {
         CoreAdminRequest adminRequest = new CoreAdminRequest();
         adminRequest.setCoreName(collectionName);
         adminRequest.setAction(CoreAdminAction.RELOAD);
 
-        ClusterState clusterState = getSolrServer().getZkStateReader().getClusterState();
+        ClusterState clusterState = getSolrServer(collectionName).getZkStateReader().getClusterState();
         Set<String> liveNodes = clusterState.getLiveNodes();
 
         if (liveNodes.size() == 0) {
@@ -511,7 +203,7 @@ public class CloudSearchServer extends GenericService implements SearchServer {
         }
 
         for (Slice slice : slices.values()) {
-            for (ZkNodeProps nodeProps : slice.getShards().values()) {
+            for (ZkNodeProps nodeProps : slice.getReplicas()) {
                 ZkCoreNodeProps coreNodeProps = new ZkCoreNodeProps(nodeProps);
                 String node = coreNodeProps.getNodeName();
                 if (!liveNodes.contains(coreNodeProps.getNodeName())
@@ -525,11 +217,17 @@ public class CloudSearchServer extends GenericService implements SearchServer {
                 if (isLoggingInfo()) {
                     logInfo("Reloading core " + collectionName + " on " + node);
                 }
-                HttpClient httpClient = getSolrServer().getLbServer().getHttpClient();
+                HttpClient httpClient = getSolrServer(collectionName).getLbServer().getHttpClient();
                 HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, binaryParser);
-                CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
-                if (isLoggingInfo()) {
-                    logInfo("Reladed core " + collectionName + ", current status is " + adminResponse.getCoreStatus());
+                try {
+                    CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
+                    if (isLoggingInfo()) {
+                        logInfo("Reladed core " + collectionName + ", current status is " + adminResponse.getCoreStatus());
+                    }
+                } catch (SolrServerException ex) {
+                    throw create(CORE_RELOAD_EXCEPTION, ex);
+                } catch (IOException ex) {
+                    throw create(CORE_RELOAD_EXCEPTION, ex);    
                 }
             }
         }
@@ -545,128 +243,6 @@ public class CloudSearchServer extends GenericService implements SearchServer {
      */
     private String formatSynonymListFileName(String synonymListName) {
         return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase() + ".txt";
-    }
-
-    /**
-     * Indexes all repository rules in the search index
-     * 
-     * @throws RepositoryException
-     *             is an exception occurs while retrieving data from the
-     *             repository
-     * @throws SolrServerException
-     *             if an exception occurs while indexing the document
-     * @throws IOException
-     *             if an exception occurs while indexing the document
-     */
-    public void indexRules() throws RepositoryException, SolrServerException, IOException {
-        long startTime = System.currentTimeMillis();
-        RepositoryView view = getSearchRepository().getView(SearchRepositoryItemDescriptor.RULE);
-        int ruleCount = ruleCountRql.executeCountQuery(view, null);
-
-        if (ruleCount == 0) {
-            deleteByQuery("*:*", getRuleCollection());
-            commit(getRuleCollection());
-            if (isLoggingInfo()) {
-                logInfo("No rules found for indexing");
-            }
-            return;
-        }
-
-        if (isLoggingInfo()) {
-            logInfo("Started rule feed for " + ruleCount + " rules");
-        }
-
-        // TODO fix this
-        deleteByQuery("*:*", getRuleCollection());
-
-        List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-        Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
-        RepositoryItem[] rules = ruleRql.executeQueryUncached(view, rqlArgs);
-
-        int processed = 0;
-
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), ruleSolrServer);
-        while (rules != null) {
-
-            for (RepositoryItem rule : rules) {
-                docs.add(ruleManager.createRuleDocument(rule));
-                ++processed;
-            }
-            add(docs, getRuleCollection());
-            commit(getRuleCollection());
-
-            rqlArgs[0] += getRuleBatchSize();
-            rules = ruleRql.executeQueryUncached(view, rqlArgs);
-
-            if (isLoggingInfo()) {
-                logInfo("Processed " + processed + " out of " + ruleCount);
-            }
-        }
-
-        if (isLoggingInfo()) {
-            logInfo("Rules feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                    + processed + " rules were indexed");
-        }
-    }
-
-    public void indexUserQueries() throws SolrServerException, IOException {
-        File topQueries = new File("/tmp/top_searches.csv");
-        BufferedReader in = new BufferedReader(new FileReader(topQueries));
-
-        String line = null;
-        int id = 1;
-
-        autoSuggetSolrServer.deleteByQuery("*:*");
-        SortedMap<Integer, Integer> sm = new TreeMap<Integer, Integer>();
-        while ((line = in.readLine()) != null) {
-            line = line.trim();
-
-            if (line.length() == 0 || line.charAt(0) == '#' || line.charAt(0) == ',') {
-                continue;
-            }
-
-            String[] fields = StringUtils.split(line, ',');
-
-            if (fields.length < 4) {
-                continue;
-            }
-            String query = fields[1];
-
-            try {
-                SolrQuery q = new SolrQuery(query);
-                q.setRows(1);
-                q.setFields("productId");
-                QueryResponse res = catalogSolrServer.query(q);
-                if (res.getResults() == null || res.getResults().size() == 0) {
-                    continue;
-                }
-            } catch (SolrException ex) {
-                if (isLoggingError()) {
-                    logError(ex);
-                }
-                continue;
-            }
-
-            String count = StringUtils.replaceChars(StringUtils.replaceChars(fields[2], "\"", ""), ",", "");
-
-            SolrInputDocument doc = new SolrInputDocument();
-
-            doc.setField("id", id++);
-            doc.setField("userQuery", query);
-            doc.setField("count", count);
-
-            autoSuggetSolrServer.add(doc);
-
-            Integer key = query.length();
-            Integer length = 0;
-            if (sm.get(key) != null) {
-                length = sm.get(key);
-            }
-            length++;
-            sm.put(key, length);
-        }
-        System.out.println(sm);
-        autoSuggetSolrServer.commit();
     }
 
 }

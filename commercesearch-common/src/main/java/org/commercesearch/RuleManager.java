@@ -37,7 +37,7 @@ import atg.repository.RepositoryItem;
  * @author rmerizalde
  * 
  */
-public class RuleManager {
+public class RuleManager<T extends SolrServer> {
     private static final String WILDCARD = "__all__";
     private static final String FIELD_CATEGORY = "category";
 
@@ -107,7 +107,7 @@ public class RuleManager {
         abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules);
     }
     
-    RuleManager(Repository searchRepository, SolrServer server) {
+    RuleManager(Repository searchRepository, T server) {
         this.searchRepository = searchRepository;
       this.server = server;
     }

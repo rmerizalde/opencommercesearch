@@ -18,7 +18,7 @@
     </licenses>
 
     <properties>
-        <solr.version>4.0.0-BETA</solr.version>
+        <solr.version>4.0.0</solr.version>
         <atg.version>10.0.1</atg.version>
         <junit.version>4.10</junit.version>
         <mockito.version>1.9.0</mockito.version>
@@ -38,6 +38,13 @@
 	      <artifactId>solr-solrj</artifactId>
 	      <version>${solr.version}</version>
       </dependency>
+
+      <dependency>
+	      <groupId>org.apache.solr</groupId>
+	      <artifactId>solr-test-framework</artifactId>
+	      <version>${solr.version}</version>
+      </dependency>
+      
       
       <!-- ATG Dynamo Application Server -->
       <dependency>
