@@ -46,7 +46,11 @@ public abstract class SearchFeed extends GenericService {
             logInfo("Started full feed for " + productCount + " products");
         }
         feedStarted();
-
+        // temporal
+        getSearchServer().deleteByQuery("*:*");
+        getSearchServer().commit();
+        // temporal
+        
         int processedProductCount = 0;
         int filteredProductCount = 0;
 
@@ -60,9 +64,6 @@ public abstract class SearchFeed extends GenericService {
                 if (isProductIndexable(product)) {
                     processProduct(product, documents);
                     processedProductCount++;
-                } else {
-                    documentsToDelete.add(product.getRepositoryId());
-                    filteredProductCount++;
                 }
             }
 
@@ -72,19 +73,11 @@ public abstract class SearchFeed extends GenericService {
                 documents = new ArrayList<SolrInputDocument>();
             }
             
-            if(documentsToDelete.size() > 0){
-                cleanupDocuments(getSearchServer(), documentsToDelete);
-                documentsToDelete = new ArrayList<String>();
-            }
-            
             rqlArgs[0] += getProductBatchSize();
             products = productRql.executeQueryUncached(productView, rqlArgs);
 
             if (isLoggingInfo()) {
                 logInfo("Processed " + (processedProductCount + filteredProductCount) + " out of " + productCount);
-            }
-            if (isLoggingInfo()) {
-                logInfo("Removed " +  filteredProductCount + " products ");
             }
         }
 
