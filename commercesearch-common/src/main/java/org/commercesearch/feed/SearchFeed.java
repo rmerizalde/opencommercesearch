@@ -111,19 +111,18 @@ public abstract class SearchFeed extends GenericService {
         // temporal
         
         int processedProductCount = 0;
-        int filteredProductCount = 0;
+        int indexedProductCount = 0;
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
         RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
         List<SolrInputDocument> documents = new ArrayList<SolrInputDocument>();
-        List<String> documentsToDelete = new ArrayList<String>();
         
         while (products != null) {
             for (RepositoryItem product : products) {
                 if (isProductIndexable(product)) {
                     processProduct(product, documents);
-                    processedProductCount++;
                 }
+                processedProductCount++;
             }
 
             if (documents.size() > 0) {
@@ -136,15 +135,16 @@ public abstract class SearchFeed extends GenericService {
             products = productRql.executeQueryUncached(productView, rqlArgs);
 
             if (isLoggingInfo()) {
-                logInfo("Processed " + (processedProductCount + filteredProductCount) + " out of " + productCount);
+                logInfo("Processed " + processedProductCount  + " out of " + productCount);
+                logInfo("Indexed "+ indexedProductCount + " products");
             }
         }
 
         feedFinished();
         if (isLoggingInfo()) {
             logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                    + processedProductCount + " products were indexable and " + filteredProductCount
-                    + " were filtered out");
+                    + indexedProductCount + " products were indexable from  " + processedProductCount
+                    + " processed products");
         }
     }
 
