@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.solr.client.solrj.SolrQuery;
@@ -17,8 +18,6 @@ import org.commercesearch.repository.RangeFacetProperty;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-
-import com.google.common.collect.Lists;
 
 import atg.repository.RepositoryItem;
 
@@ -68,7 +67,9 @@ public class FacetManagerTest {
 		when(queryFacet.getItemDisplayName()).thenReturn("queryName");
 		when(queryFacet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn("queryName");
 		when(queryFacet.getPropertyValue(QueryFacetProperty.IS_MULTI_SELECT)).thenReturn(true);
-		when(queryFacet.getPropertyValue(QueryFacetProperty.QUERIES)).thenReturn(Lists.newArrayList("valQueryFacet"));
+		List<String> queries = new ArrayList<String>();
+		queries.add("valQueryFacet");
+		when(queryFacet.getPropertyValue(QueryFacetProperty.QUERIES)).thenReturn(queries);
 		
 		
 		when(dateFacet.getPropertyValue(FacetProperty.TYPE)).thenReturn("dateFacet");
