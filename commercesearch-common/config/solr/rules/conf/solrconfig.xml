@@ -198,7 +198,8 @@
          http://wiki.apache.org/lucene-java/AvailableLockFactories
     -->
     <!-- <lockType>native</lockType> -->
-
+    <lockType>${solr.lockFactory:native}</lockType> 
+    
     <!-- Unlock On Startup
 
          If true, unlock any held write or commit locks on startup.

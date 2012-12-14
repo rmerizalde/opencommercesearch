@@ -1,8 +1,5 @@
 package org.commercesearch;
 
-import static org.commercesearch.SearchServerException.create;
-import static org.commercesearch.SearchServerException.Code.CORE_RELOAD_EXCEPTION;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -31,9 +28,11 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     private String solrCorePath = "solr";
     private String dataDir = "/opt/search/data";
     private boolean enabled = false;
+    private boolean inMemoryIndex = false;
+    
     private CoreContainer coreContainer;
     private File tmpConfigFile;
-
+    
     public String getSolrConfigUrl() {
         return solrConfigUrl;
     }
@@ -58,6 +57,14 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         this.enabled = enabled;
     }
 
+    public boolean getInMemoryIndex() {
+        return inMemoryIndex;
+    }
+
+    public void setInMemoryIndex(boolean inMemoryIndex) {
+        this.inMemoryIndex = inMemoryIndex;
+    }
+
     public String getDataDir() {
         return dataDir;
     }
@@ -71,7 +78,21 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         super.doStartService();
         try{            
             if(getEnabled()){
-                InputStream in = getClass().getResourceAsStream(getSolrConfigUrl());
+                String configUrl = getSolrConfigUrl();
+                
+                if(getInMemoryIndex()){
+                    System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
+                    System.setProperty("solr.lockFactory", "single");
+                    configUrl += ".ram";
+                } else {
+                    System.setProperty("data.dir", getDataDir());
+                    
+                    if (!checkDataDirectory(getDataDir())) {
+                        throw new ServiceException("Directory not found " + getDataDir());
+                    }
+                }
+                
+                InputStream in = getClass().getResourceAsStream(configUrl);
 
                 if (in != null) {
                     tmpConfigFile = File.createTempFile("solr-", ".xml");
@@ -83,12 +104,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                         logInfo("Using embedded server with config file " + tmpConfigFile.getPath());
                     }
                     out.close();
-
-                    if (!checkDataDirectory(getDataDir())) {
-                        throw new ServiceException("Directory not found " + getDataDir());
-                    }
-
-                    System.setProperty("data.dir", getDataDir());
+  
                     coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
                     setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
                     setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRuleCollection()));
