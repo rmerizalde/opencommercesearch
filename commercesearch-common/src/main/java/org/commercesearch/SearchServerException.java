@@ -1,5 +1,10 @@
 package org.commercesearch;
 
+/**
+ * This class implements provide the Exception implementation for the SearchServer API
+ * 
+ * @author rmerizalde
+ */
 public abstract class SearchServerException extends Exception {
 
     private static final long serialVersionUID = 4939401119787557866L;
