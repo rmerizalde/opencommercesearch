@@ -16,8 +16,7 @@ public abstract class SearchServerException extends Exception {
         SEARCH_EXCEPTION,
         UPDATE_EXCEPTION,
         COMMIT_EXCEPTION,
-        PING_EXCEPTION,
-        UNSUPPORTED_METHOD_EXCEPTION;
+        PING_EXCEPTION;
     }
 
     private Code code;
@@ -55,8 +54,6 @@ public abstract class SearchServerException extends Exception {
                 return new CommitException(code, throwable);
             case PING_EXCEPTION:
                 return new PingException(code, throwable);
-            case UNSUPPORTED_METHOD_EXCEPTION:
-                return new UnsupportedMethodException(code, throwable);
             default:
                 throw new IllegalArgumentException("Invalid exception code");
         }
@@ -117,12 +114,5 @@ public abstract class SearchServerException extends Exception {
         }
 
     }
-    
-    public static class UnsupportedMethodException extends SearchServerException {
 
-        public UnsupportedMethodException(Code code, Throwable throwable) {
-            super(code, throwable);
-        }
-
-    }
 }
