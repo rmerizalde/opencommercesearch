@@ -108,7 +108,7 @@ public class RuleManager<T extends SolrServer> {
     }
     
     RuleManager(Repository searchRepository, T server) {
-        this.searchRepository = searchRepository;
+      this.searchRepository = searchRepository;
       this.server = server;
     }
     
