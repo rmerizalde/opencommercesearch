@@ -1,12 +1,6 @@
 package org.commercesearch;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static org.mockito.MockitoAnnotations.initMocks;
-
-import java.util.ArrayList;
-import java.util.List;
-
+import atg.repository.RepositoryItem;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
@@ -19,7 +13,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
-import atg.repository.RepositoryItem;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.MockitoAnnotations.initMocks;
 
 public class FacetManagerTest {
 

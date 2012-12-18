@@ -141,6 +141,9 @@
             <testResource>
                 <directory>${basedir}/src/test/java</directory>
             </testResource>
+            <testResource>
+                <directory>${basedir}/testdata</directory>
+            </testResource>
         </testResources>
 
         <plugins>

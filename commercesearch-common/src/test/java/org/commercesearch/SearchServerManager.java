@@ -4,17 +4,15 @@ import atg.multisite.Site;
 import atg.nucleus.ServiceException;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
-import org.commercesearch.EmbeddedSearchServer;
-import org.commercesearch.SearchServer;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.LogManager;
@@ -54,7 +52,7 @@ public class SearchServerManager {
      * @return
      */
     public static SearchServer getSearchServer() {
-        return getSearchServer(true, null);
+        return getSearchServer(true, null, null, null);
     }
 
     /**
@@ -65,14 +63,27 @@ public class SearchServerManager {
      * @return a read-write search sever instance
      */
     public static SearchServer getSearchServer(String name) {
-        return getSearchServer(false, name);
+        return getSearchServer(false, name, null, null);
+    }
+
+    /**
+     * Returns a read-write instance which is a copy of the read only server.
+     *
+     * @param name the name to identify the new server (at its cores)
+     * @param productDataResource the URL to the XML product data resource
+     * @param rulesDataResource the URL to the XML rules data resource
+     *
+     * @return a read-write search sever instance
+     */
+    public static SearchServer getSearchServer(String name, String productDataResource, String rulesDataResource) {
+        return getSearchServer(false, name, productDataResource, rulesDataResource);
     }
 
     /**
      * Helper method to create a search server. If readonly is set to true, the read only instance is returned.
      * Otherwise, the read only instances is cloned and the given name is used to identify the new server.
      */
-    private static SearchServer getSearchServer(boolean readOnly, String name) {
+    private static SearchServer getSearchServer(boolean readOnly, String name, String productDataResource, String rulesDataResource) {
         if (searchServer == null) {
             initServer();
         }
@@ -82,7 +93,14 @@ public class SearchServerManager {
         }
 
         try {
-            return searchServer.createCopy(name);
+            EmbeddedSearchServer copy = searchServer.createCopy(name);
+            if (StringUtils.isNotBlank(productDataResource)) {
+                copy.updateCollection(copy.getCatalogCollection(), productDataResource);
+            }
+            if (StringUtils.isNotBlank(rulesDataResource)) {
+                copy.updateCollection(copy.getRulesCollection(), rulesDataResource);
+            }
+            return copy;
         } catch (SolrServerException ex) {
             throw new RuntimeException(ex);    
         } catch (IOException ex) {
@@ -109,7 +127,7 @@ public class SearchServerManager {
     private static void initServer() {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
-        searchServer.setRuleCollection("rulePreview");
+        searchServer.setRulesCollection("rulePreview");
         searchServer.setInMemoryIndex(true);
         searchServer.setEnabled(true);
         searchServer.setSolrConfigUrl("/solr/solr_preview.xml");
@@ -121,9 +139,15 @@ public class SearchServerManager {
 
         try {
             searchServer.doStartService();
+            searchServer.updateCollection(searchServer.getCatalogCollection(), "/product_catalog/bootstrap.xml");
+            searchServer.updateCollection(searchServer.getRulesCollection(), "/rules/bootstrap.xml");
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
 
         } catch (ServiceException ex) {
+            throw new RuntimeException(ex);
+        } catch (SolrServerException ex) {
+            throw new RuntimeException(ex);
+        } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
     }

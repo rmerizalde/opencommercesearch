@@ -14,9 +14,9 @@ import org.mockito.Mock;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -44,18 +44,47 @@ public class EmbeddedServerIntegrationTest {
         assertThat(res.getQTime(), greaterThanOrEqualTo(0));
     }
 
-    @SearchTest(newInstance = true)
+    /**
+     * For this test case there's really no need to use another data file. The only
+     * reason I'm using is for the sake of showing how it works.
+     */
+    @SearchTest(newInstance = true, productData = "/product_catalog/bike-products.xml")
     public void testUpdate(SearchServer server) throws SearchServerException {
+        updateProduct(server);
 
-        UpdateResponse res = addProduct(server, "PRD0000-SKU", "PRD0001");
+        SolrQuery query = new SolrQuery("tallboy");
+        SearchResponse res = server.search(query, site);
+        QueryResponse queryResponse = res.getQueryResponse();
+        GroupResponse groupResponse = queryResponse.getGroupResponse();
 
-        assertThat(res.getQTime(), greaterThanOrEqualTo(0));
+        for (GroupCommand command : groupResponse.getValues()) {
+            assertEquals(new Integer(1), command.getNGroups());
+
+            for (Group group : command.getValues()) {
+                assertEquals(false, group.getResult().get(0).getFieldValue("isToos"));
+            }
+        }
     }
 
-    @SearchTest(newInstance = true)
-    public void testSearch(SearchServer server) throws SearchServerException {
-        addProduct(server, "PRD0001-SKU", "PRD0001");
+    private UpdateResponse updateProduct(SearchServer server) throws SearchServerException {
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.setField("id", "SNZ0289-MATCAR-M");
+        doc.setField("productId", "SNZ0289");
+        doc.setField("title", "Santa Cruz Bicycles Tallboy LT Carbon - 2010");
+        doc.setField("isToos", "false");
+        doc.setField("category", "0.myCatalog");
+        doc.setField("categoryId", "category0");
+        doc.setField("listRank", "1");
+        doc.setField("seoUrl", "/santa-cruz-bicycles-tallboy-lt-carbon");
+        doc.setField("image", "MATCAR.jpg");
+        doc.setField("brandId", "100000796");
+        server.add(Arrays.asList(doc));
 
+        return server.commit();
+    }    
+
+    @SearchTest(newInstance = false)
+    public void testSearch(SearchServer server) throws SearchServerException {
         SolrQuery query = new SolrQuery("face");
         SearchResponse res = server.search(query, site);
         QueryResponse queryResponse = res.getQueryResponse();
@@ -71,9 +100,8 @@ public class EmbeddedServerIntegrationTest {
  
     }
 
-    @SearchTest(newInstance = true)
+    @SearchTest(newInstance = false)
     public void testEmptySearch(SearchServer server) throws SearchServerException {
-        addProduct(server, "PRD0001-SKU", "PRD0001");
 
         SolrQuery query = new SolrQuery("bike");
         SearchResponse res = server.search(query, site);
@@ -85,20 +113,5 @@ public class EmbeddedServerIntegrationTest {
         }
     }
 
-    private UpdateResponse addProduct(SearchServer server, String id, String productId) throws SearchServerException {
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.setField("id", id);
-        doc.setField("productId", productId);
-        doc.setField("title", "The North Face T-Shirt");
-        doc.setField("isToos", "false");
-        doc.setField("category", "0.myCatalog");
-        doc.setField("categoryId", "category0");
-        doc.setField("listRank", "1");
-        doc.setField("seoUrl", "/my-product");
-        doc.setField("image", "my-product.jpg");
-        doc.setField("brandId", "88");
-        server.add(Arrays.asList(doc));
 
-        return server.commit();
-    }
 }

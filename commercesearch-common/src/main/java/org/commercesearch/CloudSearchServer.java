@@ -108,13 +108,13 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             catalogSolrServer.setDefaultCollection(getCatalogCollection());
             setCatalogSolrServer(catalogSolrServer);
 
-            CloudSolrServer rulesSolrServer = getSolrServer(getRuleCollection());
+            CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection());
 
             if (rulesSolrServer != null) {
                 rulesSolrServer.shutdown();
             }
             rulesSolrServer = new CloudSolrServer(getHost());
-            rulesSolrServer.setDefaultCollection(getRuleCollection());
+            rulesSolrServer.setDefaultCollection(getRulesCollection());
             setRulesSolrServer(rulesSolrServer);
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
@@ -149,7 +149,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             }
             out.close();
 
-            for (String collection : Arrays.asList(getCatalogCollection(), getRuleCollection())) {
+            for (String collection : Arrays.asList(getCatalogCollection(), getRulesCollection())) {
                 byte[] data = byteStream.toByteArray();
                 String path = new StringBuffer("/configs/").append(collection).append("/synonyms/")
                         .append(formatSynonymListFileName(synonymList.getItemDisplayName())).toString();

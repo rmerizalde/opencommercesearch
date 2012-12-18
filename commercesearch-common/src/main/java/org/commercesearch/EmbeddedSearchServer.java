@@ -1,28 +1,19 @@
 package org.commercesearch;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.Collection;
-
-import javax.xml.parsers.ParserConfigurationException;
-
+import atg.nucleus.ServiceException;
+import atg.repository.RepositoryItem;
 import org.apache.commons.io.IOUtils;
+import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
-import org.apache.solr.common.params.CoreAdminParams;
-import org.apache.solr.common.params.SolrParams;
+import org.apache.solr.client.solrj.request.DirectXmlRequest;
 import org.apache.solr.core.CoreContainer;
-import org.apache.solr.core.SolrCore;
-import org.apache.solr.logging.LoggerInfo;
-import org.apache.solr.request.LocalSolrQueryRequest;
 import org.xml.sax.SAXException;
 
-import atg.nucleus.ServiceException;
-import atg.repository.RepositoryItem;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.*;
+import java.util.Arrays;
 
 /**
  * This class provides a SearchServer implementation which can be run as an embedded instance. By default, the configuration
@@ -97,14 +88,16 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         EmbeddedSearchServer copy = new EmbeddedSearchServer();
 
         String copyCatalogCoreName = name + "_" + getCatalogCollection();
-        String copyRuleCoreName = name + "_" + getRuleCollection();
+        String copyRuleCoreName = name + "_" + getRulesCollection();
 
         copy.setCatalogCollection(copyCatalogCoreName);
-        copy.setRuleCollection(copyRuleCoreName);
+        copy.setRulesCollection(copyRuleCoreName);
         cloneCore(getCatalogCollection(), copyCatalogCoreName, "product_catalog");
-        cloneCore(getRuleCollection(), copyRuleCoreName, "rules");
+        cloneCore(getRulesCollection(), copyRuleCoreName, "rules");
         copy.setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, copyCatalogCoreName));
+        copy.getSolrServer(copyCatalogCoreName).commit();
         copy.setRulesSolrServer(new EmbeddedSolrServer(coreContainer, copyRuleCoreName));
+        copy.getSolrServer(copyRuleCoreName).commit();
         copy.setLoggingInfo(this.isLoggingInfo());
         copy.setLoggingDebug(this.isLoggingDebug());
         copy.setLoggingError(this.isLoggingError());
@@ -130,9 +123,37 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         mergeIndexes.setCoreName(coreName);
         mergeIndexes.setSrcCores(Arrays.asList(collectionName));
 
-        getSolrServer(collectionName).request(mergeIndexes);       
+        SolrServer server = getSolrServer(collectionName);
+        server.request(mergeIndexes);
     }
 
+    /**
+     * Updates the collection with the given name with the XML contents in resource name
+     * @param collectionName  the collection to update
+     * @param resourceName the URL to the XML resource
+     *
+     * @throws SolrServerException if an errors occurs while update the collection
+     * @throws IOException if an errors occurs while update the collection
+     */
+    void updateCollection(String collectionName, String resourceName) throws SolrServerException, IOException {
+        String body = loadXmlResource(resourceName);
+        DirectXmlRequest request = new DirectXmlRequest("/update", body);
+        SolrServer server = getSolrServer(collectionName);
+        
+        server.request(request);
+        server.commit();
+    }
+
+    /**
+     * Helper method to load an XML resource into a String object
+     */
+    private String loadXmlResource(String resourceName) throws IOException {
+        InputStream stream = getClass().getResourceAsStream(resourceName);
+        StringWriter writer = new StringWriter();
+
+        IOUtils.copy(stream, writer);
+        return writer.getBuffer().toString();
+    }
 
     /**
      * Shutdown the cores for this server, however the coreContainer is left running. This method is intented for the
@@ -140,7 +161,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      */
     public void shutdownCores() {
         coreContainer.remove(getCatalogCollection());
-        coreContainer.remove(getRuleCollection());
+        coreContainer.remove(getRulesCollection());
     }
 
 
@@ -149,7 +170,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         super.doStartService();
         try{            
             if(getEnabled()){
-                long start = System.currentTimeMillis();
                 String configUrl = getSolrConfigUrl();
                 
                 if(getInMemoryIndex()){
@@ -177,11 +197,9 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                     }
                     out.close();
 
-                    long s = System.currentTimeMillis();
                     coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
-                    System.out.println("Init took " + ((System.currentTimeMillis() - start)));
                     setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
-                    setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRuleCollection()));
+                    setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
                 } else {
                     throw new ServiceException("Resource not found " + getSolrConfigUrl());
                 }
@@ -238,7 +256,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             coreContainer.shutdown();
             coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
             setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
-            setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRuleCollection()));
+            setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
         } catch (SAXException ex) {
             if(isLoggingError()){
                 logError(ex);

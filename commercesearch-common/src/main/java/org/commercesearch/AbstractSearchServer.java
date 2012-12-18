@@ -39,7 +39,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private T catalogSolrServer;
     private T rulesSolrServer;
     private String catalogCollection;
-    private String ruleCollection;
+    private String rulesCollection;
     private Repository searchRepository;
     private RqlStatement synonymRql;
     private RqlStatement ruleCountRql;
@@ -63,7 +63,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
 
     public T getSolrServer(String collection) {
-        if (ruleCollection.equals(collection)) {
+        if (rulesCollection.equals(collection)) {
             return rulesSolrServer;
         }
         return catalogSolrServer;
@@ -77,12 +77,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         this.catalogCollection = catalogCollection;
     }
 
-    public String getRuleCollection() {
-        return ruleCollection;
+    public String getRulesCollection() {
+        return rulesCollection;
     }
 
-    public void setRuleCollection(String ruleCollection) {
-        this.ruleCollection = ruleCollection;
+    public void setRulesCollection(String ruleCollection) {
+        this.rulesCollection = ruleCollection;
     }
 
     public Repository getSearchRepository() {
@@ -220,12 +220,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
 
     public UpdateResponse commit(String collection) throws SearchServerException {
-        UpdateRequest req = new UpdateRequest();
-        req.setAction(UpdateRequest.ACTION.COMMIT, true, true);
-        req.setParam("collection", collection);
-
+ 
         try {
-            return req.process(getSolrServer(collection));
+            return getSolrServer(collection).commit();
         } catch (SolrServerException ex) {
             throw create(COMMIT_EXCEPTION, ex);
         } catch (IOException ex) {
@@ -314,7 +311,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void reloadCollections() throws SearchServerException {
         String collectionName = getCatalogCollection();
         reloadCollection(collectionName);
-        collectionName = getRuleCollection();
+        collectionName = getRulesCollection();
         reloadCollection(collectionName);
     }
 
@@ -344,8 +341,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         int ruleCount = ruleCountRql.executeCountQuery(view, null);
 
         if (ruleCount == 0) {
-            deleteByQuery("*:*", getRuleCollection());
-            commit(getRuleCollection());
+            deleteByQuery("*:*", getRulesCollection());
+            commit(getRulesCollection());
 
             if (isLoggingInfo()) {
                 logInfo("No rules found for indexing");
@@ -358,7 +355,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
 
         // TODO fix this
-        deleteByQuery("*:*", getRuleCollection());
+        deleteByQuery("*:*", getRulesCollection());
 
         List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
         Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
@@ -373,8 +370,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 docs.add(ruleManager.createRuleDocument(rule));
                 ++processed;
             }
-            add(docs, getRuleCollection());
-            commit(getRuleCollection());
+            add(docs, getRulesCollection());
+            commit(getRulesCollection());
 
             rqlArgs[0] += getRuleBatchSize();
             rules = ruleRql.executeQueryUncached(view, rqlArgs);

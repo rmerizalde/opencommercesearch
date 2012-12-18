@@ -2,8 +2,8 @@ package org.commercesearch.junit.runners.statements;
 
 import org.commercesearch.SearchServer;
 import org.commercesearch.SearchServerManager;
-import org.junit.runners.model.Statement;
 import org.junit.runners.model.FrameworkMethod;
+import org.junit.runners.model.Statement;
 
 /**
  * A simple JUnit statement to execute a search test.

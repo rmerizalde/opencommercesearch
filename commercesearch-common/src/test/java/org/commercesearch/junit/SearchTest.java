@@ -21,5 +21,6 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE, ElementType.METHOD})
 public @interface SearchTest {
     boolean newInstance() default false;
-    String indexDataFile() default "";
+    String productData() default "";
+    String rulesData() default "";
 }
