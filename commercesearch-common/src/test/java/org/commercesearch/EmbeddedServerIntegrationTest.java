@@ -83,7 +83,7 @@ public class EmbeddedServerIntegrationTest {
         return server.commit();
     }    
 
-    @SearchTest(newInstance = false)
+    @SearchTest
     public void testSearch(SearchServer server) throws SearchServerException {
         SolrQuery query = new SolrQuery("face");
         SearchResponse res = server.search(query, site);
@@ -100,7 +100,7 @@ public class EmbeddedServerIntegrationTest {
  
     }
 
-    @SearchTest(newInstance = false)
+    @SearchTest
     public void testEmptySearch(SearchServer server) throws SearchServerException {
 
         SolrQuery query = new SolrQuery("bike");

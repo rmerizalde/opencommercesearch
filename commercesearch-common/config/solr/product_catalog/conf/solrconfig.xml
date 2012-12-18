@@ -1004,4 +1004,7 @@
       -->
   </searchComponent>
 
+  <valueSourceParser name="fixedBoost"
+    class="org.commercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />  
+
 </config>

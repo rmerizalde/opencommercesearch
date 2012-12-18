@@ -9,6 +9,7 @@ import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.request.DirectXmlRequest;
 import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.SolrCore;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -98,6 +99,11 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         copy.getSolrServer(copyCatalogCoreName).commit();
         copy.setRulesSolrServer(new EmbeddedSolrServer(coreContainer, copyRuleCoreName));
         copy.getSolrServer(copyRuleCoreName).commit();
+        copy.setInMemoryIndex(getInMemoryIndex());
+        copy.setEnabled(getEnabled());
+        copy.setDataDir(getDataDir());
+        copy.setSolrConfigUrl(getSolrConfigUrl());
+        copy.setSolrCorePath(getSolrCorePath());
         copy.setLoggingInfo(this.isLoggingInfo());
         copy.setLoggingDebug(this.isLoggingDebug());
         copy.setLoggingError(this.isLoggingError());
@@ -115,7 +121,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
         create.setCoreName(coreName);
         create.setInstanceDir(instanceDir);
-        create.setDataDir(instanceDir + "/" + coreName + "/data");
+        create.setDataDir(coreName + "/data");
 
         getSolrServer(collectionName).request(create);
 
@@ -159,9 +165,10 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      * Shutdown the cores for this server, however the coreContainer is left running. This method is intented for the
      * integration testing framework only. Don't use.
      */
-    public void shutdownCores() {
-        coreContainer.remove(getCatalogCollection());
-        coreContainer.remove(getRulesCollection());
+    public void shutdownCores() throws SolrServerException, IOException {
+        boolean deleteIndex = !getInMemoryIndex();
+        CoreAdminRequest.unloadCore(getCatalogCollection(), deleteIndex, getCatalogSolrServer());
+        CoreAdminRequest.unloadCore(getRulesCollection(), deleteIndex, getRulesSolrServer());
     }
 
 
@@ -169,41 +176,52 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     public void doStartService() throws ServiceException {
         super.doStartService();
         try{            
-            if(getEnabled()){
-                String configUrl = getSolrConfigUrl();
-                
-                if(getInMemoryIndex()){
-                    System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
-                    System.setProperty("solr.lockFactory", "single");
-                    configUrl += ".ram";
-                } else {
-                    System.setProperty("data.dir", getDataDir());
-                    
-                    if (!checkDataDirectory(getDataDir())) {
-                        throw new ServiceException("Directory not found " + getDataDir());
-                    }
+            long startTime = System.currentTimeMillis();
+
+            String configUrl = getSolrConfigUrl();
+
+            if(getInMemoryIndex()){
+                System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
+                System.setProperty("solr.lockFactory", "single");
+                configUrl += ".ram";
+                if (isLoggingInfo()) {
+                    logInfo("Initializing in-memery embedded search server");
                 }
-                
-                InputStream in = getClass().getResourceAsStream(configUrl);
+            } else {
+                System.setProperty("data.dir", getDataDir());
 
-                if (in != null) {
-                    tmpConfigFile = File.createTempFile("solr-", ".xml");
-
-                    FileWriter out = new FileWriter(tmpConfigFile);
-
-                    IOUtils.copy(in, out);
-                    if (isLoggingInfo()) {
-                        logInfo("Using embedded server with config file " + tmpConfigFile.getPath());
-                    }
-                    out.close();
-
-                    coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
-                    setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
-                    setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
-                } else {
-                    throw new ServiceException("Resource not found " + getSolrConfigUrl());
+                if (!checkDataDirectory(getDataDir())) {
+                    throw new ServiceException("Directory not found " + getDataDir());
+                }
+                if (isLoggingInfo()) {
+                    logInfo("Initializing embedded search server, data directory is " + getDataDir());
                 }
             }
+
+            InputStream in = getClass().getResourceAsStream(configUrl);
+
+            if (in != null) {
+                tmpConfigFile = File.createTempFile("solr-", ".xml");
+
+                FileWriter out = new FileWriter(tmpConfigFile);
+
+                IOUtils.copy(in, out);
+                if (isLoggingInfo()) {
+                    logInfo("Using embedded sarch server with config file " + tmpConfigFile.getPath());
+                }
+                out.close();
+
+                coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
+                setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
+                setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
+            } else {
+                throw new ServiceException("Resource not found " + getSolrConfigUrl());
+            }
+
+            if (isLoggingInfo()) {
+                logInfo("Embedded search server initialized in " + (System.currentTimeMillis() - startTime) + "ms");
+            }
+
         } catch (SAXException ex) {
             if(isLoggingError()){
                 logError(ex);
@@ -221,8 +239,12 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
     @Override
     public void doStopService() throws ServiceException {
-        coreContainer.shutdown();
-        tmpConfigFile.delete();
+        if (coreContainer != null) {
+            coreContainer.shutdown();
+        }
+        if (tmpConfigFile != null) {
+            tmpConfigFile.delete();
+        }
     }
 
     /**

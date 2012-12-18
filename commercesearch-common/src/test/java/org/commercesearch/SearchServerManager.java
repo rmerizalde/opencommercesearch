@@ -115,7 +115,13 @@ public class SearchServerManager {
      */
     public static void shutdown(SearchServer server) {
         if (server instanceof EmbeddedSearchServer) {
-            ((EmbeddedSearchServer) server).shutdownCores();
+            try {
+                ((EmbeddedSearchServer) server).shutdownCores();
+            } catch (SolrServerException ex) {
+                throw new RuntimeException(ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }    
         }
     }
 

@@ -24,6 +24,7 @@
         <mockito.version>1.9.0</mockito.version>
         <powermock.version>1.4.12</powermock.version>
         <harmcrest.version>1.3</harmcrest.version>
+        <commercesearch.version>0.1</commercesearch.version>
     </properties>
 
     <scm>
@@ -116,7 +117,14 @@
         <artifactId>hamcrest-all</artifactId>
         <version>${harmcrest.version}</version>
         <scope>test</scope>
-      </dependency>      
+      </dependency>
+
+      <dependency>
+        <groupId>org.commercesearch</groupId>
+        <artifactId>commercesearch-solr</artifactId>
+        <version>${commercesearch.version}</version>
+        <scope>test</scope>
+      </dependency>       
 
     </dependencies>
 
