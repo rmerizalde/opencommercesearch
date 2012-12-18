@@ -735,7 +735,7 @@
 
        http://wiki.apache.org/solr/SearchHandler
 
-       For processing SearchTest Queries, the primary Request Handler
+       For processing Search Queries, the primary Request Handler
        provided with Solr is "SearchHandler" It delegates to a sequent
        of SearchComponents (see below) and supports distributed
        queries across multiple shards
@@ -872,9 +872,9 @@
     <!-- <str name="healthcheckFile">server-enabled.txt</str> -->
   </requestHandler>
 
-  <!-- SearchTest Components
+  <!-- Search Components
 
-       SearchTest components are registered to SolrCore and used by
+       Search components are registered to SolrCore and used by
        instances of SearchHandler (which can access them by name)
        
        By default, the following components are available:
