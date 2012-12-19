@@ -38,32 +38,28 @@
           <groupId>atg</groupId>
           <artifactId>das</artifactId>
           <version>${atg.version}</version>
-          <scope>system</scope>
-          <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
+          <scope>provided</scope>
       </dependency>
       <!-- ATG Dynamo Personalization Server -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>dps</artifactId>
           <version>${atg.version}</version>
-          <scope>system</scope>
-          <systemPath>${env.ATG_HOME}/DPS/lib/classes.jar</systemPath>        
+          <scope>provided</scope>
       </dependency>
       <!-- ATG BCC -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>bcc</artifactId>
           <version>${atg.version}</version>
-          <scope>system</scope>
-          <systemPath>${env.ATG_HOME}/BCC/lib/classes.jar</systemPath>
+          <scope>provided</scope>
       </dependency>
       <!-- ATG WebUI -->
       <dependency>
           <groupId>atg</groupId>
           <artifactId>webui</artifactId>
           <version>${atg.version}</version>
-          <scope>system</scope>
-          <systemPath>${env.ATG_HOME}/WebUI/lib/classes.jar</systemPath>
+          <scope>provided</scope>
       </dependency>
 
       <!-- provided -->
@@ -148,6 +144,14 @@
         </testResources>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-surefire-plugin</artifactId>

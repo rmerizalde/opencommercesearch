@@ -15,7 +15,7 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 
 /**
- * This interface represents a façade for a Solr server. Currently, it exposes
+ * This interface represents a facade for a Solr server. Currently, it exposes
  * limited functionality but will be extended.
  * 
  * @author rmerizalde

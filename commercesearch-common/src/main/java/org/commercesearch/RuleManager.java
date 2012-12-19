@@ -151,7 +151,6 @@ public class RuleManager {
         filterQueries.append(") AND ").append("siteId:").append(WILDCARD).append(" AND ").append("catalogId:")
                 .append(WILDCARD);
         query.addFilterQuery(filterQueries.toString());
-
         QueryResponse res = server.query(query);
 
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
@@ -311,6 +310,7 @@ public class RuleManager {
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> catalogs = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATALOGS);
 
+        // TODO: is this a bug???  sites.size() > 0???? shouldn't it be catalogs.size()?
         if (catalogs != null && sites.size() > 0) {
             for (RepositoryItem catalog : catalogs) {
                 doc.addField("catalogId", catalog.getRepositoryId());
@@ -349,9 +349,10 @@ public class RuleManager {
         }
         @SuppressWarnings("unchecked")
         Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
-
-        for (String searchToken : searchTokens) {
-            doc.addField(FIELD_CATEGORY, searchToken);
+        if (searchTokens != null) {
+            for (String searchToken : searchTokens) {
+                doc.addField(FIELD_CATEGORY, searchToken);
+            }
         }
 
         @SuppressWarnings("unchecked")

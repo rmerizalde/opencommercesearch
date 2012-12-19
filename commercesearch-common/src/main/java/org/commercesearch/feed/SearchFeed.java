@@ -167,8 +167,8 @@ public class SearchFeed extends GenericService {
      * Generate the category tokens to create a hierarchical facet in Solr. Each
      * token is formatted such that encodes the depth information for each node
      * that appears as part of the path, and include the hierarchy separated by
-     * a common separator (“depth/first level category name/second level
-     * category name/etc”)
+     * a common separator (depth/first level category name/second level
+     * category name/etc)
      * 
      * @param document
      *            The document to set the attributes to.
