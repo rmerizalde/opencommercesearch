@@ -36,6 +36,7 @@ public class FixedBoostValueSourceParser extends ValueSourceParser {
             values.add(fp.parseArg());
         }
         Collections.reverse(values);
+        // TODO: make values a hashtable
         return new FixedBoostValueSource(field, fieldValueSource, values);
     }
 }

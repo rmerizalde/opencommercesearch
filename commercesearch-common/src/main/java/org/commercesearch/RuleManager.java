@@ -37,7 +37,7 @@ import atg.repository.RepositoryItem;
  * @author rmerizalde
  * 
  */
-public class RuleManager {
+public class RuleManager<T extends SolrServer> {
     private static final String WILDCARD = "__all__";
     private static final String FIELD_CATEGORY = "category";
 
@@ -107,8 +107,8 @@ public class RuleManager {
         abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules);
     }
     
-    RuleManager(Repository searchRepository, SolrServer server) {
-        this.searchRepository = searchRepository;
+    RuleManager(Repository searchRepository, T server) {
+      this.searchRepository = searchRepository;
       this.server = server;
     }
     
@@ -174,6 +174,8 @@ public class RuleManager {
                         rules.put(ruleType, ruleList);
                     }
                     ruleList.add(rule);
+                } else {
+                	//TODO gsegura: add logging that we couldn't find the rule item in the DB
                 }
                 ++start;
             }

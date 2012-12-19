@@ -1,14 +1,13 @@
 package org.commercesearch.feed;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
 import org.commercesearch.SearchServer;
+import org.commercesearch.SearchServerException;
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
@@ -25,7 +24,7 @@ import atg.repository.rql.RqlStatement;
  *
  * @TODO implement default feed functionality
  */
-public class SearchFeed extends GenericService {
+public abstract class SearchFeed extends GenericService {
 
     private SearchServer searchServer;
     private Repository productRepository;
@@ -93,8 +92,8 @@ public class SearchFeed extends GenericService {
     public boolean isCategoryIndexable(RepositoryItem category) {
         return true;
     }
-
-    public void startFullFeed() throws IOException, SolrServerException, RepositoryException, SQLException,
+ 
+    public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
             InventoryException {
         long startTime = System.currentTimeMillis();
 
@@ -109,59 +108,53 @@ public class SearchFeed extends GenericService {
         getSearchServer().deleteByQuery("*:*");
         getSearchServer().commit();
         // temporal
-
+        
         int processedProductCount = 0;
-        int filteredProductCount = 0;
+        int indexedProductCount = 0;
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
         RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
         List<SolrInputDocument> documents = new ArrayList<SolrInputDocument>();
-
+        
         while (products != null) {
             for (RepositoryItem product : products) {
                 if (isProductIndexable(product)) {
                     processProduct(product, documents);
-                    processedProductCount++;
-                } else {
-                    filteredProductCount++;
                 }
+                processedProductCount++;
             }
 
             if (documents.size() > 0) {
-                try {
-                    getSearchServer().add(documents);
-                    getSearchServer().commit();
-                } finally {
-                    documents.clear();
-                }
+                getSearchServer().add(documents);
+                getSearchServer().commit();
+                documents = new ArrayList<SolrInputDocument>();
             }
-
+            
             rqlArgs[0] += getProductBatchSize();
             products = productRql.executeQueryUncached(productView, rqlArgs);
 
             if (isLoggingInfo()) {
-                logInfo("Processed " + (processedProductCount + filteredProductCount) + " out of " + productCount);
+                logInfo("Processed " + processedProductCount  + " out of " + productCount);
+                logInfo("Indexed "+ indexedProductCount + " products");
             }
         }
 
         feedFinished();
         if (isLoggingInfo()) {
             logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                    + processedProductCount + " products were indexable and " + filteredProductCount
-                    + " were filtered out");
+                    + indexedProductCount + " products were indexable from  " + processedProductCount
+                    + " processed products");
         }
     }
 
-    protected void feedStarted() {
-    }
+    protected abstract void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete);
 
-    protected void feedFinished() {
-    }
+    protected abstract void feedStarted();
 
-    protected void processProduct(RepositoryItem product, List<SolrInputDocument> documents)
-            throws RepositoryException, InventoryException {
-        throw new UnsupportedOperationException("Default implementation not ready yet");
-    }
+    protected abstract void feedFinished();
+
+    protected abstract void processProduct(RepositoryItem product, List<SolrInputDocument> documents)
+            throws RepositoryException, InventoryException;
 
     /**
      * Generate the category tokens to create a hierarchical facet in Solr. Each
@@ -194,10 +187,14 @@ public class SearchFeed extends GenericService {
                                 loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments);
                             }
                             document.addField("categoryId", productCategory.getRepositoryId());
-                            // @TODO: support multiple parent catalogs, in the
-                            // meanwhile use legacy property parentCatalog
+
                             if (categoryCatalogs != null) {
-                                categoryCatalogs.add((RepositoryItem) productCategory.getPropertyValue("catalog"));
+                                Set<RepositoryItem> catalogs = (Set<RepositoryItem>) productCategory.getPropertyValue("catalogs");
+                                for(RepositoryItem catalog : catalogs){
+                                    if(catalogAssignments.contains(catalog)){
+                                        categoryCatalogs.add(catalog);
+                                    }
+                                }
                             }
                         }
                     }
@@ -221,21 +218,24 @@ public class SearchFeed extends GenericService {
      * @return
      */
     private boolean isCategoryInCatalogs(RepositoryItem category, Set<RepositoryItem> catalogs) {
-        // @TODO support multipler parent catalogs per category.
-        /*
-         * Set<RepositoryItem> categoryCatalogs = (Set<RepositoryItem>)
-         * category.getPropertyValue("catalogs"); if (categoryCatalogs != null)
-         * { for (RepositoryItem categoryCatalog : categoryCatalogs) { if
-         * (!catalogs.contains(categoryCatalog)) { return true; } } }
-         */
 
         if (catalogs == null || catalogs.size() == 0) {
             return false;
         }
-        // @TODO: support multiple parent catalogs, in the meanwhile use legacy
-        // property parentCatalog
-        RepositoryItem parentCatalog = (RepositoryItem) category.getPropertyValue("catalog");
-        return parentCatalog != null && catalogs.contains(parentCatalog);
+        
+        boolean isAssigned = false;
+        
+        Set<RepositoryItem> categoryCatalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs"); 
+        if (categoryCatalogs != null) { 
+            for (RepositoryItem categoryCatalog : categoryCatalogs) { 
+                if (catalogs.contains(categoryCatalog)) { 
+                    isAssigned = true;
+                    break; 
+                } 
+            } 
+        }
+        
+        return isAssigned;
     }
 
     /**
@@ -262,10 +262,11 @@ public class SearchFeed extends GenericService {
             }
             hierarchyCategories.remove(0);
         } else {
-            // TODO: support categories assigned to multiple catalogs
-            RepositoryItem catalog = (RepositoryItem) category.getPropertyValue("catalog");
-            if (catalog != null && catalogAssignments.contains(catalog)) {
-                generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId());
+            Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
+            for(RepositoryItem catalog : catalogs){
+                if(catalogAssignments.contains(catalog)){
+                    generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId());
+                }
             }
         }
     }
@@ -301,4 +302,5 @@ public class SearchFeed extends GenericService {
             builder.setLength(0);
         }
     }
+    
 }
