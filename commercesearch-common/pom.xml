@@ -25,6 +25,7 @@
         <powermock.version>1.4.12</powermock.version>
         <harmcrest.version>1.3</harmcrest.version>
         <commercesearch.version>0.1</commercesearch.version>
+        <jacoco.version>0.6.0.201210061924</jacoco.version>
     </properties>
 
     <scm>
@@ -36,15 +37,15 @@
     <dependencies>
       <!-- Solr -->
       <dependency>
-	      <groupId>org.apache.solr</groupId>
-	      <artifactId>solr-solrj</artifactId>
-	      <version>${solr.version}</version>
+          <groupId>org.apache.solr</groupId>
+          <artifactId>solr-solrj</artifactId>
+          <version>${solr.version}</version>
       </dependency>
 
       <dependency>
-	      <groupId>org.apache.solr</groupId>
-	      <artifactId>solr-test-framework</artifactId>
-	      <version>${solr.version}</version>
+          <groupId>org.apache.solr</groupId>
+          <artifactId>solr-test-framework</artifactId>
+          <version>${solr.version}</version>
       </dependency>
       
       
@@ -199,6 +200,7 @@
               </dependencies>
               <configuration>
                 <groups>org.commercesearch.IntegrationSearchTest</groups>
+                <argLine>${jacoco.agent.argLine}</argLine>
               </configuration>
               <executions>
                 <execution>
@@ -229,6 +231,28 @@
                         <include>**/*.ram</include>
                     </includes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <propertyName>jacoco.agent.argLine</propertyName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
