@@ -157,7 +157,7 @@ public class SearchServerManager {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
-        searchServer.setInMemoryIndex(false);
+        searchServer.setInMemoryIndex(true);
         searchServer.setEnabled(true);
         searchServer.setSolrConfigUrl("/solr/solr_preview.xml");
         searchServer.setSolrCorePath("solr");

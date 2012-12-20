@@ -27,7 +27,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
     private String solrConfigUrl = "/solr/solr_preview.xml";
     private String solrCorePath = "solr";
-    private String dataDir = "/opt/search/data";
+    private String dataDir = null;
     private boolean enabled = false;
     private boolean inMemoryIndex = false;
     
@@ -86,6 +86,10 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      */
     public EmbeddedSearchServer createCopy(String name) throws SolrServerException, IOException {
 
+        if (isLoggingInfo()) {
+            logInfo("Creating search server copy for " + name);
+        }
+
         EmbeddedSearchServer copy = new EmbeddedSearchServer();
 
         String copyCatalogCoreName = name + "_" + getCatalogCollection();
@@ -110,6 +114,10 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         copy.setLoggingWarning(this.isLoggingWarning());
         copy.coreContainer = coreContainer;
 
+        if (isLoggingInfo()) {
+            logInfo("Successfully create search server copy for " + name);
+        }
+
         return copy;
     }
 
@@ -117,11 +125,17 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      * Helper method to clone a core
      */
     private void cloneCore(String collectionName, String coreName, String instanceDir) throws SolrServerException, IOException {
+        if (isLoggingInfo()) {
+            logInfo("Cloning core '" + collectionName + "' into '" + coreName + "' using instance directory " + instanceDir);
+        }
+
         CoreAdminRequest.Create create = new CoreAdminRequest.Create();
 
         create.setCoreName(coreName);
         create.setInstanceDir(instanceDir);
-        create.setDataDir(coreName + "/data");
+        if (!getInMemoryIndex()) {
+            create.setDataDir(coreName + "/data");
+        }
 
         getSolrServer(collectionName).request(create);
 
@@ -131,6 +145,8 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
         SolrServer server = getSolrServer(collectionName);
         server.request(mergeIndexes);
+
+
     }
 
     /**
@@ -143,9 +159,29 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      */
     void updateCollection(String collectionName, String resourceName) throws SolrServerException, IOException {
         String body = loadXmlResource(resourceName);
-        DirectXmlRequest request = new DirectXmlRequest("/update", body);
+        updateCollectionFromXML(collectionName, body);
+    }
+
+    /**
+     * Updates the collection with the given name with the XML contents
+     * @param collectionName  the collection to update
+     * @param xmlBody The xml as a String
+     *
+     * @throws SolrServerException if an errors occurs while update the collection
+     * @throws IOException if an errors occurs while update the collection
+     */
+    void updateCollectionFromXML(String collectionName, String xmlBody) throws SolrServerException, IOException {
+        if (isLoggingInfo()) {
+            logInfo("Updating collection " + collectionName);
+        }
+
+        if (isLoggingDebug()) {
+            logDebug("Updating collection " + collectionName + " with xml; " + xmlBody);
+        }
+
+        DirectXmlRequest request = new DirectXmlRequest("/update", xmlBody);
         SolrServer server = getSolrServer(collectionName);
-        
+
         server.request(request);
         server.commit();
     }
@@ -166,7 +202,12 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      * integration testing framework only. Don't use.
      */
     public void shutdownCores() throws SolrServerException, IOException {
-        boolean deleteIndex = !getInMemoryIndex();
+        if (isLoggingInfo()) {
+            logInfo("Shutting down core for collection " + getCatalogCollection());
+            logInfo("Shutting down core for collection " + getRulesCollection());
+        }
+
+        boolean deleteIndex = getInMemoryIndex();
         CoreAdminRequest.unloadCore(getCatalogCollection(), deleteIndex, getCatalogSolrServer());
         CoreAdminRequest.unloadCore(getRulesCollection(), deleteIndex, getRulesSolrServer());
     }
@@ -188,11 +229,13 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                     logInfo("Initializing in-memery embedded search server");
                 }
             } else {
-                System.setProperty("data.dir", getDataDir());
-
-                if (!checkDataDirectory(getDataDir())) {
-                    throw new ServiceException("Directory not found " + getDataDir());
+                if (getDataDir() != null) {
+                    if (!checkDataDirectory(getDataDir())) {
+                        throw new ServiceException("Directory not found " + getDataDir());
+                    }
+                    System.setProperty("data.dir", getDataDir());
                 }
+
                 if (isLoggingInfo()) {
                     logInfo("Initializing embedded search server, data directory is " + getDataDir());
                 }
@@ -273,6 +316,9 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     @Override
     public void reloadCollection(String collectionName) throws SearchServerException {
 
+        if (isLoggingInfo()) {
+            logInfo("Reloading collection " + collectionName);
+        }
 
         try {
             coreContainer.shutdown();
