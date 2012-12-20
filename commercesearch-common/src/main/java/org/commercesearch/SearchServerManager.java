@@ -35,7 +35,9 @@ public class SearchServerManager {
         final InputStream inputStream = SearchServerManager.class.getResourceAsStream("/logging.properties");
         try
         {
-            LogManager.getLogManager().readConfiguration(inputStream);
+            if (inputStream != null) {
+                LogManager.getLogManager().readConfiguration(inputStream);
+            }
         }
         catch (final IOException e)
         {
@@ -44,15 +46,25 @@ public class SearchServerManager {
         }
     }
 
-    private static EmbeddedSearchServer searchServer;
-    private static SearchServer readOnlySearchServer;
+    private static SearchServerManager searchServerManager;
+    private EmbeddedSearchServer searchServer;
+    private SearchServer readOnlySearchServer;
+
+    private SearchServerManager() {}
+
+    public static SearchServerManager getInstance() {
+        if (searchServerManager == null) {
+            searchServerManager = new SearchServerManager();
+        }
+        return searchServerManager;
+    }
 
     /**
      * Returns a readonly search server. Test will fail if they attempt to do updates on such server.
      * @return
      */
-    public static SearchServer getSearchServer() {
-        return getSearchServer(true, null, null, null);
+    public SearchServer getSearchServer() {
+        return getSearchServer(true, true, null, null, null);
     }
 
     /**
@@ -62,8 +74,19 @@ public class SearchServerManager {
      *
      * @return a read-write search sever instance
      */
-    public static SearchServer getSearchServer(String name) {
-        return getSearchServer(false, name, null, null);
+    public SearchServer getSearchServer(String name) {
+        return getSearchServer(false, true, name, null, null);
+    }
+
+    /**
+     * Returns a read-write instance which is a copy of the read only server.
+     *
+     * @param name the name to identify the new server (at its cores)
+     *
+     * @return a read-write search sever instance
+     */
+    public SearchServer getSearchServerWithEmptyIndex(String name) {
+        return getSearchServer(false, false, name, null, null);
     }
 
     /**
@@ -75,17 +98,17 @@ public class SearchServerManager {
      *
      * @return a read-write search sever instance
      */
-    public static SearchServer getSearchServer(String name, String productDataResource, String rulesDataResource) {
-        return getSearchServer(false, name, productDataResource, rulesDataResource);
+    public SearchServer getSearchServer(String name, String productDataResource, String rulesDataResource) {
+        return getSearchServer(false, true, name, productDataResource, rulesDataResource);
     }
 
     /**
      * Helper method to create a search server. If readonly is set to true, the read only instance is returned.
      * Otherwise, the read only instances is cloned and the given name is used to identify the new server.
      */
-    private static SearchServer getSearchServer(boolean readOnly, String name, String productDataResource, String rulesDataResource) {
+    private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource, String rulesDataResource) {
         if (searchServer == null) {
-            initServer();
+            initServer(loadBootstrapData);
         }
 
         if (readOnly) {
@@ -113,7 +136,7 @@ public class SearchServerManager {
      *
      * @param server the server to shutdown
      */
-    public static void shutdown(SearchServer server) {
+    public void shutdown(SearchServer server) {
         if (server instanceof EmbeddedSearchServer) {
             try {
                 ((EmbeddedSearchServer) server).shutdownCores();
@@ -130,11 +153,11 @@ public class SearchServerManager {
      * If the test are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    private static void initServer() {
+    public void initServer(boolean loadBootstrapData) {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
-        searchServer.setInMemoryIndex(true);
+        searchServer.setInMemoryIndex(false);
         searchServer.setEnabled(true);
         searchServer.setSolrConfigUrl("/solr/solr_preview.xml");
         searchServer.setSolrCorePath("solr");
@@ -145,8 +168,10 @@ public class SearchServerManager {
 
         try {
             searchServer.doStartService();
-            searchServer.updateCollection(searchServer.getCatalogCollection(), "/product_catalog/bootstrap.xml");
-            searchServer.updateCollection(searchServer.getRulesCollection(), "/rules/bootstrap.xml");
+            if (loadBootstrapData) {
+                searchServer.updateCollection(searchServer.getCatalogCollection(), "/product_catalog/bootstrap.xml");
+                searchServer.updateCollection(searchServer.getRulesCollection(), "/rules/bootstrap.xml");
+            }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
 
         } catch (ServiceException ex) {
@@ -155,6 +180,20 @@ public class SearchServerManager {
             throw new RuntimeException(ex);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
+        }
+    }
+
+    public void updateCollection(SearchServer server, String collectionName, String xmlBody) {
+        if (server instanceof EmbeddedSearchServer) {
+            try {
+                ((EmbeddedSearchServer) server).updateCollectionFromXML(collectionName, xmlBody);
+            } catch (SolrServerException ex) {
+                throw new RuntimeException(ex);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        } else {
+            throw new UnsupportedOperationException("Unable to update server with type " + server.getClass().getName());
         }
     }
 

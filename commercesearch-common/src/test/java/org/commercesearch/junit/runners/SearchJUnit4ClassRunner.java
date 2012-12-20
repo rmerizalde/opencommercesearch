@@ -81,15 +81,16 @@ public class SearchJUnit4ClassRunner extends BlockJUnit4ClassRunner {
             boolean newInstance = annotation.newInstance();
             boolean readOnly = !newInstance;
 
+            SearchServerManager manager = SearchServerManager.getInstance();
             SearchServer server = null;
 
             if (readOnly) {
-                server = SearchServerManager.getSearchServer();
+                server = manager.getSearchServer();
             } else {
                 String productDataResource = annotation.productData();
                 String rulesDataResource = annotation.rulesData();
                 String name = test.getClass().getName() + "_" + method.getName();
-                server = SearchServerManager.getSearchServer(name, productDataResource, rulesDataResource);
+                server = manager.getSearchServer(name, productDataResource, rulesDataResource);
             }
 
             return new SearchInvokeMethod(method, test, server);

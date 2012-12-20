@@ -24,6 +24,6 @@ public class SearchInvokeMethod extends Statement {
 	public void evaluate() throws Throwable {
 		fTestMethod.invokeExplosively(fTarget, fSearchServer);
 
-        SearchServerManager.shutdown(fSearchServer);
+        SearchServerManager.getInstance().shutdown(fSearchServer);
 	}
 }
