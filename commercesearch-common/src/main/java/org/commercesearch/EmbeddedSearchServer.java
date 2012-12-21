@@ -133,10 +133,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
         create.setCoreName(coreName);
         create.setInstanceDir(instanceDir);
-        if (!getInMemoryIndex()) {
-            create.setDataDir(coreName + "/data");
-        }
-
+        create.setDataDir(coreName + "/data");
         getSolrServer(collectionName).request(create);
 
         CoreAdminRequest.MergeIndexes mergeIndexes = new CoreAdminRequest.MergeIndexes();
@@ -207,7 +204,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             logInfo("Shutting down core for collection " + getRulesCollection());
         }
 
-        boolean deleteIndex = getInMemoryIndex();
+        boolean deleteIndex = !getInMemoryIndex();
         CoreAdminRequest.unloadCore(getCatalogCollection(), deleteIndex, getCatalogSolrServer());
         CoreAdminRequest.unloadCore(getRulesCollection(), deleteIndex, getRulesSolrServer());
     }

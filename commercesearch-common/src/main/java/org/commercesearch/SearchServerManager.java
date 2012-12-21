@@ -137,7 +137,7 @@ public class SearchServerManager {
      * @param server the server to shutdown
      */
     public void shutdown(SearchServer server) {
-        if (server instanceof EmbeddedSearchServer) {
+            if (server instanceof EmbeddedSearchServer) {
             try {
                 ((EmbeddedSearchServer) server).shutdownCores();
             } catch (SolrServerException ex) {
