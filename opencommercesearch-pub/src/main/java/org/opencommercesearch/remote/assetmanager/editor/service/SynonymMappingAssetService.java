@@ -1,4 +1,4 @@
-package org.commercesearch.remote.assetmanager.editor.service;
+package org.opencommercesearch.remote.assetmanager.editor.service;
 
 import org.apache.commons.lang.StringUtils;
 import org.commercesearch.repository.SynonymProperty;

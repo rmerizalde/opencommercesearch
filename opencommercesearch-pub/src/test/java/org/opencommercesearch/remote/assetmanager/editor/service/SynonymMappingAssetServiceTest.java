@@ -1,4 +1,4 @@
-package org.commercesearch.remote.assetmanager.editor.service;
+package org.opencommercesearch.remote.assetmanager.editor.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.anyString;
