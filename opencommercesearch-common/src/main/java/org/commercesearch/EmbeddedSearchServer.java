@@ -143,7 +143,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         SolrServer server = getSolrServer(collectionName);
         server.request(mergeIndexes);
 
-
     }
 
     /**
