@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.commercesearch</groupId>
-    <artifactId>commercesearch-solr</artifactId>
+    <groupId>org.opencommercesearch</groupId>
+    <artifactId>opencommercesearch-solr</artifactId>
     <packaging>jar</packaging>
     <version>0.1</version>
     <inceptionYear>2012</inceptionYear>
 
     <properties>
-        <solr.version>4.0.0-BETA</solr.version>
+        <solr.version>4.0.0</solr.version>
     </properties>  
 
     <scm>

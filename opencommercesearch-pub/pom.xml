@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.commercesearch</groupId>
-    <artifactId>commercesearch-pub</artifactId>
+    <groupId>org.opencommercesearch</groupId>
+    <artifactId>opencommercesearch-pub</artifactId>
     <packaging>jar</packaging>
     <version>0.1</version>
     <inceptionYear>2012</inceptionYear>
@@ -18,7 +18,7 @@
     </licenses>
 
     <properties>
-        <solr.version>4.0.0-BETA</solr.version>
+        <solr.version>4.0.0</solr.version>
         <atg.version>10.0.1</atg.version>
         <junit.version>4.10</junit.version>
         <mockito.version>1.9.0</mockito.version>
@@ -68,11 +68,9 @@
 
       <!-- provided -->
       <dependency>
-        <groupId>org.commercesearch</groupId>
-        <artifactId>commercesearch-common</artifactId>
+        <groupId>org.opencommercesearch</groupId>
+        <artifactId>opencommercesearch-common</artifactId>
         <version>0.1</version>
-        <scope>system</scope>
-        <systemPath>${basedir}/../commercesearch-common/target/commercesearch-common-0.1.jar</systemPath>
       </dependency>
 
       <dependency>
