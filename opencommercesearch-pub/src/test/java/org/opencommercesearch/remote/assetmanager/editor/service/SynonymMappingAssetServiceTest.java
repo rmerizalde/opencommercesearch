@@ -8,7 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import atg.remote.assetmanager.editor.service.AssetService;
-import org.commercesearch.repository.SynonymProperty;
+import org.opencommercesearch.repository.SynonymProperty;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

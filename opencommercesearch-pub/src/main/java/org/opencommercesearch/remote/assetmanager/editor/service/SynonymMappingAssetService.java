@@ -1,7 +1,7 @@
 package org.opencommercesearch.remote.assetmanager.editor.service;
 
 import org.apache.commons.lang.StringUtils;
-import org.commercesearch.repository.SynonymProperty;
+import org.opencommercesearch.repository.SynonymProperty;
 
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
