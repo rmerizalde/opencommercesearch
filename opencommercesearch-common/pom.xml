@@ -183,7 +183,7 @@
               <configuration>
                 <parallel>methods</parallel>
                 <threadCount>10</threadCount>
-                <excludedGroups>org.commercesearch.IntegrationSearchTest</excludedGroups>
+                <excludedGroups>org.opencommercesearch.IntegrationSearchTest</excludedGroups>
               </configuration>
 
             </plugin>
@@ -199,7 +199,7 @@
                 </dependency>
               </dependencies>
               <configuration>
-                <groups>org.commercesearch.IntegrationSearchTest</groups>
+                <groups>org.opencommercesearch.IntegrationSearchTest</groups>
                 <argLine>${jacoco.agent.argLine}</argLine>
               </configuration>
               <executions>

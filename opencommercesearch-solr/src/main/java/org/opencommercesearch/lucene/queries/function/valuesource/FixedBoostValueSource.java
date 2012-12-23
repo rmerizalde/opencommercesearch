@@ -1,4 +1,4 @@
-package org.commercesearch.lucene.queries.function.valuesource;
+package org.opencommercesearch.lucene.queries.function.valuesource;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.index.*;

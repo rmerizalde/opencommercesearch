@@ -9,7 +9,7 @@
   </header>
 
   <item-descriptor name="category" xml-combine="append" sub-type-value="category">
-    <property name="searchTokens" data-type="set" component-data-type="string" display-name="Search Tokens" property-type="org.commercesearch.repository.CategorySearchTokensPropertyDescriptor" category="Derived Properties"/>
+    <property name="searchTokens" data-type="set" component-data-type="string" display-name="Search Tokens" property-type="org.opencommercesearch.repository.CategorySearchTokensPropertyDescriptor" category="Derived Properties"/>
   </item-descriptor>
 
 </gsa-template>

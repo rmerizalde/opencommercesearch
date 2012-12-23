@@ -1,4 +1,4 @@
-package org.commercesearch.lucene.queries.function.valuesource;
+package org.opencommercesearch.lucene.queries.function.valuesource;
 
 import org.apache.lucene.queries.function.ValueSource;
 import org.apache.lucene.queryparser.classic.ParseException;
