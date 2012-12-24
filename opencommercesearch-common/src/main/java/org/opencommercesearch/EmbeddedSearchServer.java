@@ -146,19 +146,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     }
 
     /**
-     * Updates the collection with the given name with the XML contents in resource name
-     * @param collectionName  the collection to update
-     * @param resourceName the URL to the XML resource
-     *
-     * @throws SolrServerException if an errors occurs while update the collection
-     * @throws IOException if an errors occurs while update the collection
-     */
-    void updateCollection(String collectionName, String resourceName) throws SolrServerException, IOException {
-        String body = loadXmlResource(resourceName);
-        updateCollectionFromXML(collectionName, body);
-    }
-
-    /**
      * Updates the collection with the given name with the XML contents
      * @param collectionName  the collection to update
      * @param xmlBody The xml as a String
@@ -166,7 +153,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
      * @throws SolrServerException if an errors occurs while update the collection
      * @throws IOException if an errors occurs while update the collection
      */
-    void updateCollectionFromXML(String collectionName, String xmlBody) throws SolrServerException, IOException {
+    void updateCollection(String collectionName, String xmlBody) throws SolrServerException, IOException {
         if (isLoggingInfo()) {
             logInfo("Updating collection " + collectionName);
         }
@@ -180,17 +167,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
         server.request(request);
         server.commit();
-    }
-
-    /**
-     * Helper method to load an XML resource into a String object
-     */
-    private String loadXmlResource(String resourceName) throws IOException {
-        InputStream stream = getClass().getResourceAsStream(resourceName);
-        StringWriter writer = new StringWriter();
-
-        IOUtils.copy(stream, writer);
-        return writer.getBuffer().toString();
     }
 
     /**

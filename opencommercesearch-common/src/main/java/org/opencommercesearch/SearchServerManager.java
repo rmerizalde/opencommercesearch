@@ -4,6 +4,7 @@ import atg.multisite.Site;
 import atg.nucleus.ServiceException;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -13,6 +14,7 @@ import org.apache.solr.common.SolrInputDocument;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Set;
 import java.util.logging.LogManager;
@@ -60,6 +62,22 @@ public class SearchServerManager {
     }
 
     /**
+    * Check if there's an instance of the read-only or the read-write solr
+    * server running
+    *
+    * @param roServer Specify which instance to check. If true will check if RO instance is running
+    *
+    * @return Indicate if the search server instance is running
+    */
+   public boolean isServerRunning(boolean roServer){
+       if(roServer){
+               return readOnlySearchServer != null;
+       } else {
+               return searchServer != null;
+       }
+   }
+
+    /**
      * Returns a readonly search server. Test will fail if they attempt to do updates on such server.
      * @return
      */
@@ -99,7 +117,7 @@ public class SearchServerManager {
      * @return a read-write search sever instance
      */
     public SearchServer getSearchServer(String name, String productDataResource, String rulesDataResource) {
-        return getSearchServer(false, true, name, productDataResource, rulesDataResource);
+        return getSearchServer(false, true, name, loadXmlResource(productDataResource),  loadXmlResource(rulesDataResource));
     }
 
     /**
@@ -149,11 +167,38 @@ public class SearchServerManager {
     }
 
     /**
+    * Initializes the read only search server. The ro server is a singleton.
+    * If the tests are configured to run in parallel multiple JVMs will be spawn and each will
+    * have its own read only server.
+    *
+    * The default data xml files are:
+    *
+    *   catalog: /product_catalog/bootstrap.xml
+    *   rules: /rules/bootstrap.xml
+    */
+   public void initServer(boolean loadBootstrapData) {
+       initServerAux(loadBootstrapData,
+       loadXmlResource("/product_catalog/bootstrap.xml"),
+       loadXmlResource("/rules/bootstrap.xml"));
+   }
+
+    /**
+     * Initializes the read only search server. The ro server is a singleton.
+     * If the test are configured to run in parallel multiple JVMs will be spawn and each will
+     * have its own read only server.
+     *
+     * This signature allows to use custom catalog and rules xml files.
+     */
+    public void initServer(boolean loadBootstrapData,  String catalogXML, String rulesXML) {
+        initServerAux(loadBootstrapData, catalogXML, rulesXML);
+    }
+
+    /**
      * Helper method to initialize the read only search server. The ro server is a singleton.
-     * If the test are configured to run in parallel multiple JVM will be spawn and each will
+     * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    public void initServer(boolean loadBootstrapData) {
+    private void initServerAux(boolean loadBootstrapData, String catalogXML, String rulesXML) {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
@@ -169,8 +214,8 @@ public class SearchServerManager {
         try {
             searchServer.doStartService();
             if (loadBootstrapData) {
-                searchServer.updateCollection(searchServer.getCatalogCollection(), "/product_catalog/bootstrap.xml");
-                searchServer.updateCollection(searchServer.getRulesCollection(), "/rules/bootstrap.xml");
+                searchServer.updateCollection(searchServer.getCatalogCollection(), catalogXML);
+                searchServer.updateCollection(searchServer.getRulesCollection(), rulesXML);
             }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
 
@@ -183,10 +228,33 @@ public class SearchServerManager {
         }
     }
 
+    /**
+     * Helper method to load an XML resource into a String object
+     */
+    String loadXmlResource(String resourceName) {
+
+        String out = null;
+
+        if (StringUtils.isBlank(resourceName)){
+            return null;
+        }
+
+        try{
+            InputStream stream = getClass().getResourceAsStream(resourceName);
+            StringWriter writer = new StringWriter();
+
+            IOUtils.copy(stream, writer);
+            out = writer.getBuffer().toString();
+        } catch (IOException ex) {
+                throw new RuntimeException(ex);
+                }
+        return out;
+    }
+
     public void updateCollection(SearchServer server, String collectionName, String xmlBody) {
         if (server instanceof EmbeddedSearchServer) {
             try {
-                ((EmbeddedSearchServer) server).updateCollectionFromXML(collectionName, xmlBody);
+                ((EmbeddedSearchServer) server).updateCollection(collectionName, xmlBody);
             } catch (SolrServerException ex) {
                 throw new RuntimeException(ex);
             } catch (IOException ex) {
@@ -252,6 +320,4 @@ public class SearchServerManager {
             throw new UnsupportedOperationException("Can't modify a search server");
         }
     }
-
-
 }
