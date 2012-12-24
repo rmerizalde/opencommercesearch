@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<gsa-template xml-combine="append">
+
+  <header xml-combine="replace">
+    <name>Searco Commerce Repository</name>
+    <author>jmorrey</author>
+    <description>Adds custom properties used by the search engine</description>
+  </header>
+
+  <item-descriptor name="category" xml-combine="append" sub-type-value="category">
+    <property name="searchTokens" data-type="set" component-data-type="string" display-name="Search Tokens" property-type="org.opencommercesearch.repository.CategorySearchTokensPropertyDescriptor" category="Derived Properties"/>
+  </item-descriptor>
+
+</gsa-template>
