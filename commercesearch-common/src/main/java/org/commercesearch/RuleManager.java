@@ -1,6 +1,7 @@
 package org.commercesearch;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,22 +51,19 @@ public class RuleManager<T extends SolrServer> {
         facetRule() {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
                 for (RepositoryItem rule : rules) {
-                    System.out.println("Matched facet: " + rule.getItemDisplayName());
                     @SuppressWarnings("unchecked")
                     Set<RepositoryItem> facets = (Set<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
-
-                    for (RepositoryItem facet : facets) {
-                        manager.getFacetManager().addFacet(query, facet);
+                    if (facets != null) {
+                        for (RepositoryItem facet : facets) {
+                            manager.getFacetManager().addFacet(query, facet);
+                        }
                     }
                 }
             }
         },
         boostRule() {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
-
                 for (RepositoryItem rule : rules) {
-
-                    System.out.println("Matched boost: " + rule.getRepositoryId());
                     @SuppressWarnings("unchecked")
                     List<RepositoryItem> products = (List<RepositoryItem>) rule
                             .getPropertyValue(BoostRuleProperty.BOOSTED_PRODUCTS);
@@ -89,7 +87,6 @@ public class RuleManager<T extends SolrServer> {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
 
                 for (RepositoryItem rule : rules) {
-                    System.out.println("Matched block: " + rule.getRepositoryId());
                     @SuppressWarnings("unchecked")
                     Set<RepositoryItem> products = (Set<RepositoryItem>) rule
                             .getPropertyValue(BlockRuleProperty.BLOCKED_PRODUCTS);
@@ -152,18 +149,21 @@ public class RuleManager<T extends SolrServer> {
                 .append(WILDCARD);
         query.addFilterQuery(filterQueries.toString());
         QueryResponse res = server.query(query);
-
+        
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
             rules = Collections.emptyMap();
             return;
         }
 
+        rules = new HashMap<String, List<RepositoryItem>>(3);
         SolrDocumentList docs = res.getResults();
-        int numFound = (int) docs.getNumFound();
-
-        rules = new HashMap<String, List<RepositoryItem>>(numFound);
-        while (start < numFound) {
-            for (SolrDocument doc : docs) {
+        int total = (int) docs.getNumFound();
+        int processed = 0;
+        while (processed < total) {
+            processed += (int) docs.getStart();
+            for (int i=(int) docs.getStart(); i<docs.size(); i++) {
+                ++processed;
+                SolrDocument doc = docs.get(i);
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
                         SearchRepositoryItemDescriptor.RULE);
                 if (rule != null) {
@@ -175,13 +175,13 @@ public class RuleManager<T extends SolrServer> {
                     }
                     ruleList.add(rule);
                 } else {
-                	//TODO gsegura: add logging that we couldn't find the rule item in the DB
+                    //TODO gsegura: add logging that we couldn't find the rule item in the DB
                 }
-                ++start;
             }
-            if (start < numFound) {
-                query.setStart(start);
+            if (processed < total) {
+                query.setStart(processed);
                 res = server.query(query);
+                docs = res.getResults();
             }
         }
     }
