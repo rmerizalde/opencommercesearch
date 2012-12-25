@@ -1,4 +1,4 @@
-package org.commercesearch;
+package org.opencommercesearch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -30,13 +29,13 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.SolrParams;
-import org.commercesearch.repository.BlockRuleProperty;
-import org.commercesearch.repository.BoostRuleProperty;
-import org.commercesearch.repository.CategoryProperty;
-import org.commercesearch.repository.FacetProperty;
-import org.commercesearch.repository.FacetRuleProperty;
-import org.commercesearch.repository.RuleProperty;
-import org.commercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.BlockRuleProperty;
+import org.opencommercesearch.repository.BoostRuleProperty;
+import org.opencommercesearch.repository.CategoryProperty;
+import org.opencommercesearch.repository.FacetProperty;
+import org.opencommercesearch.repository.FacetRuleProperty;
+import org.opencommercesearch.repository.RuleProperty;
+import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

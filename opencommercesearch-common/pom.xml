@@ -54,7 +54,8 @@
           <groupId>atg</groupId>
           <artifactId>das</artifactId>
           <version>${atg.version}</version>
-          <scope>provided</scope>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
       </dependency>
 
       <!-- ATG Dynamo Commerce Server -->
@@ -62,7 +63,8 @@
           <groupId>atg</groupId>
           <artifactId>dcs</artifactId>
           <version>${atg.version}</version>
-          <scope>provided</scope>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DCS/lib/classes.jar</systemPath>
       </dependency>
 
       <!-- ATG Publishing -->
@@ -70,7 +72,8 @@
           <groupId>atg</groupId>
           <artifactId>epub</artifactId>
           <version>${atg.version}</version>
-          <scope>provided</scope>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/Publishing/base/lib/classes.jar</systemPath>
       </dependency>      
 
       <!-- provided -->
