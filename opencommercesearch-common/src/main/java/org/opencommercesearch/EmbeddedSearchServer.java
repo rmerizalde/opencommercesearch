@@ -188,6 +188,9 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
+
+        InputStream in = null;
+
         try{            
             long startTime = System.currentTimeMillis();
 
@@ -213,7 +216,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 }
             }
 
-            InputStream in = getClass().getResourceAsStream(configUrl);
+            in = getClass().getResourceAsStream(configUrl);
 
             if (in != null) {
                 tmpConfigFile = File.createTempFile("solr-", ".xml");
@@ -249,7 +252,18 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             if(isLoggingError()){
                 logError(ex);
             }
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException ex) {
+                if(isLoggingError()){
+                    logError(ex);
+                }
+            }
         }
+
     }
 
     @Override

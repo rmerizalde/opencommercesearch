@@ -167,6 +167,16 @@ public class SearchServerManager {
     }
 
     /**
+     * Shutdowns the singleton search server
+     */
+    public void shutdown() {
+        if (searchServer != null) {
+            shutdown(searchServer);
+        }
+        readOnlySearchServer = null;
+    }
+
+    /**
     * Initializes the read only search server. The ro server is a singleton.
     * If the tests are configured to run in parallel multiple JVMs will be spawn and each will
     * have its own read only server.
@@ -177,9 +187,7 @@ public class SearchServerManager {
     *   rules: /rules/bootstrap.xml
     */
    public void initServer(boolean loadBootstrapData) {
-       initServerAux(loadBootstrapData,
-       loadXmlResource("/product_catalog/bootstrap.xml"),
-       loadXmlResource("/rules/bootstrap.xml"));
+       initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap.xml"), loadXmlResource("/rules/bootstrap.xml"));
    }
 
     /**
@@ -189,8 +197,8 @@ public class SearchServerManager {
      *
      * This signature allows to use custom catalog and rules xml files.
      */
-    public void initServer(boolean loadBootstrapData,  String catalogXML, String rulesXML) {
-        initServerAux(loadBootstrapData, catalogXML, rulesXML);
+    public void initServer(boolean loadBootstrapData,  String catalogXml, String rulesXml) {
+        initServerAux(loadBootstrapData, catalogXml, rulesXml);
     }
 
     /**
@@ -198,7 +206,7 @@ public class SearchServerManager {
      * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    private void initServerAux(boolean loadBootstrapData, String catalogXML, String rulesXML) {
+    private void initServerAux(boolean loadBootstrapData, String catalogXml, String rulesXml) {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
@@ -214,8 +222,12 @@ public class SearchServerManager {
         try {
             searchServer.doStartService();
             if (loadBootstrapData) {
-                searchServer.updateCollection(searchServer.getCatalogCollection(), catalogXML);
-                searchServer.updateCollection(searchServer.getRulesCollection(), rulesXML);
+                if (catalogXml != null) {
+                    searchServer.updateCollection(searchServer.getCatalogCollection(), catalogXml);
+                }
+                if (rulesXml != null) {
+                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesXml);
+                }
             }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
 
@@ -239,15 +251,25 @@ public class SearchServerManager {
             return null;
         }
 
+        InputStream stream = null;
+
         try{
-            InputStream stream = getClass().getResourceAsStream(resourceName);
+            stream = getClass().getResourceAsStream(resourceName);
             StringWriter writer = new StringWriter();
 
             IOUtils.copy(stream, writer);
             out = writer.getBuffer().toString();
         } catch (IOException ex) {
-                throw new RuntimeException(ex);
+            throw new RuntimeException(ex);
+        } finally {
+            if (stream != null) {
+                try {
+                    stream.close();
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
                 }
+            }
+        }
         return out;
     }
 
