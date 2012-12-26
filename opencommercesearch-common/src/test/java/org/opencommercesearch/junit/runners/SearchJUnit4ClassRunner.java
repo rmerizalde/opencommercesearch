@@ -90,7 +90,7 @@ public class SearchJUnit4ClassRunner extends BlockJUnit4ClassRunner {
                 String productDataResource = annotation.productData();
                 String rulesDataResource = annotation.rulesData();
                 String name = test.getClass().getName() + "_" + method.getName();
-                server = manager.getSearchServer(name, productDataResource, rulesDataResource);
+                server = manager.getSearchServerWithResources(name, productDataResource, rulesDataResource);
             }
 
             return new SearchInvokeMethod(method, test, server);

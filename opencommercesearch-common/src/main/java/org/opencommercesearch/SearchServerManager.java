@@ -116,8 +116,21 @@ public class SearchServerManager {
      *
      * @return a read-write search sever instance
      */
-    public SearchServer getSearchServer(String name, String productDataResource, String rulesDataResource) {
+    public SearchServer getSearchServerWithResources(String name, String productDataResource, String rulesDataResource) {
         return getSearchServer(false, true, name, loadXmlResource(productDataResource),  loadXmlResource(rulesDataResource));
+    }
+
+    /**
+     * Returns a read-write instance which is a copy of the read only server.
+     *
+     * @param name the name to identify the new server (at its cores)
+     * @param productDataXml is a String with the XML data for products
+     * @param rulesDataXml is a String with the XML data for rules
+     *
+     * @return a read-write search sever instance
+     */
+    public SearchServer getSearchServer(String name, String productDataXml, String rulesDataXml) {
+        return getSearchServer(false, true, name, productDataXml,  rulesDataXml);
     }
 
     /**
@@ -197,8 +210,8 @@ public class SearchServerManager {
      *
      * This signature allows to use custom catalog and rules xml files.
      */
-    public void initServer(boolean loadBootstrapData,  String catalogXml, String rulesXml) {
-        initServerAux(loadBootstrapData, catalogXml, rulesXml);
+    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml) {
+        initServerAux(loadBootstrapData, productDataXml, rulesDataXml);
     }
 
     /**
@@ -206,7 +219,7 @@ public class SearchServerManager {
      * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    private void initServerAux(boolean loadBootstrapData, String catalogXml, String rulesXml) {
+    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml) {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
@@ -222,11 +235,11 @@ public class SearchServerManager {
         try {
             searchServer.doStartService();
             if (loadBootstrapData) {
-                if (catalogXml != null) {
-                    searchServer.updateCollection(searchServer.getCatalogCollection(), catalogXml);
+                if (productDataXml != null) {
+                    searchServer.updateCollection(searchServer.getCatalogCollection(), productDataXml);
                 }
-                if (rulesXml != null) {
-                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesXml);
+                if (rulesDataXml != null) {
+                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesDataXml);
                 }
             }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
