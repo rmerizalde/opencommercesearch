@@ -2,6 +2,7 @@ package org.opencommercesearch.feed;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -178,13 +179,14 @@ public abstract class SearchFeed extends GenericService {
                 @SuppressWarnings("unchecked")
                 Set<RepositoryItem> productCategories = (Set<RepositoryItem>) product
                         .getPropertyValue("parentCategories");
+                Set<String> tokenCache = new HashSet<String>(20);
 
                 if (productCategories != null) {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
                         if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
                             if (isCategoryIndexable(productCategory)) {
-                                loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments);
+                                loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments, tokenCache);
                             }
                             document.addField("categoryId", productCategory.getRepositoryId());
 
@@ -252,20 +254,20 @@ public abstract class SearchFeed extends GenericService {
      *            The list of catalogs to restrict the category token generation
      */
     private void loadCategoryPaths(SolrInputDocument document, RepositoryItem category,
-            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments) {
+            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments, Set<String> tokenCache) {
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
 
         if (parentCategories != null && parentCategories.size() > 0) {
             hierarchyCategories.add(0, category);
             for (RepositoryItem parentCategory : parentCategories) {
-                loadCategoryPaths(document, parentCategory, hierarchyCategories, catalogAssignments);
+                loadCategoryPaths(document, parentCategory, hierarchyCategories, catalogAssignments, tokenCache);
             }
             hierarchyCategories.remove(0);
         } else {
             Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
             for(RepositoryItem catalog : catalogs){
                 if(catalogAssignments.contains(catalog)){
-                    generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId());
+                    generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId(), tokenCache);
                 }
             }
         }
@@ -287,7 +289,7 @@ public abstract class SearchFeed extends GenericService {
      *            
      */
     private void generateCategoryTokens(SolrInputDocument document, List<RepositoryItem> hierarchyCategories,
-            String catalog) {
+            String catalog, Set<String> tokenCache) {
         if (hierarchyCategories == null) {
             return;
         }
@@ -298,7 +300,12 @@ public abstract class SearchFeed extends GenericService {
                 builder.append(hierarchyCategories.get(j).getItemDisplayName()).append(".");
             }
             builder.setLength(builder.length() - 1);
-            document.addField("category", builder.toString());
+
+            String token = builder.toString();
+            if (!tokenCache.contains(token)) {
+                document.addField("category", builder.toString());
+                tokenCache.add(token);
+            }
             builder.setLength(0);
         }
     }
