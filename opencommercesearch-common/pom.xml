@@ -135,7 +135,7 @@
                 <directory>${basedir}/src/main/java</directory>
             </resource>
             <resource>
-                <directory>${basedir}/config</directory>
+                <directory>${basedir}/src/main/config</directory>
                 <includes>
                     <include>**/*.xml</include>
                     <include>**/*.properties</include>
@@ -149,6 +149,16 @@
         <testResources>
             <testResource>
                 <directory>${basedir}/src/test/java</directory>
+            </testResource>
+            <testResource>
+              <directory>${basedir}/src/test/config</directory>
+              <includes>
+                  <include>**/*.xml</include>
+                  <include>**/*.properties</include>
+                  <include>**/*.txt</include>
+                  <include>**/*.html</include>
+                  <include>**/*.ram</include>
+              </includes>
             </testResource>
             <testResource>
                 <directory>${basedir}/testdata</directory>
