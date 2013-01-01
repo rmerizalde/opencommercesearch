@@ -11,11 +11,14 @@ import atg.repository.rql.RqlStatement;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
+import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import static org.opencommercesearch.SearchServerException.create;
@@ -126,14 +129,17 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
     
 
+    @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
         return search(query, SiteContextManager.getCurrentSite(), filterQueries);
     }
 
+    @Override
     public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
         return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
     }
 
+    @Override
     public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
             throws SearchServerException {
         if (site == null) {
@@ -185,7 +191,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
-
+    @Override
     public UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException {
         return add(docs, getCatalogCollection());
     }
@@ -205,6 +211,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    @Override
     public SolrPingResponse ping() throws SearchServerException {
         try {
             return getCatalogSolrServer().ping();
@@ -215,6 +222,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    @Override
     public UpdateResponse commit() throws SearchServerException {
         return commit(getCatalogCollection());
     }
@@ -231,9 +239,11 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     }
 
+    @Override
     public UpdateResponse deleteByQuery(String query) throws SearchServerException {
         return deleteByQuery(query, getCatalogCollection());
     }
+
 
     public UpdateResponse deleteByQuery(String query, String collection) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
@@ -250,6 +260,43 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    @Override
+    public NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException {
+        try {
+            return getCatalogSolrServer().request(request);
+        } catch (SolrServerException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        }
+    }
+
+    @Override
+    public NamedList<Object> analyze(FieldAnalysisRequest request) throws SearchServerException {
+        try {
+            return getCatalogSolrServer().request(request);
+        } catch (SolrServerException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        }
+    }
+
+    public SearchResponse termVector(String query, String... fields) throws SearchServerException {
+        SolrQuery solrQuery = new SolrQuery(query);
+        solrQuery.setRequestHandler("/tvrh");
+        solrQuery.setFields(fields);
+        solrQuery.setParam("tv.fl", "categoryName");
+
+        try {
+            QueryResponse queryResponse = getCatalogSolrServer().query(solrQuery);
+            return new SearchResponse(queryResponse, null, null);
+        } catch (SolrServerException ex) {
+            throw create(TERMS_EXCEPTION, ex);
+        }
+    }
+
+    @Override
     public void onRepositoryItemChanged(String repositoryName, Set<String> itemDescriptorNames)
             throws RepositoryException, SearchServerException {
         if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
@@ -267,6 +314,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    @Override
     public void onProductChanged(RepositoryItem product) throws RepositoryException, SearchServerException {
         throw new UnsupportedOperationException();
     }

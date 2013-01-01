@@ -34,9 +34,8 @@ public class EmbeddedServerIntegrationTest {
         initMocks(this);
         when(site.getRepositoryId()).thenReturn("mySite");
         when(site.getPropertyValue("defaultCatalog")).thenReturn(catalog);
-        when(catalog.getRepositoryId()).thenReturn("myCatalog");
+        when(catalog.getRepositoryId()).thenReturn("mycatalog");
     }
-
 
     @SearchTest
     public void testPing(SearchServer server) throws SearchServerException {
@@ -72,7 +71,7 @@ public class EmbeddedServerIntegrationTest {
         doc.setField("productId", "SNZ0289");
         doc.setField("title", "Santa Cruz Bicycles Tallboy LT Carbon - 2010");
         doc.setField("isToos", "false");
-        doc.setField("category", "0.myCatalog");
+        doc.setField("category", "0.mycatalog");
         doc.setField("categoryId", "category0");
         doc.setField("listRank", "1");
         doc.setField("seoUrl", "/santa-cruz-bicycles-tallboy-lt-carbon");

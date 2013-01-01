@@ -8,9 +8,13 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
+import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -343,6 +347,21 @@ public class SearchServerManager {
         @Override
         public SolrPingResponse ping() throws SearchServerException {
             return server.ping();
+        }
+
+        @Override
+        public NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException {
+            return server.analyze(request);
+        }
+
+        @Override
+        public NamedList<Object> analyze(FieldAnalysisRequest request) throws SearchServerException {
+            return server.analyze(request);
+        }
+
+        @Override
+        public SearchResponse termVector(String query, String... fields) throws SearchServerException {
+            return server.termVector(query, fields);
         }
 
         @Override

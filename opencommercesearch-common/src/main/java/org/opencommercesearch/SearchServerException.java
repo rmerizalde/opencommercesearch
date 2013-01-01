@@ -15,6 +15,8 @@ public abstract class SearchServerException extends Exception {
         INDEX_RULES_EXCEPTION,
         SEARCH_EXCEPTION,
         UPDATE_EXCEPTION,
+        ANALYSIS_EXCEPTION,
+        TERMS_EXCEPTION,
         COMMIT_EXCEPTION,
         PING_EXCEPTION;
     }
@@ -50,6 +52,10 @@ public abstract class SearchServerException extends Exception {
                 return new SearchException(code, throwable);
             case UPDATE_EXCEPTION:
                 return new UpdateException(code, throwable);
+            case ANALYSIS_EXCEPTION:_EXCEPTION:
+                return new AnalysisException(code, throwable);
+            case TERMS_EXCEPTION:_EXCEPTION:
+                return new TermsException(code, throwable);
             case COMMIT_EXCEPTION:
                 return new CommitException(code, throwable);
             case PING_EXCEPTION:
@@ -94,6 +100,22 @@ public abstract class SearchServerException extends Exception {
     public static class UpdateException extends SearchServerException {
 
         public UpdateException(Code code, Throwable throwable) {
+            super(code, throwable);
+        }
+
+    }
+
+    public static class AnalysisException extends SearchServerException {
+
+        public AnalysisException(Code code, Throwable throwable) {
+            super(code, throwable);
+        }
+
+    }
+
+    public static class TermsException extends SearchServerException {
+
+        public TermsException(Code code, Throwable throwable) {
             super(code, throwable);
         }
 

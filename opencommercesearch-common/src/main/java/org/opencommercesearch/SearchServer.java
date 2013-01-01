@@ -6,6 +6,9 @@ import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
+import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -13,13 +16,14 @@ import org.apache.solr.common.SolrInputDocument;
 import atg.multisite.Site;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import org.apache.solr.common.util.NamedList;
 
 /**
  * This interface represents a facade for a Solr server. Currently, it exposes
  * limited functionality but will be extended.
- * 
+ *
  * @author rmerizalde
- * 
+ *
  */
 public interface SearchServer {
 
@@ -37,6 +41,31 @@ public interface SearchServer {
     UpdateResponse deleteByQuery(String query) throws SearchServerException;
 
     SolrPingResponse ping() throws SearchServerException;
+
+    NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException;
+
+    /**
+     * Performs an analysis of a field type or field name for a given value.
+     *
+     * @param request the analysis request
+     * @return returns the anlyser results for the give field
+     * @throws SearchServerException if an exception occurs while analyzing the field
+     */
+    NamedList<Object> analyze(FieldAnalysisRequest request) throws SearchServerException;
+
+    /**
+     * Returns the indexed terms for the given list of fields for each document that matches the given query.
+     *
+     * If the term vector is not enabled, or positions and offsets are set to false the response will contain warnings
+     * per field.
+     *
+     * @param query the query to search
+     * @param fields the fields to retrieve terms for
+     * @return the search response with the terms.
+     * @throws SearchServerException if an exception occurs while retrieving the terms
+     */
+    SearchResponse termVector(String query, String... fields) throws SearchServerException;
+
 
     /**
      * This method can be used to notify the SearchServer that an item

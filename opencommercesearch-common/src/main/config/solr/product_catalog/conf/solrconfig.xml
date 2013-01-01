@@ -745,86 +745,15 @@
     <!-- default values for query parameters can be specified, these
          will be overridden by parameters in the request
       -->
-     <lst name="defaults">
-       <str name="echoParams">explicit</str>
-       <int name="rows">10</int>
-       <str name="df">text</str>
-     </lst>
-    <!-- In addition to defaults, "appends" params can be specified
-         to identify values which should be appended to the list of
-         multi-val params from the query (or the existing "defaults").
-      -->
-    <!-- In this example, the param "fq=instock:true" would be appended to
-         any query time fq params the user may specify, as a mechanism for
-         partitioning the index, independent of any user selected filtering
-         that may also be desired (perhaps as a result of faceted searching).
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+      <str name="defType">dismax</str>
+      <str name="qf">text categoryName</str>
+    </lst>
 
-         NOTE: there is *absolutely* nothing a client can do to prevent these
-         "appends" values from being used, so don't use this mechanism
-         unless you are sure you always want it.
-      -->
-    <!--
-       <lst name="appends">
-         <str name="fq">inStock:true</str>
-       </lst>
-      -->
-    <!-- "invariants" are a way of letting the Solr maintainer lock down
-         the options available to Solr clients.  Any params values
-         specified here are used regardless of what values may be specified
-         in either the query, the "defaults", or the "appends" params.
 
-         In this example, the facet.field and facet.query params would
-         be fixed, limiting the facets clients can use.  Faceting is
-         not turned on by default - but if the client does specify
-         facet=true in the request, these are the only facets they
-         will be able to see counts for; regardless of what other
-         facet.field or facet.query params they may specify.
-
-         NOTE: there is *absolutely* nothing a client can do to prevent these
-         "invariants" values from being used, so don't use this mechanism
-         unless you are sure you always want it.
-      -->
-    <!--
-       <lst name="invariants">
-         <str name="facet.field">cat</str>
-         <str name="facet.field">manu_exact</str>
-         <str name="facet.query">price:[* TO 500]</str>
-         <str name="facet.query">price:[500 TO *]</str>
-       </lst>
-      -->
-    <!-- If the default list of SearchComponents is not desired, that
-         list can either be overridden completely, or components can be
-         prepended or appended to the default list.  (see below)
-      -->
-    <!--
-       <arr name="components">
-         <str>nameOfCustomComponent1</str>
-         <str>nameOfCustomComponent2</str>
-       </arr>
-      -->
-    </requestHandler>
-
-  <!-- A request handler that returns indented JSON by default -->
-  <requestHandler name="/query" class="solr.SearchHandler">
-     <lst name="defaults">
-       <str name="echoParams">explicit</str>
-       <str name="wt">json</str>
-       <str name="indent">true</str>
-       <str name="df">text</str>
-     </lst>
   </requestHandler>
-
-
-  <!-- A Robust Example
-
-       This example SearchHandler declaration shows off usage of the
-       SearchHandler with many defaults declared
-
-       Note that multiple instances of the same Request Handler
-       (SearchHandler) can be registered multiple times with different
-       names (and different init parameters)
-    -->
-
 
 
   <!-- Update Request Handler.
@@ -1005,6 +934,43 @@
   </searchComponent>
 
   <valueSourceParser name="fixedBoost"
-    class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />  
+    class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
+
+  <!-- uncomment to debug -->
+  <!--
+  <requestHandler name="/admin/" class="solr.admin.AdminHandlers" />
+  -->
+
+  <requestHandler name="/analysis/field"
+    startup="lazy"
+    class="solr.FieldAnalysisRequestHandler" />
+
+  <requestHandler name="/analysis/document"
+                  class="solr.DocumentAnalysisRequestHandler"
+                  startup="lazy" />
+
+  <searchComponent name="terms" class="solr.TermsComponent"/>
+
+  <requestHandler name="/terms" class="solr.SearchHandler" startup="lazy">
+     <lst name="defaults">
+      <bool name="terms">true</bool>
+      <str name="shards.qt">/terms</str>
+    </lst>
+    <arr name="components">
+      <str>terms</str>
+    </arr>
+  </requestHandler>
+
+  <searchComponent name="tvComponent" class="solr.TermVectorComponent"/>
+  <requestHandler name="/tvrh" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="df">text</str>
+      <bool name="tv">true</bool>
+      <bool name="tv.all">true</bool>
+    </lst>
+    <arr name="last-components">
+      <str>tvComponent</str>
+    </arr>
+  </requestHandler>
 
 </config>
