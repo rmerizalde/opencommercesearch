@@ -37,7 +37,7 @@ public class AbstractSearchServerTest {
         initMocks(this);
         when(site.getRepositoryId()).thenReturn("outdoorSite");
         when(site.getPropertyValue("defaultCatalog")).thenReturn(catalog);
-        when(catalog.getRepositoryId()).thenReturn("outdoor");
+        when(catalog.getRepositoryId()).thenReturn("mycatalog");
     }
 
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")

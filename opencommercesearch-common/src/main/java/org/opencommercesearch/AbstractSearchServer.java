@@ -282,6 +282,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    @Override
     public SearchResponse termVector(String query, String... fields) throws SearchServerException {
         SolrQuery solrQuery = new SolrQuery(query);
         solrQuery.setRequestHandler("/tvrh");
