@@ -24,6 +24,7 @@ import org.opencommercesearch.repository.BoostRuleProperty;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.FacetRuleProperty;
+import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
@@ -99,6 +100,16 @@ public class RuleManager<T extends SolrServer> {
                 }
 
             }
+        },
+        redirectRule() {
+
+            @Override
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+                //TODO gsegura: for redirect rule we don't need a enum entry to add parameters to the query
+                //but to avoid an exception while on:  RuleType.valueOf(entry.getKey());  we are adding
+                //this empty entry. The redirect itself will be handled by the abstractSearchServer
+            }
+            
         };
         
         abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules);
@@ -155,7 +166,7 @@ public class RuleManager<T extends SolrServer> {
             return;
         }
 
-        rules = new HashMap<String, List<RepositoryItem>>(3);
+        rules = new HashMap<String, List<RepositoryItem>>(4);
         SolrDocumentList docs = res.getResults();
         int total = (int) docs.getNumFound();
         int processed = 0;

@@ -43,6 +43,7 @@
           <option value="blockRule"   code="2"/>
           <option value="facetRule"   code="3"/>
           <option value="rankingRule" code="4"/>
+          <option value="redirectRule" code="5"/>
         </property>
 
         <property name="name" data-type="string" display-name="Name"
@@ -88,6 +89,17 @@
       </table>
     </item-descriptor>
 
+    <item-descriptor display-name="Redirect Rule" name="redirectRule" super-type="rule" sub-type-value="redirectRule">
+      <attribute name="RedirectsPriority" value="4" />
+      
+      <table name="cs_redirect_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1" >
+          <property name="url" data-type="string" display-name="Url"
+                  column-name="url" required="true" category="Redirects">
+            <attribute name="propertySortPriority" value="8" />
+          </property>
+      </table>
+    </item-descriptor>
+    
     <item-descriptor display-name="Boost Rule" name="boostRule" super-type="rule" sub-type-value="boostRule">
       <attribute name="BoostsPriority" value="4" />
       
@@ -265,6 +277,6 @@
           </property>
       </table>
     </item-descriptor>  
-
+    
 </gsa-template>    
 

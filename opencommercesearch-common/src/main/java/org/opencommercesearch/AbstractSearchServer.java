@@ -8,6 +8,8 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -19,6 +21,7 @@ import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
+import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import static org.opencommercesearch.SearchServerException.create;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -48,7 +52,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private RqlStatement ruleCountRql;
     private RqlStatement ruleRql;
     private int ruleBatchSize;
-
+    
     public T getRulesSolrServer() {
         return rulesSolrServer;
     }
@@ -127,7 +131,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void setRuleBatchSize(int ruleBatchSize) {
         this.ruleBatchSize = ruleBatchSize;
     }
-    
 
     @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
@@ -149,6 +152,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             throw new IllegalArgumentException("Missing catalog");
         }
         long startTime = System.currentTimeMillis();
+        
         query.addFacetField("category");
         query.set("f.category.facet.mincount", 1);
 
@@ -162,6 +166,16 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         RuleManager ruleManager = new RuleManager(getSearchRepository(), rulesSolrServer);
         try {
             ruleManager.setRuleParams(filterQueries, catalog, query);
+            
+            if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
+            	Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
+            	List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
+            	if(redirects != null){
+            		RepositoryItem redirect = redirects.get(0);
+            		return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL));
+            	}
+            }
+            
         } catch (RepositoryException ex) {
             if (isLoggingError()) {
                 logError("Unable to load search rules", ex);
@@ -185,7 +199,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (isLoggingInfo()) {
                 logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
-            return new SearchResponse(queryResponse, ruleManager, filterQueries);
+            return new SearchResponse(queryResponse, ruleManager, filterQueries, null);
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
         }
@@ -291,7 +305,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             QueryResponse queryResponse = getCatalogSolrServer().query(solrQuery);
-            return new SearchResponse(queryResponse, null, null);
+            return new SearchResponse(queryResponse, null, null, null);
         } catch (SolrServerException ex) {
             throw create(TERMS_EXCEPTION, ex);
         }
@@ -309,7 +323,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)) {
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.REDIRECT_RULE)) {
                 indexRules();
             }
         }
