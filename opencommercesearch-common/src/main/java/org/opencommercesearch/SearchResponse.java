@@ -28,11 +28,13 @@ public class SearchResponse {
     private RuleManager ruleManager;
     private FacetManager facetManager;
     private FilterQuery[] filterQueries;
+    private String redirectResponse;
 
-    SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries) {
+    SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse) {
         this.queryResponse = queryResponse;
         this.ruleManager = ruleManager;
         this.filterQueries = filterQueries;
+        this.redirectResponse = redirectResponse;
     }
 
     public QueryResponse getQueryResponse() {
@@ -229,6 +231,10 @@ public class SearchResponse {
             return parts;
         }
         return null;
+    }
+
+    public String getRedirectResponse() {
+        return redirectResponse;
     }
 
 }

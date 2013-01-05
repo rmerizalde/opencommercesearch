@@ -310,4 +310,19 @@
     </createTable>
   </changeSet>
 
+  <changeSet author="commercesearch" id="9">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_redirect_rule"/></not>
+    </preConditions>
+    <createTable tableName="cs_redirect_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_redirect_rule_pk"
+          foreignKeyName="cs_redirect_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+      <column name="url" type="VARCHAR2(200 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+  
 </databaseChangeLog>
