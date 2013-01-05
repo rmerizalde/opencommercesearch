@@ -148,7 +148,13 @@
     
         <testResources>
             <testResource>
-                <directory>${basedir}/src/test/java</directory>
+              <directory>${basedir}/src/test/unit</directory>
+            </testResource>
+            <testResource>
+              <directory>${basedir}/src/test/integration</directory>
+            </testResource>
+            <testResource>
+              <directory>${basedir}/src/test/java</directory>
             </testResource>
             <testResource>
               <directory>${basedir}/src/test/config</directory>
