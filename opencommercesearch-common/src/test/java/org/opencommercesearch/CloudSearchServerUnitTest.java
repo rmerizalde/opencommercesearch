@@ -18,7 +18,7 @@ import com.google.common.collect.Sets;
 
 import atg.repository.RepositoryItem;
 
-public class CloudSearchServerTest {
+public class CloudSearchServerUnitTest {
 
     CloudSearchServer cloudSearchServer;
     
