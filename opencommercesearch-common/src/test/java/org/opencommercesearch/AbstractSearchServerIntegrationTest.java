@@ -19,6 +19,7 @@ import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -28,7 +29,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
  */
 @Category(IntegrationSearchTest.class)
 @RunWith(SearchJUnit4ClassRunner.class)
-public class AbstractSearchServerTest {
+public class AbstractSearchServerIntegrationTest {
 
     @Mock
     private Site site;
@@ -40,7 +41,7 @@ public class AbstractSearchServerTest {
     private RepositoryItem redirectRule;
     
     @Mock
-    private Repository searchRepo;
+    private Repository searchRepository;
     
     @Before
     public void setUp() throws RepositoryException {
@@ -49,7 +50,7 @@ public class AbstractSearchServerTest {
         when(site.getPropertyValue("defaultCatalog")).thenReturn(catalog);
         when(catalog.getRepositoryId()).thenReturn("mycatalog");
         
-        when(searchRepo.getItem("redirectRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(redirectRule);
+        when(searchRepository.getItem("redirectRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(redirectRule);
         when(redirectRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
         when(redirectRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
     }
@@ -67,7 +68,7 @@ public class AbstractSearchServerTest {
     @SearchTest(newInstance = true, rulesData = "/rules/redirect.xml")
     public void testSearchSedirect(SearchServer server) throws SearchServerException {
     	AbstractSearchServer baseServer = (AbstractSearchServer) server;
-    	baseServer.setSearchRepository(searchRepo);
+    	baseServer.setSearchRepository(searchRepository);
     	
     	SolrQuery query = new SolrQuery("redirect");
         SearchResponse res = server.search(query, site);
@@ -89,6 +90,23 @@ public class AbstractSearchServerTest {
             }
         }
         fail("Product TNF3137 not found");
+    }
+
+    @SearchTest(newInstance = true)
+    public void testDeleteByQuery(SearchServer server) throws SearchServerException {
+        SolrQuery query = new SolrQuery("jacket");
+        SearchResponse res = server.search(query, site);
+        QueryResponse queryResponse = res.getQueryResponse();
+        GroupResponse groupResponse = queryResponse.getGroupResponse();
+
+        assertNotEquals(new Integer(1), groupResponse.getValues().get(0).getNGroups());
+
+        server.deleteByQuery("*:*");
+        server.commit();
+        res = server.search(query, site);
+        queryResponse = res.getQueryResponse();
+        groupResponse = queryResponse.getGroupResponse();
+        assertEquals(new Integer(0), groupResponse.getValues().get(0).getNGroups());
     }
 
 }

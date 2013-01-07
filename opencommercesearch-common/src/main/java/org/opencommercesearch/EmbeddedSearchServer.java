@@ -109,6 +109,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         copy.setSolrConfigUrl(getSolrConfigUrl());
         copy.setSolrCorePath(getSolrCorePath());
         copy.setLoggingInfo(this.isLoggingInfo());
+        copy.tmpConfigFile = tmpConfigFile;
         copy.setLoggingDebug(this.isLoggingDebug());
         copy.setLoggingError(this.isLoggingError());
         copy.setLoggingWarning(this.isLoggingWarning());
@@ -307,10 +308,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         }
 
         try {
-            coreContainer.shutdown();
-            coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
-            setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
-            setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
+            coreContainer.reload(collectionName);
         } catch (SAXException ex) {
             if(isLoggingError()){
                 logError(ex);

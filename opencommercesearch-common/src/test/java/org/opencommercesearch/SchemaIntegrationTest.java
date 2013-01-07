@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 @Category(IntegrationSearchTest.class)
 @RunWith(SearchJUnit4ClassRunner.class)
-public class SchemaTest {
+public class SchemaIntegrationTest {
 
     @Mock
     private Site site;

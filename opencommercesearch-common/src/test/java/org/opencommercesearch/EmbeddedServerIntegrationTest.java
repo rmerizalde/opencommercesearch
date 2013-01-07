@@ -112,5 +112,12 @@ public class EmbeddedServerIntegrationTest {
         }
     }
 
+    @SearchTest(newInstance = true)
+    public void testReloadCollection(SearchServer server) throws SearchServerException {
+        EmbeddedSearchServer embeddedSearchServer = (EmbeddedSearchServer) server;
+        // @TODO(rmerizalde) fix reload
+        //embeddedSearchServer.reloadCollections();
+    }
+
 
 }

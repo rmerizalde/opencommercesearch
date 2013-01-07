@@ -9,7 +9,6 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -139,7 +138,11 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     @Override
     public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
-        return search(query, site, (RepositoryItem) site.getPropertyValue("defaultCatalog"), filterQueries);
+        RepositoryItem catalog = null;
+        if (site != null) {
+            catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
+        }
+        return search(query, site, catalog, filterQueries);
     }
 
     @Override
