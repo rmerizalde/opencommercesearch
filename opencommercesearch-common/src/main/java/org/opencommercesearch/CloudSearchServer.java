@@ -90,6 +90,10 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         }
         return zkClient;
     }
+    
+    protected void setSolrZkClient(SolrZkClient zkClient) {
+        this.zkClient = zkClient;
+    }
 
     @Override
     public void doStartService() throws ServiceException {
