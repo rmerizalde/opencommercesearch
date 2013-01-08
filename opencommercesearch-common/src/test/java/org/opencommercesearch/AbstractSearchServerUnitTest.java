@@ -8,6 +8,7 @@ import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.UpdateRequest;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -19,7 +20,9 @@ import org.mockito.Mock;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.SynonymListProperty;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -91,16 +94,25 @@ public class AbstractSearchServerUnitTest {
     @Mock
     private RepositoryItem redirectRule;
 
+    @Mock
+    private RqlStatement synonymsRql;
+
+    @Mock
+    private RepositoryItem synonymList;
+
+    @Mock
+    private AbstractSearchServer dummySearchServer;
+
     private AbstractSearchServer server = new AbstractSearchServer() {
 
         @Override
         protected void exportSynonymList(RepositoryItem synonymList) throws SearchServerException {
-            throw new UnsupportedOperationException();
+            dummySearchServer.exportSynonymList(synonymList);
         }
 
         @Override
         public void reloadCollection(String collectionName) throws SearchServerException {
-            throw new UnsupportedOperationException();
+            dummySearchServer.reloadCollection(collectionName);
         }
 
         @Override
@@ -119,6 +131,7 @@ public class AbstractSearchServerUnitTest {
         server.setSearchRepository(searchRepository);
         server.setRuleCountRql(rulesRqlCount);
         server.setRuleRql(rulesRql);
+        server.setSynonymRql(synonymsRql);
         server.setLoggingInfo(true);
         server.setLoggingError(true);
         server.setLoggingError(true);
@@ -147,7 +160,10 @@ public class AbstractSearchServerUnitTest {
         when(rulesServer.query(any(SolrParams.class))).thenReturn(rulesQueryResponse);
 
         // repository
+        when(searchRepository.getRepositoryName()).thenReturn("SearchRepository");
         when(searchRepository.getView(SearchRepositoryItemDescriptor.RULE)).thenReturn(repositoryView);
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(repositoryView);
+        when(synonymsRql.executeQuery(repositoryView,  null)).thenReturn(new RepositoryItem[]{synonymList});
 
         // rules
         Set<RepositoryItem> sites = new HashSet<RepositoryItem>();
@@ -197,7 +213,6 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testIndexRules() throws Exception {
-        ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
         when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
         when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{
                 redirectRule, boostRule, blockRule, facetRule
@@ -205,19 +220,103 @@ public class AbstractSearchServerUnitTest {
 
         server.indexRules();
 
+        verifyIndexedRules(4, redirectRule.getRepositoryId(), facetRule.getRepositoryId(),
+            blockRule.getRepositoryId(), boostRule.getRepositoryId());
+    }
+
+    private void verifyIndexedRules(int count, String... expectedRuleIds) throws SolrServerException, IOException {
+
+        ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
+
         verify(rulesServer, times(2)).request(argument.capture());
+
         List<SolrInputDocument> documents = argument.getValue().getDocuments();
         assertNotNull(documents);
-        assertEquals(4, documents.size());
+        assertEquals(count, documents.size());
         List<String> ruleIds = new ArrayList();
         assertEquals("/update", argument.getValue().getPath());
 
         for (SolrInputDocument document : documents) {
             ruleIds.add((String) document.getFieldValue("id"));
         }
-        assertThat(ruleIds, containsInAnyOrder(redirectRule.getRepositoryId(), facetRule.getRepositoryId(),
-                blockRule.getRepositoryId(), boostRule.getRepositoryId()));
+        assertThat(ruleIds, containsInAnyOrder(expectedRuleIds));
 
         verify(rulesServer).commit();
+    }
+
+    @Test
+    public void testItemChangedSynonym() throws Exception {
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer).exportSynonymList(synonymList);
+        verify(dummySearchServer).reloadCollection(server.getCatalogCollection());
+        verify(dummySearchServer).reloadCollection(server.getRulesCollection());
+    }
+
+    @Test
+    public void testItemChangedSynonymList() throws Exception {
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM_LIST);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer, times(1)).exportSynonymList(synonymList);
+        verify(dummySearchServer, times(1)).reloadCollection(server.getCatalogCollection());
+        verify(dummySearchServer, times(1)).reloadCollection(server.getRulesCollection());
+    }
+
+    @Test
+    public void testItemChangedBoostRule() throws Exception {
+        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+                .thenReturn(new RepositoryItem[]{boostRule})
+                .thenReturn(null);
+
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.BOOST_RULE);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verifyIndexedRules(1, boostRule.getRepositoryId());
+    }
+
+    @Test
+    public void testItemChangedBlockRule() throws Exception {
+        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+                .thenReturn(new RepositoryItem[]{blockRule})
+                .thenReturn(null);
+
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.BLOCK_RULE);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verifyIndexedRules(1, blockRule.getRepositoryId());
+    }
+
+    @Test
+    public void testItemChangeFacetRule() throws Exception {
+        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+                .thenReturn(new RepositoryItem[]{facetRule})
+                .thenReturn(null);
+
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.FACET_RULE);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verifyIndexedRules(1, facetRule.getRepositoryId());
+    }
+
+    @Test
+    public void testItemChangedRedirectRule() throws Exception {
+        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+                .thenReturn(new RepositoryItem[]{redirectRule})
+                .thenReturn(null);
+
+        Set<String> itemDescriptorNames = new HashSet<String>();
+        itemDescriptorNames.add(SearchRepositoryItemDescriptor.REDIRECT_RULE);
+        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verifyIndexedRules(1, redirectRule.getRepositoryId());
     }
 }
