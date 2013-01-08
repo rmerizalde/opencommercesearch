@@ -235,11 +235,9 @@ public class CloudSearchServerUnitTest {
     @Test
     public void testReloadCollectionsNoLiveNodes() throws Exception {
         when(clusterState.getLiveNodes()).thenReturn(null);
-       cloudSearchServer.reloadCollections();
+        cloudSearchServer.reloadCollections();
 
         verifyZeroInteractions(httpClient);
-        verifyZeroInteractions(catalogSolrServer);
-        verifyZeroInteractions(rulesSolrServer);
     }
 
     @Test
