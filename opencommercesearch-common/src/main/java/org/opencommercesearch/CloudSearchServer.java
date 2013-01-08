@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
+import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.BinaryResponseParser;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
@@ -52,6 +53,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
 
     private SolrZkClient zkClient;
     private String host;
+    private ResponseParser responseParser = binaryParser;
 
     public String getHost() {
         return host;
@@ -59,6 +61,14 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
 
     public void setHost(String host) {
         this.host = host;
+    }
+
+    public ResponseParser getResponseParser() {
+        return responseParser;
+    }
+
+    public void setResponseParser(ResponseParser responseParser) {
+        this.responseParser = responseParser;
     }
 
     private SolrZkClient getZkClient() {
@@ -192,7 +202,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         ClusterState clusterState = getSolrServer(collectionName).getZkStateReader().getClusterState();
         Set<String> liveNodes = clusterState.getLiveNodes();
 
-        if (liveNodes.size() == 0) {
+        if (liveNodes == null || liveNodes.size() == 0) {
             if (isLoggingInfo()) {
                 logInfo("No live nodes found, 0 cores were reloaded");
             }
@@ -222,7 +232,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                     logInfo("Reloading core " + collectionName + " on " + node);
                 }
                 HttpClient httpClient = getSolrServer(collectionName).getLbServer().getHttpClient();
-                HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, binaryParser);
+                HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, getResponseParser());
                 try {
                     CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
                     if (isLoggingInfo()) {
