@@ -105,7 +105,6 @@ public class CloudSearchServerUnitTest {
     public void setUp() throws Exception {
         initMocks(this);
         cloudSearchServer = new CloudSearchServer() {
-
             @Override
             public void logInfo(String s, Throwable t) {
             }
@@ -173,7 +172,7 @@ public class CloudSearchServerUnitTest {
     }
 
     @Test
-    public void testExportSynonymListNewFile() throws Exception {
+    public void testExportSynonymsNewFile() throws Exception {
         
         RepositoryItem synonymList = initExportSynonyms(zkClient);
         when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
@@ -186,9 +185,9 @@ public class CloudSearchServerUnitTest {
         
         verifySynonymExport(dataCaptor, pathCaptor);
     }
-    
+
     @Test
-    public void testExportSynonymListExistingFile() throws Exception {
+    public void testExportSynonymsExistingFile() throws Exception {
 
         RepositoryItem synonymList = initExportSynonyms(zkClient);
         when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
@@ -202,6 +201,15 @@ public class CloudSearchServerUnitTest {
         verify(zkClient, times(2)).setData(pathCaptor.capture(), dataCaptor.capture(), eq(true));
         
         verifySynonymExport(dataCaptor, pathCaptor);
+    }
+
+    @Test
+    public void testExportSynonymZeroLists() throws Exception {
+        when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(null);
+
+        cloudSearchServer.exportSynonyms();
+
+        verifyZeroInteractions(zkClient);
     }
 
     private void verifySynonymExport(ArgumentCaptor<byte[]> dataCaptor, ArgumentCaptor<String> pathCaptor) {

@@ -102,6 +102,10 @@ public class AbstractSearchServerUnitTest {
         public void reloadCollection(String collectionName) throws SearchServerException {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        public void logInfo(String s, Throwable t) {
+        }
     };
 
     @Before
@@ -115,11 +119,11 @@ public class AbstractSearchServerUnitTest {
         server.setSearchRepository(searchRepository);
         server.setRuleCountRql(rulesRqlCount);
         server.setRuleRql(rulesRql);
-        server.setLoggingInfo(false);
-        server.setLoggingError(false);
-        server.setLoggingError(false);
-        server.setLoggingWarning(false);
-        server.setLoggingTrace(false);
+        server.setLoggingInfo(true);
+        server.setLoggingError(true);
+        server.setLoggingError(true);
+        server.setLoggingWarning(true);
+        server.setLoggingTrace(true);
 
         // site
         when(site.getRepositoryId()).thenReturn("mysite");
