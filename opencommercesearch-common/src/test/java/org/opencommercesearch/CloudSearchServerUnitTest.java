@@ -96,6 +96,9 @@ public class CloudSearchServerUnitTest {
     @Mock
     private RqlStatement synonymsRql;
 
+    @Mock
+    private SolrZkClient solrZkClient;
+
     private CloudSearchServer cloudSearchServer;
     
     @Before
@@ -170,8 +173,8 @@ public class CloudSearchServerUnitTest {
     }
 
     @Test
-    public void testExportSynonymList() throws Exception {
-
+    public void testExportSynonymListNewFile() throws Exception {
+        
         RepositoryItem synonymList = initExportSynonyms(zkClient);
         when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
 
@@ -181,6 +184,27 @@ public class CloudSearchServerUnitTest {
         ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
         verify(zkClient, times(2)).makePath(pathCaptor.capture(), dataCaptor.capture(), any(CreateMode.class), eq(true));
         
+        verifySynonymExport(dataCaptor, pathCaptor);
+    }
+    
+    @Test
+    public void testExportSynonymListExistingFile() throws Exception {
+
+        RepositoryItem synonymList = initExportSynonyms(zkClient);
+        when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
+
+        when(zkClient.exists(anyString(), anyBoolean())).thenReturn(true);
+
+        cloudSearchServer.exportSynonyms();
+        
+        ArgumentCaptor<byte[]> dataCaptor = ArgumentCaptor.forClass(byte[].class);
+        ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
+        verify(zkClient, times(2)).setData(pathCaptor.capture(), dataCaptor.capture(), eq(true));
+        
+        verifySynonymExport(dataCaptor, pathCaptor);
+    }
+
+    private void verifySynonymExport(ArgumentCaptor<byte[]> dataCaptor, ArgumentCaptor<String> pathCaptor) {
         assertNotNull(dataCaptor.getAllValues());
         byte[] capturedData = dataCaptor.getAllValues().get(0);
         String capturedDataStr = new String(capturedData);
@@ -188,8 +212,8 @@ public class CloudSearchServerUnitTest {
         assertTrue(capturedDataStr.contains("synonym1 > mapping1"));
         assertTrue(capturedDataStr.contains("synonym2 > mapping2"));
         
-        String path = pathCaptor.getAllValues().get(0);
-        assertTrue(path.contains("synonymlist"));
+        assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/catalogCollection/synonyms/synonymlist.txt"));
+        assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/ruleCollection/synonyms/synonymlist.txt"));
     }
 
     private RepositoryItem initExportSynonyms(SolrZkClient zkClient) throws SearchServerException {
