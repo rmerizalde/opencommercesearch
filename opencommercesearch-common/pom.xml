@@ -237,7 +237,7 @@
               </dependencies>
               <configuration>
                 <groups>org.opencommercesearch.IntegrationSearchTest</groups>
-                <argLine>${jacoco.agent.argLine}</argLine>
+                <argLine>-ea ${jacoco.agent.argLine}</argLine>
               </configuration>
               <executions>
                 <execution>

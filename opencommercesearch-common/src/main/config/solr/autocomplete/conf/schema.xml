@@ -12,6 +12,12 @@
 
     <fieldType name="normalizedQuery" class="solr.TextField" positionIncrementGap="100">
      <analyzer type="index">
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(\w\.(?:\w\.)+(?:\s|$))|([\d\w](?:\.[\d\w])+)|\.+(\s|$)" replacement="$1$2$3" />
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="[,()_]" replacement=" " />
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern='(\d\s*")|"+([^"]|$)' replacement="$1$2" />
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(\w'\w)|'+([^']|$)" replacement="$1$2" />
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="-+(-)|\s+-+\s*?(\s)" replacement="$1$2" />
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="[#:]" replacement="" />
        <tokenizer class="solr.WhitespaceTokenizerFactory"/>
        <filter class="solr.LowerCaseFilterFactory"/>
        <filter class="solr.StopFilterFactory" ignoreCase="true" words="stopwords.txt" enablePositionIncrements="true" />
