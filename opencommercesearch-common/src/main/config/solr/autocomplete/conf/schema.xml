@@ -12,11 +12,17 @@
 
     <fieldType name="normalizedQuery" class="solr.TextField" positionIncrementGap="100">
      <analyzer type="index">
+       <!-- keep dots when part of an acronym or when they show up between letters and numbers -->
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(\w\.(?:\w\.)+(?:\s|$))|([\d\w](?:\.[\d\w])+)|\.+(\s|$)" replacement="$1$2$3" />
+       <!-- replace all ,()_ by a space-->
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="[,()_]" replacement=" " />
+       <!-- keep double quotes after number, delelete others -->
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern='(\d\s*")|"+([^"]|$)' replacement="$1$2" />
+       <!-- keep apostrophes, delete all other single quotes -->
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(\w'\w)|'+([^']|$)" replacement="$1$2" />
+       <!-- Remove dashes not between spaces -->
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="-+(-)|\s+-+\s*?(\s)" replacement="$1$2" />
+
        <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="[#:]" replacement="" />
        <tokenizer class="solr.WhitespaceTokenizerFactory"/>
        <filter class="solr.LowerCaseFilterFactory"/>
