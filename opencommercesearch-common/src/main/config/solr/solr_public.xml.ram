@@ -34,5 +34,6 @@
   </cores>
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="rulePublic_en" instanceDir="rules"/>
+    <core name="rulePublic_fr" instanceDir="rules"/>
   </cores>
 </solr>

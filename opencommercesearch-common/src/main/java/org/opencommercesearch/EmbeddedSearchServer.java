@@ -35,7 +35,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     private boolean inMemoryIndex = false;
     
     private CoreContainer coreContainer;
-    private File tmpConfigFile;
     
     public String getSolrConfigUrl() {
         return solrConfigUrl;
@@ -129,7 +128,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         copy.setLoggingDebug(this.isLoggingDebug());
         copy.setLoggingError(this.isLoggingError());
         copy.setLoggingWarning(this.isLoggingWarning());
-        copy.tmpConfigFile = tmpConfigFile;
         copy.coreContainer = coreContainer;
 
         if (isLoggingInfo()) {
@@ -203,6 +201,8 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         // @TODO add support to shuutdown all localized cores
         CoreAdminRequest.unloadCore(getCatalogCollection(Locale.ENGLISH), deleteIndex, getCatalogSolrServer(Locale.ENGLISH));
         CoreAdminRequest.unloadCore(getRulesCollection(Locale.ENGLISH), deleteIndex, getRulesSolrServer(Locale.ENGLISH));
+        CoreAdminRequest.unloadCore(getCatalogCollection(Locale.FRENCH), deleteIndex, getCatalogSolrServer(Locale.FRENCH));
+        CoreAdminRequest.unloadCore(getRulesCollection(Locale.FRENCH), deleteIndex, getRulesSolrServer(Locale.FRENCH));
     }
 
     private EmbeddedSolrServer createEmbeddedSolrServer(final CoreContainer container, final String collectionName, final Locale locale) {
@@ -245,7 +245,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             in = getClass().getResourceAsStream(configUrl);
 
             if (in != null) {
-                tmpConfigFile = File.createTempFile("solr-", ".xml");
+                File tmpConfigFile = File.createTempFile("solr-", ".xml");
 
                 FileWriter out = new FileWriter(tmpConfigFile);
 
@@ -256,6 +256,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 out.close();
 
                 coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
+                tmpConfigFile.delete();
                 // @TODO fix this support configurable supported locales
                 setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(),  Locale.ENGLISH), Locale.ENGLISH);
                 setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.ENGLISH), Locale.ENGLISH);
@@ -299,9 +300,6 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     public void doStopService() throws ServiceException {
         if (coreContainer != null) {
             coreContainer.shutdown();
-        }
-        if (tmpConfigFile != null) {
-            tmpConfigFile.delete();
         }
     }
 

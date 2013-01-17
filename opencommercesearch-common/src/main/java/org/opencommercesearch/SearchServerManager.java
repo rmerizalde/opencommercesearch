@@ -10,7 +10,6 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
 import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
-import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -122,8 +121,8 @@ public class SearchServerManager {
      *
      * @return a read-write search sever instance
      */
-    public SearchServer getSearchServerWithResources(String name, String productDataResource, String rulesDataResource) {
-        return getSearchServer(false, true, name, loadXmlResource(productDataResource),  loadXmlResource(rulesDataResource));
+    public SearchServer getSearchServerWithResources(String name, String productDataResource, String rulesDataResource, Locale locale) {
+        return getSearchServer(false, true, name, loadXmlResource(productDataResource), loadXmlResource(rulesDataResource), locale);
     }
 
     /**
@@ -136,7 +135,7 @@ public class SearchServerManager {
      * @return a read-write search sever instance
      */
     public SearchServer getSearchServer(String name, String productDataXml, String rulesDataXml) {
-        return getSearchServer(false, true, name, productDataXml,  rulesDataXml);
+        return getSearchServer(false, true, name, productDataXml, rulesDataXml);
     }
 
     /**
@@ -146,12 +145,19 @@ public class SearchServerManager {
      */
     private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource,
                 String rulesDataResource) {
+        return getSearchServer(readOnly, loadBootstrapData, name, productDataResource, rulesDataResource, Locale.ENGLISH);
+    }
 
-        // @TODO fix getSearchServer to support multiple locales
-        Locale locale = Locale.ENGLISH;
+    /**
+     * Helper method to create a search server. If readonly is set to true, the read only instance is returned.
+     * Otherwise, the read only instances is cloned and the given name is used to identify the new server.
+     *
+     */
+    private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource,
+                String rulesDataResource, Locale locale) {
 
         if (searchServer == null) {
-            initServer(loadBootstrapData, locale);
+            initServer(loadBootstrapData);
         }
 
         if (readOnly) {
@@ -208,12 +214,20 @@ public class SearchServerManager {
     *
     * The default data xml files are:
     *
-    *   catalog: /product_catalog/bootstrap.xml
-    *   rules: /rules/bootstrap.xml
+    *   catalog: /product_catalog/bootstrap_en.xml
+    *   rules: /rules/bootstrap_en.xml
     */
-   public void initServer(boolean loadBootstrapData, Locale locale) {
-       initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap.xml"), loadXmlResource("/rules/bootstrap.xml"), locale);
-   }
+    public void initServer(boolean loadBootstrapData) {
+        initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap_en.xml"), loadXmlResource("/rules/bootstrap_en.xml"));
+        try {
+            searchServer.updateCollection(searchServer.getCatalogCollection(), loadXmlResource("/product_catalog/bootstrap_fr.xml"), Locale.FRENCH);
+            searchServer.updateCollection(searchServer.getRulesCollection(), loadXmlResource("/rules/bootstrap_fr.xml"), Locale.FRENCH);
+        } catch (SolrServerException ex) {
+            throw new RuntimeException(ex);
+        } catch (IOException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 
     /**
      * Initializes the read only search server. The ro server is a singleton.
@@ -222,8 +236,8 @@ public class SearchServerManager {
      *
      * This signature allows to use custom catalog and rules xml files.
      */
-    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml, Locale locale) {
-        initServerAux(loadBootstrapData, productDataXml, rulesDataXml, locale);
+    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml) {
+        initServerAux(loadBootstrapData, productDataXml, rulesDataXml);
     }
 
     /**
@@ -231,7 +245,8 @@ public class SearchServerManager {
      * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml, Locale locale) {
+    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml) {
+
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
@@ -248,10 +263,10 @@ public class SearchServerManager {
             searchServer.doStartService();
             if (loadBootstrapData) {
                 if (productDataXml != null) {
-                    searchServer.updateCollection(searchServer.getCatalogCollection(), productDataXml, locale);
+                    searchServer.updateCollection(searchServer.getCatalogCollection(), productDataXml, Locale.ENGLISH);
                 }
                 if (rulesDataXml != null) {
-                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesDataXml, locale);
+                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesDataXml, Locale.ENGLISH);
                 }
             }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);

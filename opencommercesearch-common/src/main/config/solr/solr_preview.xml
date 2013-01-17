@@ -36,5 +36,6 @@
   </cores>
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="rulePreview_en" instanceDir="rules" dataDir="${data.dir:}rules/preview_data"  />
-  </cores> 
+    <core name="rulePreview_fr" instanceDir="rules" dataDir="${data.dir:}rules/preview_data"  />
+  </cores>
 </solr>

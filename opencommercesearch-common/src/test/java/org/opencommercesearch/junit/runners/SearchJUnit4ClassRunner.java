@@ -14,6 +14,7 @@ import org.junit.runners.model.Statement;
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Implements a custom JUnit test case class model for search integration tests.
@@ -83,6 +84,7 @@ public class SearchJUnit4ClassRunner extends BlockJUnit4ClassRunner {
 
             SearchServerManager manager = SearchServerManager.getInstance();
             SearchServer server = null;
+            Locale locale = new Locale(annotation.language());
 
             if (readOnly) {
                 server = manager.getSearchServer();
@@ -90,7 +92,8 @@ public class SearchJUnit4ClassRunner extends BlockJUnit4ClassRunner {
                 String productDataResource = annotation.productData();
                 String rulesDataResource = annotation.rulesData();
                 String name = test.getClass().getName() + "_" + method.getName();
-                server = manager.getSearchServerWithResources(name, productDataResource, rulesDataResource);
+
+                server = manager.getSearchServerWithResources(name, productDataResource, rulesDataResource, locale);
             }
 
             return new SearchInvokeMethod(method, test, server);

@@ -4,6 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.Locale;
 
 /**
  * <p>The <code>SearchTest</code> annotation tells JUnit that the <code>public void</code> method
@@ -23,4 +24,5 @@ public @interface SearchTest {
     boolean newInstance() default false;
     String productData() default "";
     String rulesData() default "";
+    String language() default "en";
 }
