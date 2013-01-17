@@ -2,6 +2,7 @@ package org.opencommercesearch;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrQuery;
@@ -28,21 +29,29 @@ import org.apache.solr.common.util.NamedList;
 public interface SearchServer {
 
     SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException;
+    SearchResponse search(SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException;
 
     SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException;
+    SearchResponse search(SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException;
 
     SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, FilterQuery... filterQueries)
             throws SearchServerException;
+    SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
+             throws SearchServerException;
 
     UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException;
+    UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException;
 
     UpdateResponse commit() throws SearchServerException;
+    UpdateResponse commit(Locale locale) throws SearchServerException;
 
     UpdateResponse deleteByQuery(String query) throws SearchServerException;
 
     SolrPingResponse ping() throws SearchServerException;
+    SolrPingResponse ping(Locale locale) throws SearchServerException;
 
     NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException;
+    NamedList<Object> analyze(DocumentAnalysisRequest request, Locale locale) throws SearchServerException;
 
     /**
      * Performs an analysis of a field type or field name for a given value.
@@ -52,6 +61,7 @@ public interface SearchServer {
      * @throws SearchServerException if an exception occurs while analyzing the field
      */
     NamedList<Object> analyze(FieldAnalysisRequest request) throws SearchServerException;
+    NamedList<Object> analyze(FieldAnalysisRequest request, Locale locale) throws SearchServerException;
 
     /**
      * Returns the indexed terms for the given list of fields for each document that matches the given query.
@@ -65,6 +75,7 @@ public interface SearchServer {
      * @throws SearchServerException if an exception occurs while retrieving the terms
      */
     SearchResponse termVector(String query, String... fields) throws SearchServerException;
+    SearchResponse termVector(String query, Locale locale, String... fields) throws SearchServerException;
 
 
     /**

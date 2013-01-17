@@ -23,10 +23,7 @@ import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 import org.opencommercesearch.repository.SynonymListProperty;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -106,13 +103,13 @@ public class AbstractSearchServerUnitTest {
     private AbstractSearchServer server = new AbstractSearchServer() {
 
         @Override
-        protected void exportSynonymList(RepositoryItem synonymList) throws SearchServerException {
-            dummySearchServer.exportSynonymList(synonymList);
+        protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
+            dummySearchServer.exportSynonymList(synonymList, locale);
         }
 
         @Override
-        public void reloadCollection(String collectionName) throws SearchServerException {
-            dummySearchServer.reloadCollection(collectionName);
+        public void reloadCollection(String collectionName, Locale locale) throws SearchServerException {
+            dummySearchServer.reloadCollection(collectionName, locale);
         }
 
         @Override
@@ -120,14 +117,18 @@ public class AbstractSearchServerUnitTest {
         }
     };
 
+    private Locale getLocale() {
+        return Locale.ENGLISH;
+    }
+
     @Before
     public void setup() throws Exception {
         initMocks(this);
 
         server.setCatalogCollection("catalog");
         server.setRulesCollection("rules");
-        server.setCatalogSolrServer(catalogServer);
-        server.setRulesSolrServer(rulesServer);
+        server.setCatalogSolrServer(catalogServer, getLocale());
+        server.setRulesSolrServer(rulesServer, getLocale());
         server.setSearchRepository(searchRepository);
         server.setRuleCountRql(rulesRqlCount);
         server.setRuleRql(rulesRql);
@@ -249,9 +250,9 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer).exportSynonymList(synonymList);
-        verify(dummySearchServer).reloadCollection(server.getCatalogCollection());
-        verify(dummySearchServer).reloadCollection(server.getRulesCollection());
+        verify(dummySearchServer).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer).reloadCollection(server.getCatalogCollection(), getLocale());
+        verify(dummySearchServer).reloadCollection(server.getRulesCollection(), getLocale());
     }
 
     @Test
@@ -259,9 +260,9 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM_LIST);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(1)).exportSynonymList(synonymList);
-        verify(dummySearchServer, times(1)).reloadCollection(server.getCatalogCollection());
-        verify(dummySearchServer, times(1)).reloadCollection(server.getRulesCollection());
+        verify(dummySearchServer, times(1)).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer, times(1)).reloadCollection(server.getCatalogCollection(), getLocale());
+        verify(dummySearchServer, times(1)).reloadCollection(server.getRulesCollection(), getLocale());
     }
 
     @Test
@@ -274,7 +275,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.BOOST_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
         verifyIndexedRules(1, boostRule.getRepositoryId());
     }
 
@@ -288,7 +289,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.BLOCK_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
         verifyIndexedRules(1, blockRule.getRepositoryId());
     }
 
@@ -302,7 +303,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.FACET_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
         verifyIndexedRules(1, facetRule.getRepositoryId());
     }
 
@@ -316,7 +317,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.REDIRECT_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList);
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
         verifyIndexedRules(1, redirectRule.getRepositoryId());
     }
 }

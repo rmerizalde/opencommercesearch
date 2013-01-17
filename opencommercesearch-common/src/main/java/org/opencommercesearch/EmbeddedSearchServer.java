@@ -9,11 +9,15 @@ import org.apache.solr.client.solrj.embedded.EmbeddedSolrServer;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.request.DirectXmlRequest;
 import org.apache.solr.core.CoreContainer;
+import org.apache.solr.core.SolrCore;
+import org.omg.CORBA.LocalObject;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Locale;
 
 /**
  * This class provides a SearchServer implementation which can be run as an embedded instance. By default, the configuration
@@ -91,27 +95,41 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
 
         EmbeddedSearchServer copy = new EmbeddedSearchServer();
 
-        String copyCatalogCoreName = name + "_" + getCatalogCollection();
-        String copyRuleCoreName = name + "_" + getRulesCollection();
+        // @TODO support for configurable locales
+        for (Locale locale : new Locale[]{Locale.ENGLISH, Locale.FRENCH}) {
+            String catalogCoreName = getCatalogCollection(locale);
+            String rulesCoreName = getRulesCollection(locale);
+            String copyCatalogCollectionName = name + "_" + getCatalogCollection();
+            String copyRuleCollectionName = name + "_" + getRulesCollection();
+            String copyCatalogCoreName = name + "_" + catalogCoreName;
+            String copyRuleCoreName = name + "_" + rulesCoreName;
+            SolrCore catalogCore = coreContainer.getCore(catalogCoreName);
+            SolrCore rulesCore = coreContainer.getCore(rulesCoreName);
 
-        copy.setCatalogCollection(copyCatalogCoreName);
-        copy.setRulesCollection(copyRuleCoreName);
-        cloneCore(getCatalogCollection(), copyCatalogCoreName, "product_catalog");
-        cloneCore(getRulesCollection(), copyRuleCoreName, "rules");
-        copy.setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, copyCatalogCoreName));
-        copy.getSolrServer(copyCatalogCoreName).commit();
-        copy.setRulesSolrServer(new EmbeddedSolrServer(coreContainer, copyRuleCoreName));
-        copy.getSolrServer(copyRuleCoreName).commit();
+            if (catalogCore != null) {
+                copy.setCatalogCollection(copyCatalogCollectionName);
+                cloneCore(catalogCore, copyCatalogCollectionName, copyCatalogCoreName, "product_catalog", locale);
+                copy.setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, copyCatalogCollectionName, locale), locale);
+                copy.getSolrServer(copyCatalogCollectionName, locale).commit();
+            }
+
+            if (rulesCore != null) {
+                copy.setRulesCollection(copyRuleCollectionName);
+                cloneCore(rulesCore, copyRuleCollectionName, copyRuleCoreName, "rules", locale);
+                copy.setRulesSolrServer(createEmbeddedSolrServer(coreContainer, copyRuleCollectionName, locale), locale);
+                copy.getSolrServer(copyRuleCollectionName, locale).commit();
+            }
+        }
         copy.setInMemoryIndex(getInMemoryIndex());
         copy.setEnabled(getEnabled());
         copy.setDataDir(getDataDir());
         copy.setSolrConfigUrl(getSolrConfigUrl());
         copy.setSolrCorePath(getSolrCorePath());
         copy.setLoggingInfo(this.isLoggingInfo());
-        copy.tmpConfigFile = tmpConfigFile;
         copy.setLoggingDebug(this.isLoggingDebug());
         copy.setLoggingError(this.isLoggingError());
         copy.setLoggingWarning(this.isLoggingWarning());
+        copy.tmpConfigFile = tmpConfigFile;
         copy.coreContainer = coreContainer;
 
         if (isLoggingInfo()) {
@@ -124,9 +142,9 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     /**
      * Helper method to clone a core
      */
-    private void cloneCore(String collectionName, String coreName, String instanceDir) throws SolrServerException, IOException {
+    private void cloneCore(SolrCore core, String collectionName, String coreName, String instanceDir, Locale locale) throws SolrServerException, IOException {
         if (isLoggingInfo()) {
-            logInfo("Cloning core '" + collectionName + "' into '" + coreName + "' using instance directory " + instanceDir);
+            logInfo("Cloning core '" + core.getName() + "' into '" + coreName + "' using instance directory " + instanceDir);
         }
 
         CoreAdminRequest.Create create = new CoreAdminRequest.Create();
@@ -134,13 +152,14 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         create.setCoreName(coreName);
         create.setInstanceDir(instanceDir);
         create.setDataDir(coreName + "/data");
-        getSolrServer(collectionName).request(create);
+        create.setSchemaName(core.getSchemaResource());
+        getSolrServer(collectionName, locale).request(create);
 
         CoreAdminRequest.MergeIndexes mergeIndexes = new CoreAdminRequest.MergeIndexes();
         mergeIndexes.setCoreName(coreName);
-        mergeIndexes.setSrcCores(Arrays.asList(collectionName));
+        mergeIndexes.setSrcCores(Arrays.asList(core.getName()));
 
-        SolrServer server = getSolrServer(collectionName);
+        SolrServer server = getSolrServer(collectionName, locale);
         server.request(mergeIndexes);
 
     }
@@ -148,12 +167,13 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     /**
      * Updates the collection with the given name with the XML contents
      * @param collectionName  the collection to update
+     * @param locale of the collection to update
      * @param xmlBody The xml as a String
      *
      * @throws SolrServerException if an errors occurs while update the collection
      * @throws IOException if an errors occurs while update the collection
      */
-    void updateCollection(String collectionName, String xmlBody) throws SolrServerException, IOException {
+    void updateCollection(String collectionName, String xmlBody, Locale locale) throws SolrServerException, IOException {
         if (isLoggingInfo()) {
             logInfo("Updating collection " + collectionName);
         }
@@ -163,7 +183,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         }
 
         DirectXmlRequest request = new DirectXmlRequest("/update", xmlBody);
-        SolrServer server = getSolrServer(collectionName);
+        SolrServer server = getSolrServer(collectionName, locale);
 
         server.request(request);
         server.commit();
@@ -180,8 +200,14 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
         }
 
         boolean deleteIndex = !getInMemoryIndex();
-        CoreAdminRequest.unloadCore(getCatalogCollection(), deleteIndex, getCatalogSolrServer());
-        CoreAdminRequest.unloadCore(getRulesCollection(), deleteIndex, getRulesSolrServer());
+        // @TODO add support to shuutdown all localized cores
+        CoreAdminRequest.unloadCore(getCatalogCollection(Locale.ENGLISH), deleteIndex, getCatalogSolrServer(Locale.ENGLISH));
+        CoreAdminRequest.unloadCore(getRulesCollection(Locale.ENGLISH), deleteIndex, getRulesSolrServer(Locale.ENGLISH));
+    }
+
+    private EmbeddedSolrServer createEmbeddedSolrServer(final CoreContainer container, final String collectionName, final Locale locale) {
+        String localizedCollectionName = collectionName + "_" + locale.getLanguage();
+        return new EmbeddedSolrServer(container, localizedCollectionName);
     }
 
 
@@ -230,8 +256,11 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 out.close();
 
                 coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
-                setCatalogSolrServer(new EmbeddedSolrServer(coreContainer, getCatalogCollection()));
-                setRulesSolrServer(new EmbeddedSolrServer(coreContainer, getRulesCollection()));
+                // @TODO fix this support configurable supported locales
+                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(),  Locale.ENGLISH), Locale.ENGLISH);
+                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.ENGLISH), Locale.ENGLISH);
+                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(), Locale.FRENCH), Locale.FRENCH);
+                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.FRENCH), Locale.FRENCH);
             } else {
                 throw new ServiceException("Resource not found " + getSolrConfigUrl());
             }
@@ -295,12 +324,12 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     }
     
     @Override
-    protected void exportSynonymList(RepositoryItem synonymList) throws SearchServerException {
+    protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
         throw new UnsupportedOperationException("Exporting synonyms is only supported when using SolrCloud");        
     }
 
     @Override
-    public void reloadCollection(String collectionName) throws SearchServerException {
+    public void reloadCollection(String collectionName, Locale locale) throws SearchServerException {
 
         if (isLoggingInfo()) {
             logInfo("Reloading collection " + collectionName);

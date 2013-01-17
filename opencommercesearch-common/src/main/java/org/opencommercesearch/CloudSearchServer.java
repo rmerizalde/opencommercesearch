@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,6 +51,8 @@ import atg.repository.RepositoryItem;
  */
 public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> implements SearchServer {
     private static final BinaryResponseParser binaryParser = new BinaryResponseParser();
+    // @TODO makes this configurable in the abstract search server
+    private static final Locale[] SUPPORTED_LOCALES = {Locale.ENGLISH, Locale.FRENCH};
 
     private SolrZkClient zkClient;
     private String host;
@@ -71,13 +74,13 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         this.responseParser = responseParser;
     }
 
-    private SolrZkClient getZkClient() {
+    private SolrZkClient getZkClient(Locale locale) {
         if (zkClient == null) {
-            ZkStateReader stateReader = getCatalogSolrServer().getZkStateReader();
+            ZkStateReader stateReader = getCatalogSolrServer(locale).getZkStateReader();
 
             if (stateReader == null) {
                 try {
-                    getCatalogSolrServer().ping();
+                    getCatalogSolrServer(locale).ping();
                 } catch (IOException ex) {
                     if (isLoggingDebug()) {
                         logDebug(ex);
@@ -87,7 +90,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                         logDebug(ex);
                     }
                 }
-                stateReader = getCatalogSolrServer().getZkStateReader();
+                stateReader = getCatalogSolrServer(locale).getZkStateReader();
             }
 
             if (stateReader != null) {
@@ -113,23 +116,26 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
 
     public void initSolrServer() throws ServiceException {
         try {
-            CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection());
-            
-            if (catalogSolrServer != null) {
-                catalogSolrServer.shutdown();
-            }
-            catalogSolrServer = new CloudSolrServer(getHost());
-            catalogSolrServer.setDefaultCollection(getCatalogCollection());
-            setCatalogSolrServer(catalogSolrServer);
+            for (Locale locale : SUPPORTED_LOCALES) {
+                CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
+                String languagePrefix = "_" + locale.getLanguage();
 
-            CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection());
+                if (catalogSolrServer != null) {
+                    catalogSolrServer.shutdown();
+                }
+                catalogSolrServer = new CloudSolrServer(getHost());
+                catalogSolrServer.setDefaultCollection(getCatalogCollection() + languagePrefix);
+                setCatalogSolrServer(catalogSolrServer, locale);
 
-            if (rulesSolrServer != null) {
-                rulesSolrServer.shutdown();
+                CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection(), locale);
+
+                if (rulesSolrServer != null) {
+                    rulesSolrServer.shutdown();
+                }
+                rulesSolrServer = new CloudSolrServer(getHost());
+                rulesSolrServer.setDefaultCollection(getRulesCollection() + languagePrefix);
+                setRulesSolrServer(rulesSolrServer, locale);
             }
-            rulesSolrServer = new CloudSolrServer(getHost());
-            rulesSolrServer.setDefaultCollection(getRulesCollection());
-            setRulesSolrServer(rulesSolrServer);
         } catch (MalformedURLException ex) {
             throw new ServiceException(ex);
         }
@@ -144,8 +150,8 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
      * @throws SearchServerException
      *             if a problem occurs while writing the file in ZooKeeper
      */
-    protected void exportSynonymList(RepositoryItem synonymList) throws SearchServerException {
-        SolrZkClient client = getZkClient();
+    protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
+        SolrZkClient client = getZkClient(locale);
 
         if (client != null) {
             if (isLoggingInfo()) {
@@ -193,13 +199,13 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
      *          if an error occurs while reloading the core
      *
      */
-    public void reloadCollection(String collectionName) throws SearchServerException
+    public void reloadCollection(String collectionName, Locale locale) throws SearchServerException
              {
         CoreAdminRequest adminRequest = new CoreAdminRequest();
         adminRequest.setCoreName(collectionName);
         adminRequest.setAction(CoreAdminAction.RELOAD);
 
-        ClusterState clusterState = getSolrServer(collectionName).getZkStateReader().getClusterState();
+        ClusterState clusterState = getSolrServer(collectionName, locale).getZkStateReader().getClusterState();
         Set<String> liveNodes = clusterState.getLiveNodes();
 
         if (liveNodes == null || liveNodes.size() == 0) {
@@ -231,7 +237,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                 if (isLoggingInfo()) {
                     logInfo("Reloading core " + collectionName + " on " + node);
                 }
-                HttpClient httpClient = getSolrServer(collectionName).getLbServer().getHttpClient();
+                HttpClient httpClient = getSolrServer(collectionName, locale).getLbServer().getHttpClient();
                 HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, getResponseParser());
                 try {
                     CoreAdminResponse adminResponse = adminRequest.process(nodeServer);

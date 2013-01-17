@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Set;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -118,6 +119,7 @@ public class SearchServerManager {
      * @param productDataResource the URL to the XML product data resource
      * @param rulesDataResource the URL to the XML rules data resource
      *
+     *
      * @return a read-write search sever instance
      */
     public SearchServer getSearchServerWithResources(String name, String productDataResource, String rulesDataResource) {
@@ -140,10 +142,16 @@ public class SearchServerManager {
     /**
      * Helper method to create a search server. If readonly is set to true, the read only instance is returned.
      * Otherwise, the read only instances is cloned and the given name is used to identify the new server.
+     *
      */
-    private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource, String rulesDataResource) {
+    private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource,
+                String rulesDataResource) {
+
+        // @TODO fix getSearchServer to support multiple locales
+        Locale locale = Locale.ENGLISH;
+
         if (searchServer == null) {
-            initServer(loadBootstrapData);
+            initServer(loadBootstrapData, locale);
         }
 
         if (readOnly) {
@@ -153,10 +161,10 @@ public class SearchServerManager {
         try {
             EmbeddedSearchServer copy = searchServer.createCopy(name);
             if (StringUtils.isNotBlank(productDataResource)) {
-                copy.updateCollection(copy.getCatalogCollection(), productDataResource);
+                copy.updateCollection(copy.getCatalogCollection(), productDataResource, locale);
             }
             if (StringUtils.isNotBlank(rulesDataResource)) {
-                copy.updateCollection(copy.getRulesCollection(), rulesDataResource);
+                copy.updateCollection(copy.getRulesCollection(), rulesDataResource, locale);
             }
             return copy;
         } catch (SolrServerException ex) {
@@ -203,8 +211,8 @@ public class SearchServerManager {
     *   catalog: /product_catalog/bootstrap.xml
     *   rules: /rules/bootstrap.xml
     */
-   public void initServer(boolean loadBootstrapData) {
-       initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap.xml"), loadXmlResource("/rules/bootstrap.xml"));
+   public void initServer(boolean loadBootstrapData, Locale locale) {
+       initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap.xml"), loadXmlResource("/rules/bootstrap.xml"), locale);
    }
 
     /**
@@ -214,8 +222,8 @@ public class SearchServerManager {
      *
      * This signature allows to use custom catalog and rules xml files.
      */
-    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml) {
-        initServerAux(loadBootstrapData, productDataXml, rulesDataXml);
+    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml, Locale locale) {
+        initServerAux(loadBootstrapData, productDataXml, rulesDataXml, locale);
     }
 
     /**
@@ -223,7 +231,7 @@ public class SearchServerManager {
      * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
      */
-    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml) {
+    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml, Locale locale) {
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
         searchServer.setRulesCollection("rulePreview");
@@ -240,10 +248,10 @@ public class SearchServerManager {
             searchServer.doStartService();
             if (loadBootstrapData) {
                 if (productDataXml != null) {
-                    searchServer.updateCollection(searchServer.getCatalogCollection(), productDataXml);
+                    searchServer.updateCollection(searchServer.getCatalogCollection(), productDataXml, locale);
                 }
                 if (rulesDataXml != null) {
-                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesDataXml);
+                    searchServer.updateCollection(searchServer.getRulesCollection(), rulesDataXml, locale);
                 }
             }
             readOnlySearchServer = new ReadOnlySearchServer(searchServer);
@@ -290,10 +298,10 @@ public class SearchServerManager {
         return out;
     }
 
-    public void updateCollection(SearchServer server, String collectionName, String xmlBody) {
+    public void updateCollection(SearchServer server, String collectionName, String xmlBody, Locale locale) {
         if (server instanceof EmbeddedSearchServer) {
             try {
-                ((EmbeddedSearchServer) server).updateCollection(collectionName, xmlBody);
+                ((EmbeddedSearchServer) server).updateCollection(collectionName, xmlBody, locale);
             } catch (SolrServerException ex) {
                 throw new RuntimeException(ex);
             } catch (IOException ex) {
@@ -320,8 +328,18 @@ public class SearchServerManager {
         }
 
         @Override
+        public SearchResponse search(SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
+            return server.search(query, locale, filterQueries);
+        }
+
+        @Override
         public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
             return server.search(query, site, filterQueries);
+        }
+
+        @Override
+        public SearchResponse search(SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
+            return server.search(query, site, locale, filterQueries);
         }
 
         @Override
@@ -330,12 +348,27 @@ public class SearchServerManager {
         }
 
         @Override
+        public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
+            return server.search(query, site, catalog, locale, filterQueries);
+        }
+
+        @Override
         public UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException {
             throw new UnsupportedOperationException("Can't add a document to read only search server");
         }
 
         @Override
+        public UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't add a document to read only search server");
+        }
+
+        @Override
         public UpdateResponse commit() throws SearchServerException {
+            throw new UnsupportedOperationException("Can't coommit on a read only search server");
+        }
+
+        @Override
+        public UpdateResponse commit(Locale locale) throws SearchServerException {
             throw new UnsupportedOperationException("Can't coommit on a read only search server");
         }
 
@@ -350,8 +383,18 @@ public class SearchServerManager {
         }
 
         @Override
+        public SolrPingResponse ping(Locale locale) throws SearchServerException {
+            return server.ping(locale);
+        }
+
+        @Override
         public NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException {
             return server.analyze(request);
+        }
+
+        @Override
+        public NamedList<Object> analyze(DocumentAnalysisRequest request, Locale locale) throws SearchServerException {
+            return server.analyze(request, locale);
         }
 
         @Override
@@ -360,8 +403,18 @@ public class SearchServerManager {
         }
 
         @Override
+        public NamedList<Object> analyze(FieldAnalysisRequest request, Locale locale) throws SearchServerException {
+            return server.analyze(request, locale);
+        }
+
+        @Override
         public SearchResponse termVector(String query, String... fields) throws SearchServerException {
             return server.termVector(query, fields);
+        }
+
+        @Override
+        public SearchResponse termVector(String query, Locale locale, String... fields) throws SearchServerException {
+            return server.termVector(query, locale, fields);
         }
 
         @Override

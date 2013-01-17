@@ -29,9 +29,9 @@
     If 'null' (or absent), cores will not be manageable via request handler
   -->
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
-    <core name="catalogPublic" instanceDir="product_catalog"/>
+    <core name="catalogPublic_en" instanceDir="product_catalog" schema="schema_en.xml" />
   </cores>
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
-    <core name="rulePublic" instanceDir="rules"/>
+    <core name="rulePublic_en" instanceDir="rules"/>
   </cores>
 </solr>

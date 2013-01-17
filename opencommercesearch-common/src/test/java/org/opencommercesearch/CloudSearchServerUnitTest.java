@@ -100,6 +100,10 @@ public class CloudSearchServerUnitTest {
     private SolrZkClient solrZkClient;
 
     private CloudSearchServer cloudSearchServer;
+
+    private Locale getLocale() {
+        return Locale.ENGLISH;
+    }
     
     @Before
     public void setUp() throws Exception {
@@ -111,8 +115,8 @@ public class CloudSearchServerUnitTest {
         };
         cloudSearchServer.setRulesCollection("rules");
         cloudSearchServer.setCatalogCollection("catalog");
-        cloudSearchServer.setCatalogSolrServer(catalogSolrServer);
-        cloudSearchServer.setRulesSolrServer(rulesSolrServer);
+        cloudSearchServer.setCatalogSolrServer(catalogSolrServer, getLocale());
+        cloudSearchServer.setRulesSolrServer(rulesSolrServer, getLocale());
         cloudSearchServer.setLoggingInfo(true);
         cloudSearchServer.setLoggingError(true);
         cloudSearchServer.setLoggingError(true);
@@ -177,7 +181,7 @@ public class CloudSearchServerUnitTest {
         RepositoryItem synonymList = initExportSynonyms(zkClient);
         when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
 
-        cloudSearchServer.exportSynonyms();
+        cloudSearchServer.exportSynonyms(getLocale());
         
         ArgumentCaptor<byte[]> dataCaptor = ArgumentCaptor.forClass(byte[].class);
         ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
@@ -194,7 +198,7 @@ public class CloudSearchServerUnitTest {
 
         when(zkClient.exists(anyString(), anyBoolean())).thenReturn(true);
 
-        cloudSearchServer.exportSynonyms();
+        cloudSearchServer.exportSynonyms(getLocale());
         
         ArgumentCaptor<byte[]> dataCaptor = ArgumentCaptor.forClass(byte[].class);
         ArgumentCaptor<String> pathCaptor = ArgumentCaptor.forClass(String.class);
@@ -207,7 +211,7 @@ public class CloudSearchServerUnitTest {
     public void testExportSynonymZeroLists() throws Exception {
         when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(null);
 
-        cloudSearchServer.exportSynonyms();
+        cloudSearchServer.exportSynonyms(getLocale());
 
         verifyZeroInteractions(zkClient);
     }
@@ -279,13 +283,13 @@ public class CloudSearchServerUnitTest {
         server.setCatalogCollection(cloudSearchServer.getCatalogCollection());
         server.setRulesCollection(cloudSearchServer.getRulesCollection());
 
-        assertNull(server.getCatalogSolrServer());
-        assertNull(server.getRulesSolrServer());
+        assertNull(server.getCatalogSolrServer(getLocale()));
+        assertNull(server.getRulesSolrServer(getLocale()));
 
         server.initSolrServer();
 
-        assertNotNull(server.getCatalogSolrServer());
-        assertNotNull(server.getRulesSolrServer());
+        assertNotNull(server.getCatalogSolrServer(getLocale()));
+        assertNotNull(server.getRulesSolrServer(getLocale()));
     }
 
 }
