@@ -30,6 +30,7 @@
   -->
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="catalogPublic_en" instanceDir="product_catalog" schema="schema_en.xml" />
+    <core name="catalogPublic_fr" instanceDir="product_catalog" schema="schema_fr.xml" />
   </cores>
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="rulePublic_en" instanceDir="rules"/>

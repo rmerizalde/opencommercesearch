@@ -1,0 +1,49 @@
+<fields>
+  <field name="_version_"         type="long"              indexed="true"  stored="true"                   multiValued="false" omitNorms="true" />
+  <field name="id"                type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="productId"         type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="title"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="feature"           type="string"            indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" />
+  <field name="category"          type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="categoryId"        type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="image"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="brandId"           type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="seoUrl"            type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <!-- boosting fields -->
+  <field name="year"              type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
+  <field name="season"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
+  <field name="listRank"          type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <!-- facet fields -->
+  <field name="brand"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="gender"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="scale"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="size"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+
+  <!-- sorting/facet fields -->
+  <field name="qoh"               type="int"               indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
+
+  <field name="categoryName"      type="categoryName"      indexed="true" stored="false" multiValued="true" termVectors="true" />
+
+  <!-- catchall text field that indexes tokens both normally and in reverse for efficient
+      leading wildcard queries. -->
+  <!--<field name="text_rev" type="text_general_rev" indexed="true" stored="false" multiValued="true"/>-->
+
+  <field name="timestamp" type="tdate" indexed="true" stored="true" default="NOW" multiValued="false"/>
+
+  <!-- dynamic facet fields -->
+  <dynamicField name="colorFamily*"     type="string"  indexed="true" stored="true" required="false"  multiValued="true"  omitNorms="true"  />
+  <dynamicField name="onsale*"          type="boolean" indexed="true" stored="true" required="false"  multiValued="false" omitNorms="true"  />
+  <dynamicField name="reviewAverage*"   type="tfloat"  indexed="true" stored="true"  required="false" multiValued="false" omitNorms="false" />
+  <dynamicField name="reviews*"         type="int"     indexed="true" stored="true"  required="fasle" multiValued="false" omitNorms="false" />
+  <dynamicField name="freeGift*"        type="boolean" indexed="true" stored="true"  required="fasle" multiValued="false" omitNorms="false" />
+
+  <!-- other sorting/facet fields -->
+  <field name="listPrice"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <field name="salePrice"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <field name="discountPercent"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <field name="isToos"           type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <field name="isPastSeason"     type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
+
+  <!-- catch all ignore -->
+  <dynamicField name="*" type="ignored" multiValued="true" />
+</fields>

@@ -2,30 +2,19 @@
 
 <schema name="productCatalog" version="1.4">
   <types>
-    <!-- A text field with defaults appropriate for English, plus
-    aggressive word-splitting and autophrase features enabled.
-    This field is just like text_en, except it adds
-    WordDelimiterFilter to enable splitting and matching of
-    words on case-change, alpha numeric boundaries, and
-    non-alphanumeric chars.  This means certain compound word
-    cases will work, for example query "wi fi" will match
-    document "WiFi" or "wi-fi".  However, other cases will still
-    not match, for example if the query is "wifi" and the
-    document is "wi fi" or if the query is "wi-fi" and the
-    document is "wifi".
-    -->
-    <fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
+    <fieldType name="text_fr_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
       <analyzer type="index">
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
-                words="stopwords_en.txt"
+                words="stopwords_fr.txt"
                 enablePositionIncrements="true"
                 />
-        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="1" />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ElisionFilterFactory"/>
+        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="0" />
         <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-        <filter class="solr.PorterStemFilterFactory"/>
+        <filter class="solr.SnowballPorterFilterFactory" language="French" />
         <!-- attempt to expand synonyms after expansion -->
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms/index_synonyms.txt" ignoreCase="true" expand="true"/>
       </analyzer>
@@ -34,13 +23,14 @@
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms/query_synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
-                words="stopwords_en.txt"
+                words="stopwords_fr.txt"
                 enablePositionIncrements="true"
                 />
-        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="1" />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ElisionFilterFactory"/>
+        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="0" />
         <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-        <filter class="solr.PorterStemFilterFactory"/>
+        <filter class="solr.SnowballPorterFilterFactory" language="French" />
       </analyzer>
     </fieldType>
 
@@ -49,13 +39,14 @@
         <tokenizer class="solr.PatternTokenizerFactory" pattern="^[^\.]+\.[^\.]+$|^.+\.|\s" />
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
-                words="stopwords_en.txt"
+                words="stopwords_fr.txt"
                 enablePositionIncrements="true"
                 />
-        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="1" />
         <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ElisionFilterFactory"/>
+        <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="1" catenateNumbers="1" catenateAll="0" splitOnCaseChange="0" splitOnNumerics="0" stemEnglishPossessive="0" />
         <filter class="solr.KeywordMarkerFilterFactory" protected="protwords.txt"/>
-        <filter class="solr.PorterStemFilterFactory"/>
+        <filter class="solr.SnowballPorterFilterFactory" language="French" />
         <!-- attempt to expand synonyms after expansion -->
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms/index_synonyms.txt" ignoreCase="true" expand="true"/>
      </analyzer>
@@ -73,7 +64,7 @@
   <fields>
     <!-- catchall field, containing all other searchable text fields (implemented
       via copyField further on in this schema  -->
-    <field name="text" type="text_en_splitting" indexed="true" stored="false" multiValued="true"/>
+    <field name="text" type="text_fr_splitting" indexed="true" stored="false" multiValued="true"/>
   </fields>
 
   <!-- Field to use to determine and enforce document uniqueness.
