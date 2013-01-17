@@ -325,4 +325,14 @@
     </createTable>
   </changeSet>
   
+  <changeSet author="commercesearch" id="10">
+    <dropForeignKeyConstraint constraintName="cs_rule_site_site_fk" baseTableName="cs_rule_sites"/>
+    <dropForeignKeyConstraint constraintName="cs_rule_catalog_cat_fk" baseTableName="cs_rule_catalogs"/>
+    <dropForeignKeyConstraint constraintName="cs_rule_cat_cat_fk" baseTableName="cs_rule_cats"/>
+    <dropForeignKeyConstraint constraintName="cs_boot_rule_prod_prod_fk" baseTableName="cs_boost_rule_prods"/>
+    <dropForeignKeyConstraint constraintName="cs_block_rule_prod_prod_fk" baseTableName="cs_block_rule_prods"/>
+  </changeSet>  
+  
 </databaseChangeLog>
+
+
