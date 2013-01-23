@@ -325,11 +325,38 @@
     </createTable>
   </changeSet>
   
-  <changeSet author="commercesearch" id="10">
+  <changeSet author="commercesearch" id="11">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_site_site_fk" />
+    </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_site_site_fk" baseTableName="cs_rule_sites"/>
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="12">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_sites" /> 
+    </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_catalog_cat_fk" baseTableName="cs_rule_catalogs"/>
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="13">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_cat_cat_fk" /> 
+    </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_cat_cat_fk" baseTableName="cs_rule_cats"/>
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="14">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_boot_rule_prod_prod_fk"  /> 
+    </preConditions>
     <dropForeignKeyConstraint constraintName="cs_boot_rule_prod_prod_fk" baseTableName="cs_boost_rule_prods"/>
+  </changeSet>       
+     
+  <changeSet author="commercesearch" id="15">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_block_rule_prod_prod_fk" /> 
+    </preConditions>
     <dropForeignKeyConstraint constraintName="cs_block_rule_prod_prod_fk" baseTableName="cs_block_rule_prods"/>
   </changeSet>  
   
