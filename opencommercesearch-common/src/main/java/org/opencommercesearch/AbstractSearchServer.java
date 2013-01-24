@@ -9,6 +9,7 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -20,6 +21,7 @@ import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
+import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
@@ -130,7 +132,76 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void setRuleBatchSize(int ruleBatchSize) {
         this.ruleBatchSize = ruleBatchSize;
     }
+    
+    private static final String Q_ALT = "q.alt";
+    private static final String BRAND_ID = "brandId";
+    private static final String CATEGORY_PATH = "categoryPath";
+    
+        
+    @Override
+    public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
+        return browse(options, query, SiteContextManager.getCurrentSite(),filterQueries);
+    }
 
+    @Override
+    public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries)
+            throws SearchServerException {
+
+        boolean hasCategoryId = StringUtils.isNotBlank(options.getCategoryId());
+        boolean hasCategoryPath = StringUtils.isNotBlank(options.getCategoryPath());
+        boolean hasBrandId = StringUtils.isNotBlank(options.getBrandId());
+        boolean addCategoryGraph = options.isFetchCategoryGraph() || options.isFetchProducts();
+
+        String categoryPath = null;
+
+        if (hasCategoryPath) {
+            categoryPath = options.getCategoryPath();
+        } else {
+            categoryPath = options.getCatalogId() + ".";
+        }
+
+        if (addCategoryGraph) {
+            query.setFacetPrefix(CATEGORY_PATH, categoryPath);
+            query.addFacetField(CATEGORY_PATH);
+            query.set("f.categoryPath.facet.limit", options.getMaxCategoryResults());
+        }
+
+        if (!options.isFetchProducts()) {
+            query.setRows(0);
+        }
+
+        List<String> queryAltParams = new ArrayList<String>();
+
+        if (hasCategoryId) {
+            queryAltParams.add(CATEGORY_PATH + ":" + categoryPath);
+            query.setParam("q", "");
+        }
+
+        if (hasBrandId) {
+            queryAltParams.add(BRAND_ID + ":" + options.getBrandId());
+        }
+
+        if (options.isOnSale()) {
+            queryAltParams.add("onsale:true");
+        }
+
+        if (queryAltParams.size() > 0) {
+        	
+            query.set(Q_ALT, "(" + StringUtils.join(queryAltParams, " AND ") + ")");
+        }
+
+        SearchResponse response = search(query, site, filterQueries);
+
+        if (addCategoryGraph) {
+            response.setCategoryGraph(createCategoryGraph(response,
+                    options.getCategoryPath(), options.getCatalogId(),
+                    options.getCategoryId()));
+        }
+
+        return response;
+    }
+    
+    
     @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
         return search(query, SiteContextManager.getCurrentSite(), filterQueries);
@@ -171,12 +242,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             ruleManager.setRuleParams(filterQueries, catalog, query);
             
             if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
-            	Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
-            	List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
-            	if(redirects != null){
-            		RepositoryItem redirect = redirects.get(0);
-            		return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL));
-            	}
+                Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
+                List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
+                if(redirects != null){
+                    RepositoryItem redirect = redirects.get(0);
+                    return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL));
+                }
             }
             
         } catch (RepositoryException ex) {
@@ -452,5 +523,60 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             logInfo("Rules feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
                     + processed + " rules were indexed");
         }
+    }
+    
+    
+    private List<CategoryGraph> createCategoryGraph(SearchResponse searchResponse, String path, String catalogId,
+            String categoryId) {
+
+        List<CategoryGraph> categoryGraphList = new ArrayList<CategoryGraph>();
+
+        for (Facet facet : searchResponse.getFacets()) {
+            if (CATEGORY_PATH.equalsIgnoreCase(facet.getName())) {
+                searchResponse.removeFacet(facet.getName());
+                return createCategoryGraphAux(facet, path, catalogId, categoryId);
+            }
+        }
+        return categoryGraphList;
+    }
+
+    private List<CategoryGraph> createCategoryGraphAux(Facet facet, String path, String catalogId, String categoryId) {
+        List<CategoryGraph> categoryGraphList = new ArrayList<CategoryGraph>();
+        if (facet != null) {
+
+            CategoryGraphBuilder categoryFacetBuilder = new CategoryGraphBuilder();
+
+            // iterate through the flat category facet structure and create a
+            // graph from it
+            for (Filter filter : facet.getFilters()) {
+                if (isLoggingDebug()) {
+                    String filterPath = Utils.findFilterExpressionByName(filter.getPath(), CATEGORY_PATH);
+                    logDebug("Generating CategoryGraph for path: " + filterPath);
+                }
+                categoryFacetBuilder.addPath(filter);
+            }
+
+            if (categoryId == null) {
+                // no category filtering scenario. Return top level list
+                categoryGraphList = categoryFacetBuilder.getCategoryGraphList();
+            } else {
+                // category filtering scenario. Search hierarchy for the actual
+                // result node.
+                CategoryGraph currentLevelVO = categoryFacetBuilder.search(categoryId, categoryFacetBuilder.getParentNode());
+                if (currentLevelVO != null) {
+                    categoryGraphList = currentLevelVO.getCategoryGraphNodes();
+                } else {
+                    if (isLoggingError()) {
+                        logError("Error creating CategoryGraph from solr for catalog: "
+                                + catalogId
+                                + " category: "
+                                + categoryId
+                                + " path: " + path);
+                    }
+                }
+            }
+        }
+
+        return categoryGraphList;
     }
 }
