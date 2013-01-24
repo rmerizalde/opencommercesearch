@@ -157,7 +157,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         long startTime = System.currentTimeMillis();
         
         query.addFacetField("category");
-        query.set("f.category.facet.mincount", 1);
+        query.set("facet.mincount", 1);
 
         query.set("group", true);
         query.set("group.ngroups", true);

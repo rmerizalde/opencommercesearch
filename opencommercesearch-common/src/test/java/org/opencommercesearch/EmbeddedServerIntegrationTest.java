@@ -72,6 +72,7 @@ public class EmbeddedServerIntegrationTest {
         doc.setField("title", "Santa Cruz Bicycles Tallboy LT Carbon - 2010");
         doc.setField("isToos", "false");
         doc.setField("category", "0.mycatalog");
+        doc.setField("categoryPath", "mycatalog");
         doc.setField("categoryId", "category0");
         doc.setField("listRank", "1");
         doc.setField("seoUrl", "/santa-cruz-bicycles-tallboy-lt-carbon");

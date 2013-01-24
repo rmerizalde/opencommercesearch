@@ -22,7 +22,14 @@ public class Facet {
         this.filters = filters;
     }
     
+    @Override
+    public String toString() {
+        return "Facet [name=" + name + "]";
+    }
+
+
     public static class Filter {
+
         private String name;
         private long count;
         private String path; 
@@ -49,6 +56,12 @@ public class Facet {
 
         public void setPath(String path) {
             this.path = path;
+        }
+        
+        @Override
+        public String toString() {
+            return "Filter [name=" + name + ", count=" + count + ", path="
+                    + path + "]";
         }
         
     }
