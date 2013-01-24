@@ -153,7 +153,7 @@ public class SearchServerManager {
      * Otherwise, the read only instances is cloned and the given name is used to identify the new server.
      *
      */
-    private SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource,
+    private synchronized SearchServer getSearchServer(boolean readOnly, boolean loadBootstrapData, String name, String productDataResource,
                 String rulesDataResource, Locale locale) {
 
         if (searchServer == null) {

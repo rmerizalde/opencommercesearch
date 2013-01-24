@@ -5,8 +5,11 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import org.apache.solr.common.util.NamedList;
 import org.junit.Before;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.opencommercesearch.junit.SearchTest;
+import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -18,6 +21,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 /**
  * @author rmerizalde
  */
+@Category(IntegrationSearchTest.class)
+@RunWith(SearchJUnit4ClassRunner.class)
 public class SchemaFrIntegrationTest extends SchemaIntegrationTest {
 
 

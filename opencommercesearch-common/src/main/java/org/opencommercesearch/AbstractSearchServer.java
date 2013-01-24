@@ -38,8 +38,8 @@ import java.util.*;
  */
 public abstract class AbstractSearchServer<T extends SolrServer> extends GenericService implements SearchServer {     // Current cloud implementation seem to have a bug. It support the
     // collection property but once a collection is used it sticks to it
-    private Map<Locale, T> catalogSolrServers = new HashMap<Locale, T>();
-    private Map<Locale, T> rulesSolrServers = new HashMap<Locale, T>();
+    private Map<String, T> catalogSolrServers = new HashMap<String, T>();
+    private Map<String, T> rulesSolrServers = new HashMap<String, T>();
     private String catalogCollection;
     private String rulesCollection;
     private Repository searchRepository;
@@ -49,19 +49,19 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private int ruleBatchSize;
 
     public void setCatalogSolrServer(T catalogSolrServer, Locale locale) {
-        catalogSolrServers.put(locale, catalogSolrServer);
+        catalogSolrServers.put(locale.getLanguage(), catalogSolrServer);
     }
 
     public T getCatalogSolrServer(Locale locale) {
-        return catalogSolrServers.get(locale);
+        return catalogSolrServers.get(locale.getLanguage());
     }
 
     public void setRulesSolrServer(T rulesSolrServer, Locale locale) {
-        rulesSolrServers.put(locale, rulesSolrServer);
+        rulesSolrServers.put(locale.getLanguage(), rulesSolrServer);
     }
 
     public T getRulesSolrServer(Locale locale) {
-        return rulesSolrServers.get(locale);
+        return rulesSolrServers.get(locale.getLanguage());
     }
 
     public T getSolrServer(String collection, Locale locale) {
