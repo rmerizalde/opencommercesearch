@@ -46,6 +46,7 @@ public interface SearchServer {
     UpdateResponse commit(Locale locale) throws SearchServerException;
 
     UpdateResponse deleteByQuery(String query) throws SearchServerException;
+    UpdateResponse deleteByQuery(String query, Locale locale) throws SearchServerException;
 
     SolrPingResponse ping() throws SearchServerException;
     SolrPingResponse ping(Locale locale) throws SearchServerException;

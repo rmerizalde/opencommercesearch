@@ -393,6 +393,11 @@ public class SearchServerManager {
         }
 
         @Override
+        public UpdateResponse deleteByQuery(String query, Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't delete documents in a read only search server");
+        }
+
+        @Override
         public SolrPingResponse ping() throws SearchServerException {
             return server.ping();
         }

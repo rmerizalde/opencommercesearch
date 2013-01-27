@@ -1,10 +1,7 @@
 package org.opencommercesearch.feed;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.solr.common.SolrInputDocument;
 import org.opencommercesearch.SearchServer;
@@ -106,8 +103,11 @@ public abstract class SearchFeed extends GenericService {
         }
         feedStarted();
         // temporal
-        getSearchServer().deleteByQuery("*:*");
-        getSearchServer().commit();
+
+        getSearchServer().deleteByQuery("*:*", Locale.ENGLISH);
+        getSearchServer().commit(Locale.ENGLISH);
+        getSearchServer().deleteByQuery("*:*", Locale.FRENCH);
+        getSearchServer().commit(Locale.FRENCH);
         // temporal
         
         int processedProductCount = 0;
@@ -115,8 +115,8 @@ public abstract class SearchFeed extends GenericService {
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
         RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
-        List<SolrInputDocument> documents = new ArrayList<SolrInputDocument>();
-        
+        Map<Locale, List<SolrInputDocument>> documents = new HashMap<Locale, List<SolrInputDocument>>();
+
         while (products != null) {
             for (RepositoryItem product : products) {
                 if (isProductIndexable(product)) {
@@ -125,10 +125,14 @@ public abstract class SearchFeed extends GenericService {
                 processedProductCount++;
             }
 
-            if (documents.size() > 0) {
-                getSearchServer().add(documents);
-                getSearchServer().commit();
-                documents = new ArrayList<SolrInputDocument>();
+            for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
+                List<SolrInputDocument> documentList = entry.getValue();
+
+                if (documentList.size() > 0) {
+                    getSearchServer().add(documentList, entry.getKey());
+                    getSearchServer().commit(entry.getKey());
+                    documentList.clear();
+                }
             }
             
             rqlArgs[0] += getProductBatchSize();
@@ -154,7 +158,7 @@ public abstract class SearchFeed extends GenericService {
 
     protected abstract void feedFinished();
 
-    protected abstract void processProduct(RepositoryItem product, List<SolrInputDocument> documents)
+    protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
             throws RepositoryException, InventoryException;
 
     /**

@@ -18,10 +18,8 @@
   <field name="gender"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="scale"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="size"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-
-  <!-- sorting/facet fields -->
-  <field name="qoh"               type="int"               indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
-
+  <field name="colorFamily"       type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
+  <field name="country"           type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
   <field name="categoryName"      type="categoryName"      indexed="true" stored="false" multiValued="true" termVectors="true" />
 
   <!-- catchall text field that indexes tokens both normally and in reverse for efficient
@@ -31,18 +29,18 @@
   <field name="timestamp" type="tdate" indexed="true" stored="true" default="NOW" multiValued="false"/>
 
   <!-- dynamic facet fields -->
-  <dynamicField name="colorFamily*"     type="string"  indexed="true" stored="true" required="false"  multiValued="true"  omitNorms="true"  />
-  <dynamicField name="onsale*"          type="boolean" indexed="true" stored="true" required="false"  multiValued="false" omitNorms="true"  />
-  <dynamicField name="reviewAverage*"   type="tfloat"  indexed="true" stored="true"  required="false" multiValued="false" omitNorms="false" />
-  <dynamicField name="reviews*"         type="int"     indexed="true" stored="true"  required="fasle" multiValued="false" omitNorms="false" />
-  <dynamicField name="freeGift*"        type="boolean" indexed="true" stored="true"  required="fasle" multiValued="false" omitNorms="false" />
+  <dynamicField name="stockLevel*"      type="int"     indexed="false" stored="true"  required="fasle"  multiValued="false" omitNorms="true" />
+  <dynamicField name="onsale*"          type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
+  <dynamicField name="reviewAverage*"   type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
+  <dynamicField name="reviews*"         type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
+  <dynamicField name="freeGift*"        type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
 
   <!-- other sorting/facet fields -->
-  <field name="listPrice"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
-  <field name="salePrice"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
-  <field name="discountPercent"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
-  <field name="isToos"           type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
-  <field name="isPastSeason"     type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <dynamicField name="salePrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <dynamicField name="discountPercent*"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <field name="isToos"                   type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <field name="isPastSeason"             type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
 
   <!-- catch all ignore -->
   <dynamicField name="*" type="ignored" multiValued="true" />

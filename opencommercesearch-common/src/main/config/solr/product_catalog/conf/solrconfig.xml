@@ -932,7 +932,6 @@
   <requestHandler name="/admin/" class="solr.admin.AdminHandlers" />
   -->
 
-
   <requestHandler name="/analysis/field"
     startup="lazy"
     class="solr.FieldAnalysisRequestHandler" />

@@ -31,7 +31,7 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
 
-        protected void processProduct(RepositoryItem product, List<SolrInputDocument> documents)
+        protected void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
                 throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }

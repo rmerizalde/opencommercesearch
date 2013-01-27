@@ -245,8 +245,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.add(docs);
-        req.setCommitWithin(-1);
-        req.setParam("collection", collection);
+        req.setParam("collection", getCatalogCollection(locale));
 
         try {
             return req.process(getSolrServer(collection, locale));
@@ -304,6 +303,11 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return deleteByQuery(query, getCatalogCollection());
     }
 
+    @Override
+    public UpdateResponse deleteByQuery(String query, Locale locale) throws SearchServerException {
+        return deleteByQuery(query, getCatalogCollection(), locale);
+    }
+
     public UpdateResponse deleteByQuery(String query, String collection) throws SearchServerException {
         return deleteByQuery(query, collection, Locale.ENGLISH);
     }
@@ -311,8 +315,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.deleteByQuery(query);
-        req.setCommitWithin(-1);
-        req.setParam("collection", collection);
+        req.setParam("collection", getCatalogCollection(locale));
 
         try {
             return req.process(getSolrServer(collection, locale));

@@ -306,8 +306,13 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
         // checkTimeToLive();
         Long stockLevel = inventoryMap.get(id);
         if (stockLevel == null) {
-            return 0L;
+            stockLevel = 0L;
         }
+
+        if (isLoggingDebug()) {
+            logDebug("Stock level for " + id + " is " + stockLevel);
+        }
+
         return stockLevel;
     }
 
