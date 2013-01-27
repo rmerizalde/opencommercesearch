@@ -5,6 +5,7 @@
   <field name="title"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="feature"           type="string"            indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" />
   <field name="category"          type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="categoryPath"      type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="categoryId"        type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="image"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="brandId"           type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />

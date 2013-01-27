@@ -57,4 +57,17 @@ public class Utils {
         }
         return expression;
     }
+    
+    public static String findFilterExpressionByName(String path, String filterQueryName){
+    	String filterExpression = null;
+    	FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(path);
+        for(FilterQuery filterQuery :filterQueries) {
+            if(filterQueryName.equals(filterQuery.getFieldName())){
+            	filterExpression = filterQuery.getExpression();
+            }
+        }
+        
+        return filterExpression;
+    }
+    
 }

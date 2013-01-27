@@ -18,7 +18,7 @@ import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
@@ -67,29 +67,91 @@ public class AbstractSearchServerIntegrationTest {
     
     @SearchTest(newInstance = true, rulesData = "/rules/redirect.xml")
     public void testSearchSedirect(SearchServer server) throws SearchServerException {
-    	AbstractSearchServer baseServer = (AbstractSearchServer) server;
-    	baseServer.setSearchRepository(searchRepository);
-    	
-    	SolrQuery query = new SolrQuery("redirect");
+        AbstractSearchServer baseServer = (AbstractSearchServer) server;
+        baseServer.setSearchRepository(searchRepository);
+        
+        SolrQuery query = new SolrQuery("redirect");
         SearchResponse res = server.search(query, site);
         assertEquals("/redirect", res.getRedirectResponse());
     }
 
-    private void testSearchCategoryAux(SearchServer server, String term, String expectedProductId) throws SearchServerException {
-        SolrQuery query = new SolrQuery(term);
-        SearchResponse res = server.search(query, site);
-        QueryResponse queryResponse = res.getQueryResponse();
-        GroupResponse groupResponse = queryResponse.getGroupResponse();
+    
+    
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testBrowseCategory(SearchServer server) throws SearchServerException {
+        //scenario where we want to display only the top level categories. no results
+        BrowseOptions options = new BrowseOptions(true, false, false,  100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        SolrQuery query = new SolrQuery();
+        SearchResponse response = server.browse(options, query, site, null);
+        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        validateFilterByCat3000003(response);
+        validateCategoryPathNotInFacets(response);
+        
+        //scenario where we want to show results. not only display the top level categories
+        options = new BrowseOptions(false, false, false,  100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        query = new SolrQuery();
+        response = server.browse(options, query, site, null);
+        
+        validateCategoryPathNotInFacets(response);
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertNull(response.getCategoryGraph());
 
-        for (GroupCommand command : groupResponse.getValues()) {
-            for (Group group : command.getValues()) {
-                String productId = group.getGroupValue();
-                if (expectedProductId.equals(productId)) {
-                    return;
-                }
-            }
-        }
-        fail("Product TNF3137 not found");
+    }
+
+
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testBrowseBrand(SearchServer server) throws SearchServerException {
+        //scenario where we want to display only the top level categories for products that have a specific brand
+        BrowseOptions options = new BrowseOptions(true, false, false,  100, "88", null, null, "mycatalog");                
+        SolrQuery query = new SolrQuery();
+        SearchResponse response = server.browse(options, query, site, null);
+        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        validateFilterByTopLevelCat(response);
+        validateCategoryPathNotInFacets(response);
+        
+        //scenario where we want to show results for products from a given brand. Not only display the top level categories
+        options = new BrowseOptions(false, true, false,  100, "88", null, null, "mycatalog");                
+        query = new SolrQuery();
+        response = server.browse(options, query, site, null);
+        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        validateFilterByTopLevelCat(response);
+        validateCategoryPathNotInFacets(response);
+        
+        //scenario where we want to show results for products from a given brand and category. Not only display the top level categories
+        options = new BrowseOptions(false, true, false,  100, "88", "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        query = new SolrQuery();
+        response = server.browse(options, query, site, null);
+        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        validateFilterByCat3000003(response);
+        validateCategoryPathNotInFacets(response);
+
+    }
+
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testOnSale(SearchServer server) throws SearchServerException {
+        
+        //scenario where we want to display only the top level categories for products that are on sale.
+        BrowseOptions options = new BrowseOptions(true, false, true,  100, null, null, null, "mycatalog");                
+        SolrQuery query = new SolrQuery();
+        SearchResponse response = server.browse(options, query, site, null);
+        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
+        validateFilterByTopLevelCat(response);
+        validateCategoryPathNotInFacets(response);
+        
+        //scenario where we want to show results for products that are on sale. not only display the top level categories
+        options = new BrowseOptions(false, false, true,  100, null, null, null, "mycatalog");                
+        query = new SolrQuery();
+        response = server.browse(options, query, site, null);
+        
+        validateCategoryPathNotInFacets(response);
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertNull(response.getCategoryGraph());
+        
     }
 
     @SearchTest(newInstance = true)
@@ -107,6 +169,54 @@ public class AbstractSearchServerIntegrationTest {
         queryResponse = res.getQueryResponse();
         groupResponse = queryResponse.getGroupResponse();
         assertEquals(new Integer(0), groupResponse.getValues().get(0).getNGroups());
+    }
+    
+    
+    
+    protected void validateFilterByTopLevelCat(SearchResponse response) {
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertEquals("cat3000003",   response.getCategoryGraph().get(0).getId());
+        assertEquals("cat3100004",   response.getCategoryGraph().get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("cat31000077",  response.getCategoryGraph().get(0).getCategoryGraphNodes().get(1).getId());
+        assertEquals("cat4000003",   response.getCategoryGraph().get(1).getId());
+        assertEquals("cat410000178", response.getCategoryGraph().get(1).getCategoryGraphNodes().get(0).getId());
+    }
+    
+    protected void validateFilterByCat3000003(SearchResponse response) {
+        assertEquals("cat3100004",  response.getCategoryGraph().get(0).getId());
+        assertEquals("cat411000179",response.getCategoryGraph().get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("categoryPath:mycatalog.cat3000003.cat3100004.cat411000179", 
+                response.getCategoryGraph().get(0).getCategoryGraphNodes().get(0).getPath());
+        
+        assertEquals("cat31000077", response.getCategoryGraph().get(1).getId());
+        assertEquals("cat411000196",response.getCategoryGraph().get(1).getCategoryGraphNodes().get(0).getId());
+        assertEquals("categoryPath:mycatalog.cat3000003.cat31000077.cat411000196", 
+                response.getCategoryGraph().get(1).getCategoryGraphNodes().get(0).getPath());
+    }
+    
+    protected void validateCategoryPathNotInFacets(SearchResponse response) {
+        for(Facet facet :response.getFacets()){
+            if(facet.getName().equals("categoryPath")) {
+                fail("facet's shouldn't contain category path");
+            }
+        }
+    }
+    
+    private void testSearchCategoryAux(SearchServer server, String term, String expectedProductId) throws SearchServerException {
+        SolrQuery query = new SolrQuery(term);
+        SearchResponse res = server.search(query, site);
+        QueryResponse queryResponse = res.getQueryResponse();
+        GroupResponse groupResponse = queryResponse.getGroupResponse();
+
+        for (GroupCommand command : groupResponse.getValues()) {
+            for (Group group : command.getValues()) {
+                String productId = group.getGroupValue();
+                if (expectedProductId.equals(productId)) {
+                    return;
+                }
+            }
+        }
+        fail("Product TNF3137 not found");
     }
 
 }

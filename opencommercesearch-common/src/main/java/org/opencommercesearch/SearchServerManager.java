@@ -446,5 +446,15 @@ public class SearchServerManager {
         public void onProductChanged(RepositoryItem product) throws RepositoryException, SearchServerException {
             throw new UnsupportedOperationException("Can't modify a search server");
         }
+
+        @Override
+        public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
+            return server.browse(options, query, filterQueries);
+        }
+
+        @Override
+        public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
+            return server.browse(options, query, site, filterQueries);
+        }
     }
 }

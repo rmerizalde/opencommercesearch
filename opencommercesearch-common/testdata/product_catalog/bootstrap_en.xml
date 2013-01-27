@@ -6,8 +6,12 @@
     <field name="isToos">false</field>
     <field name="category">0.mycatalog</field>
     <field name="category">1.mycatalog.Category One</field>
-    <field name="category">0.mycatalog.Category One.Category Two</field>
-    <field name="category">0.mycatalog.Category One.Category Two.Category Three</field>
+    <field name="category">2.mycatalog.Category One.Category Two</field>
+    <field name="category">3.mycatalog.Category One.Category Two.Category Three</field>
+    <field name="categoryPath">mycatalog</field>
+    <field name="categoryPath">ycatalog.catId1</field>
+    <field name="categoryPath">mycatalog.catId1.catId2</field>
+    <field name="categoryPath">mycatalog.catId1.catId2.catId3</field>
     <field name="categoryId">category0</field>
     <field name="listRank">1</field>
     <field name="seoUrl">/my-product</field>

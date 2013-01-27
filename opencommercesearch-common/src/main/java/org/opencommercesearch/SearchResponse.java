@@ -29,6 +29,7 @@ public class SearchResponse {
     private FacetManager facetManager;
     private FilterQuery[] filterQueries;
     private String redirectResponse;
+    private List<CategoryGraph> categoryGraph;
 
     SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse) {
         this.queryResponse = queryResponse;
@@ -49,6 +50,15 @@ public class SearchResponse {
         return filterQueries;
     }
 
+    public void removeFacet(String name){
+        for (FacetField facetField : queryResponse.getFacetFields()) {
+            if(name.equals(facetField.getName())){
+                queryResponse.getFacetFields().remove(facetField);
+                break;
+            }
+        }
+    }
+    
     public List<Facet> getFacets() {
         List<Facet> facets = new ArrayList<Facet>();
         FacetManager manager = getRuleManager().getFacetManager();
@@ -235,6 +245,14 @@ public class SearchResponse {
 
     public String getRedirectResponse() {
         return redirectResponse;
+    }
+
+    public List<CategoryGraph> getCategoryGraph() {
+        return categoryGraph;
+    }
+
+    public void setCategoryGraph(List<CategoryGraph> categoryGraph) {
+        this.categoryGraph = categoryGraph;
     }
 
 }

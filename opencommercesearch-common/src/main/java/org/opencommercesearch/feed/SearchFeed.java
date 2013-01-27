@@ -298,19 +298,26 @@ public abstract class SearchFeed extends GenericService {
             return;
         }
         StringBuilder builder = new StringBuilder();
+        StringBuilder builderIds = new StringBuilder();
         for (int i = 0; i <= hierarchyCategories.size(); i++) {
             builder.append(i).append(".").append(catalog).append(".");
+            builderIds.append(catalog).append(".");
+            
             for (int j = 0; j < i; j++) {
                 builder.append(hierarchyCategories.get(j).getItemDisplayName()).append(".");
+                builderIds.append(hierarchyCategories.get(j).getRepositoryId()).append(".");
             }
             builder.setLength(builder.length() - 1);
+            builderIds.setLength(builderIds.length() - 1);
 
             String token = builder.toString();
             if (!tokenCache.contains(token)) {
                 document.addField("category", builder.toString());
+                document.addField("categoryPath", builderIds.toString());
                 tokenCache.add(token);
             }
             builder.setLength(0);
+            builderIds.setLength(0);
         }
     }
     

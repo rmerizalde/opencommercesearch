@@ -201,8 +201,12 @@ public class RuleManager<T extends SolrServer> {
             throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
-            String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryFilterQuery);
+            String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);            
+            String queryStr = query.getQuery();
+            if(StringUtils.isEmpty(queryStr)){
+            	queryStr = query.get("q.alt");
+            }
+            loadRules(queryStr, categoryFilterQuery);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
