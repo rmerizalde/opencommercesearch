@@ -29,8 +29,10 @@ import org.apache.solr.common.util.NamedList;
 public interface SearchServer {
 
     SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException;
+    SearchResponse browse(BrowseOptions options, SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException;
     
     SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException;
+    SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException;
     
     SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException;
     SearchResponse search(SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException;

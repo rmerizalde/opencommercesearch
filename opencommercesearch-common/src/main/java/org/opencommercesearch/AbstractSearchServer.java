@@ -141,14 +141,24 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private static final String BRAND_ID = "brandId";
     private static final String CATEGORY_PATH = "categoryPath";
     
-        
+
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
+        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.ENGLISH, filterQueries);
+    }
+
+    @Override
+    public SearchResponse browse(BrowseOptions options, SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
         return browse(options, query, SiteContextManager.getCurrentSite(),filterQueries);
     }
 
     @Override
-    public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries)
+    public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
+        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.ENGLISH, filterQueries);
+    }
+
+    @Override
+    public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries)
             throws SearchServerException {
 
         boolean hasCategoryId = StringUtils.isNotBlank(options.getCategoryId());

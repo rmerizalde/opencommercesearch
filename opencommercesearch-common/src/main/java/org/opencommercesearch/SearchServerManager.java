@@ -453,8 +453,18 @@ public class SearchServerManager {
         }
 
         @Override
+        public SearchResponse browse(BrowseOptions options, SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
+            return server.browse(options, query, locale, filterQueries);
+        }
+
+        @Override
         public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
             return server.browse(options, query, site, filterQueries);
+        }
+
+        @Override
+        public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
+            return server.browse(options, query, site, locale, filterQueries);
         }
     }
 }
