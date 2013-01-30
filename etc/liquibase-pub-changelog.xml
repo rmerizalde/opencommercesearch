@@ -564,4 +564,15 @@
     </createTable>
     <addPrimaryKey tableName="cs_redirect_rule" columnNames="rule_id,asset_version" constraintName="cs_redirect_rule_pk"/>
   </changeSet>
+  
+  <changeSet author="commercesearch" id="11">
+    <sql>
+        UPDATE vmap_pvattrdef SET default_value = '/org/opencommercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService'
+         WHERE default_value = '/org/commercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService'
+    </sql>
+    <sql>
+        UPDATE vmap_im SET default_value = '/org/opencommercesearch/repository/SearchRepository'
+         WHERE item_path = '/org/commercesearch/repository/SearchRepository'
+    </sql>
+  </changeSet>
 </databaseChangeLog>
