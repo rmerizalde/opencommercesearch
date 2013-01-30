@@ -149,7 +149,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
-        return browse(options, query, SiteContextManager.getCurrentSite(),filterQueries);
+        return browse(options, query, SiteContextManager.getCurrentSite(), locale, filterQueries);
     }
 
     @Override
@@ -196,7 +196,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
 
         if (options.isOnSale()) {
-            queryAltParams.add("onsale:true");
+            queryAltParams.add("onsale"+locale.getCountry()+":true");
         }
 
         if (queryAltParams.size() > 0) {
