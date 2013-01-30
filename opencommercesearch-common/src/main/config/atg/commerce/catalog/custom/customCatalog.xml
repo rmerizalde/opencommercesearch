@@ -3,13 +3,46 @@
 <gsa-template xml-combine="append">
 
   <header xml-combine="replace">
-    <name>Searco Commerce Repository</name>
-    <author>jmorrey</author>
+    <name>Search Commerce Repository</name>
+    <author>gsegura</author>
     <description>Adds custom properties used by the search engine</description>
   </header>
 
   <item-descriptor name="category" xml-combine="append" sub-type-value="category">
     <property name="searchTokens" data-type="set" component-data-type="string" display-name="Search Tokens" property-type="org.opencommercesearch.repository.CategorySearchTokensPropertyDescriptor" category="Derived Properties"/>
   </item-descriptor>
+  
+  <item-descriptor name="ruleBasedCategory" display-name="Rule Based Category" super-type="category" sub-type-value="rulesCategory" query-cache-size="1000" xml-combine="replace">
+    <table name="cs_category_rule_expression" type="multi" id-column-name="category_id" multi-column-name="position">
+      <property name="expressions" category-resource="categoryPresentation" description="part of a rule" data-type="list" component-item-type="ruleExpression" column-name="rule_expression_id"/>
+    </table>
+  </item-descriptor>
 
+  <!-- Expressions -->
+  <item-descriptor name="ruleExpression" display-name="Rule Expression" query-cache-size="1000"  xml-combine="replace">
+    <table name="cs_rule_expression" type="primary" id-column-name="id">
+      <property name="id" column-name="id" data-type="string"/>
+      <property name="value" column-name="value" data-type="string"/>
+      <property name="nestLevel" column-name="nest_level" data-type="int"/>
+      <property name="type" column-name="type" data-type="enumerated">
+        <attribute name="useCodeForValue" value="false"/>
+        <option value="brand"/>
+        <option value="category"/>
+        <option value="free_gift"/>
+        <option value="gender"/>
+        <option value="keyword"/>
+        <option value="pct_off"/>
+        <option value="price"/>
+        <option value="show_sale"/>
+        <option value="past_season"/>
+      </property>
+      <property name="operator" column-names="operator" data-type="enumerated">
+        <attribute name="useCodeForValue" value="false"/>
+        <option value="AND"/>
+        <option value="OR"/>
+        <option value="ANDNOT"/>
+      </property>
+    </table>
+  </item-descriptor>
+  
 </gsa-template>

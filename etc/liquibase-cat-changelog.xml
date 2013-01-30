@@ -359,6 +359,37 @@
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_block_rule_prod_prod_fk" baseTableName="cs_block_rule_prods"/>
   </changeSet>  
+
+
+  <changeSet author="commercesearch" id="16">
+     <preConditions onFail="MARK_RAN">
+          <not><tableExists tableName="cs_rule_expression"/></not>
+          <not><tableExists tableName="cs_category_rule_expression"/></not>
+     </preConditions>
+     <createTable tableName="cs_rule_expression">
+          <column name="id" type="VARCHAR2(40 BYTE)">
+              <constraints nullable="false"
+                           primaryKey="true" primaryKeyName="cs_rule_expression_pk"/>
+          </column>
+          <column name="position" type="NUMBER"/>
+          <column name="value" type="VARCHAR2(40 BYTE)"/>
+          <column name="nest_level" type="NUMBER"/>
+          <column name="type" type="NUMBER"/>
+          <column name="operator" type="NUMBER"/>
+      </createTable>
+      <createTable tableName="cs_category_rule_expression">
+            <column name="category_id" type="VARCHAR2(40 BYTE)">
+                <constraints nullable="false"
+                         foreignKeyName="cs_cat_rul_exp_cat_fk" references="dcs_category(category_id)"/>
+            </column>
+            <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
+                <constraints nullable="false"
+                         foreignKeyName="cs_cat_rul_exp_exp_fk" references="cs_rule_expression(id)"/>
+            </column>
+            <column name="position" type="number(19)"/>
+        </createTable>
+        <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position" constraintName="cs_cat_rul_exp_pk"/>
+  </changeSet>
   
 </databaseChangeLog>
 

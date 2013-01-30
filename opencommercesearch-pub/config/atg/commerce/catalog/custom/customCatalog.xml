@@ -1,0 +1,12 @@
+<gsa-template xml-combine="append">
+
+ <header xml-combine="replace">    
+    <name>Search Commerce Repository</name>
+    <author>gsegura</author>
+    <description>Adds custom properties used by the search engine</description>
+ </header>
+
+<item-descriptor name="ruleBasedCategory" cache-mode="simple"/>
+<item-descriptor name="ruleExpression" cache-mode="simple"/>
+
+</gsa-template>

@@ -564,4 +564,55 @@
     </createTable>
     <addPrimaryKey tableName="cs_redirect_rule" columnNames="rule_id,asset_version" constraintName="cs_redirect_rule_pk"/>
   </changeSet>
+
+   <changeSet author="commercesearch" id="10">
+      <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="cs_rule_expression"/></not>
+            <not><tableExists tableName="cs_category_rule_expression"/></not>
+      </preConditions>
+      <createTable tableName="cs_rule_expression">
+          <column name="id" type="VARCHAR2(40 BYTE)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="position" type="NUMBER"/>
+          <column name="value" type="VARCHAR2(40 BYTE)"/>
+          <column name="nest_level" type="NUMBER"/>
+          <column name="type" type="NUMBER"/>
+          <column name="operator" type="NUMBER"/>
+          <column name="asset_version" type="NUMBER(19)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="workspace_id" type="VARCHAR2(40)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="branch_id" type="VARCHAR2(40)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="is_head" type="NUMBER(1)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="version_deleted" type="NUMBER(1)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="version_editable" type="NUMBER(1)">
+              <constraints nullable="false"/>
+          </column>
+          <column name="pred_version" type="NUMBER(19)"/>
+          <column name="checkin_date" type="TIMESTAMP"/>
+      </createTable>
+      <createTable tableName="cs_category_rule_expression">
+          <column name="category_id" type="VARCHAR2(40 BYTE)">
+            <constraints nullable="false"/>
+          </column>
+          <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
+            <constraints nullable="false"/>
+          </column>
+          <column name="asset_version" type="NUMBER(19)">
+                <constraints nullable="false"/>
+          </column>
+          <column name="position" type="number(19)"/>
+        </createTable>
+      <addPrimaryKey tableName="cs_rule_expression" columnNames="id,asset_version" constraintName="cs_rule_expression_pk"/>
+      <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position,asset_version" constraintName="cs_cat_rul_exp_pk"/>
+  </changeSet>
 </databaseChangeLog>
