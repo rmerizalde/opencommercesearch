@@ -3,6 +3,8 @@ package org.opencommercesearch.feed;
 import atg.commerce.inventory.InventoryException;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.RepositoryItemDescriptor;
+
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,6 +12,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.opencommercesearch.SearchServer;
+import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -42,7 +45,9 @@ public class SearchFeedTest {
 
     @Mock
     private RepositoryItem catRoot;
-
+    @Mock
+    private RepositoryItem catRulesBased;
+    
     @Mock
     private RepositoryItem catShoesFootwear;
     @Mock
@@ -103,77 +108,33 @@ public class SearchFeedTest {
         Set<RepositoryItem> categoryCatalogs = newSet(catalogOutdoor);
 
         // Root
-        when(catRoot.getRepositoryId()).thenReturn("catRoot");
-        when(catRoot.getItemDisplayName()).thenReturn("root");
-        when(catRoot.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        //when(catRoot.getPropertyValue("fixedParentCategories")).thenReturn(newSet(null));
-
+        mockCategory(catRoot, "catRoot", "root", categoryCatalogs, null, "category");
+        // Rules Based
+        mockCategory(catRulesBased, "catRulesBased", "Rules Based", categoryCatalogs, newSet(catRoot), RuleBasedCategoryProperty.ITEM_DESCRIPTOR);
         // Shoes & Footwear
-        when(catShoesFootwear.getRepositoryId()).thenReturn("outdoorCat4000003");
-        when(catShoesFootwear.getItemDisplayName()).thenReturn("Shoes & Footwear");
-        when(catShoesFootwear.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catShoesFootwear.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catRoot));
-
+        mockCategory(catShoesFootwear, "outdoorCat4000003", "Shoes & Footwear", categoryCatalogs, newSet(catRoot), "category");
         // Men's Shoes & Boots
-        when(catMensShoesBoots.getRepositoryId()).thenReturn("outdoorCat4100004");
-        when(catMensShoesBoots.getItemDisplayName()).thenReturn("Men's Shoes & Boots");
-        when(catMensShoesBoots.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensShoesBoots.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catShoesFootwear));
-
+        mockCategory(catMensShoesBoots, "outdoorCat4100004", "Men's Shoes & Boots", categoryCatalogs, newSet(catShoesFootwear), "category");
         // Men's Clothing
-        when(catMensClothing.getRepositoryId()).thenReturn("outdoorCat100003");
-        when(catMensClothing.getItemDisplayName()).thenReturn("Men's Clothing");
-        when(catMensClothing.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensClothing.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catRoot));
-
+        mockCategory(catMensClothing, "outdoorCat100003", "Men's Clothing", categoryCatalogs, newSet(catRoot), "category");
         // Men's Shoes & Footwear
-        when(catMensShoesFootwear.getRepositoryId()).thenReturn("outdoorCat11000219");
-        when(catMensShoesFootwear.getItemDisplayName()).thenReturn("Men's Shoes & Footwear");
-        when(catMensShoesFootwear.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensShoesFootwear.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catMensClothing));
-
+        mockCategory(catMensShoesFootwear, "outdoorCat11000219", "Men's Shoes & Footwear", categoryCatalogs, newSet(catMensClothing), "category");
         // Men's Rain Boots & Shoes
-        when(catMensRainBootsShoes.getRepositoryId()).thenReturn("outdoorCat41100024");
-        when(catMensRainBootsShoes.getItemDisplayName()).thenReturn("Men's Rain Boots & Shoes");
-        when(catMensRainBootsShoes.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensRainBootsShoes.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catMensShoesBoots, catMensShoesFootwear));
-
+        mockCategory(catMensRainBootsShoes, "outdoorCat41100024", "Men's Rain Boots & Shoes", categoryCatalogs, newSet(catMensShoesBoots, catMensShoesFootwear), "category");
         // Men's Rain Shoes
-        when(catMensRainShoes.getRepositoryId()).thenReturn("outdoorCat41110026");
-        when(catMensRainShoes.getItemDisplayName()).thenReturn("Men's Rain Shoes");
-        when(catMensRainShoes.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensRainShoes.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catMensRainBootsShoes));
-
+        mockCategory(catMensRainShoes, "outdoorCat41110026", "Men's Rain Shoes", categoryCatalogs, newSet(catMensRainBootsShoes), "category");
         // Men's Rain Boots
-        when(catMensRainBoots.getRepositoryId()).thenReturn("outdoorCat41110025");
-        when(catMensRainBoots.getItemDisplayName()).thenReturn("Men's Rain Boots");
-        when(catMensRainBoots.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catMensRainBoots.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catMensRainBootsShoes));
-
+        mockCategory(catMensRainBoots, "outdoorCat41110025", "Men's Rain Boots", categoryCatalogs, newSet(catMensRainBootsShoes), "category");
         // Snowshoe
-        when(catSnowshoe.getRepositoryId()).thenReturn("outdoorCat11000003");
-        when(catSnowshoe.getItemDisplayName()).thenReturn("Snowshoe");
-        when(catSnowshoe.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catSnowshoe.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catRoot));
-
+        mockCategory(catSnowshoe, "outdoorCat11000003", "Snowshoe", categoryCatalogs, newSet(catRoot), "category");
         // Snowshoe Accessories
-        when(catSnowshoeAccessories.getRepositoryId()).thenReturn("outdoorCat111000028");
-        when(catSnowshoeAccessories.getItemDisplayName()).thenReturn("Snowshoe Accessories");
-        when(catSnowshoeAccessories.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catSnowshoeAccessories.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catSnowshoe));
-
+        mockCategory(catSnowshoeAccessories, "outdoorCat111000028", "Snowshoe Accessories", categoryCatalogs, newSet(catSnowshoe), "category");
         // Snowshoe Footwear
-        when(catSnowshoeFootwear.getRepositoryId()).thenReturn("outdoorCat111100030");
-        when(catSnowshoeFootwear.getItemDisplayName()).thenReturn("Snowshoe Footwear");
-        when(catSnowshoeFootwear.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catSnowshoeFootwear.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catSnowshoeAccessories));
-
+        mockCategory(catSnowshoeFootwear, "outdoorCat111100030", "Snowshoe Footwear", categoryCatalogs, newSet(catSnowshoeAccessories), "category");
         // Snowshoe boots
-        when(catSnowshoeBoots.getRepositoryId()).thenReturn("outdoorCat111110031");
-        when(catSnowshoeBoots.getItemDisplayName()).thenReturn("Snowshoe Boots");
-        when(catSnowshoeBoots.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
-        when(catSnowshoeBoots.getPropertyValue("fixedParentCategories")).thenReturn(newSet(catSnowshoeFootwear));
-
+        mockCategory(catSnowshoeBoots, "outdoorCat111110031", "Snowshoe Boots", categoryCatalogs, newSet(catSnowshoeFootwear), "category");
+        
+        
         when(prodMensBoot.getPropertyValue("parentCategories")).thenReturn(newSet(catMensRainShoes, catMensRainBoots, catSnowshoeBoots));
 
         // feed
@@ -182,14 +143,6 @@ public class SearchFeedTest {
         feed.setLoggingWarning(false);
         feed.setLoggingTrace(false);
         feed.setLoggingError(false);
-    }
-
-    private Set<RepositoryItem> newSet(RepositoryItem... items) {
-        Set<RepositoryItem> set = new HashSet<RepositoryItem>(items.length);
-        for (RepositoryItem item : items) {
-            set.add(item);
-        }
-        return set;
     }
 
     @Test
@@ -214,6 +167,22 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("category", "2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
         verify(solrDocument, times(1)).addField("category", "3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
         verify(solrDocument, times(1)).addField("category", "4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
+        
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat4000003");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat4000003.outdoorCat4100004");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024.outdoorCat41110026");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024.outdoorCat41110025");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat100003");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat100003.outdoorCat11000219");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024.outdoorCat41110026");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024.outdoorCat41110025");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
         //verify(solrDocument, times(1)).addField("category", "4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Men's Rain Boots");
 
         verify(solrDocument, times(15)).addField(eq("category"), anyString());
@@ -223,5 +192,96 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("categoryId", "outdoorCat41110025");
         verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
         verify(solrDocument, times(3)).addField(eq("categoryId"), anyString());
+    }
+    
+    @Test
+    public void testCategoryNotInCurrentCatalog() throws RepositoryException, InventoryException {
+    
+    	RepositoryItem otherCatalog = mock(RepositoryItem.class);   
+    	when(otherCatalog.getRepositoryId()).thenReturn("otherCatalog");
+    	Set<RepositoryItem> categoryCatalogs = newSet(otherCatalog);
+    	
+    	RepositoryItem rootOtherCategory = mock(RepositoryItem.class);    	
+    	mockCategory(rootOtherCategory, "rootOtherCategory", "Root Other Category", categoryCatalogs, null, "category");
+    	
+    	RepositoryItem otherCategory = mock(RepositoryItem.class);    	
+    	mockCategory(otherCategory, "otherCategory", "Other Category", categoryCatalogs, newSet(rootOtherCategory), "category");
+    	
+    	RepositoryItem product = mock(RepositoryItem.class);    	
+    	when(product.getPropertyValue("parentCategories")).thenReturn(newSet(catSnowshoeBoots, otherCategory));
+    	 
+        feed.loadCategoryPaths(solrDocument, product, newSet(catalogOutdoor), newSet(catalogOutdoor));
+     
+        verify(solrDocument, times(1)).addField("category", "0.outdoorCatalog");
+        verify(solrDocument, times(1)).addField("category", "1.outdoorCatalog.Snowshoe");
+        verify(solrDocument, times(1)).addField("category", "2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
+        verify(solrDocument, times(1)).addField("category", "3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
+        verify(solrDocument, times(1)).addField("category", "4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
+        verify(solrDocument, never()) .addField("category", "0.otherCatalog");
+        verify(solrDocument, never()) .addField("category", "1.otherCatalog.Other Category");
+        verify(solrDocument, times(5)).addField(eq("category"), anyString());
+        
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
+        verify(solrDocument, never()) .addField("category", "otherCatalog");
+        verify(solrDocument, never()) .addField("category", "otherCatalog.otherCategory");
+        verify(solrDocument, times(5)).addField(eq("categoryPath"), anyString());
+        
+        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
+        verify(solrDocument, never() ).addField("categoryId", "otherCategory");
+        verify(solrDocument, times(1)).addField(eq("categoryId"), anyString());
+        
+    }
+    
+    @Test
+    public void testRulesBasedCategory() throws RepositoryException, InventoryException {
+    
+    	RepositoryItem product = mock(RepositoryItem.class);
+    	
+    	when(product.getPropertyValue("parentCategories")).thenReturn(newSet(catSnowshoeBoots, catRulesBased));
+    	 
+        feed.loadCategoryPaths(solrDocument, product, newSet(catalogOutdoor), newSet(catalogOutdoor));
+     
+        verify(solrDocument, times(1)).addField("category", "0.outdoorCatalog");
+        verify(solrDocument, times(1)).addField("category", "1.outdoorCatalog.Snowshoe");
+        verify(solrDocument, times(1)).addField("category", "2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
+        verify(solrDocument, times(1)).addField("category", "3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
+        verify(solrDocument, times(1)).addField("category", "4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
+        verify(solrDocument, never()) .addField("category", "1.outdoorCatalog.Rules Based");
+        verify(solrDocument, times(5)).addField(eq("category"), anyString());
+        
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
+        verify(solrDocument, never()) .addField("categoryPath", "outdoorCatalog.catRulesBased");
+        verify(solrDocument, times(5)).addField(eq("categoryPath"), anyString());
+        
+        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
+        verify(solrDocument, times(1)).addField("categoryId", "catRulesBased");
+        verify(solrDocument, times(2)).addField(eq("categoryId"), anyString());
+        
+    }
+        
+    private void mockCategory(RepositoryItem category, String categoryId, String displayName, Set<RepositoryItem> categoryCatalogs, Set<RepositoryItem>  parentCategories, String itemDescriptorName) throws RepositoryException{
+    	when(category.getRepositoryId()).thenReturn(categoryId);
+        when(category.getItemDisplayName()).thenReturn(displayName);
+        when(category.getPropertyValue("catalogs")).thenReturn(categoryCatalogs);
+        when(category.getPropertyValue("fixedParentCategories")).thenReturn(parentCategories);
+        RepositoryItemDescriptor itemDescriptor = mock(RepositoryItemDescriptor.class);
+        when(itemDescriptor.getItemDescriptorName()).thenReturn(itemDescriptorName);
+		when(category.getItemDescriptor()).thenReturn(itemDescriptor );
+    }
+    
+    private Set<RepositoryItem> newSet(RepositoryItem... items) {
+        Set<RepositoryItem> set = new HashSet<RepositoryItem>(items.length);
+        for (RepositoryItem item : items) {
+            set.add(item);
+        }
+        return set;
     }
 }

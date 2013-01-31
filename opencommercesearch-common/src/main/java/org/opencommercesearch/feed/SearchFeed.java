@@ -6,6 +6,7 @@ import java.util.*;
 import org.apache.solr.common.SolrInputDocument;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
+import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
@@ -189,7 +190,7 @@ public abstract class SearchFeed extends GenericService {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
                         if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
-                            if (isCategoryIndexable(productCategory)) {
+                            if (! isRulesCategory(productCategory) && isCategoryIndexable(productCategory)) {
                                 loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments, tokenCache);
                             }
                             document.addField("categoryId", productCategory.getRepositoryId());
@@ -213,6 +214,13 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
+    private boolean isRulesCategory(RepositoryItem category) throws RepositoryException {
+    	if (category == null) {
+    		return false;
+    	}
+    	return RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName());
+    }
+    
     /**
      * Helper method to test if category is assigned to and of catalogs in the
      * given set
