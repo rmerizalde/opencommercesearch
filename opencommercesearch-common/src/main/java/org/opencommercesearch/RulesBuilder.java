@@ -38,8 +38,7 @@ public class RulesBuilder extends GenericService {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {                
                     try{
                         RepositoryItem category = productCatalog.getItem(ruleValue, CategoryProperty.ITEM_DESCRIPTOR);
-                        boolean isRuleBasedCategory = RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName());
-                        if(category != null && !isRuleBasedCategory){
+                        if(category != null && !RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())){
                             
                             Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
                             if (searchTokens != null && searchTokens.size() > 0) {
