@@ -4,7 +4,8 @@ public class CategoryProperty {
     private CategoryProperty() {
 
     }
-
+    
+    public static final String ITEM_DESCRIPTOR = "category";
     public static final String CHILD_CATEGORIES = "childCategories";
     public static final String PARENT_CATALOGS = "parentCatalogs";
     public static final String FIXED_PARENT_CATEGORIES = "fixedParentCategories";

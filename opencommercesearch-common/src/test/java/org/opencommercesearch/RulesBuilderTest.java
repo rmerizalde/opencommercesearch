@@ -2,23 +2,30 @@ package org.opencommercesearch;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
+import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.opencommercesearch.repository.RuleExpressionProperty;
 
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.RepositoryItemDescriptor;
 
 public class RulesBuilderTest {
 
@@ -27,10 +34,17 @@ public class RulesBuilderTest {
     @Mock
     Repository productCatalog;
 
+    @Mock
+    RepositoryItem category;
+    
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         rulesBuilder.setProductCatalog(productCatalog);
+        when(category.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn("1.catalog.categoryToken");
+        RepositoryItemDescriptor categoryItemName = mock(RepositoryItemDescriptor.class);
+        when(categoryItemName.getItemDescriptorName()).thenReturn("category");
+        when(category.getItemDescriptor()).thenReturn(categoryItemName );
     }
 
     @Test
@@ -52,7 +66,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.ENGLISH);
 
-        assertEquals("(brandId:88)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (brandId:88)", builder);
     }
 
     @Test
@@ -64,7 +78,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(discountPercentUS:[15 TO 100])", builder);
+        assertEquals("(categoryId:ruleCategory) OR (discountPercentUS:[15 TO 100])", builder);
     }
 
     @Test
@@ -76,7 +90,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(categoryId:cat1)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (category:1.catalog.cat1)", builder);
     }
 
     @Test
@@ -88,7 +102,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(gender:male)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (gender:male)", builder);
     }
 
     @Test
@@ -100,7 +114,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(onsaleUS:false)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (onsaleUS:false)", builder);
     }
 
     @Test
@@ -112,7 +126,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(isPastSeason:false)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (isPastSeason:false)", builder);
     }
 
     @Test
@@ -124,7 +138,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(salePriceUS:[25 TO 100])", builder);
+        assertEquals("(categoryId:ruleCategory) OR (salePriceUS:[25 TO 100])", builder);
     }
 
     @Test
@@ -136,7 +150,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(title:key)", builder);
+        assertEquals("(categoryId:ruleCategory) OR (keyword:key)", builder);
     }
 
     @Test
@@ -149,7 +163,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(title:" + ClientUtils.escapeQueryChars(keyword) + ")", builder);
+        assertEquals("(categoryId:ruleCategory) OR (keyword:" + ClientUtils.escapeQueryChars(keyword) + ")", builder);
     }
 
     @Test
@@ -165,7 +179,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(brandId:88 AND (categoryId:cat1 AND categoryId:cat2 AND (onsaleUS:false)))", builder);
+        assertEquals("(categoryId:ruleCategory) OR (brandId:88 AND (category:1.catalog.cat1 AND category:1.catalog.cat2 AND (onsaleUS:false)))", builder);
     }
 
     @Test
@@ -185,7 +199,7 @@ public class RulesBuilderTest {
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
         assertEquals(
-                "(brandId:88 AND categoryId:cat1 AND categoryId:cat2 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))",
+                "(categoryId:ruleCategory) OR (brandId:88 AND category:1.catalog.cat1 AND category:1.catalog.cat2 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))",
                 builder);
     }
 
@@ -205,7 +219,7 @@ public class RulesBuilderTest {
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
         assertEquals(
-                "(brandId:88 AND categoryId:cat1 AND (categoryId:cat2 OR (brandId:77 OR brandId:88) AND onsaleUS:true) AND isPastSeason:false)",
+                "(categoryId:ruleCategory) OR (brandId:88 AND category:1.catalog.cat1 AND (category:1.catalog.cat2 OR (brandId:77 OR brandId:88) AND onsaleUS:true) AND isPastSeason:false)",
                 builder);
     }
     
@@ -221,9 +235,23 @@ public class RulesBuilderTest {
 
     protected void mockBaseRule(List<RepositoryItem> expresionList) throws RepositoryException {
         RepositoryItem ruleCategory = mock(RepositoryItem.class);
-        when(ruleCategory.getRepositoryId()).thenReturn("ruleCategory");
+        when(ruleCategory.getRepositoryId()).thenReturn("ruleCategory");        
         when(ruleCategory.getPropertyValue(RuleBasedCategoryProperty.EXPRESSIONS)).thenReturn(expresionList);
         when(productCatalog.getItem(anyString(), eq(RuleBasedCategoryProperty.ITEM_DESCRIPTOR))).thenReturn(
                 ruleCategory);
+        when(productCatalog.getItem(contains("cat"), eq(CategoryProperty.ITEM_DESCRIPTOR))).thenAnswer(new Answer<RepositoryItem>() {
+            @Override
+            public RepositoryItem answer(InvocationOnMock invocation) throws Throwable {
+                RepositoryItem category = mock(RepositoryItem.class);
+                String categoryName = (String) invocation.getArguments()[0];
+                Set<String> tokensSet = new HashSet<String>();
+                tokensSet.add("1.catalog."+categoryName);
+                when(category.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(tokensSet);                
+                RepositoryItemDescriptor itemDescriptor = mock(RepositoryItemDescriptor.class);
+                when(itemDescriptor.getItemDescriptorName()).thenReturn(CategoryProperty.ITEM_DESCRIPTOR);
+                when(category.getItemDescriptor()).thenReturn(itemDescriptor );
+                return category;
+            }
+        });
     }
 }
