@@ -59,10 +59,12 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
-    <field name="onsale"><![CDATA[true]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[15.00]]></field>
+    <field name="discountPercentUS"><![CDATA[32]]></field>
+    <field name="onsaleUS"><![CDATA[true]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S1]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -84,6 +86,7 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -145,9 +148,11 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[21.95]]></field>
+    <field name="discountPercentUS"><![CDATA[0]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S2]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -169,6 +174,7 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -230,9 +236,11 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[21.95]]></field>
+    <field name="discountPercentUS"><![CDATA[0]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S3]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -254,6 +262,7 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -315,9 +324,11 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[21.95]]></field>
+    <field name="discountPercentUS"><![CDATA[0]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S4]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -339,6 +350,7 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -400,9 +412,11 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[21.95]]></field>
+    <field name="discountPercentUS"><![CDATA[0]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S5]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -424,6 +438,7 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -484,9 +499,11 @@
     <field name="categoryId"><![CDATA[cat411110209]]></field>
     <field name="categoryId"><![CDATA[cat411110207]]></field>
     <field name="categoryId"><![CDATA[cat411110192]]></field>
-    <field name="listPrice"><![CDATA[21.95]]></field>
-    <field name="salePrice"><![CDATA[21.95]]></field>
-    <field name="discountPercent"><![CDATA[0]]></field>
+    <field name="listPriceUS"><![CDATA[21.95]]></field>
+    <field name="salePriceUS"><![CDATA[21.95]]></field>
+    <field name="discountPercentUS"><![CDATA[0]]></field>
+    <field name="stockLevelUS"><![CDATA[1]]></field>
+    <field name="country"><![CDATA[US]]></field>
     <field name="id"><![CDATA[TNF3137-FUPINYL-S6]]></field>
     <field name="productId"><![CDATA[TNF3137]]></field>
     <field name="title"><![CDATA[Base Camp Sandal - Girls']]></field>
@@ -508,5 +525,6 @@
     <field name="feature"><![CDATA[Recommended Use:casual]]></field>
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
+    <field name="language"><![CDATA[en]]></field>
   </doc>
 </add>
