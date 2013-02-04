@@ -121,7 +121,8 @@ public class AbstractSearchServerIntegrationTest {
         query = new SolrQuery();
         response = server.browse(options, query, site, Locale.US, null);
         
-        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
+        assertEquals("88", getFirstResponseProperty(response, "brandId"));
         validateFilterByTopLevelCat(response);
         validateCategoryPathNotInFacets(response);
         
@@ -130,12 +131,14 @@ public class AbstractSearchServerIntegrationTest {
         query = new SolrQuery();
         response = server.browse(options, query, site, Locale.US, null);
         
-        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
+        assertEquals("88", getFirstResponseProperty(response, "brandId"));
         validateFilterByCat3000003(response);
         validateCategoryPathNotInFacets(response);
 
     }
 
+    
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testOnSale(SearchServer server) throws SearchServerException {
         
@@ -149,12 +152,13 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         
         //scenario where we want to show results for products that are on sale. not only display the top level categories
-        options = new BrowseOptions(false, false, true, false, 100, null, null, null, "mycatalog");                
+        options = new BrowseOptions(false, true, true, false, 100, null, null, null, "mycatalog");                
         query = new SolrQuery();
         response = server.browse(options, query, site, Locale.US, null);
         
         validateCategoryPathNotInFacets(response);
-        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
+        assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
+        assertEquals("TNF3137-FUPINYL-S1", getFirstResponseProperty(response, "id"));
         assertNull(response.getCategoryGraph());
         
     }
@@ -165,7 +169,7 @@ public class AbstractSearchServerIntegrationTest {
         AbstractSearchServer abstractServer = (AbstractSearchServer) server;
         abstractServer.setRulesBuilder(rulesBuilder);
         
-        //scenario where we want to display only the top level categories for products that are on sale.
+        //scenario where we want to display a rule based category that shows product with a discount > 15%
         BrowseOptions options = new BrowseOptions(false, false, false, true,  100, null, "cat3000003", null, "mycatalog");     
         when(rulesBuilder.buildRulesFilter(options.getCategoryId(), Locale.US)).thenReturn("(categoryId:ruleCategory) OR (discountPercentUS:[15 TO 100])");
         SolrQuery query = new SolrQuery();
@@ -240,6 +244,10 @@ public class AbstractSearchServerIntegrationTest {
             }
         }
         fail("Product TNF3137 not found");
+    }
+    
+    private String getFirstResponseProperty(SearchResponse response, String property) {
+        return response.getQueryResponse().getGroupResponse().getValues().get(0).getValues().get(0).getResult().get(0).getFieldValue(property).toString();
     }
 
 }
