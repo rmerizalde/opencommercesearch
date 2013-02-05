@@ -122,7 +122,7 @@ public class RulesBuilder extends GenericService {
             RepositoryItem category = productCatalog.getItem(categoryId, RuleBasedCategoryProperty.ITEM_DESCRIPTOR);
             if (category != null) {
                 rule = buildFilter(category, getExpressions(category), locale);
-            }
+            }            
         } catch (RepositoryException e) {
             if (isLoggingError()) {
                 logError("error generating rules for rule category:" + categoryId, e);
@@ -195,6 +195,14 @@ public class RulesBuilder extends GenericService {
             }
             filter.append(")");
         
+        }        
+        List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_CHILD_CATEGORIES);
+        if (childCategories != null && childCategories.size() > 0){
+           List<String> childFilterRule = new ArrayList<String>(childCategories.size());
+           for(RepositoryItem childCategory: childCategories) {
+               childFilterRule.add("("+buildRulesFilter(childCategory.getRepositoryId(),locale)+")");
+           }
+           filter.append(" OR " + StringUtils.join(childFilterRule, " OR "));
         }
         
         return filter.toString().trim();

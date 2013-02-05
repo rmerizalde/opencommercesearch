@@ -50,7 +50,7 @@ public class RulesBuilderTest {
     @Test
     public void testBuildNoRules() throws RepositoryException {
 
-        mockBaseRule(null);
+        mockBaseRule(null, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.ENGLISH);
 
@@ -62,7 +62,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("brand", 1, "88", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.ENGLISH);
 
@@ -74,7 +74,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("pct_off", 1, "15", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -86,7 +86,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("category", 1, "cat1", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -98,7 +98,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("gender", 1, "male", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -110,7 +110,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("show_sale", 1, "false", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -122,7 +122,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("past_season", 1, "false", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -134,7 +134,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("price", 1, "25 100", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -146,7 +146,7 @@ public class RulesBuilderTest {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("keyword", 1, "key", null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -159,7 +159,7 @@ public class RulesBuilderTest {
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         String keyword = "this is a big weird keyword'";
         expresionList.add(mockRule("keyword", 1, keyword, null));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -175,7 +175,7 @@ public class RulesBuilderTest {
         expresionList.add(mockRule("category", 2, "cat1", "AND"));
         expresionList.add(mockRule("category", 2, "cat2", "AND"));
         expresionList.add(mockRule("show_sale", 3, "false", "AND"));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -194,7 +194,7 @@ public class RulesBuilderTest {
         expresionList.add(mockRule("brand", 2, "77", "OR"));
         expresionList.add(mockRule("show_sale", 2, "true", "AND"));
         expresionList.add(mockRule("past_season", 4, "false", "AND"));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
@@ -214,13 +214,40 @@ public class RulesBuilderTest {
         expresionList.add(mockRule("brand", 3, "88", "OR"));
         expresionList.add(mockRule("show_sale", 2, "true", "AND"));
         expresionList.add(mockRule("past_season", 1, "false", "AND"));
-        mockBaseRule(expresionList);
+        mockBaseRule(expresionList, mock(RepositoryItem.class), "ruleCategory", true);
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
         assertEquals(
                 "(categoryId:ruleCategory) OR (brandId:88 AND category:1.catalog.cat1 AND (category:1.catalog.cat2 OR (brandId:77 OR brandId:88) AND onsaleUS:true) AND isPastSeason:false)",
                 builder);
+    }
+    
+    @Test
+    public void testChildCategories() throws RepositoryException{
+        RepositoryItem ruleCategory = mock(RepositoryItem.class);
+        RepositoryItem child1Category = mock(RepositoryItem.class);
+        RepositoryItem child2Category = mock(RepositoryItem.class);
+                
+        List<RepositoryItem> childList = new ArrayList<RepositoryItem>();
+        childList.add(child1Category);
+        childList.add(child2Category);
+        when(ruleCategory.getPropertyValue(CategoryProperty.FIXED_CHILD_CATEGORIES)).thenReturn(childList);
+        
+        List<RepositoryItem> rootExpresionList = new ArrayList<RepositoryItem>();        
+        mockBaseRule(rootExpresionList, ruleCategory, "ruleCategory", true);
+        
+        List<RepositoryItem> cat1ExpresionList = new ArrayList<RepositoryItem>();
+        cat1ExpresionList.add(mockRule("pct_off", 1, "15", null));
+        mockBaseRule(cat1ExpresionList, child1Category, "childCat1", false);
+        
+        List<RepositoryItem> cat2ExpresionList = new ArrayList<RepositoryItem>();
+        cat2ExpresionList.add(mockRule("brand", 1, "88", null));
+        mockBaseRule(cat2ExpresionList, child2Category, "childCat2", false);
+        
+        String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+        
+        assertEquals("(categoryId:ruleCategory) OR ((categoryId:childCat1) OR (discountPercentUS:[15 TO 100])) OR ((categoryId:childCat2) OR (brandId:88))", builder);
     }
     
     protected RepositoryItem mockRule(String type, int group, String value, String operator) {
@@ -233,25 +260,28 @@ public class RulesBuilderTest {
         return repoExpression;
     }
 
-    protected void mockBaseRule(List<RepositoryItem> expresionList) throws RepositoryException {
-        RepositoryItem ruleCategory = mock(RepositoryItem.class);
-        when(ruleCategory.getRepositoryId()).thenReturn("ruleCategory");        
+    protected void mockBaseRule(List<RepositoryItem> expresionList, RepositoryItem ruleCategory, String repositoryId, boolean mockGetItem) throws RepositoryException {
+        when(ruleCategory.getRepositoryId()).thenReturn(repositoryId);        
         when(ruleCategory.getPropertyValue(RuleBasedCategoryProperty.EXPRESSIONS)).thenReturn(expresionList);
-        when(productCatalog.getItem(anyString(), eq(RuleBasedCategoryProperty.ITEM_DESCRIPTOR))).thenReturn(
-                ruleCategory);
-        when(productCatalog.getItem(contains("cat"), eq(CategoryProperty.ITEM_DESCRIPTOR))).thenAnswer(new Answer<RepositoryItem>() {
-            @Override
-            public RepositoryItem answer(InvocationOnMock invocation) throws Throwable {
-                RepositoryItem category = mock(RepositoryItem.class);
-                String categoryName = (String) invocation.getArguments()[0];
-                Set<String> tokensSet = new HashSet<String>();
-                tokensSet.add("1.catalog."+categoryName);
-                when(category.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(tokensSet);                
-                RepositoryItemDescriptor itemDescriptor = mock(RepositoryItemDescriptor.class);
-                when(itemDescriptor.getItemDescriptorName()).thenReturn(CategoryProperty.ITEM_DESCRIPTOR);
-                when(category.getItemDescriptor()).thenReturn(itemDescriptor );
-                return category;
-            }
-        });
+        
+        when(productCatalog.getItem(eq(repositoryId), eq(RuleBasedCategoryProperty.ITEM_DESCRIPTOR))).thenReturn(ruleCategory);
+        
+        if (mockGetItem) {
+            when(productCatalog.getItem(contains("cat"), eq(CategoryProperty.ITEM_DESCRIPTOR))).thenAnswer(new Answer<RepositoryItem>() {
+                @Override
+                public RepositoryItem answer(InvocationOnMock invocation) throws Throwable {
+                    RepositoryItem category = mock(RepositoryItem.class);
+                    String categoryName = (String) invocation.getArguments()[0];
+                    Set<String> tokensSet = new HashSet<String>();
+                    tokensSet.add("1.catalog."+categoryName);
+                    when(category.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(tokensSet);                
+                    RepositoryItemDescriptor itemDescriptor = mock(RepositoryItemDescriptor.class);
+                    when(itemDescriptor.getItemDescriptorName()).thenReturn(CategoryProperty.ITEM_DESCRIPTOR);
+                    when(category.getItemDescriptor()).thenReturn(itemDescriptor );
+                    return category;
+                }
+            });
+        
+        }
     }
 }
