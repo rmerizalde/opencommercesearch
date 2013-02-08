@@ -17,35 +17,31 @@ import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 
 /**
- * This class implements an in-memory inventory manager to help speeding up the feed
+ * This class implements a sequential in-memory inventory manager to help speeding up the feed
  * process. This inventory manager doesn't implement all the methods provided by the
  * interface, but only the methods required by search feed. This functionality can
  * be customized by tweaking the SQL query properties.
  *
- * This inventory manager is intended for full feeds only. For better performance,
- * its TTL should be long enough to last the whole feed generation process. Specially,
- * if the inventory is large.
+ * The inventory manager assumes the sku ids are queried in order. When a sku with an id greater
+ * to the last sku id in the cache is accessed the component will discard all the items in cache and load
+ * the requested skus and n successor skus.
+ *
+ * The manager also allows going back and forth. However, going back in the list will require more
+ * repository requests.
+ *
+ * The class is not thread safe.
  *
  * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
  */
-public class InMemoryInventoryManager extends GenericService implements InventoryManager {
+public class SequentialInMemoryInventoryManager extends GenericService implements InventoryManager {
 
     private Map<String, Long> inventoryMap = null;
     private String inventoryName = "In Memory Inventory";
-    private String inventoryCountSql;
     private String inventorySql;
     private int batchSize = 10000;
     private Repository inventoryRepository;
-    private int timeToLive = 20000;
-    private long lastInitTime = -1;
-
-    public String getInventoryCountSql() {
-        return inventoryCountSql;
-    }
-
-    public void setInventoryCountSql(String inventoryCountSql) {
-        this.inventoryCountSql = inventoryCountSql;
-    }
+    private String minSkuId = null;
+    private String maxSkuId = null;
 
     public String getInventorySql() {
         return inventorySql;
@@ -74,39 +70,29 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
-        if (getInventoryCountSql() == null) {
-            throw new ServiceException("Inventory count SQL is required");
-        }
         if (getInventorySql() == null) {
             throw new ServiceException("Inventory count SQL is required");
         }
         if (getInventoryRepository() == null) {
             throw new ServiceException("Inventory repository is required");
         }
-        loadInventory();
     }
 
     /**
      * Loads the inventory items into a hash map
      */
-    private void loadInventory() {
+    void loadInventory(String id) {
         Connection connection = null;
         try {
             connection = ((GSARepository) getInventoryRepository()).getDataSource().getConnection();
             PreparedStatement countStmt = null;
             PreparedStatement inventoryStmt = null;
             try {
-                countStmt = connection.prepareStatement(getInventoryCountSql());
-                if (countStmt.execute()) {
-                    ResultSet rs = countStmt.getResultSet();
-                    if (rs.next()) {
-                        inventoryStmt = connection.prepareStatement(getInventorySql());
-                        loadInventory(inventoryStmt, rs.getInt(1));
-                    }
-                }
+                inventoryStmt = connection.prepareStatement(getInventorySql());
+                loadInventory(inventoryStmt, id);
             } catch (SQLException ex) {
                 if (isLoggingError()) {
-                    logError("Could not initialize in-memory inventory", ex);
+                    logError("Could not load inventory into memory", ex);
                 }
             } finally {
                 try {
@@ -139,60 +125,51 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
         }
     }
 
+
     /**
      *  Just a helper method to load inventory items
      */
-    private void loadInventory(PreparedStatement inventoryStmt, int count) throws SQLException {
-    	
-    	inventoryMap = new HashMap<String, Long>(count);
-    	
-        if (count > 0) {
-            long startTime = System.currentTimeMillis();
-            
-            if (isLoggingDebug()) {
-                logInfo("Loading " + count + " inventory items into " + getInventoryName());
-            }
-            
-            int offset = 1;
-            int hits = getBatchSize();
-            int items = 0;
-            
-            inventoryStmt.setInt(1, offset);
-            inventoryStmt.setInt(2, hits);
-            
-            while (inventoryStmt.execute() && offset <= count) {
-                ResultSet rs = inventoryStmt.getResultSet();
+    private void loadInventory(PreparedStatement inventoryStmt, String id) throws SQLException {
+        if (inventoryMap == null) {
+            inventoryMap = new HashMap<String, Long>(batchSize);
+        } else {
+            inventoryMap.clear();
+        }
 
-                while (rs.next()) {
-                    inventoryMap.put(rs.getString("catalog_ref_id"), rs.getLong("stock_level"));
-                    items++;
-                }
-                if (isLoggingInfo()) {
-                    logInfo("Processed " + (items) + " out of " + count);
-                }
-                rs.close();
-                offset += getBatchSize();
-                hits += getBatchSize();
-                inventoryStmt.clearParameters();
-                inventoryStmt.setInt(1, offset);
-                inventoryStmt.setInt(2, hits);
+        long startTime = System.currentTimeMillis();
+        if (isLoggingDebug()) {
+            logDebug("Loading " + id + " + " +  getBatchSize() + " successors");
+        }
+
+        int offset = 1;
+        int hits = getBatchSize();
+
+        inventoryStmt.setString(1, id);
+        inventoryStmt.setInt(2, offset);
+        inventoryStmt.setInt(3, hits);
+        minSkuId = id;
+
+        if (inventoryStmt.execute()) {
+            ResultSet rs = inventoryStmt.getResultSet();
+
+            while (rs.next()) {
+                String skuId = rs.getString("catalog_ref_id");
+                inventoryMap.put(skuId, rs.getLong("stock_level"));
+                maxSkuId = skuId;
             }
-            
-            lastInitTime = System.currentTimeMillis();
-            if (isLoggingInfo()) {
-                logInfo("Building map finished in " + ((lastInitTime - startTime) / 1000)
-                        + " seconds. Inventory contains " + inventoryMap.size() + " items");
+
+            try {
+                rs.close();
+            } catch (SQLException ex) {
+                if (isLoggingError()) {
+                    logError("Error result set", ex);
+                }
             }
         }
-    }
 
-    /**
-     * Helper method to check the last time the inventory was loaded. If the TTL
-     * has expired, the inventory will be reloaded.
-     */
-    private void checkTimeToLive() {
-        if (System.currentTimeMillis() - lastInitTime > timeToLive) {
-            loadInventory();
+        if (isLoggingInfo()) {
+            logInfo("Building map finished in " + ((System.currentTimeMillis() - startTime) / 1000)
+                    + " seconds. Inventory contains " + inventoryMap.size() + " items");
         }
     }
 
@@ -302,11 +279,14 @@ public class InMemoryInventoryManager extends GenericService implements Inventor
 
     @Override
     public long queryStockLevel(String id) throws InventoryException {
-        // @TODO: check TTL
-        // checkTimeToLive();
+        if (maxSkuId == null || id.compareTo(minSkuId) < 0 || id.compareTo(maxSkuId) > 0) {
+            loadInventory(id);
+        }
+
         Long stockLevel = inventoryMap.get(id);
+
         if (stockLevel == null) {
-            stockLevel = 0L;
+            throw new InventoryException("Inventory not found for " + id);
         }
 
         if (isLoggingDebug()) {

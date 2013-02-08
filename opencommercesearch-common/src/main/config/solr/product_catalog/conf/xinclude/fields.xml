@@ -9,7 +9,6 @@
   <field name="categoryId"        type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="image"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="brandId"           type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
-  <field name="seoUrl"            type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <!-- boosting fields -->
   <field name="year"              type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
   <field name="season"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
@@ -35,6 +34,8 @@
   <dynamicField name="reviewAverage*"   type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
   <dynamicField name="reviews*"         type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"        type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
+  <dynamicField name="seoUrl*"           type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
+
 
   <!-- other sorting/facet fields -->
   <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
