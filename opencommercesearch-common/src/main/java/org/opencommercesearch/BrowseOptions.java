@@ -5,6 +5,7 @@ public class BrowseOptions {
     private boolean fetchCategoryGraph;
     private boolean fetchProducts;
     private boolean onSale;
+    private boolean ruleBasedPage;
     private int maxCategoryResults;
     private String brandId;
     private String categoryId;
@@ -15,11 +16,12 @@ public class BrowseOptions {
     }
     
     public BrowseOptions(boolean fetchCategoryGraph, boolean fetchProducts,
-            boolean onSale, int maxCategoryResults, String brandId,
+            boolean onSale, boolean ruleBasedPage, int maxCategoryResults, String brandId,
             String categoryId, String categoryPath, String catalogId) {
         this.fetchCategoryGraph = fetchCategoryGraph;
         this.fetchProducts = fetchProducts;
         this.onSale = onSale;
+        this.ruleBasedPage = ruleBasedPage;
         this.maxCategoryResults = maxCategoryResults;
         this.brandId = brandId;
         this.categoryId = categoryId;
@@ -74,6 +76,12 @@ public class BrowseOptions {
     }
     public void setCatalogId(String catalogId) {
         this.catalogId = catalogId;
+    }
+    public boolean isRuleBasedPage() {
+        return ruleBasedPage;
+    }
+    public void setRuleBasedPage(boolean ruleBasedPage) {
+        this.ruleBasedPage = ruleBasedPage;
     }
     
 }

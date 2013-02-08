@@ -216,7 +216,8 @@ public class RuleManager<T extends SolrServer> {
         if (rules == null) {
             return;
         }
-        
+        //TODO gsegura: i think this sort fields are been added twice after adding sorting functionality 
+        //need to fix this
         query.addSortField("isToos", ORDER.asc);
         for (Entry<String, List<RepositoryItem>> entry : rules.entrySet()) {
             RuleType type = RuleType.valueOf(entry.getKey());

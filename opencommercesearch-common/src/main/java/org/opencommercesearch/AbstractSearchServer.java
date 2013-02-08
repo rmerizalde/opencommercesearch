@@ -49,6 +49,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private RqlStatement ruleCountRql;
     private RqlStatement ruleRql;
     private int ruleBatchSize;
+    private RulesBuilder rulesBuilder;
 
     public void setCatalogSolrServer(T catalogSolrServer, Locale locale) {
         catalogSolrServers.put(locale.getLanguage(), catalogSolrServer);
@@ -136,7 +137,16 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void setRuleBatchSize(int ruleBatchSize) {
         this.ruleBatchSize = ruleBatchSize;
     }
-    
+        
+    public RulesBuilder getRulesBuilder() {
+        return rulesBuilder;
+    }
+
+    public void setRulesBuilder(RulesBuilder rulesBuilder) {
+        this.rulesBuilder = rulesBuilder;
+    }
+
+
     private static final String Q_ALT = "q.alt";
     private static final String BRAND_ID = "brandId";
     private static final String CATEGORY_PATH = "categoryPath";
@@ -144,7 +154,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
-        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.ENGLISH, filterQueries);
+        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.US, filterQueries);
     }
 
     @Override
@@ -154,7 +164,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
-        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.ENGLISH, filterQueries);
+        return browse(options, query, SiteContextManager.getCurrentSite(), Locale.US, filterQueries);
     }
 
     @Override
@@ -164,44 +174,53 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         boolean hasCategoryId = StringUtils.isNotBlank(options.getCategoryId());
         boolean hasCategoryPath = StringUtils.isNotBlank(options.getCategoryPath());
         boolean hasBrandId = StringUtils.isNotBlank(options.getBrandId());
-        boolean addCategoryGraph = options.isFetchCategoryGraph() || options.isFetchProducts();
+        boolean addCategoryGraph = (options.isFetchCategoryGraph() || (hasBrandId && options.isFetchProducts())) && ! options.isRuleBasedPage();
 
         String categoryPath = null;
-
-        if (hasCategoryPath) {
-            categoryPath = options.getCategoryPath();
-        } else {
-            categoryPath = options.getCatalogId() + ".";
-        }
-
-        if (addCategoryGraph) {
-            query.setFacetPrefix(CATEGORY_PATH, categoryPath);
-            query.addFacetField(CATEGORY_PATH);
-            query.set("f.categoryPath.facet.limit", options.getMaxCategoryResults());
-        }
-
-        if (!options.isFetchProducts()) {
-            query.setRows(0);
-        }
-
-        List<String> queryAltParams = new ArrayList<String>();
-
-        if (hasCategoryId) {
-            queryAltParams.add(CATEGORY_PATH + ":" + categoryPath);
+        
+        if (options.isRuleBasedPage()) {
+            //handle rule based pages
+            String filter = rulesBuilder.buildRulesFilter(options.getCategoryId(), locale);
+            query.set(Q_ALT, filter);
             query.setParam("q", "");
-        }
-
-        if (hasBrandId) {
-            queryAltParams.add(BRAND_ID + ":" + options.getBrandId());
-        }
-
-        if (options.isOnSale()) {
-            queryAltParams.add("onsale"+locale.getCountry()+":true");
-        }
-
-        if (queryAltParams.size() > 0) {
-        	
-            query.set(Q_ALT, "(" + StringUtils.join(queryAltParams, " AND ") + ")");
+            
+        } else {
+            //handle brand, category or onsale pages
+            if (hasCategoryPath) {
+                categoryPath = options.getCategoryPath();
+            } else {
+                categoryPath = options.getCatalogId() + ".";
+            }
+    
+            if (addCategoryGraph) {
+                query.setFacetPrefix(CATEGORY_PATH, categoryPath);
+                query.addFacetField(CATEGORY_PATH);
+                query.set("f.categoryPath.facet.limit", options.getMaxCategoryResults());
+            }
+    
+            if (!options.isFetchProducts()) {
+                query.setRows(0);
+            }
+    
+            List<String> queryAltParams = new ArrayList<String>();
+    
+            if (hasCategoryId) {
+                queryAltParams.add(CATEGORY_PATH + ":" + categoryPath);
+                query.setParam("q", "");
+            }
+    
+            if (hasBrandId) {
+                queryAltParams.add(BRAND_ID + ":" + options.getBrandId());
+            }
+    
+            if (options.isOnSale()) {
+                queryAltParams.add("onsale"+locale.getCountry()+":true");
+            }
+    
+            if (queryAltParams.size() > 0) {
+            	
+                query.set(Q_ALT, "(" + StringUtils.join(queryAltParams, " AND ") + ")");
+            }
         }
 
         SearchResponse response = search(query, site, filterQueries);
@@ -218,7 +237,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     
     @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
-        return search(query, SiteContextManager.getCurrentSite(), Locale.ENGLISH, filterQueries);
+        return search(query, SiteContextManager.getCurrentSite(), Locale.US, filterQueries);
     }
 
     @Override
@@ -228,7 +247,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     @Override
     public SearchResponse search(SolrQuery query, Site site, FilterQuery... filterQueries) throws SearchServerException {
-        return search(query, site, Locale.ENGLISH, filterQueries);
+        return search(query, site, Locale.US, filterQueries);
     }
 
     @Override

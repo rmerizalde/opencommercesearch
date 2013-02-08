@@ -120,6 +120,7 @@
     <!-- catchall field, containing all other searchable text fields (implemented
       via copyField further on in this schema  -->
     <field name="text" type="text_en_splitting" indexed="true" stored="false" multiValued="true"/>
+    <field name="keyword" type="text_en_splitting" indexed="true" stored="false" multiValued="false"/>
   </fields>
 
   <!-- Field to use to determine and enforce document uniqueness.
@@ -135,6 +136,7 @@
 
   <copyField source="id" dest="text"/>
   <copyField source="title" dest="text"/>
+  <copyField source="title" dest="keyword"/>
   <copyField source="brand" dest="text"/>
   <!--<copyField source="leafcategoriesmountainbike" dest="text"/>-->
   <copyField source="year" dest="text"/>
