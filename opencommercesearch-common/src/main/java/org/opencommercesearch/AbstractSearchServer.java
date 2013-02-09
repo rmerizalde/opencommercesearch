@@ -74,6 +74,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return getCatalogSolrServer(locale);
     }
 
+    public String getCollectionName(String collection, Locale locale) {
+        if (rulesCollection != null && rulesCollection.equals(collection)) {
+            return getRulesCollection(locale);
+        }
+        return getCatalogCollection(locale);
+    }
+
     public String getCatalogCollection() {
         return catalogCollection;
     }
@@ -345,7 +352,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.add(docs);
-        req.setParam("collection", getCatalogCollection(locale));
+        req.setParam("collection", getCollectionName(collection, locale));
 
         try {
             return req.process(getSolrServer(collection, locale));
@@ -415,7 +422,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.deleteByQuery(query);
-        req.setParam("collection", getCatalogCollection(locale));
+        req.setParam("collection", getCollectionName(collection, locale));
 
         try {
             return req.process(getSolrServer(collection, locale));
