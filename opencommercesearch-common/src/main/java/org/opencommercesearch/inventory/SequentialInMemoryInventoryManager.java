@@ -35,6 +35,8 @@ import atg.repository.Repository;
  */
 public class SequentialInMemoryInventoryManager extends GenericService implements InventoryManager {
 
+    public static final String LOCALE_SEPARATOR = ":";
+
     private Map<String, Long> inventoryMap = null;
     private String inventoryName = "In Memory Inventory";
     private String inventorySql;
@@ -169,7 +171,8 @@ public class SequentialInMemoryInventoryManager extends GenericService implement
 
         if (isLoggingInfo()) {
             logInfo("Building map finished in " + ((System.currentTimeMillis() - startTime) / 1000)
-                    + " seconds. Inventory contains " + inventoryMap.size() + " items");
+                    + " seconds. Sku range: " + minSkuId + " - " + maxSkuId + ". Inventory contains "
+                    + inventoryMap.size() + " items");
         }
     }
 
@@ -279,6 +282,11 @@ public class SequentialInMemoryInventoryManager extends GenericService implement
 
     @Override
     public long queryStockLevel(String id) throws InventoryException {
+        int localeSeparatorIndex = id.lastIndexOf(LOCALE_SEPARATOR);
+        if (localeSeparatorIndex != -1) {
+            id = id.substring(0, localeSeparatorIndex);
+        }
+
         if (maxSkuId == null || id.compareTo(minSkuId) < 0 || id.compareTo(maxSkuId) > 0) {
             loadInventory(id);
         }

@@ -154,4 +154,12 @@ public class SequentialInMemoryInventoryManagerTest {
         verify(stmt, times(6)).execute();
     }
 
+    @Test
+    public void testQueryStockLevelWithLocale() throws Exception {
+        assertEquals(1, manager.queryStockLevel("SKU0001-01:US"));
+
+        verify(stmt, times(1)).execute();
+    }
+
+
 }
