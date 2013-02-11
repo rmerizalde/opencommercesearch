@@ -146,5 +146,8 @@
   <copyField source="colorFamily" dest="text"/>
   <copyField source="brand" dest="sBrand"/>
   <copyField source="category" dest="categoryName"/>
+  
+  <copyField source="categoryNodes"  dest="text"/>
+  <copyField source="categoryLeaves" dest="text"/>
 
 </schema>

@@ -11,6 +11,7 @@ import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.util.SimpleOrderedMap;
 import org.junit.Before;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -21,8 +22,6 @@ import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -180,6 +179,25 @@ public class AbstractSearchServerIntegrationTest {
 
     }
 
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testCorrectedTermsAllMatches(SearchServer server) throws SearchServerException {   
+        //validate term correction from the title
+        validateCorrectedTerms(server, "basa", "base", true);        
+        //validate terms correction from the category
+        validateCorrectedTerms(server, "fotwear", "footwear", true);
+        //validate terms correction from the brand
+        validateCorrectedTerms(server, "nort face", "north face", true);
+        //validate terms correction from the features
+        validateCorrectedTerms(server, "ruber", "rubber", true);
+        //validate terms correction from phrases with multiple entries
+        validateCorrectedTerms(server, "sandl footwear", "sandal footwear", true);
+    }
+    
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testCorrectedTermsAnyMatches(SearchServer server) throws SearchServerException {           
+        //scenario where it needs to do a search by any terms because we don't have jacket in the index
+        validateCorrectedTerms(server, "jckt footwear", "jckt footwear", false);
+    }
     
     @SearchTest(newInstance = true)
     public void testDeleteByQuery(SearchServer server) throws SearchServerException {
@@ -232,6 +250,10 @@ public class AbstractSearchServerIntegrationTest {
     private void testSearchCategoryAux(SearchServer server, String term, String expectedProductId) throws SearchServerException {
         SolrQuery query = new SolrQuery(term);
         SearchResponse res = server.search(query, site);
+        
+        assertEquals(null, res.getCorrectedTerm());
+        assertEquals(true, res.matchesAll());     
+        
         QueryResponse queryResponse = res.getQueryResponse();
         GroupResponse groupResponse = queryResponse.getGroupResponse();
 
@@ -248,6 +270,15 @@ public class AbstractSearchServerIntegrationTest {
     
     private String getFirstResponseProperty(SearchResponse response, String property) {
         return response.getQueryResponse().getGroupResponse().getValues().get(0).getValues().get(0).getResult().get(0).getFieldValue(property).toString();
+    }
+    
+    private void validateCorrectedTerms(SearchServer server, String incorrectTerm, String expectedCorrectedTerm, boolean matchesAll) throws SearchServerException{
+        SolrQuery query = new SolrQuery(incorrectTerm);
+        SearchResponse res = server.search(query, site);
+        //SimpleOrderedMap params =  (SimpleOrderedMap) res.getQueryResponse().getHeader().get("params");
+        //assertEquals(expectedCorrectedTerm, params.get("q"));
+        assertEquals(expectedCorrectedTerm, res.getCorrectedTerm());
+        assertEquals(matchesAll, res.matchesAll());  
     }
 
 }

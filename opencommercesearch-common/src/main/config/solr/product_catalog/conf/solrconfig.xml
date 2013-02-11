@@ -741,8 +741,14 @@
       <int name="rows">10</int>
       <str name="defType">dismax</str>
       <str name="qf">text categoryName</str>
+      <str name="spellcheck">true</str>
+      <str name="spellcheck.count">10</str>
+      <str name="spellcheck.dictionary">textSpellCheck</str>
+      <str name="spellcheck.collate">true</str>   
     </lst>
-
+    <arr name="last-components">
+      <str>spellcheck</str>
+    </arr>
 
   </requestHandler>
 
@@ -850,11 +856,11 @@
     <!-- Multiple "Spell Checkers" can be declared and used by this
          component
       -->
-
+    
     <!-- a spellchecker built from a field of the main index -->
     <lst name="spellchecker">
-      <str name="name">default</str>
-      <str name="field">name</str>
+      <str name="name">textSpellCheck</str>
+      <str name="field">text</str>      
       <str name="classname">solr.DirectSolrSpellChecker</str>
       <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
       <str name="distanceMeasure">internal</str>
@@ -871,15 +877,15 @@
       <!-- maximum threshold of documents a query term can appear to be considered for correction -->
       <float name="maxQueryFrequency">0.01</float>
       <!-- uncomment this to require suggestions to occur in 1% of the documents
-      	<float name="thresholdTokenFrequency">.01</float>
+        <float name="thresholdTokenFrequency">.01</float>
       -->
     </lst>
-
+    
     <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
       <str name="classname">solr.WordBreakSolrSpellChecker</str>
-      <str name="field">name</str>
+      <str name="field">text</str>
       <str name="combineWords">true</str>
       <str name="breakWords">true</str>
       <int name="maxChanges">10</int>
