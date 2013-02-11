@@ -222,6 +222,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     
             if (hasBrandId) {
                 queryAltParams.add(BRAND_ID + ":" + options.getBrandId());
+                query.setParam("q", "");
             }
     
             if (options.isOnSale()) {
@@ -333,7 +334,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             boolean matchesAll = true;
             
             //if no results, check for spelling errors
-            if(isEmptySearch(queryResponse.getGroupResponse())){                
+            if(isEmptySearch(queryResponse.getGroupResponse()) && StringUtils.isNotEmpty(query.getQuery())){                
                 
                 SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();                
                 //try to do searching for the corrected term matching all terms (q.op=AND)
