@@ -9,11 +9,14 @@ import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -42,12 +45,10 @@ public class SearchFeedTest {
 
     @Mock
     private RepositoryItem catalogOutdoor;
-
     @Mock
     private RepositoryItem catRoot;
     @Mock
     private RepositoryItem catRulesBased;
-    
     @Mock
     private RepositoryItem catShoesFootwear;
     @Mock
@@ -58,12 +59,10 @@ public class SearchFeedTest {
     private RepositoryItem catMensRainShoes;
     @Mock
     private RepositoryItem catMensRainBoots;
-
     @Mock
     private RepositoryItem catMensClothing;
     @Mock
     private RepositoryItem catMensShoesFootwear;
-
     @Mock
     private RepositoryItem catSnowshoe;
     @Mock
@@ -72,12 +71,12 @@ public class SearchFeedTest {
     private RepositoryItem catSnowshoeFootwear;
     @Mock
     private RepositoryItem catSnowshoeBoots;
-
     @Mock
     private RepositoryItem prodMensBoot;
-
     @Mock
     private SolrInputDocument solrDocument;
+    @Captor 
+    private ArgumentCaptor<Object> objectCaptor;
 
     @Before
     public void setUp() throws Exception {
@@ -192,7 +191,26 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("categoryId", "outdoorCat41110025");
         verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
         verify(solrDocument, times(3)).addField(eq("categoryId"), anyString());
+        
+        verify(solrDocument, times(8)).addField(eq("categoryNodes"), objectCaptor.capture());
+        
+        assertEquals("Men's Clothing", objectCaptor.getAllValues().get(0));
+        assertEquals("Men's Shoes & Boots", objectCaptor.getAllValues().get(1));
+        assertEquals("Snowshoe Footwear", objectCaptor.getAllValues().get(2));
+        assertEquals("Snowshoe Accessories", objectCaptor.getAllValues().get(3));
+        assertEquals("Snowshoe", objectCaptor.getAllValues().get(4));
+        assertEquals("Shoes & Footwear", objectCaptor.getAllValues().get(5));
+        assertEquals("Men's Shoes & Footwear", objectCaptor.getAllValues().get(6));
+        assertEquals("Men's Rain Boots & Shoes", objectCaptor.getAllValues().get(7));
+        
+
+        objectCaptor = ArgumentCaptor.forClass(Object.class); 
+        verify(solrDocument, times(3)).addField(eq("categoryLeaves"), objectCaptor.capture());        
+        assertEquals("Men's Rain Shoes", objectCaptor.getAllValues().get(0));
+        assertEquals("Snowshoe Boots", objectCaptor.getAllValues().get(1));
+        assertEquals("Men's Rain Boots", objectCaptor.getAllValues().get(2));
     }
+
     
     @Test
     public void testCategoryNotInCurrentCatalog() throws RepositoryException, InventoryException {

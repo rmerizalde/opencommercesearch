@@ -4,9 +4,10 @@
     <field name="productId">SNZ0289</field>
     <field name="title">Santa Cruz Bicycles Tallboy LT Carbon - 2012</field>
     <field name="isToos">true</field>
-    <field name="category">0.myCatalog</field>
-    <field name="categoryPath">myCatalog</field>
+    <field name="category">0.myCatalog.category 0</field>
+    <field name="categoryPath">myCatalog.category0</field>
     <field name="categoryId">category0</field>
+    <field name="categoryLeaves">category 0</field>
     <field name="listRank">1</field>
     <field name="seoUrl">/santa-cruz-bicycles-tallboy-lt-carbon</field>
     <field name="image">MATCAR.jpg</field>

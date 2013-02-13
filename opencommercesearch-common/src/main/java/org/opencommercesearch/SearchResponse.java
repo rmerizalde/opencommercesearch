@@ -30,12 +30,16 @@ public class SearchResponse {
     private FilterQuery[] filterQueries;
     private String redirectResponse;
     private List<CategoryGraph> categoryGraph;
-
-    SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse) {
+    private boolean matchesAll;
+    private String correctedTerm;
+    
+    SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse, String correctedTerm, boolean matchesAll) {
         this.queryResponse = queryResponse;
         this.ruleManager = ruleManager;
         this.filterQueries = filterQueries;
         this.redirectResponse = redirectResponse;
+        this.matchesAll = matchesAll;
+        this.correctedTerm = correctedTerm;
     }
 
     public QueryResponse getQueryResponse() {
@@ -255,4 +259,12 @@ public class SearchResponse {
         this.categoryGraph = categoryGraph;
     }
 
+    public boolean matchesAll() {
+        return matchesAll;
+    }
+
+    public String getCorrectedTerm() {
+        return correctedTerm;
+    }
+    
 }

@@ -13,6 +13,11 @@
   <field name="year"              type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
   <field name="season"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
   <field name="listRank"          type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <!-- making the categoryNodes not required for scenarios where the sku is assigned to the first level category
+    IE. assigned to "1.catalog.firstCategory" Here, the categoryLeaves would be firstCategory and nodes would be empty
+  -->
+  <field name="categoryNodes"     type="string"            indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <field name="categoryLeaves"    type="string"            indexed="true"  stored="false" required="true"  multiValued="true"  omitNorms="true" />
   <!-- facet fields -->
   <field name="brand"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="gender"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />

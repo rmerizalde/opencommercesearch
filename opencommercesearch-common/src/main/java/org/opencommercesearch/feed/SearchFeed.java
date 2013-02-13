@@ -8,6 +8,7 @@ import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
+
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
 import atg.repository.Repository;
@@ -198,7 +199,8 @@ public abstract class SearchFeed extends GenericService {
                 Set<RepositoryItem> productCategories = (Set<RepositoryItem>) product
                         .getPropertyValue("parentCategories");
                 Set<String> tokenCache = new HashSet<String>(20);
-
+                Set<String> leaveCache = new HashSet<String>();
+                
                 if (productCategories != null) {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
@@ -216,6 +218,32 @@ public abstract class SearchFeed extends GenericService {
                                     }
                                 }
                             }
+                        }                        
+                        leaveCache.add(productCategory.getItemDisplayName());
+                    }
+                    if(leaveCache.size() > 0) {
+                        for(String leave : leaveCache) {
+                            document.addField("categoryLeaves", leave);
+                        }
+                    }
+                    
+                    Set<String> nodeCache = new HashSet<String>();
+                    
+                    for(String token : tokenCache){
+                        String[] splitToken = token.split("\\.");
+                        if(splitToken != null && splitToken.length > 2) {
+                            List<String> tokenList = Arrays.asList(splitToken);
+                            tokenList = tokenList.subList(2, tokenList.size());
+                            if (!tokenList.isEmpty()) {
+                                nodeCache.addAll(tokenList);
+                            }
+                        }
+                    }
+                    
+                    if(nodeCache.size() > 0) {
+                        nodeCache.removeAll(leaveCache);
+                        for(String node : nodeCache) {
+                            document.addField("categoryNodes",  node);
                         }
                     }
                 }

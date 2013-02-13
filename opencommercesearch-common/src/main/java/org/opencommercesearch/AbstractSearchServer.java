@@ -16,11 +16,15 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
 import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.GroupCommand;
+import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
+import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
+import org.apache.solr.common.util.SimpleOrderedMap;
 import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
@@ -218,6 +222,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     
             if (hasBrandId) {
                 queryAltParams.add(BRAND_ID + ":" + options.getBrandId());
+                query.setParam("q", "");
             }
     
             if (options.isOnSale()) {
@@ -302,7 +307,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
                 if(redirects != null){
                     RepositoryItem redirect = redirects.get(0);
-                    return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL));
+                    return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL), null, true);
                 }
             }
             
@@ -323,16 +328,92 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
+            
+            
+            String correctedTerm = null;
+            boolean matchesAll = true;
+            
+            //if no results, check for spelling errors
+            if(isEmptySearch(queryResponse.getGroupResponse()) && StringUtils.isNotEmpty(query.getQuery())){                
+                
+                SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();                
+                //try to do searching for the corrected term matching all terms (q.op=AND)
+                QueryResponse tentativeResponse = handleSpellCheck(spellCheckResponse, getCatalogSolrServer(locale), query, "AND");
+                if(tentativeResponse != null) {
+                    //if we got results, set the corrected term variable and proceed to return the results
+                    queryResponse = tentativeResponse;                    
+                    SimpleOrderedMap<String> params =  (SimpleOrderedMap<String>) queryResponse.getHeader().get("params");
+                    correctedTerm = params.get("q");
+                } else {
+                    //if we didn't got any response, try doing another search matching any term (q.op=OR)
+                    tentativeResponse = handleSpellCheck(spellCheckResponse, getCatalogSolrServer(locale), query, "OR");
+                    if(tentativeResponse != null) {
+                        //if we got results for the match any term scenario. Set similar results to true
+                        //and set the corrected term.
+                        queryResponse = tentativeResponse;
+                        matchesAll = false;
+                        SimpleOrderedMap<String> params =  (SimpleOrderedMap<String>) queryResponse.getHeader().get("params");
+                        correctedTerm = params.get("q");
+                    }
+                }
 
+            }
+               
+            
             long searchTime = System.currentTimeMillis() - startTime;
          // @TODO change ths to debug mode
             if (isLoggingInfo()) {
                 logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
-            return new SearchResponse(queryResponse, ruleManager, filterQueries, null);
+            return new SearchResponse(queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
         }
+    }
+
+    private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
+        
+        QueryResponse queryResponse = null;
+        
+        //check if we have any spelling suggestion 
+        String tentativeCorrectedTerm = spellCheckResponse.getCollatedResult();        
+        if(spellCheckResponse != null  && StringUtils.isNotBlank(tentativeCorrectedTerm)){
+            //if we have spelling suggestions, try doing another search using 
+            //q.op as the specified queryOp param (the default one is AND so we only add it if it's OR)
+            //and use q="corrected phrase" to see if we can get results
+            if("OR".equals(queryOp)){
+                query.setParam("q.op", "OR");
+            }
+            query.setQuery(tentativeCorrectedTerm);
+            queryResponse = catalogSolrServer.query(query);
+            
+            //if we didn't got any results from the search with q="corrected phrase" return null
+            //otherwise return the results
+            return isEmptySearch(queryResponse.getGroupResponse()) ? null : queryResponse;
+            
+        } else if("OR".equals(queryOp)) {
+            //for the match any terms scenario with no corrected terms do another query
+            query.setParam("q.op", "OR");
+            queryResponse = catalogSolrServer.query(query);            
+            return isEmptySearch(queryResponse.getGroupResponse()) ? null : queryResponse;
+        } else {
+            //if we didn't got any corrected terms and are not in the match any term scenario, 
+            //then return null
+            return null;
+        }
+    }
+
+    protected boolean isEmptySearch(GroupResponse groupResponse) {
+        boolean noResults = true;            
+        if(groupResponse != null) {
+            for(GroupCommand command : groupResponse.getValues()){
+                if(command.getNGroups() > 0){
+                    noResults = false;
+                    break;
+                }
+            }
+        }
+        return noResults;
     }
 
     @Override
@@ -479,7 +560,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(solrQuery);
-            return new SearchResponse(queryResponse, null, null, null);
+            return new SearchResponse(queryResponse, null, null, null, null, true);
         } catch (SolrServerException ex) {
             throw create(TERMS_EXCEPTION, ex);
         }
