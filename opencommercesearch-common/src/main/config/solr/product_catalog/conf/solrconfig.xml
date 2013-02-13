@@ -281,40 +281,20 @@
 
   <!-- The default high-performance update handler -->
   <updateHandler class="solr.DirectUpdateHandler2">
-
-    <!-- AutoCommit
-
-         Perform a hard commit automatically under certain conditions.
-         Instead of enabling autoCommit, consider using "commitWithin"
-         when adding documents.
-
-         http://wiki.apache.org/solr/UpdateXmlMessages
-
-         maxDocs - Maximum number of documents to add since the last
-                   commit before automatically triggering a new commit.
-
-         maxTime - Maximum amount of time in ms that is allowed to pass
-                   since a document was added before automaticly
-                   triggering a new commit.
-         openSearcher - if false, the commit causes recent index changes
-         to be flushed to stable storage, but does not cause a new
-         searcher to be opened to make those changes visible.
-      -->
      <autoCommit>
-       <maxTime>15000</maxTime>
+       <!-- do a hard commit every 10 minutes -->
+       <maxTime>600000</maxTime>
+       <!-- or when there are more than 5000 pending documents -->
+       <maxDocs>5000</maxDocs>
+       <!-- save the changes to persistent storage but don't open a new search -->
        <openSearcher>false</openSearcher>
      </autoCommit>
 
-    <!-- softAutoCommit is like autoCommit except it causes a
-         'soft' commit which only ensures that changes are visible
-         but does not ensure that data is synced to disk.  This is
-         faster and more near-realtime friendly than a hard commit.
-      -->
-     <!--
-       <autoSoftCommit>
-         <maxTime>1000</maxTime>
-       </autoSoftCommit>
-      -->
+
+     <autoSoftCommit>
+       <!-- make changes visible every 5 seconds -->
+       <maxTime>5000</maxTime>
+     </autoSoftCommit>
 
     <!-- Update Related Event Listeners
 

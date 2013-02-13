@@ -31,6 +31,7 @@ public abstract class SearchFeed extends GenericService {
     private RqlStatement productCountRql;
     private RqlStatement productRql;
     private int productBatchSize;
+    private int indexBatchSize;
 
     public SearchServer getSearchServer() {
         return searchServer;
@@ -80,6 +81,14 @@ public abstract class SearchFeed extends GenericService {
         this.productBatchSize = productBatchSize;
     }
 
+    public int getIndexBatchSize() {
+        return indexBatchSize;
+    }
+
+    public void setIndexBatchSize(int indexBatchSize) {
+        this.indexBatchSize = indexBatchSize;
+    }
+
     public boolean isProductIndexable(RepositoryItem product) {
         return true;
     }
@@ -122,34 +131,38 @@ public abstract class SearchFeed extends GenericService {
             for (RepositoryItem product : products) {
                 if (isProductIndexable(product)) {
                     processProduct(product, documents);
+                    indexedProductCount++;
+                    sendDocuments(documents, getIndexBatchSize());
                 }
                 processedProductCount++;
             }
 
-            for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
-                List<SolrInputDocument> documentList = entry.getValue();
-
-                if (documentList.size() > 0) {
-                    getSearchServer().add(documentList, entry.getKey());
-                    getSearchServer().commit(entry.getKey());
-                    documentList.clear();
-                }
-            }
-            
             rqlArgs[0] += getProductBatchSize();
             products = productRql.executeQueryUncached(productView, rqlArgs);
 
             if (isLoggingInfo()) {
                 logInfo("Processed " + processedProductCount  + " out of " + productCount);
-                logInfo("Indexed "+ indexedProductCount + " products");
+                logInfo("Indexable products "+ indexedProductCount);
             }
         }
+        sendDocuments(documents, 0);
 
         feedFinished();
         if (isLoggingInfo()) {
             logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
                     + indexedProductCount + " products were indexable from  " + processedProductCount
                     + " processed products");
+        }
+    }
+
+    private void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, int min) throws SearchServerException {
+        for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
+            List<SolrInputDocument> documentList = entry.getValue();
+
+            if (documentList.size() > min) {
+                getSearchServer().add(documentList, entry.getKey());
+                documentList.clear();
+            }
         }
     }
 
