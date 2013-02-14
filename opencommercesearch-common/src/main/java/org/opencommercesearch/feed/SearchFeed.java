@@ -112,17 +112,12 @@ public abstract class SearchFeed extends GenericService {
         if (isLoggingInfo()) {
             logInfo("Started full feed for " + productCount + " products");
         }
-        feedStarted();
-        // temporal
 
-        getSearchServer().deleteByQuery("*:*", Locale.ENGLISH);
-        getSearchServer().commit(Locale.ENGLISH);
-        getSearchServer().deleteByQuery("*:*", Locale.FRENCH);
-        getSearchServer().commit(Locale.FRENCH);
-        // temporal
-        
+        long indexStamp = System.currentTimeMillis();
         int processedProductCount = 0;
         int indexedProductCount = 0;
+
+        feedStarted(indexStamp);
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
         RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
@@ -133,7 +128,7 @@ public abstract class SearchFeed extends GenericService {
                 if (isProductIndexable(product)) {
                     processProduct(product, documents);
                     indexedProductCount++;
-                    sendDocuments(documents, getIndexBatchSize());
+                    sendDocuments(documents, indexStamp, getIndexBatchSize());
                 }
                 processedProductCount++;
             }
@@ -146,9 +141,10 @@ public abstract class SearchFeed extends GenericService {
                 logInfo("Indexable products "+ indexedProductCount);
             }
         }
-        sendDocuments(documents, 0);
 
-        feedFinished();
+        sendDocuments(documents, indexStamp, 0);
+        feedFinished(indexStamp);
+
         if (isLoggingInfo()) {
             logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
                     + indexedProductCount + " products were indexable from  " + processedProductCount
@@ -156,11 +152,14 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    private void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, int min) throws SearchServerException {
+    private void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) throws SearchServerException {
         for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
             List<SolrInputDocument> documentList = entry.getValue();
 
             if (documentList.size() > min) {
+                for (SolrInputDocument doc : documentList) {
+                    doc.setField("indexStamp", indexStamp);
+                }
                 getSearchServer().add(documentList, entry.getKey());
                 documentList.clear();
             }
@@ -169,9 +168,9 @@ public abstract class SearchFeed extends GenericService {
 
     protected abstract void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete);
 
-    protected abstract void feedStarted();
+    protected abstract void feedStarted(long indexStamp);
 
-    protected abstract void feedFinished();
+    protected abstract void feedFinished(long indexStamp);
 
     protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
             throws RepositoryException, InventoryException;

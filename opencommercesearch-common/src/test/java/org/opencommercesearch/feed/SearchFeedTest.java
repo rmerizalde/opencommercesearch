@@ -29,11 +29,11 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
 
-        protected void feedStarted() {
+        protected void feedStarted(long indexStamp) {
             throw new UnsupportedOperationException();
         }
 
-        protected void feedFinished() {
+        protected void feedFinished(long indexStamp) {
             throw new UnsupportedOperationException();
         }
 
