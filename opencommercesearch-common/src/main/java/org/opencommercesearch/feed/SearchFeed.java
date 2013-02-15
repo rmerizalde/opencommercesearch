@@ -8,6 +8,8 @@ import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
+import com.google.common.collect.Lists;
+
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
@@ -152,6 +154,42 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
+    /**
+     * Process a list of products in batches
+     * 
+     * @param products
+     *            The list of products to process
+     * @throws InventoryException
+     * @throws RepositoryException
+     * @throws SearchServerException
+     */
+    public void processProduct(List<RepositoryItem> products) throws InventoryException, RepositoryException,
+            SearchServerException {
+        if(products != null) {
+            long indexStamp = System.currentTimeMillis();
+            
+            int processedProductCount = 0;
+            Map<Locale, List<SolrInputDocument>> documents = new HashMap<Locale, List<SolrInputDocument>>();
+            List<List<RepositoryItem>> batches = Lists.partition(products, getProductBatchSize());
+    
+            for (List<RepositoryItem> batch : batches) {
+                for (RepositoryItem product : batch) {
+                    if (isProductIndexable(product)) {
+                        processProduct(product, documents);
+                        sendDocuments(documents, indexStamp, getIndexBatchSize());
+                    }
+                    processedProductCount++;
+                }
+    
+                if (isLoggingInfo()) {
+                    logInfo("Processed " + processedProductCount + " out of " + products.size());
+                }
+            }
+            
+            sendDocuments(documents, indexStamp, 0);
+        }
+    }
+    
     private void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) throws SearchServerException {
         for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
             List<SolrInputDocument> documentList = entry.getValue();
