@@ -12,6 +12,9 @@
     <list-definition show-count-on-header="false" id="searchBoostRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SearchRepository:boostRule">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>
+    <list-definition show-count-on-header="false" id="searchRankingRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SearchRepository:rankingRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
     <list-definition show-count-on-header="false" id="searchRedirectRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SearchRepository:redirectRule">
       <retriever-parameter name="query" value="ALL"/>
     </list-definition>

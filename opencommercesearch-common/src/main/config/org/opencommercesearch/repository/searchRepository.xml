@@ -51,7 +51,7 @@
           <attribute name="propertySortPriority" value="1" />
         </property>
         <property name="query" data-type="string" display-name="Query"
-                  column-name="query" required="false" category="Trigger">
+                  column-name="query" required="true" category="Trigger">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="startDate" data-type="timestamp" display-name="Start Date"
@@ -276,7 +276,46 @@
               <attribute name="cacheReferencesById" value="false"/>
           </property>
       </table>
-    </item-descriptor>  
-    
+    </item-descriptor>
+
+    <item-descriptor display-name="Ranking Rule" name="rankingRule" super-type="rule" sub-type-value="rankingRule">
+      <attribute name="RankingPriority" value="2" />
+      <table name="cs_ranking_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1">
+        <property name="bootBy" data-type="enumerated" column-name="boost_by" required="true" hidden="false" display-name="Boost By" category="Ranking">
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="Attribute Value" code="0" />
+          <option value="Boost Factor" code="1"/>
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        <property name="strength" data-type="enumerated" column-name="strength" required="false" hidden="false" display-name="Strength" category="Ranking">
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="Maximum Demote" code="0" />
+          <option value="Strong Demote" code="1" />
+          <option value="Medium Demote" code="2" />
+          <option value="Weak Demote" code="3" />
+          <option value="Neutral" code="4" />
+          <option value="Weak Boost" code="5" />
+          <option value="Medium Boost" code="6" />
+          <option value="Strong Boost" code="7"/>
+          <option value="Maximum Boost" code="8"/>
+          <attribute name="propertySortPriority" value="3" />
+        </property>
+        <property name="attribute" data-type="string" display-name="Attribute Name"
+                  column-name="attribute_name" required="false" category="Ranking">
+          <attribute name="propertySortPriority" value="4" />
+        </property>
+      </table>
+
+      <table name="cs_ranking_rule_expression" type="multi" id-column-name="rule_id" multi-column-name="position">
+        <attribute name="AdvancedPriority" value="3" />
+        <property name="conditions" display-name="Boost Conditions" data-type="list" component-item-type="ruleExpression"
+                  repository="/atg/commerce/catalog/ProductCatalog" column-name="rule_expression_id" category="Ranking">
+          <attribute name="cacheReferencesById" value="true"/>
+          <attribute name="propertySortPriority" value="5" />
+        </property>
+      </table>
+    </item-descriptor>
+
+
 </gsa-template>    
 

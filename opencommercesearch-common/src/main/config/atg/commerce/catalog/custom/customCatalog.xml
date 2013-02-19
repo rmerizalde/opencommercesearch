@@ -3,7 +3,7 @@
 <gsa-template xml-combine="append">
 
   <header xml-combine="replace">
-    <name>Search Commerce Repository</name>
+    <name>OCS - Custom Catalog Repository</name>
     <author>gsegura</author>
     <description>Adds custom properties used by the search engine</description>
   </header>
