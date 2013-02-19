@@ -25,8 +25,8 @@
   <field name="size"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="colorFamily"       type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
   <field name="country"           type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
-  <field name="indexStamp"        type="long"              indexed="true"  stored="false" required="fasle" multiValued="false" omitNorms="true" />
-  <field name="categoryName"      type="categoryName"      indexed="true" stored="false" multiValued="true"  termVectors="true" />
+  <field name="indexStamp"        type="long"              indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
+  <field name="categoryName"      type="categoryName"      indexed="true"  stored="false"                  multiValued="true"  termVectors="true" />
 
 
   <!-- catchall text field that indexes tokens both normally and in reverse for efficient

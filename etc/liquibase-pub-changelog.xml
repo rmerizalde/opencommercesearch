@@ -622,9 +622,49 @@
          WHERE default_value = '/org/commercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService'
     </sql>
     <sql>
-        UPDATE vmap_im SET default_value = '/org/opencommercesearch/repository/SearchRepository'
+        UPDATE vmap_im SET item_path = '/org/opencommercesearch/repository/SearchRepository'
          WHERE item_path = '/org/commercesearch/repository/SearchRepository'
     </sql>
-  </changset>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="17">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_ranking_rule"/></not>
+      <not><tableExists tableName="cs_ranking_rule_expression"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_ranking_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="boost_by" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="strength" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="true" />
+      </column>  
+      <column name="attribute_name" type="VARCHAR2(60 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>          
+    </createTable>
+    <addPrimaryKey tableName="cs_ranking_rule" columnNames="rule_id,asset_version" constraintName="cs_ranking_rule_pk" />
+
+    <createTable tableName="cs_ranking_rule_expression">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" />
+      </column>
+      <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="position" type="number(19)"/>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position,asset_version" constraintName="cs_ranking_rule_expr_pk"/>
+  </changeSet>    
 
 </databaseChangeLog>

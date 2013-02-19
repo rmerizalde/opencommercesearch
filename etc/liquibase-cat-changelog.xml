@@ -391,6 +391,40 @@
         <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position" constraintName="cs_cat_rul_exp_pk"/>
   </changeSet>
   
+  <changeSet author="commercesearch" id="17">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_ranking_rule"/></not>
+      <not><tableExists tableName="cs_ranking_rule_expression"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_ranking_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_ranking_rule_pk"
+          foreignKeyName="cs_ranking_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+      <column name="boost_by" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="strength" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="true" />
+      </column>  
+      <column name="attribute_name" type="VARCHAR2(60 BYTE)">
+        <constraints nullable="true" />
+      </column>            
+    </createTable>
+
+    <createTable tableName="cs_ranking_rule_expression">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" foreignKeyName="cs_ranking_rule_expr_rule_fk"  references="cs_rule(rule_id)" />
+      </column>
+      <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="position" type="number(19)"/>
+    </createTable>
+    <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position" constraintName="cs_ranking_rule_expr_pk"/>
+  </changeSet>  
+  
 </databaseChangeLog>
 
 
