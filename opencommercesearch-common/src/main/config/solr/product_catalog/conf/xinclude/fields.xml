@@ -20,7 +20,6 @@
   <field name="categoryLeaves"    type="string"            indexed="true"  stored="false" required="true"  multiValued="true"  omitNorms="true" />
   <!-- facet fields -->
   <field name="brand"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-  <field name="gender"            type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="scale"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="size"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="colorFamily"       type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
@@ -42,7 +41,7 @@
   <dynamicField name="reviews*"         type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"        type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="seoUrl*"           type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
-
+  <dynamicField name="ha_*"             type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
 
   <!-- other sorting/facet fields -->
   <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
