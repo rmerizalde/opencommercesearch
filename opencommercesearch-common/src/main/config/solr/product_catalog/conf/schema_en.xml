@@ -149,5 +149,5 @@
   
   <copyField source="categoryNodes"  dest="text"/>
   <copyField source="categoryLeaves" dest="text"/>
-
+  <copyField source="ha_*" dest="text"/>
 </schema>

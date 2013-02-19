@@ -173,7 +173,11 @@ public abstract class SearchFeed extends GenericService {
             List<List<RepositoryItem>> batches = Lists.partition(products, getProductBatchSize());
     
             for (List<RepositoryItem> batch : batches) {
-                for (RepositoryItem product : batch) {
+                
+                for (RepositoryItem product : batch) {                    
+                    
+                    getSearchServer().deleteByQuery("productId:"+product.getRepositoryId());
+                    
                     if (isProductIndexable(product)) {
                         processProduct(product, documents);
                         sendDocuments(documents, indexStamp, getIndexBatchSize());
