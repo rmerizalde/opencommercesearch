@@ -10,15 +10,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.opencommercesearch.RulesTestUtil.mockRule;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServer;
@@ -29,13 +23,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.SolrParams;
-import org.opencommercesearch.repository.BlockRuleProperty;
-import org.opencommercesearch.repository.BoostRuleProperty;
-import org.opencommercesearch.repository.CategoryProperty;
-import org.opencommercesearch.repository.FacetProperty;
-import org.opencommercesearch.repository.FacetRuleProperty;
-import org.opencommercesearch.repository.RuleProperty;
-import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,6 +70,11 @@ public class RuleManagerTest {
     @Mock private RepositoryItemDescriptor cateDescriptor, faultyDescriptor;
     
     private static final String EXPECTED_WILDCARD = "__all__";
+
+    @Before
+    public void setup() throws Exception {
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("someType");
+    }
     
     @Before
     public void setUpSitesForCreateRuleDocument() {
@@ -406,7 +399,7 @@ public class RuleManagerTest {
         assertEquals(EXPECTED_WILDCARD, doc.getField("query").getValue());
         assertEquals(EXPECTED_WILDCARD, doc.getField("siteId").getValue());
         assertEquals(EXPECTED_WILDCARD, doc.getField("catalogId").getValue());
-        assertEquals(EXPECTED_WILDCARD, doc.getField("category").getValue());        
+        assertEquals(EXPECTED_WILDCARD, doc.getField("category").getValue());
     }
     
     @Test
@@ -773,6 +766,149 @@ public class RuleManagerTest {
         mgr.loadRules("pants", "Women's Clothing");
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
+    }
+
+    @Test
+    public void testRankingRuleSimpleBrandRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("brand", 1, "88", null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_BOOST);
+
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(brandId:88)'})),10.0,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimplePercentageRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("pct_off", 1, "15", null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_DEMOTE);
+
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(discountPercentUS:[15 TO 100])'})),0.1,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimpleGenderRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("gender", 1, "male", null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_ATTRIBUTE_VALUE);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE)).thenReturn("listRank");
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(gender:male)'})),listRank,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimpleShowSaleRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("show_sale", 1, "false", null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_DEMOTE);
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(onsaleUS:false)'})),0.5,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimplePastSeasonRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("price", 1, "25 100", null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(salePriceUS:[25 TO 100])'})),2.0,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimpleKeywordRule() throws RepositoryException {
+
+        String keyword = "this is a big weird keyword'";
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        RepositoryItem expression = mockRule("keyword", 1, keyword, null);
+
+        expresionList.add(expression);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_WEAK_BOOST);
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(keyword:this\\ is\\ a\\ big\\ weird\\ keyword)'})),1.5,1.0)",
+                (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleComplexRule() throws RepositoryException {
+
+        String keyword = "this is a big weird keyword'";
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        expresionList.add(mockRule("brand", 1, "88", null));
+        expresionList.add(mockRule("brand", 2, "77", "OR"));
+        expresionList.add(mockRule("show_sale", 2, "true", "AND"));
+        expresionList.add(mockRule("past_season", 4, "false", "AND"));
+
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.EXPRESSIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_WEAK_BOOST);
+        RuleManager mgr = new RuleManager(repository, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(brandId:88 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))'})),1.5,1.0)",
+                (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testDefaultBoostFactors() {
+        RuleManager mgr = new RuleManager(repository, server);
+
+        assertEquals(Float.toString(1/10f), mgr.mapStrength(RankingRuleProperty.STRENGTH_MAXIMUM_DEMOTE));
+        assertEquals(Float.toString(1/5f), mgr.mapStrength(RankingRuleProperty.STRENGTH_STRONG_DEMOTE));
+        assertEquals(Float.toString(1/2f), mgr.mapStrength(RankingRuleProperty.STRENGTH_MEDIUM_DEMOTE));
+        assertEquals(Float.toString(1/1.5f), mgr.mapStrength(RankingRuleProperty.STRENGTH_WEAK_DEMOTE));
+        assertEquals(Float.toString(1.0f), mgr.mapStrength(RankingRuleProperty.STRENGTH_NEUTRAL));
+        assertEquals(Float.toString(1.5f), mgr.mapStrength(RankingRuleProperty.STRENGTH_WEAK_BOOST));
+        assertEquals(Float.toString(2f), mgr.mapStrength(RankingRuleProperty.STRENGTH_MEDIUM_BOOST));
+        assertEquals(Float.toString(5f), mgr.mapStrength(RankingRuleProperty.STRENGTH_STRONG_BOOST));
+        assertEquals(Float.toString(10f), mgr.mapStrength(RankingRuleProperty.STRENGTH_MAXIMUM_BOOST));
+
     }
     
 

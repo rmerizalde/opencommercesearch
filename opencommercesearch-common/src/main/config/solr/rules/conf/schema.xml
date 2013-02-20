@@ -145,7 +145,8 @@
    <field name="category"          type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="query"             type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="startDate"         type="tdate"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="endDate"           type="tdate"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />   
+   <field name="endDate"           type="tdate"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="boostFunction"     type="string" indexed="false" stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
    <!-- catchall field, containing all other searchable text fields (implemented
         via copyField further on in this schema  -->

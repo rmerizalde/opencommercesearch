@@ -8,6 +8,7 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.opencommercesearch.repository.CategoryProperty;
+import org.opencommercesearch.repository.RankingRuleProperty;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.opencommercesearch.repository.RuleExpressionProperty;
 
@@ -26,6 +27,14 @@ import atg.repository.RepositoryItem;
 public class RulesBuilder extends GenericService {
 
     private Repository productCatalog;
+
+    public Repository getProductCatalog() {
+        return productCatalog;
+    }
+
+    public void setProductCatalog(Repository productCatalog) {
+        this.productCatalog = productCatalog;
+    }
 
     enum Rule {
         PCT_OFF {
@@ -121,7 +130,7 @@ public class RulesBuilder extends GenericService {
         try {
             RepositoryItem category = productCatalog.getItem(categoryId, RuleBasedCategoryProperty.ITEM_DESCRIPTOR);
             if (category != null) {
-                rule = buildFilter(category, getExpressions(category), locale);
+                rule = buildFilter(category, getExpressions(category, RuleBasedCategoryProperty.EXPRESSIONS), locale);
             }            
         } catch (RepositoryException e) {
             if (isLoggingError()) {
@@ -131,11 +140,15 @@ public class RulesBuilder extends GenericService {
 
         return rule;
     }
+
+    public String buildRankingRuleFilter(RepositoryItem rankingRule, Locale locale) {
+        return buildFilter(null, getExpressions(rankingRule, RankingRuleProperty.EXPRESSIONS), locale);
+    }
     
-    private List<RepositoryItem> getExpressions(RepositoryItem category) {
+    private List<RepositoryItem> getExpressions(RepositoryItem ruleBasedItem, String propertyName) {
         @SuppressWarnings("unchecked")
-        List<RepositoryItem> expressions = (List<RepositoryItem>) category
-                .getPropertyValue(RuleBasedCategoryProperty.EXPRESSIONS);
+        List<RepositoryItem> expressions = (List<RepositoryItem>) ruleBasedItem
+                .getPropertyValue(propertyName);
         if (expressions == null) {
             return new ArrayList<RepositoryItem>();
         }
@@ -146,11 +159,15 @@ public class RulesBuilder extends GenericService {
     private String buildFilter(RepositoryItem category, List<RepositoryItem> ruleExpressions, Locale locale) {
         StringBuilder filter = new StringBuilder();
 
-        filter.append("(").append(Rule.CATEGORY.toFilter(category.getRepositoryId(), locale, productCatalog)).append(")");
+        if (category != null) {
+            filter.append("(").append(Rule.CATEGORY.toFilter(category.getRepositoryId(), locale, productCatalog)).append(")");
+        }
         
         if (ruleExpressions.size() > 0) {
-            
-            filter.append(" OR (");
+            if (category != null) {
+                filter.append(" OR ");
+            }
+            filter.append("(");
             
             int currentNestLevel = 1;
             int nesting = 0;
@@ -194,26 +211,19 @@ public class RulesBuilder extends GenericService {
                 filter.append(")");
             }
             filter.append(")");
-        
-        }        
-        List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_CHILD_CATEGORIES);
-        if (childCategories != null && childCategories.size() > 0){
-           List<String> childFilterRule = new ArrayList<String>(childCategories.size());
-           for(RepositoryItem childCategory: childCategories) {
-               childFilterRule.add("("+buildRulesFilter(childCategory.getRepositoryId(),locale)+")");
-           }
-           filter.append(" OR " + StringUtils.join(childFilterRule, " OR "));
+        }
+
+        if (category != null) {
+            List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_CHILD_CATEGORIES);
+            if (childCategories != null && childCategories.size() > 0){
+               List<String> childFilterRule = new ArrayList<String>(childCategories.size());
+               for(RepositoryItem childCategory: childCategories) {
+                   childFilterRule.add("("+buildRulesFilter(childCategory.getRepositoryId(),locale)+")");
+               }
+               filter.append(" OR " + StringUtils.join(childFilterRule, " OR "));
+             }
         }
         
         return filter.toString().trim();
     }
-
-    public Repository getProductCatalog() {
-        return productCatalog;
-    }
-
-    public void setProductCatalog(Repository productCatalog) {
-        this.productCatalog = productCatalog;
-    }
-
 }

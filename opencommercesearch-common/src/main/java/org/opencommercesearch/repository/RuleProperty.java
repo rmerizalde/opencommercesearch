@@ -17,4 +17,10 @@ public class RuleProperty {
     public static final String CATALOGS = "catalogs";
     public static final String CATEGORIES = "categories";
     public static final String RULE_TYPE = "ruleType";
+
+    public static final String TYPE_BOOST_RULE = "boostRule";
+    public static final String TYPE_BLOCK_RULE = "blockRule";
+    public static final String TYPE_FACET_RULE = "facetRule";
+    public static final String TYPE_RANKING_RULE = "rankingRule";
+    public static final String TYPE_REDIRECT_RULE  = "redirectRule";
 }

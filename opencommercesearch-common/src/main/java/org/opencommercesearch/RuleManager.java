@@ -1,14 +1,7 @@
 package org.opencommercesearch;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -19,18 +12,13 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
-import org.opencommercesearch.repository.BlockRuleProperty;
-import org.opencommercesearch.repository.BoostRuleProperty;
-import org.opencommercesearch.repository.CategoryProperty;
-import org.opencommercesearch.repository.FacetProperty;
-import org.opencommercesearch.repository.FacetRuleProperty;
-import org.opencommercesearch.repository.RedirectRuleProperty;
-import org.opencommercesearch.repository.RuleProperty;
-import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.*;
 
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+
+import static org.opencommercesearch.repository.RankingRuleProperty.*;
 
 /**
  * This class provides functionality to load the rules that matches a given
@@ -40,13 +28,16 @@ import atg.repository.RepositoryItem;
  * 
  */
 public class RuleManager<T extends SolrServer> {
+    public static final String FIELD_BOOST_FUNCTION = "boostFunction";
+    public  static final String FIELD_CATEGORY = "category";
+
     private static final String WILDCARD = "__all__";
-    private static final String FIELD_CATEGORY = "category";
 
     private Repository searchRepository;
     private SolrServer server;
     private FacetManager facetManager = new FacetManager();
     private Map<String, List<RepositoryItem>> rules;
+    private Map<String, String> strengthMap;
 
     enum RuleType {
         facetRule() {
@@ -328,8 +319,7 @@ public class RuleManager<T extends SolrServer> {
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> catalogs = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATALOGS);
 
-        // TODO: is this a bug???  sites.size() > 0???? shouldn't it be catalogs.size()?
-        if (catalogs != null && sites.size() > 0) {
+        if (catalogs != null && catalogs.size() > 0) {
             for (RepositoryItem catalog : catalogs) {
                 doc.addField("catalogId", catalog.getRepositoryId());
             }
@@ -348,7 +338,71 @@ public class RuleManager<T extends SolrServer> {
             doc.setField(FIELD_CATEGORY, WILDCARD);
         }
 
+        if (RuleProperty.TYPE_RANKING_RULE.equals(rule.getPropertyValue(RuleProperty.RULE_TYPE))) {
+            RulesBuilder builder = new RulesBuilder();
+            String rankAction = null;
+
+            if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
+                String strength = (String) rule.getPropertyValue(STRENGTH);
+                rankAction = mapStrength(strength);
+            } else {
+                rankAction = (String) rule.getPropertyValue(ATTRIBUTE);
+                if (rankAction == null) {
+                    rankAction = "1.0";
+                }
+            }
+
+            // TODO: add support for locales
+            //if(exists(query({!lucene v='(brandId:88)'})),3,1)
+            StringBuilder boostFunctionQuery = new StringBuilder("if(exists(query({!lucene v='");
+
+            boostFunctionQuery.append(StringUtils.remove(builder.buildRankingRuleFilter(rule, Locale.US), '\''))
+                .append("'})),")
+                .append(rankAction)
+                .append(",1.0)");
+
+            doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
+        }
+
         return doc;
+    }
+
+    /**
+     * Maps the given strength to a boost factor
+     *
+     * @param strength is the strength name. See RankingRuleProperty
+     * @return
+     */
+    protected String mapStrength(String strength) {
+        if (strengthMap == null) {
+            initializeStrengthMap();
+        }
+
+        String boostFactor = strengthMap.get(strength);
+
+        if (boostFactor == null) {
+            boostFactor = "1.0";
+        }
+        return boostFactor;
+    }
+
+    /**
+     * Initializes the strenght map.
+     *
+     * @TODO move this mappings to configuration file
+     */
+    private void initializeStrengthMap() {
+        strengthMap = new HashMap<String, String>(STRENGTH_LEVELS);
+
+        strengthMap.put(STRENGTH_MAXIMUM_DEMOTE, Float.toString(1/10f));
+        strengthMap.put(STRENGTH_STRONG_DEMOTE, Float.toString(1/5f));
+        strengthMap.put(STRENGTH_MEDIUM_DEMOTE, Float.toString(1/2f));
+        strengthMap.put(STRENGTH_WEAK_DEMOTE, Float.toString(1/1.5f));
+        strengthMap.put(STRENGTH_NEUTRAL, Float.toString(1f));
+        strengthMap.put(STRENGTH_WEAK_BOOST, Float.toString(1.5f));
+        strengthMap.put(STRENGTH_MEDIUM_BOOST, Float.toString(2f));
+        strengthMap.put(STRENGTH_STRONG_BOOST, Float.toString(5f));
+        strengthMap.put(STRENGTH_MAXIMUM_BOOST, Float.toString(10f));
     }
 
     /**

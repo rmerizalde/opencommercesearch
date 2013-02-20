@@ -281,7 +281,7 @@
     <item-descriptor display-name="Ranking Rule" name="rankingRule" super-type="rule" sub-type-value="rankingRule">
       <attribute name="RankingPriority" value="2" />
       <table name="cs_ranking_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1">
-        <property name="bootBy" data-type="enumerated" column-name="boost_by" required="true" hidden="false" display-name="Boost By" category="Ranking">
+        <property name="boostBy" data-type="enumerated" column-name="boost_by" required="true" hidden="false" display-name="Boost By" category="Ranking">
           <attribute name="useCodeForValue" value="false"/>
           <option value="Attribute Value" code="0" />
           <option value="Boost Factor" code="1"/>
