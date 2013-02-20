@@ -154,47 +154,7 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    /**
-     * Process a list of products in batches
-     * 
-     * @param products
-     *            The list of products to process
-     * @throws InventoryException
-     * @throws RepositoryException
-     * @throws SearchServerException
-     */
-    public void processProduct(List<RepositoryItem> products) throws InventoryException, RepositoryException,
-            SearchServerException {
-        if(products != null) {
-            long indexStamp = System.currentTimeMillis();
-            
-            int processedProductCount = 0;
-            Map<Locale, List<SolrInputDocument>> documents = new HashMap<Locale, List<SolrInputDocument>>();
-            List<List<RepositoryItem>> batches = Lists.partition(products, getProductBatchSize());
-    
-            for (List<RepositoryItem> batch : batches) {
-                
-                for (RepositoryItem product : batch) {                    
-                    
-                    getSearchServer().deleteByQuery("productId:"+product.getRepositoryId());
-                    
-                    if (isProductIndexable(product)) {
-                        processProduct(product, documents);
-                        sendDocuments(documents, indexStamp, getIndexBatchSize());
-                    }
-                    processedProductCount++;
-                }
-    
-                if (isLoggingInfo()) {
-                    logInfo("Processed " + processedProductCount + " out of " + products.size());
-                }
-            }
-            
-            sendDocuments(documents, indexStamp, 0);
-        }
-    }
-    
-    private void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) throws SearchServerException {
+    protected void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) throws SearchServerException {
         for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
             List<SolrInputDocument> documentList = entry.getValue();
 
@@ -216,6 +176,9 @@ public abstract class SearchFeed extends GenericService {
 
     protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
             throws RepositoryException, InventoryException;
+    
+    public abstract void processProductBatch(List<RepositoryItem> products) 
+            throws InventoryException, RepositoryException, SearchServerException;
 
     /**
      * Generate the category tokens to create a hierarchical facet in Solr. Each

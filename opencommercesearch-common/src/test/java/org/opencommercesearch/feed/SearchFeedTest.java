@@ -14,6 +14,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.opencommercesearch.SearchServer;
+import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
 import static org.junit.Assert.*;
@@ -39,6 +40,12 @@ public class SearchFeedTest {
 
         protected void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
                 throws RepositoryException, InventoryException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void processProductBatch(List<RepositoryItem> products) throws InventoryException, RepositoryException,
+                SearchServerException {
             throw new UnsupportedOperationException();
         }
     };
