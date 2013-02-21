@@ -22,12 +22,12 @@ import java.util.Map;
 public class FixedBoostValueSource extends ValueSource {
     private final String field;
     private final ValueSource fieldValueSource;
-    private final List<String> values;
+    private final Map<String, Integer> positions;
 
-    public FixedBoostValueSource(String field, ValueSource fieldValueSource, List<String> values) {
+    public FixedBoostValueSource(String field, ValueSource fieldValueSource, Map<String, Integer> positions) {
         this.field = field;
         this.fieldValueSource = fieldValueSource;
-        this.values = values;
+        this.positions = positions;
     }
 
   @Override
@@ -37,12 +37,12 @@ public class FixedBoostValueSource extends ValueSource {
       return new IntDocValues(this) {
           @Override
           public int intVal(int doc) {
-              int position = 0;
+              int position = positions.size();
 
               String value = vals.strVal(doc);
-              int index = values.indexOf(value);
-              if (index != -1) {
-                  position = index+1;
+              Integer index = positions.get(value);
+              if (index != null) {
+                  position = index;
               }
               return position;
           }
@@ -54,12 +54,12 @@ public class FixedBoostValueSource extends ValueSource {
     public boolean equals(Object o) {
         if (this.getClass() != o.getClass()) return false;
         FixedBoostValueSource other = (FixedBoostValueSource) o;
-        return field.equals(other.field) && fieldValueSource.equals(other.fieldValueSource) && values.equals(other.values);
+        return field.equals(other.field) && fieldValueSource.equals(other.fieldValueSource) && positions.equals(other.positions);
     }
 
     @Override
     public int hashCode() {
-        return getClass().hashCode() + field.hashCode() + fieldValueSource.hashCode() + values.hashCode();
+        return getClass().hashCode() + field.hashCode() + fieldValueSource.hashCode() + positions.hashCode();
     }
 
     public String name() {
@@ -68,6 +68,6 @@ public class FixedBoostValueSource extends ValueSource {
 
     @Override
     public String description() {
-        return name() + '(' + field + "," + values + ')';
+        return name() + '(' + field + "," + positions.keySet() + ')';
     }
 }

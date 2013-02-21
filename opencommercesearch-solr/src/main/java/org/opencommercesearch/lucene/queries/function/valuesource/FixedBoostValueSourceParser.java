@@ -13,14 +13,16 @@ import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.ValueSourceParser;
 
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.List;
 
 /**
  @author rmerizalde
  */
 public class FixedBoostValueSourceParser extends ValueSourceParser {
+
+    private static final int DEFAULT_BOOST_COUNT = 10;
+
     @Override
     public void init(NamedList namedList) {
     }
@@ -28,15 +30,15 @@ public class FixedBoostValueSourceParser extends ValueSourceParser {
     @Override
     public ValueSource parse(FunctionQParser fp) throws ParseException {
         String field = fp.parseArg();
-        List<String> values = new ArrayList<String>();
+
         SchemaField f = fp.getReq().getSchema().getField(field);
         ValueSource fieldValueSource = f.getType().getValueSource(f, fp);
+        Map<String, Integer> positions = new HashMap<String, Integer>(DEFAULT_BOOST_COUNT);
+        int position = 0;
 
         while (fp.hasMoreArguments()) {
-            values.add(fp.parseArg());
+            positions.put(fp.parseArg(), position++);
         }
-        Collections.reverse(values);
-        // TODO: make values a hashtable
-        return new FixedBoostValueSource(field, fieldValueSource, values);
+        return new FixedBoostValueSource(field, fieldValueSource, positions);
     }
 }

@@ -5,9 +5,8 @@ package org.opencommercesearch.repository;
  */
 public class RankingRuleProperty {
 
-    public static final String ITEM_DESCRIPTOR = "rankingRule";
     public static final String BOOST_BY = "boostBy";
-   	public static final String EXPRESSIONS = "expressions";
+    public static final String CONDITIONS = "conditions";
     public static final String STRENGTH = "strength";
     public static final String ATTRIBUTE = "attribute";
 

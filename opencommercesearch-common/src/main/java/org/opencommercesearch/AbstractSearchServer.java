@@ -298,7 +298,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         query.set("group.facet", true);
 
 
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesSolrServer(locale));
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
         try {
             ruleManager.setRuleParams(filterQueries, catalog, query);
             
@@ -580,6 +580,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)
+                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RANKING_RULE)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.REDIRECT_RULE)) {
                 indexRules();
             }
@@ -685,7 +686,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         int processed = 0;
 
         // TODO fix: add support for localized rules
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesSolrServer(Locale.ENGLISH));
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(Locale.ENGLISH));
         while (rules != null) {
 
             for (RepositoryItem rule : rules) {

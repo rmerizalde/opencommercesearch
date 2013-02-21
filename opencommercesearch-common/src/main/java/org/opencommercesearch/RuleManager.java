@@ -34,14 +34,16 @@ public class RuleManager<T extends SolrServer> {
     private static final String WILDCARD = "__all__";
 
     private Repository searchRepository;
+    private RulesBuilder rulesBuilder;
     private SolrServer server;
     private FacetManager facetManager = new FacetManager();
     private Map<String, List<RepositoryItem>> rules;
+    private Map<String, SolrDocument> ruleDocs;
     private Map<String, String> strengthMap;
 
     enum RuleType {
         facetRule() {
-            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
                     Set<RepositoryItem> facets = (Set<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
@@ -54,7 +56,7 @@ public class RuleManager<T extends SolrServer> {
             }
         },
         boostRule() {
-            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
                     List<RepositoryItem> products = (List<RepositoryItem>) rule
@@ -66,7 +68,7 @@ public class RuleManager<T extends SolrServer> {
                         }
                         b.setLength(b.length() - 1);
                         b.append(")");
-                        query.addSortField(b.toString(), ORDER.desc);
+                        query.addSortField(b.toString(), ORDER.asc);
                     }
 
                     // @todo handle multiple boost rules
@@ -76,7 +78,7 @@ public class RuleManager<T extends SolrServer> {
             }
         },
         blockRule() {
-            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
 
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
@@ -95,19 +97,36 @@ public class RuleManager<T extends SolrServer> {
         redirectRule() {
 
             @Override
-            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules) {
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
                 //TODO gsegura: for redirect rule we don't need a enum entry to add parameters to the query
                 //but to avoid an exception while on:  RuleType.valueOf(entry.getKey());  we are adding
                 //this empty entry. The redirect itself will be handled by the abstractSearchServer
             }
             
+        },
+        rankingRule() {
+            @Override
+            void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
+                for (RepositoryItem rule : rules) {
+                    SolrDocument doc = ruleDocs.get(rule.getRepositoryId());
+
+                    if (doc != null) {
+                        String boostFunction = (String) doc.getFieldValue(FIELD_BOOST_FUNCTION);
+
+                        if (boostFunction != null) {
+                            query.set("boost", boostFunction);
+                        }
+                    }
+                }
+            }
         };
         
-        abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules);
+        abstract void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs);
     }
-    
-    RuleManager(Repository searchRepository, T server) {
+
+    RuleManager(Repository searchRepository, RulesBuilder rulesBuilder, T server) {
       this.searchRepository = searchRepository;
+      this.rulesBuilder = rulesBuilder;
       this.server = server;
     }
     
@@ -141,6 +160,7 @@ public class RuleManager<T extends SolrServer> {
         query.setStart(start);
         query.setRows(rows);
         query.setParam("fl", "id");
+        query.add("fl", FIELD_BOOST_FUNCTION);
 
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
@@ -157,7 +177,8 @@ public class RuleManager<T extends SolrServer> {
             return;
         }
 
-        rules = new HashMap<String, List<RepositoryItem>>(4);
+        rules = new HashMap<String, List<RepositoryItem>>(RuleType.values().length);
+        ruleDocs = new HashMap<String, SolrDocument>();
         SolrDocumentList docs = res.getResults();
         int total = (int) docs.getNumFound();
         int processed = 0;
@@ -176,6 +197,7 @@ public class RuleManager<T extends SolrServer> {
                         rules.put(ruleType, ruleList);
                     }
                     ruleList.add(rule);
+                    ruleDocs.put(rule.getRepositoryId(), doc);
                 } else {
                     //TODO gsegura: add logging that we couldn't find the rule item in the DB
                 }
@@ -214,7 +236,7 @@ public class RuleManager<T extends SolrServer> {
             RuleType type = RuleType.valueOf(entry.getKey());
 
             if (type != null) {
-                type.setParams(this, query, entry.getValue());
+                type.setParams(this, query, entry.getValue(), ruleDocs);
             }
         }
         query.addSortField("score", ORDER.desc);
@@ -339,7 +361,6 @@ public class RuleManager<T extends SolrServer> {
         }
 
         if (RuleProperty.TYPE_RANKING_RULE.equals(rule.getPropertyValue(RuleProperty.RULE_TYPE))) {
-            RulesBuilder builder = new RulesBuilder();
             String rankAction = null;
 
             if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
@@ -353,15 +374,21 @@ public class RuleManager<T extends SolrServer> {
             }
 
             // TODO: add support for locales
-            //if(exists(query({!lucene v='(brandId:88)'})),3,1)
-            StringBuilder boostFunctionQuery = new StringBuilder("if(exists(query({!lucene v='");
+            String conditionQuery = rulesBuilder.buildRankingRuleFilter(rule, Locale.US);
+            StringBuilder boostFunctionQuery = new StringBuilder();
 
-            boostFunctionQuery.append(StringUtils.remove(builder.buildRankingRuleFilter(rule, Locale.US), '\''))
-                .append("'})),")
-                .append(rankAction)
-                .append(",1.0)");
+            if (conditionQuery.length() > 0) {
+                boostFunctionQuery
+                    .append("if(exists(query({!lucene v='")
+                    .append(StringUtils.remove(conditionQuery, '\''))
+                    .append("'})),")
+                    .append(rankAction)
+                    .append(",1.0)");
+            } else {
+                boostFunctionQuery.append(rankAction);
+            }
 
-            doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
+            doc.addField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
         }
 
         return doc;

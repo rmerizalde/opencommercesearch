@@ -142,7 +142,7 @@ public class RulesBuilder extends GenericService {
     }
 
     public String buildRankingRuleFilter(RepositoryItem rankingRule, Locale locale) {
-        return buildFilter(null, getExpressions(rankingRule, RankingRuleProperty.EXPRESSIONS), locale);
+        return buildFilter(null, getExpressions(rankingRule, RankingRuleProperty.CONDITIONS), locale);
     }
     
     private List<RepositoryItem> getExpressions(RepositoryItem ruleBasedItem, String propertyName) {
