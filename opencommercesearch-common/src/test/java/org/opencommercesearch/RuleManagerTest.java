@@ -844,7 +844,7 @@ public class RuleManagerTest {
     public void testRankingRuleSimplePastSeasonRule() throws RepositoryException {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
-        RepositoryItem expression = mockRule("price", 1, "25 100", null);
+        RepositoryItem expression = mockRule("past_season", 1, "false", null);
 
         expresionList.add(expression);
         when(testRuleItem.getPropertyValue(RankingRuleProperty.CONDITIONS)).thenReturn(expresionList);
@@ -854,7 +854,24 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
 
-        assertEquals("if(exists(query({!lucene v='(salePriceUS:[25 TO 100])'})),2.0,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(isPastSeason:false)'})),2.0,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+    }
+
+    @Test
+    public void testRankingRuleSimpleBrandPastSeasonRule() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        expresionList.add(mockRule("past_season", 1, "false", null));
+        expresionList.add(mockRule("brand", 1, "88", "AND"));
+
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.CONDITIONS)).thenReturn(expresionList);
+        when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_FACTOR);
+        when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+
+        assertEquals("if(exists(query({!lucene v='(isPastSeason:false AND brandId:88)'})),2.0,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test

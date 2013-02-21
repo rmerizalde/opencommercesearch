@@ -114,7 +114,7 @@ public class RuleManager<T extends SolrServer> {
                         String boostFunction = (String) doc.getFieldValue(FIELD_BOOST_FUNCTION);
 
                         if (boostFunction != null) {
-                            query.set("boost", boostFunction);
+                            query.add("boost", boostFunction);
                         }
                     }
                 }
@@ -388,7 +388,7 @@ public class RuleManager<T extends SolrServer> {
                 boostFunctionQuery.append(rankAction);
             }
 
-            doc.addField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
+            doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
         }
 
         return doc;
