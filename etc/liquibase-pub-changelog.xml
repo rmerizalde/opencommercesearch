@@ -665,6 +665,20 @@
       </column>
     </createTable>
     <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position,asset_version" constraintName="cs_ranking_rule_expr_pk"/>
-  </changeSet>    
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="18">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_ranking_rule"/>
+    </preConditions>
+
+    <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
+
+    <addColumn tableName="cs_ranking_rule">
+        <column name="notes" type="varchar(512)"> 
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>     
 
 </databaseChangeLog>

@@ -304,6 +304,10 @@
                   column-name="attribute_name" required="false" category="Ranking">
           <attribute name="propertySortPriority" value="4" />
         </property>
+        <property name="notes" data-type="string" display-name="Notes"
+                  column-name="notes" required="true" category="Ranking">
+          <attribute name="propertySortPriority" value="6" />
+        </property>
       </table>
 
       <table name="cs_ranking_rule_expression" type="multi" id-column-name="rule_id" multi-column-name="position">
