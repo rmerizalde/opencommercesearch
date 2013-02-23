@@ -63,16 +63,16 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public void deploymentEvent(DeploymentEvent event) {
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
             Map<String, Set<String>> affectedItemTypes = event.getAffectedItemTypes();
-            if (isLoggingDebug()) {
-                logDebug("Received event " + getTriggerStatus() + " -> " + affectedItemTypes);
+            if (isLoggingInfo()) {
+                logInfo("Deployment event received " + getTriggerStatus() + " -> " + affectedItemTypes);
             }
             if (affectedItemTypes != null) {
                 for (Entry<String, Set<String>> entry : affectedItemTypes.entrySet()) {
                     String repositoryName = entry.getKey();
                     Set<String> itemDescriptorNames = (Set<String>) entry.getValue();
                     for (String itemDescriptorName : itemDescriptorNames) {
-                        if (isLoggingDebug()) {
-                            logDebug("Processing " + itemDescriptorName + " for repository " + repositoryName);
+                        if (isLoggingInfo()) {
+                            logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
                             notifyItemChange(repositoryName, itemDescriptorNames);
