@@ -176,9 +176,6 @@ public abstract class SearchFeed extends GenericService {
 
     protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
             throws RepositoryException, InventoryException;
-    
-    public abstract void processProductBatch(List<RepositoryItem> products) 
-            throws InventoryException, RepositoryException, SearchServerException;
 
     /**
      * Generate the category tokens to create a hierarchical facet in Solr. Each

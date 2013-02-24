@@ -80,8 +80,14 @@
   <fields>
     <!-- catchall field, containing all other searchable text fields (implemented
       via copyField further on in this schema  -->
-    <field name="text" type="text_fr_splitting" indexed="true" stored="false" multiValued="true"/>
+    <field name="text"    type="text_fr_splitting" indexed="true" stored="false" multiValued="true"/>
     <field name="keyword" type="text_fr_splitting" indexed="true" stored="false" multiValued="false"/>
+
+    <!-- boosting fields -->
+    <field name="high"   type="text_fr_splitting" indexed="true"  stored="false" required="false" multiValued="false" omitNorms="false" />
+    <field name="medium" type="text_fr_splitting" indexed="true"  stored="false" required="false" multiValued="false" omitNorms="false" />
+    <field name="low"    type="text_fr_splitting" indexed="true"  stored="false" required="false" multiValued="false" omitNorms="false" />
+
   </fields>
 
   <!-- Field to use to determine and enforce document uniqueness.
@@ -103,7 +109,7 @@
   <copyField source="year" dest="text"/>
   <!--<copyField source="nodecategoriesmountainbike" dest="text"/>-->
   <copyField source="size" dest="text"/>
-  <copyField source="feature" dest="text"/>
+  <copyField source="feature_*" dest="text"/>
   <copyField source="colorFamily" dest="text"/>
   <copyField source="brand" dest="sBrand"/>
   <copyField source="category" dest="categoryName"/>
