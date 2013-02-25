@@ -46,40 +46,6 @@ public class SchemaFrIntegrationTest extends SchemaIntegrationTest {
     }
 
     @SearchTest(language = "fr")
-    public void testCategoryNameAnalyzer(SearchServer server) throws SearchServerException {
-        Analysis analysis = analyzeFieldType(server, "categoryName",
-                "3.mycatalog.Vêtements pour Hommes.Vestes.Vestes Casual");
-
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
-            assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("vest", words.get(0).get("text"));
-            assertEquals("casual", words.get(1).get("text"));
-        }
-
-        analysis = analyzeFieldType(server, "categoryName", "1.mycatalog.Vêtements pour Hommes");
-
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
-            assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("vête", words.get(0).get("text"));
-            assertEquals("home", words.get(1).get("text"));
-        }
-    }
-
-    @SearchTest(language = "fr")
-    public void testCategoryNameTerms(SearchServer server) throws SearchServerException {
-        SearchResponse res = server.termVector("north", getLocale(), "categoryName");
-        NamedList<Object> analysis = res.getQueryResponse().getResponse();
-        NamedList<Object> termVectors = (NamedList<Object>) analysis.get("termVectors");
-        NamedList<Object> document = (NamedList<Object>) termVectors.get("PRD0001-SKU");
-        NamedList<Object> field = (NamedList<Object>) document.get("categoryName");
-
-        assertEquals("Failed validating term count: ", 3, field.size());
-        assertEquals("Failed validating term frequency for 'category'", 3, ((NamedList<Object>) field.get("catego")).get("tf"));
-        assertEquals("Failed validating term frequency for 'two'", 1, ((NamedList<Object>) field.get("deu")).get("tf"));
-        assertEquals("Failed validating term frequency for 'three'", 1, ((NamedList<Object>) field.get("troi")).get("tf"));
-    }
-
-    @SearchTest(language = "fr")
     public void testLowerCaseFilter(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "ceci est un TEST Français");
 
