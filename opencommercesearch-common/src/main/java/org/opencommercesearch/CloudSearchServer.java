@@ -215,7 +215,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             return;
         }
 
-        Map<String, Slice> slices = clusterState.getSlices(collectionName);
+        Map<String, Slice> slices = clusterState.getSlicesMap(collectionName);
         if (slices.size() == 0) {
             if (isLoggingInfo()) {
                 logInfo("No slices found, 0 cores were reloaded");
