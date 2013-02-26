@@ -47,7 +47,7 @@
         </property>
 
         <property name="name" data-type="string" display-name="Name"
-                  column-name="name" required="false" category="General">
+                  column-name="name" required="true" category="General">
           <attribute name="propertySortPriority" value="1" />
         </property>
         <property name="query" data-type="string" display-name="Query"

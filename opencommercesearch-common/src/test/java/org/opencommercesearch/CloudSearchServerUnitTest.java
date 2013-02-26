@@ -145,8 +145,8 @@ public class CloudSearchServerUnitTest {
         Map<String, Slice> slices = new HashMap<String, Slice>();
         slices.put("slice1", slice1);
         slices.put("slice2", slice2);
-        when(clusterState.getSlices(cloudSearchServer.getRulesCollection())).thenReturn(slices);
-        when(clusterState.getSlices(cloudSearchServer.getCatalogCollection())).thenReturn(slices);
+        when(clusterState.getSlicesMap(cloudSearchServer.getRulesCollection())).thenReturn(slices);
+        when(clusterState.getSlicesMap(cloudSearchServer.getCatalogCollection())).thenReturn(slices);
 
         Collection<Replica> replicas = Arrays.asList(replica1, replica2);
         when(slice1.getReplicas()).thenReturn(replicas);
@@ -263,8 +263,8 @@ public class CloudSearchServerUnitTest {
             requestUrls.add(request.getURI().toString());
         }
         assertThat(requestUrls, containsInAnyOrder(
-            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getCatalogCollection(),
-            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getRulesCollection()
+            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getCatalogCollection() + "&indexInfo=true",
+            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getRulesCollection() + "&indexInfo=true"
         ));
     }
 
