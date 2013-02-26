@@ -679,6 +679,13 @@
             <constraints nullable="true"/>
         </column>
     </addColumn>
-  </changeSet>     
-
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="19">
+    <sql>
+        UPDATE vmap_attrval SET attr_value = 'org.opencommercesearch.ca.BCCResources'
+         WHERE id ='EsAvSynonymBnd'
+    </sql>
+  </changeSet> 
+    
 </databaseChangeLog>
