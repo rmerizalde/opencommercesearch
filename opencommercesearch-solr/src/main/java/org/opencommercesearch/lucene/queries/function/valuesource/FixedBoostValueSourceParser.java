@@ -20,20 +20,14 @@ package org.opencommercesearch.lucene.queries.function.valuesource;
 */
 
 import org.apache.lucene.queries.function.ValueSource;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.UnicodeUtil;
+
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.SchemaField;
-import org.apache.solr.schema.StrField;
-import org.apache.solr.schema.TextField;
 import org.apache.solr.search.FunctionQParser;
 import org.apache.solr.search.ValueSourceParser;
+import org.apache.solr.search.SyntaxError;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
 
 /**
  @author rmerizalde
@@ -47,7 +41,7 @@ public class FixedBoostValueSourceParser extends ValueSourceParser {
     }
 
     @Override
-    public ValueSource parse(FunctionQParser fp) throws ParseException {
+    public ValueSource parse(FunctionQParser fp) throws SyntaxError {
         String field = fp.parseArg();
 
         SchemaField f = fp.getReq().getSchema().getField(field);
