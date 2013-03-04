@@ -289,15 +289,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 logInfo("Embedded search server initialized in " + (System.currentTimeMillis() - startTime) + "ms");
             }
 
-        } catch (SAXException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
         } catch (IOException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
-        } catch (ParserConfigurationException ex) {
             if(isLoggingError()){
                 logError(ex);
             }
@@ -352,21 +344,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             logInfo("Reloading collection " + collectionName);
         }
 
-        try {
-            coreContainer.reload(collectionName);
-        } catch (SAXException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
-        } catch (IOException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
-        } catch (ParserConfigurationException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
-        }
+        coreContainer.reload(collectionName);
     }
 
 }

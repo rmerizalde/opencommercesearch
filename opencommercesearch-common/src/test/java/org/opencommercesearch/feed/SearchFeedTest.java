@@ -61,12 +61,6 @@ public class SearchFeedTest {
                 throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }
-
-        @Override
-        public void processProductBatch(List<RepositoryItem> products) throws InventoryException, RepositoryException,
-                SearchServerException {
-            throw new UnsupportedOperationException();
-        }
     };
 
     @Mock
