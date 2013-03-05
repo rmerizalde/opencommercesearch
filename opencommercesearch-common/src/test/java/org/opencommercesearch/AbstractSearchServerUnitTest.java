@@ -39,7 +39,6 @@ import org.mockito.Mock;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
-import org.opencommercesearch.repository.SynonymListProperty;
 
 import java.io.IOException;
 import java.util.*;
@@ -81,10 +80,16 @@ public class AbstractSearchServerUnitTest {
     private RepositoryView repositoryView;
 
     @Mock
-    private SolrServer catalogServer;
+    private SolrServer catalogServerEn;
 
     @Mock
-    private SolrServer rulesServer;
+    private SolrServer rulesServerEn;
+
+    @Mock
+    private SolrServer catalogServerFr;
+
+    @Mock
+    private SolrServer rulesServerFr;
 
     @Mock
     private RqlStatement rulesRqlCount;
@@ -119,6 +124,9 @@ public class AbstractSearchServerUnitTest {
     @Mock
     private AbstractSearchServer dummySearchServer;
 
+    @Mock
+    private BrowseOptions browseOptions;
+
     private AbstractSearchServer server = new AbstractSearchServer() {
 
         @Override
@@ -136,8 +144,12 @@ public class AbstractSearchServerUnitTest {
         }
     };
 
-    private Locale getLocale() {
+    private Locale getEnglishLocale() {
         return Locale.ENGLISH;
+    }
+
+    private Locale getFrenchLocale() {
+        return Locale.FRENCH;
     }
 
     @Before
@@ -146,8 +158,10 @@ public class AbstractSearchServerUnitTest {
 
         server.setCatalogCollection("catalog");
         server.setRulesCollection("rules");
-        server.setCatalogSolrServer(catalogServer, getLocale());
-        server.setRulesSolrServer(rulesServer, getLocale());
+        server.setCatalogSolrServer(catalogServerEn, getEnglishLocale());
+        server.setRulesSolrServer(rulesServerEn, getEnglishLocale());
+        server.setCatalogSolrServer(catalogServerFr, getFrenchLocale());
+        server.setRulesSolrServer(rulesServerFr, getFrenchLocale());
         server.setSearchRepository(searchRepository);
         server.setRuleCountRql(rulesRqlCount);
         server.setRuleRql(rulesRql);
@@ -176,8 +190,10 @@ public class AbstractSearchServerUnitTest {
 
         // solr servers
         when(query.getQuery()).thenReturn("my search term");
-        when(catalogServer.query(any(SolrParams.class))).thenReturn(catalogQueryResponse);
-        when(rulesServer.query(any(SolrParams.class))).thenReturn(rulesQueryResponse);
+        when(catalogServerEn.query(any(SolrParams.class))).thenReturn(catalogQueryResponse);
+        when(rulesServerEn.query(any(SolrParams.class))).thenReturn(rulesQueryResponse);
+        when(catalogServerFr.query(any(SolrParams.class))).thenReturn(catalogQueryResponse);
+        when(rulesServerFr.query(any(SolrParams.class))).thenReturn(rulesQueryResponse);
 
         // repository
         when(searchRepository.getRepositoryName()).thenReturn("SearchRepository");
@@ -224,11 +240,11 @@ public class AbstractSearchServerUnitTest {
 
         server.indexRules();
 
-        verify(rulesServer).request(argument.capture());
+        verify(rulesServerEn).request(argument.capture());
         assertNotNull(argument.getValue().getDeleteQuery());
         assertEquals(1, argument.getValue().getDeleteQuery().size());
         assertEquals("*:*", argument.getValue().getDeleteQuery().get(0));
-        verify(rulesServer).commit();
+        verify(rulesServerEn).commit();
     }
 
     @Test
@@ -248,7 +264,7 @@ public class AbstractSearchServerUnitTest {
 
         ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
 
-        verify(rulesServer, times(2)).request(argument.capture());
+        verify(rulesServerEn, times(2)).request(argument.capture());
 
         List<SolrInputDocument> documents = argument.getValue().getDocuments();
         assertNotNull(documents);
@@ -261,7 +277,7 @@ public class AbstractSearchServerUnitTest {
         }
         assertThat(ruleIds, containsInAnyOrder(expectedRuleIds));
 
-        verify(rulesServer).commit();
+        verify(rulesServerEn).commit();
     }
 
     @Test
@@ -269,9 +285,9 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer).exportSynonymList(synonymList, getLocale());
-        verify(dummySearchServer).reloadCollection(server.getCatalogCollection(), getLocale());
-        verify(dummySearchServer).reloadCollection(server.getRulesCollection(), getLocale());
+        verify(dummySearchServer).exportSynonymList(synonymList, getEnglishLocale());
+        verify(dummySearchServer).reloadCollection(server.getCatalogCollection(), getEnglishLocale());
+        verify(dummySearchServer).reloadCollection(server.getRulesCollection(), getEnglishLocale());
     }
 
     @Test
@@ -279,9 +295,9 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.SYNONYM_LIST);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(1)).exportSynonymList(synonymList, getLocale());
-        verify(dummySearchServer, times(1)).reloadCollection(server.getCatalogCollection(), getLocale());
-        verify(dummySearchServer, times(1)).reloadCollection(server.getRulesCollection(), getLocale());
+        verify(dummySearchServer, times(1)).exportSynonymList(synonymList, getEnglishLocale());
+        verify(dummySearchServer, times(1)).reloadCollection(server.getCatalogCollection(), getEnglishLocale());
+        verify(dummySearchServer, times(1)).reloadCollection(server.getRulesCollection(), getEnglishLocale());
     }
 
     @Test
@@ -294,7 +310,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.BOOST_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
         verifyIndexedRules(1, boostRule.getRepositoryId());
     }
 
@@ -308,7 +324,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.BLOCK_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
         verifyIndexedRules(1, blockRule.getRepositoryId());
     }
 
@@ -322,7 +338,7 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.FACET_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
         verifyIndexedRules(1, facetRule.getRepositoryId());
     }
 
@@ -336,7 +352,35 @@ public class AbstractSearchServerUnitTest {
         Set<String> itemDescriptorNames = new HashSet<String>();
         itemDescriptorNames.add(SearchRepositoryItemDescriptor.REDIRECT_RULE);
         server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getLocale());
+        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
         verifyIndexedRules(1, redirectRule.getRepositoryId());
+    }
+
+    @Test
+    public void testFrenchLocaleSearch() throws SearchServerException, SolrServerException {
+        server.search(query, site, getFrenchLocale());
+        verify(catalogServerEn, times(0)).query(any(SolrParams.class));
+        verify(catalogServerFr, times(2)).query(any(SolrParams.class));
+    }
+
+    @Test
+    public void testEnglishLocaleSearch() throws SearchServerException, SolrServerException {
+        server.search(query, site, getEnglishLocale());
+        verify(catalogServerEn, times(2)).query(any(SolrParams.class));
+        verify(catalogServerFr, times(0)).query(any(SolrParams.class));
+    }
+
+    @Test
+    public void testFrenchLocaleBrowse() throws SearchServerException, SolrServerException {
+        server.browse(browseOptions, query, site, getFrenchLocale());
+        verify(catalogServerEn, times(0)).query(any(SolrParams.class));
+        verify(catalogServerFr, times(2)).query(any(SolrParams.class));
+    }
+
+    @Test
+    public void testEnglishLocaleBrowse() throws SearchServerException, SolrServerException {
+        server.browse(browseOptions, query, site, getEnglishLocale());
+        verify(catalogServerEn, times(2)).query(any(SolrParams.class));
+        verify(catalogServerFr, times(0)).query(any(SolrParams.class));
     }
 }

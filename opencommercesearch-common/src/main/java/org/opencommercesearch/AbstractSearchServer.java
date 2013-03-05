@@ -254,7 +254,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
         }
 
-        SearchResponse response = search(query, site, filterQueries);
+        SearchResponse response = search(query, site, locale, filterQueries);
 
         if (addCategoryGraph) {
             response.setCategoryGraph(createCategoryGraph(response,
@@ -393,10 +393,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
         
         QueryResponse queryResponse = null;
-        
-        //check if we have any spelling suggestion 
-        String tentativeCorrectedTerm = spellCheckResponse.getCollatedResult();        
-        if(spellCheckResponse != null  && StringUtils.isNotBlank(tentativeCorrectedTerm)){
+
+
+        if(spellCheckResponse != null  && StringUtils.isNotBlank(spellCheckResponse.getCollatedResult())){
+            //check if we have any spelling suggestion
+            String tentativeCorrectedTerm = spellCheckResponse.getCollatedResult();
+
             //if we have spelling suggestions, try doing another search using 
             //q.op as the specified queryOp param (the default one is AND so we only add it if it's OR)
             //and use q="corrected phrase" to see if we can get results

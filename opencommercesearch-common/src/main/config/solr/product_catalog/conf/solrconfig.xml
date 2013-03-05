@@ -279,66 +279,11 @@
   <!-- <jmx serviceUrl="service:jmx:rmi:///jndi/rmi://localhost:9999/solr"/>
     -->
 
-  <!-- The default high-performance update handler -->
-  <updateHandler class="solr.DirectUpdateHandler2">
-     <autoCommit>
-       <!-- do a hard commit every 10 minutes -->
-       <maxTime>600000</maxTime>
-       <!-- or when there are more than 5000 pending documents -->
-       <maxDocs>5000</maxDocs>
-       <!-- save the changes to persistent storage but don't open a new search -->
-       <openSearcher>false</openSearcher>
-     </autoCommit>
+  <xi:include href="xinclude/update-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
 
 
-     <autoSoftCommit>
-       <!-- make changes visible every 5 seconds -->
-       <maxTime>5000</maxTime>
-     </autoSoftCommit>
 
-    <!-- Update Related Event Listeners
-
-         Various IndexWriter related events can trigger Listeners to
-         take actions.
-
-         postCommit - fired after every commit or optimize command
-         postOptimize - fired after every optimize command
-      -->
-    <!-- The RunExecutableListener executes an external command from a
-         hook such as postCommit or postOptimize.
-
-         exe - the name of the executable to run
-         dir - dir to use as the current working directory. (default=".")
-         wait - the calling thread waits until the executable returns.
-                (default="true")
-         args - the arguments to pass to the program.  (default is none)
-         env - environment variables to set.  (default is none)
-      -->
-    <!-- This example shows how RunExecutableListener could be used
-         with the script based replication...
-         http://wiki.apache.org/solr/CollectionDistribution
-      -->
-    <!--
-       <listener event="postCommit" class="solr.RunExecutableListener">
-         <str name="exe">solr/bin/snapshooter</str>
-         <str name="dir">.</str>
-         <bool name="wait">true</bool>
-         <arr name="args"> <str>arg1</str> <str>arg2</str> </arr>
-         <arr name="env"> <str>MYVAR=val1</str> </arr>
-       </listener>
-      -->
-
-    <!-- Enables a transaction log, currently used for real-time get.
-         "dir" - the target directory for transaction logs, defaults to the
-            solr data directory.  -->
-    <!--
-    <updateLog>
-      <str name="dir">${solr.data.dir:}</str>
-    </updateLog>
-    -->
-
-
-  </updateHandler>
 
   <!-- IndexReaderFactory
 
@@ -913,10 +858,9 @@
   <valueSourceParser name="fixedBoost"
     class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
 
-  <!-- uncomment to debug -->
-  <!--
-  <requestHandler name="/admin/" class="solr.admin.AdminHandlers" />
-  -->
+
+  <xi:include href="xinclude/admin-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
 
   <requestHandler name="/analysis/field"
     startup="lazy"
