@@ -254,7 +254,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
         }
 
-        SearchResponse response = search(query, site, locale, filterQueries);
+        RepositoryItem catalog = null;
+        if (site != null) {
+            catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
+        }
+        
+        SearchResponse response =  doSearch(query, site, catalog, locale, false, filterQueries);
 
         if (addCategoryGraph) {
             response.setCategoryGraph(createCategoryGraph(response,
@@ -299,6 +304,11 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     @Override
     public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
             throws SearchServerException {
+        return doSearch(query, site, catalog, locale, true, filterQueries);
+    }
+            
+    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch, FilterQuery... filterQueries)
+            throws SearchServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");
         }
@@ -319,7 +329,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
         try {
-            ruleManager.setRuleParams(filterQueries, catalog, query);
+            ruleManager.setRuleParams(filterQueries, catalog, query, isSearch);
             
             if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
                 Map<String, List<RepositoryItem>> rules = ruleManager.getRules();

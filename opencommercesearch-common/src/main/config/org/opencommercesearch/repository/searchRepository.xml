@@ -50,8 +50,16 @@
                   column-name="name" required="true" category="General">
           <attribute name="propertySortPriority" value="1" />
         </property>
+        <property name="target" data-type="enumerated" display-name="Target"
+                  column-name="target" required="true" category="Trigger">
+          <attribute name="propertySortPriority" value="1" />
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="All Pages"        code="1"/>
+          <option value="Search Pages"     code="2"/>
+          <option value="Category Pages"   code="3"/>
+        </property>
         <property name="query" data-type="string" display-name="Query"
-                  column-name="query" required="true" category="Trigger">
+                  column-name="query" category="Trigger">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="startDate" data-type="timestamp" display-name="Start Date"

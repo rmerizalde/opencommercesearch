@@ -95,6 +95,7 @@ public class RuleManagerTest {
     @Before
     public void setup() throws Exception {
         when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("someType");
+        when(testRuleItem.getPropertyValue(RuleProperty.TARGET)).thenReturn("someTarget");
     }
     
     @Before
@@ -107,8 +108,20 @@ public class RuleManagerTest {
     @Before
     public void setUpCatalogsForCreateRuleDocument() {
         when(cataA.getRepositoryId()).thenReturn("cata:alpha");
+        Set<String> siteSet = new HashSet<String>();
+        siteSet.add("site:alpha");
+        when(cataA.getPropertyValue("siteIds")).thenReturn(siteSet);
+        
         when(cataB.getRepositoryId()).thenReturn("cata:beta");
+        siteSet = new HashSet<String>();
+        siteSet.add("site:beta");
+        when(cataB.getPropertyValue("siteIds")).thenReturn(siteSet);
+        
         when(cataC.getRepositoryId()).thenReturn("cata:charlie");
+        siteSet = new HashSet<String>();
+        siteSet.add("site:charlie");
+        when(cataC.getPropertyValue("siteIds")).thenReturn(siteSet);
+        
     }
     
     @Before
@@ -212,7 +225,7 @@ public class RuleManagerTest {
         
         // and nothing for chopsticks
 
-        mgr.setRuleParams(filterQueries, catalog, query);
+        mgr.setRuleParams(filterQueries, catalog, query, true);
         
         verify(query).setFacetPrefix("category", "1.bobcatalog");
         verify(query).addFilterQuery("category:0.bobcatalog");
@@ -264,7 +277,7 @@ public class RuleManagerTest {
         SolrQuery query = mock(SolrQuery.class);
         when(query.getQuery()).thenReturn("jackets");
         
-        mgr.setRuleParams(null, catalog, query);
+        mgr.setRuleParams(null, catalog, query, true);
         verify(query).setFacetPrefix("category", "1.bobcatalog");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
@@ -495,7 +508,7 @@ public class RuleManagerTest {
     @Test(expected=IllegalArgumentException.class)
     public void testLoadRulesEmptyQuery() throws RepositoryException, SolrServerException {
         RuleManager mgr = new RuleManager(repository, builder, server);
-        mgr.loadRules("", "Men's Clothing");
+        mgr.loadRules("", "Men's Clothing", true, cataA);
     }  
     
     @Test
@@ -523,7 +536,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", "Men's Clothing");
+        mgr.loadRules("jackets", "Men's Clothing", true, cataA);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -565,7 +578,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", "Men's Clothing");
+        mgr.loadRules("jackets", "Men's Clothing", true, cataA);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -638,7 +651,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", "Men's Clothing");
+        mgr.loadRules("jackets", "Men's Clothing", true, cataA);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -695,7 +708,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", "Men's Clothing");
+        mgr.loadRules("jackets", "Men's Clothing", true, cataA);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());        
@@ -721,15 +734,37 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, category);
+        mgr.loadRules(searchQuery, category, true, cataA);
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND siteId:__all__ AND catalogId:__all__", filters.get(0));
-        assertEquals("(" + searchQuery + ")^2 OR query:__all__", query.getValue().getQuery());
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
+    }
+    
+    @Test
+    public void testLoadRulesForCategoryPage() throws RepositoryException, SolrServerException {
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        String category = "My category";
+        String searchQuery = "catId:myCat";
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        // ----------- set up rule manager -------------
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        
+        // ------------ make the call to load the rules etc -------------
+        mgr.loadRules(searchQuery, category, false, cataA);
+        
+        // ------------ assertions about the inner solr query that was performed -----------
+        ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
+        verify(server).query(query.capture());
+        List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
+        assertEquals(1, filters.size()); 
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
     @Test
@@ -743,15 +778,15 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, category);
+        mgr.loadRules(searchQuery, category, true, cataA);
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__) AND siteId:__all__ AND catalogId:__all__", filters.get(0));
-        assertEquals("(" + searchQuery + ")^2 OR query:__all__", query.getValue().getQuery());
+        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
     // finished
@@ -766,7 +801,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", "Women's Clothing");
+        mgr.loadRules("pants", "Women's Clothing", true, cataA);
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
@@ -784,7 +819,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", "Women's Clothing");
+        mgr.loadRules("pants", "Women's Clothing", true, cataA);
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
