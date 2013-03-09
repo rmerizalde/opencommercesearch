@@ -5,5 +5,6 @@
         <field name="catalogId"><![CDATA[__all__]]></field>
         <field name="category"><![CDATA[__all__]]></field>
         <field name="query"><![CDATA[redirect]]></field>
+        <field name="target"><![CDATA[allpages]]></field>
     </doc>
 </add>
