@@ -163,17 +163,30 @@ public class RuleManager<T extends SolrServer> {
      * 
      * @param q
      *            is the user query
+     * @param isSearch
+     *            indicate if we are browsing or searching the site
+     * @param catalog
+     *            the current catalog we are browsing/searching
      * @throws RepositoryException
      *             if an exception happens retrieving a rule from the repository
      * @throws SolrServerException
      *             if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryFilterQuery) throws RepositoryException,
+    void loadRules(String q, String categoryFilterQuery, boolean isSearch, RepositoryItem catalog) throws RepositoryException,
             SolrServerException {
-        if (StringUtils.isBlank(q)) {
+        if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query ");
         }
-        SolrQuery query = new SolrQuery("(" + q + ")^2 OR query:__all__");
+        StringBuilder queryStr = new StringBuilder();
+        if (isSearch) {
+            queryStr.append("(target:allpages OR target:searchpages) AND ((");
+            queryStr.append(q);
+            queryStr.append(")^2 OR query:__all__)");
+        } else {
+            queryStr.append("(target:allpages OR target:categorypages)");
+        }
+        
+        SolrQuery query = new SolrQuery(queryStr.toString());
         int start = 0;
         int rows = 20;
         query.setStart(start);
@@ -186,8 +199,18 @@ public class RuleManager<T extends SolrServer> {
             filterQueries.append(" OR ").append("category:" + categoryFilterQuery);
 
         }
-        filterQueries.append(") AND ").append("siteId:").append(WILDCARD).append(" AND ").append("catalogId:")
-                .append(WILDCARD);
+                
+        filterQueries.append(") AND ").append("(siteId:").append(WILDCARD);
+        Set<String> siteSet = (Set<String>) catalog.getPropertyValue("siteIds");
+        if (siteSet != null) {
+            for(String site : siteSet) {
+                filterQueries.append(" OR ").append("siteId:" + site);
+            }
+        }
+                
+        filterQueries.append(") AND ").append("(catalogId:").append(WILDCARD).append(" OR ").append("catalogId:")
+        .append(catalog.getRepositoryId()).append(")");
+        
         query.addFilterQuery(filterQueries.toString());
         QueryResponse res = server.query(query);
         
@@ -229,16 +252,12 @@ public class RuleManager<T extends SolrServer> {
         }
     }
 
-    void setRuleParams(FilterQuery[] filterQueries, RepositoryItem catalog, SolrQuery query)
+    void setRuleParams(FilterQuery[] filterQueries, RepositoryItem catalog, SolrQuery query, boolean isSearch)
             throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
-            String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);            
-            String queryStr = query.getQuery();
-            if(StringUtils.isEmpty(queryStr)){
-            	queryStr = query.get("q.alt");
-            }
-            loadRules(queryStr, categoryFilterQuery);
+            String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
+            loadRules(query.getQuery(), categoryFilterQuery, isSearch, catalog);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
@@ -345,7 +364,13 @@ public class RuleManager<T extends SolrServer> {
             query = WILDCARD;
         }
         doc.setField("query", query);
-
+        
+        String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
+        if(target != null) {
+            target = StringUtils.replace(target, " ", "");
+            doc.setField("target",target.toLowerCase());
+        }
+        
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
 

@@ -438,7 +438,48 @@
         </column>
     </addColumn>
   </changeSet>
-  
+
+ <changeSet author="commercesearch" id="19">
+    <preConditions onFail="MARK_RAN">
+	  <not><columnExists tableName="cs_rule" columnName="target"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="target" type="VARCHAR2(15 BYTE)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="20">
+        <preConditions onFail="MARK_RAN">
+            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target is null</sqlCheck></not>
+        </preConditions>
+        <sql>update cs_rule set target='1' where target is null;</sql>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="21">
+    <preConditions onFail="MARK_RAN">
+      <not><sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL) 
+          AND    utc.column_name = 'QUERY'
+          AND    uc.search_condition is not null;
+      </sqlCheck></not>
+    </preConditions>
+    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
+  </changeSet>
+
 </databaseChangeLog>
 
 

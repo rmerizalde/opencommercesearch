@@ -687,5 +687,87 @@
          WHERE id ='EsAvSynonymBnd'
     </sql>
   </changeSet> 
-    
+
+ <changeSet author="commercesearch" id="20">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_rule" columnName="target"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="target" type="VARCHAR2(15 BYTE)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="21">
+        <preConditions onFail="MARK_RAN">
+            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target is null</sqlCheck></not>
+        </preConditions>
+        <sql>update cs_rule set target='1' where target is null;</sql>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="22">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">
+            SELECT COUNT(*)
+                FROM vmap_fh
+                WHERE id='EsFhRuleTarget'
+            </sqlCheck>
+        </preConditions>
+        <insert tableName="vmap_fh">
+            <column name="id" value="EsFhRuleTarget" />
+            <column name="name" value="OpenCommerceSearch Rule formHandler" />
+            <column name="component_path" value="/org/opencommercesearch/remote/assetmanager/editor/service/RuleTargetAssetService" />
+        </insert>
+        <insert tableName="vmap_im">
+            <column name="id" value="EsImRuleTarget" />
+            <column name="name" value="AssetManager" />
+            <column name="description" value="Rule Target item mapping" />
+            <column name="item_path" value="/org/opencommercesearch/repository/SearchRepository" />
+            <column name="item_name" value="rule" />
+            <column name="form_handler" value="EsFhRuleTarget" />
+            <column name="mode_id" value="AmMmDef" />
+        </insert>
+        <insert tableName="vmap_attrval_rel">
+            <column name="attribute_id" value="AmAvDefBnd" />
+            <column name="mapper_id" value="EsIvmRuleTarget" />
+            <column name="name" value="resourceBundle"/>
+        </insert>
+        <insert tableName="vmap_im2ivm_rel">
+            <column name="item_id" value="EsImRuleTarget" />
+            <column name="view_id" value="AmIvmDef" />
+            <column name="sequence_num" value="0" />
+        </insert>
+        <insert tableName="vmap_ivm">
+            <column name="id" value="EsIvmRuleTarget" />
+            <column name="display_name" value="AssetManager RuleTarget itemViewMapping" />
+            <column name="view_id" value="AmIvDef" />
+            <column name="name" value="AssetManager RuleTarget itemViewMapping" />
+            <column name="description" value="AssetManager RuleTarget itemViewMapping" />
+        </insert>
+    </changeSet>
+  
+  <changeSet author="commercesearch" id="23">
+    <preConditions onFail="MARK_RAN">
+      <not><sqlCheck expectedResult="0">
+	      SELECT count(*)
+	       FROM   user_tab_columns  utc
+	              LEFT OUTER JOIN
+	              user_cons_columns ucc
+	             ON (    utc.table_name  = ucc.table_name
+	                 AND utc.column_name = ucc.column_name)
+	             LEFT OUTER JOIN
+	             user_constraints  uc
+	             ON (ucc.constraint_name = uc.constraint_name)
+	      WHERE  utc.table_name = 'CS_RULE'
+	      AND     (   uc.constraint_type = 'C'
+	             OR uc.constraint_type IS NULL) 
+	      AND    utc.column_name = 'QUERY'
+	      AND    uc.search_condition is not null;
+      </sqlCheck></not>
+    </preConditions>
+    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
+  </changeSet>
+
 </databaseChangeLog>

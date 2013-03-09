@@ -30,6 +30,7 @@ public class RuleProperty {
 
     public static final String ID = "id";
     public static final String QUERY = "query";
+    public static final String TARGET = "target";
     public static final String START_DATE = "startDate";
     public static final String END_DATE = "endDate";
     public static final String SITES = "sites";
