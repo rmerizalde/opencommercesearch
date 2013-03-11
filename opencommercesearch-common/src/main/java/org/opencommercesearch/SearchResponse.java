@@ -20,6 +20,7 @@ package org.opencommercesearch;
 */
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -90,6 +91,14 @@ public class SearchResponse {
             Facet facet = new Facet();
 
             facet.setName(manager.getFacetName(facetField));
+            
+            String uiType = manager.getFacetUIType(facetField);
+            Map<String, String> metadata = new HashMap<String, String>();
+            if(StringUtils.isNotBlank(uiType)) {            	
+            	metadata.put("uiWidgetType", uiType);
+            }
+            facet.setMetadata(metadata);
+            
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
             int pos = 0;
             for (Count count : facetField.getValues()) {

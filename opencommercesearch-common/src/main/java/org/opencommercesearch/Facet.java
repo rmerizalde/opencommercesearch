@@ -20,11 +20,13 @@ package org.opencommercesearch;
 */
 
 import java.util.List;
+import java.util.Map;
 
 public class Facet {
     private String name;
     private List<Filter> filters;
-
+    private Map<String,String> metadata;
+    
     public String getName() {
         return name;
     }
@@ -40,7 +42,15 @@ public class Facet {
     public void setFilter(List<Filter> filters) {
         this.filters = filters;
     }
-    
+        
+    public Map<String, String> getMetadata() {
+        return metadata;
+    }
+
+    public void setMetadata(Map<String, String> metadata) {
+        this.metadata = metadata;
+    }
+
     @Override
     public String toString() {
         return "Facet [name=" + name + "]";

@@ -171,6 +171,10 @@
                   column-name="is_multi_select" required="false" category="Optional">
           <attribute name="propertySortPriority" value="1" />
         </property>
+        <property name="uiType" data-type="string" display-name="UI Type"
+                  column-name="ui_type" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
       </table>
     </item-descriptor>
 
