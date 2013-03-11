@@ -169,6 +169,7 @@ public class SequentialInMemoryInventoryManager extends GenericService implement
         inventoryStmt.setInt(2, offset);
         inventoryStmt.setInt(3, hits);
         minSkuId = id;
+        maxSkuId = id;
 
         if (inventoryStmt.execute()) {
             ResultSet rs = inventoryStmt.getResultSet();
@@ -304,6 +305,10 @@ public class SequentialInMemoryInventoryManager extends GenericService implement
         int localeSeparatorIndex = id.lastIndexOf(LOCALE_SEPARATOR);
         if (localeSeparatorIndex != -1) {
             id = id.substring(0, localeSeparatorIndex);
+        }
+
+        if (minSkuId != null && minSkuId.equals(maxSkuId)) {
+            throw new InventoryException("Inventory not found for " + id);
         }
 
         if (maxSkuId == null || id.compareTo(minSkuId) < 0 || id.compareTo(maxSkuId) > 0) {

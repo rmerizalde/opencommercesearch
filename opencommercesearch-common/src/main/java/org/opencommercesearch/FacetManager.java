@@ -123,6 +123,7 @@ public class FacetManager {
                             query.addFacetQuery(localParams + fieldName + ":" + q);
                         }
                     }
+                    manager.addFieldFacet(fieldName, facet);
                 }
             }
         };
@@ -279,7 +280,7 @@ public class FacetManager {
      * 
      * @param categoryFilterQuery
      *            the category filter query selected
-     * @param crumbs
+     * @param breadCrumbs
      *            the output crumb list
      */
     private void createCategoryBreadCrumb(FilterQuery categoryFilterQuery, FilterQuery[] filterQueries,

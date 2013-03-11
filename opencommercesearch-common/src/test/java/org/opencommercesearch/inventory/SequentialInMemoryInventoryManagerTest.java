@@ -144,6 +144,27 @@ public class SequentialInMemoryInventoryManagerTest {
         verify(stmt, times(3)).execute();
     }
 
+    @Test
+    public void testQueryStockLevelMissingInventory() throws Exception {
+        assertEquals(1, manager.queryStockLevel("SKU0001-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0001-02"));
+        assertEquals(1, manager.queryStockLevel("SKU0002-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0002-02"));
+        assertEquals(3, manager.queryStockLevel("SKU0002-03"));
+        assertEquals(3, manager.queryStockLevel("SKU0003-03"));
+        assertEquals(4, manager.queryStockLevel("SKU0003-04"));
+        assertEquals(1, manager.queryStockLevel("SKU0004-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0004-02"));
+        assertEquals(3, manager.queryStockLevel("SKU0004-03"));
+        assertEquals(4, manager.queryStockLevel("SKU0004-04"));
+        assertEquals(5, manager.queryStockLevel("SKU0004-05"));
+        queryStockLevel("SKU0004-06");
+        queryStockLevel("SKU0004-07");
+        queryStockLevel("SKU0004-08");
+        queryStockLevel("SKU0004-09");
+        verify(stmt, times(4)).execute();
+    }
+
     @Test(expected = InventoryException.class)
     public void testQueryStockLevelNotFound() throws Exception {
 
@@ -169,8 +190,30 @@ public class SequentialInMemoryInventoryManagerTest {
         assertEquals(2, manager.queryStockLevel("SKU0004-02"));
         assertEquals(3, manager.queryStockLevel("SKU0002-03"));
 
-
         verify(stmt, times(6)).execute();
+    }
+
+    @Test
+    public void testQueryStockLevelBackAndForthMissingInventory() throws Exception {
+        assertEquals(1, manager.queryStockLevel("SKU0001-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0001-02"));
+        assertEquals(1, manager.queryStockLevel("SKU0002-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0002-02"));
+        assertEquals(3, manager.queryStockLevel("SKU0002-03"));
+        assertEquals(3, manager.queryStockLevel("SKU0003-03"));
+        assertEquals(4, manager.queryStockLevel("SKU0003-04"));
+        assertEquals(1, manager.queryStockLevel("SKU0004-01"));
+        assertEquals(2, manager.queryStockLevel("SKU0004-02"));
+        assertEquals(3, manager.queryStockLevel("SKU0004-03"));
+        assertEquals(4, manager.queryStockLevel("SKU0004-04"));
+        assertEquals(5, manager.queryStockLevel("SKU0004-05"));
+        queryStockLevel("SKU0004-06");
+        queryStockLevel("SKU0004-07");
+        queryStockLevel("SKU0004-08");
+        queryStockLevel("SKU0004-09");
+        assertEquals(1, manager.queryStockLevel("SKU0001-01"));
+
+        verify(stmt, times(4)).execute();
     }
 
     @Test
@@ -178,6 +221,24 @@ public class SequentialInMemoryInventoryManagerTest {
         assertEquals(1, manager.queryStockLevel("SKU0001-01:US"));
 
         verify(stmt, times(1)).execute();
+    }
+
+    @Test
+    public void testQueryStockLevelNoInventory() throws Exception {
+        when(rs.next()).thenReturn(false);
+
+        queryStockLevel("SKU0001-01");
+        queryStockLevel("SKU0002-01");
+        queryStockLevel("SKU0003-01");
+        queryStockLevel("SKU0004-01");
+        verify(stmt, times(1)).execute();
+    }
+
+    private long queryStockLevel(String productId) {
+        try {
+            return manager.queryStockLevel("SKU0001-01");
+        } catch (Exception ex) {}
+        return -1;
     }
 
 
