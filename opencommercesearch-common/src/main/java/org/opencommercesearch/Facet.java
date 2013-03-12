@@ -26,6 +26,7 @@ public class Facet {
     private String name;
     private List<Filter> filters;
     private Map<String,String> metadata;
+    private Integer minFields;
     
     public String getName() {
         return name;
@@ -51,7 +52,15 @@ public class Facet {
         this.metadata = metadata;
     }
 
-    @Override
+    public Integer getMinFields() {
+		return minFields;
+	}
+
+	public void setMinFields(Integer minFields) {
+		this.minFields = minFields;
+	}
+
+	@Override
     public String toString() {
         return "Facet [name=" + name + "]";
     }

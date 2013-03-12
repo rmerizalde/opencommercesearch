@@ -175,6 +175,10 @@
                   column-name="ui_type" required="false" category="Optional">
           <attribute name="propertySortPriority" value="2" />
         </property>
+        <property name="minFields" data-type="int" display-name="Mininum Fields"
+                  column-name="min_fields" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="3" />
+        </property>
       </table>
     </item-descriptor>
 

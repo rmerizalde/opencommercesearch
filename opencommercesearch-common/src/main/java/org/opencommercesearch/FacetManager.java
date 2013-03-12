@@ -214,6 +214,23 @@ public class FacetManager {
         return facetName;
     }
     
+    public Integer getFacetMinFields(String fieldName) {
+        Integer minFields = 1;
+        RepositoryItem facetItem = getFacetItem(fieldName);
+        if (facetItem != null) {
+            minFields = (Integer) facetItem.getPropertyValue(FacetProperty.MIN_FIELDS);
+        }
+        return minFields;
+    }
+    
+    public Integer getFacetMinFields(FacetField fieldName) {
+        if (fieldName != null) {
+            return getFacetMinFields(fieldName.getName());
+        } else {
+            return 1;
+        }
+    }
+    
     public String getFacetUIType(String fieldName) {
         String uiType = null;
         RepositoryItem facetItem = getFacetItem(fieldName);
