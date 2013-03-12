@@ -200,7 +200,7 @@ public class FacetManager {
         }
         return facetName;
     }
-
+    
     public String getFacetName(FacetField facet) {
         String facetName = facet.getName();
         RepositoryItem facetItem = getFacetItem(facet.getName());
@@ -218,7 +218,24 @@ public class FacetManager {
         }
         return facetName;
     }
+    
+    public String getFacetUIType(String fieldName) {
+        String uiType = null;
+        RepositoryItem facetItem = getFacetItem(fieldName);
+        if (facetItem != null) {
+            uiType = (String) facetItem.getPropertyValue(FacetProperty.UI_TYPE);
+        }
+        return uiType;
+    }
 
+    public String getFacetUIType(FacetField fieldName) {
+        if (fieldName != null) {
+            return getFacetUIType(fieldName.getName());
+        } else {
+            return null;
+        }
+    }
+    
     public String getCountName(Count count) {
         String name = count.getName();
         int lastIndex = name.lastIndexOf(SearchConstants.CATEGORY_SEPARATOR);

@@ -479,6 +479,25 @@
     </preConditions>
     <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
   </changeSet>
+  
+  <changeSet author="commercesearch" id="22">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_facet" columnName="ui_type"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+        <column name="ui_type" type="VARCHAR2(25 BYTE)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="23">
+        <preConditions onFail="MARK_RAN">
+            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target = '1' and type = '5'</sqlCheck></not>
+        </preConditions>
+        <sql>update cs_rule set target='2' where target = '1' and type = '5';</sql>
+  </changeSet>
 
 </databaseChangeLog>
 
