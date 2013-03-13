@@ -1,24 +1,12 @@
 package org.opencommercesearch.remote.assetmanager.editor.service;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.repository.RuleProperty;
-
-import atg.nucleus.ResolvingMap;
 import atg.nucleus.ServiceMap;
-import atg.remote.assetmanager.editor.model.AssetViewUpdate;
-import atg.remote.assetmanager.editor.model.PropertyEditorAssetViewUpdate;
-import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.remote.assetmanager.editor.service.RepositoryAssetServiceImpl;
-import atg.repository.MutableRepository;
-import atg.repository.MutableRepositoryItem;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-import atg.service.asset.AssetWrapper;
 
 public class RuleTargetAssetService extends RepositoryAssetServiceImpl {
 		

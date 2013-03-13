@@ -629,6 +629,8 @@
       -->
   </requestDispatcher>
 
+  <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
+
   <!-- Request Handlers
 
        http://wiki.apache.org/solr/SolrRequestHandler

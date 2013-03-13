@@ -30,6 +30,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.RangeFacet;
+import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.params.FacetParams;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.FieldFacetProperty;
@@ -120,6 +121,10 @@ public class FacetManager {
 
                     if (queries != null) {
                         for (String q : queries) {
+                            q = q.trim();
+                            if (!q.startsWith("[") && !q.endsWith("]")) {
+                                q = ClientUtils.escapeQueryChars(q);
+                            }
                             query.addFacetQuery(localParams + fieldName + ":" + q);
                         }
                     }
