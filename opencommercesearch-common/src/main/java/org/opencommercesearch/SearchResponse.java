@@ -91,7 +91,7 @@ public class SearchResponse {
             Facet facet = new Facet();
 
             facet.setName(manager.getFacetName(facetField));
-            facet.setMinFields(manager.getFacetMinFields(facetField));
+            facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
             
             String uiType = manager.getFacetUIType(facetField);
             Map<String, String> metadata = new HashMap<String, String>();

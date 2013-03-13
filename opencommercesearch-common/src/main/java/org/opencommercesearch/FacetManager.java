@@ -214,20 +214,23 @@ public class FacetManager {
         return facetName;
     }
     
-    public Integer getFacetMinFields(String fieldName) {
-        Integer minFields = 1;
+    public Integer getFacetMinBuckets(String fieldName) {
+        Integer minBuckets = 2;
         RepositoryItem facetItem = getFacetItem(fieldName);
-        if (facetItem != null) {
-            minFields = (Integer) facetItem.getPropertyValue(FacetProperty.MIN_FIELDS);
+        if (facetItem != null ) {
+            Integer persistedMinBuckets = (Integer) facetItem.getPropertyValue(FacetProperty.MIN_BUCKETS);
+            if( persistedMinBuckets != null ) {
+                minBuckets = persistedMinBuckets;
+            }
         }
-        return minFields;
+        return minBuckets;
     }
     
-    public Integer getFacetMinFields(FacetField fieldName) {
+    public Integer getFacetMinBuckets(FacetField fieldName) {
         if (fieldName != null) {
-            return getFacetMinFields(fieldName.getName());
+            return getFacetMinBuckets(fieldName.getName());
         } else {
-            return 1;
+            return 2;
         }
     }
     

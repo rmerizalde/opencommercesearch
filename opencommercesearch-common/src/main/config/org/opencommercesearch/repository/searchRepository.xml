@@ -175,8 +175,8 @@
                   column-name="ui_type" required="false" category="Optional">
           <attribute name="propertySortPriority" value="2" />
         </property>
-        <property name="minFields" data-type="int" display-name="Mininum Fields"
-                  column-name="min_fields" required="false" category="Optional">
+        <property name="minBuckets" data-type="int" display-name="Min Buckets (default 2)"
+                  column-name="min_buckets" required="false" category="Optional">
           <attribute name="propertySortPriority" value="3" />
         </property>
       </table>
