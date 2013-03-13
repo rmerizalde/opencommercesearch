@@ -134,6 +134,8 @@ public class CloudSearchServerUnitTest {
         };
         cloudSearchServer.setRulesCollection("rules");
         cloudSearchServer.setCatalogCollection("catalog");
+        cloudSearchServer.setCatalogConfig("product_catalog_conf");
+        cloudSearchServer.setRulesConfig("rules_conf");
         cloudSearchServer.setCatalogSolrServer(catalogSolrServer, getLocale());
         cloudSearchServer.setRulesSolrServer(rulesSolrServer, getLocale());
         cloudSearchServer.setLoggingInfo(true);
@@ -164,8 +166,8 @@ public class CloudSearchServerUnitTest {
         Map<String, Slice> slices = new HashMap<String, Slice>();
         slices.put("slice1", slice1);
         slices.put("slice2", slice2);
-        when(clusterState.getSlicesMap(cloudSearchServer.getRulesCollection())).thenReturn(slices);
-        when(clusterState.getSlicesMap(cloudSearchServer.getCatalogCollection())).thenReturn(slices);
+        when(clusterState.getSlicesMap(cloudSearchServer.getRulesCollection(getLocale()))).thenReturn(slices);
+        when(clusterState.getSlicesMap(cloudSearchServer.getCatalogCollection(getLocale()))).thenReturn(slices);
 
         Collection<Replica> replicas = Arrays.asList(replica1, replica2);
         when(slice1.getReplicas()).thenReturn(replicas);
@@ -243,8 +245,8 @@ public class CloudSearchServerUnitTest {
         assertTrue(capturedDataStr.contains("synonym1 > mapping1"));
         assertTrue(capturedDataStr.contains("synonym2 > mapping2"));
         
-        assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/catalogCollection/synonyms/synonymlist.txt"));
-        assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/ruleCollection/synonyms/synonymlist.txt"));
+        assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/product_catalog_conf/synonyms-preview/synonymlist.txt"));
+        assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/rules_conf/synonyms-preview/synonymlist.txt"));
     }
 
     private RepositoryItem initExportSynonyms(SolrZkClient zkClient) throws SearchServerException {
@@ -282,8 +284,8 @@ public class CloudSearchServerUnitTest {
             requestUrls.add(request.getURI().toString());
         }
         assertThat(requestUrls, containsInAnyOrder(
-            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getCatalogCollection() + "&indexInfo=true",
-            "http://node1.opencommercesearch.org/mycore/admin/cores?action=RELOAD&core=" + cloudSearchServer.getRulesCollection() + "&indexInfo=true"
+            "http://node1.opencommercesearch.org/admin/cores?action=RELOAD&core=" + cloudSearchServer.getCatalogCollection(getLocale()) + "&indexInfo=true",
+            "http://node1.opencommercesearch.org/admin/cores?action=RELOAD&core=" + cloudSearchServer.getRulesCollection(getLocale()) + "&indexInfo=true"
         ));
     }
 

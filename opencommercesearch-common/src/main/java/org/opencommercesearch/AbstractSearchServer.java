@@ -67,6 +67,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private Map<String, T> rulesSolrServers = new HashMap<String, T>();
     private String catalogCollection;
     private String rulesCollection;
+    private String catalogConfig;
+    private String rulesConfig;
     private Repository searchRepository;
     private RqlStatement synonymRql;
     private RqlStatement ruleCountRql;
@@ -122,6 +124,22 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     public String getRulesCollection(Locale locale) {
         return rulesCollection + "_" + locale.getLanguage();
+    }
+
+    public String getCatalogConfig() {
+        return catalogConfig;
+    }
+
+    public void setCatalogConfig(String catalogConfig) {
+        this.catalogConfig = catalogConfig;
+    }
+
+    public String getRulesConfig() {
+        return rulesConfig;
+    }
+
+    public void setRulesConfig(String rulesConfig) {
+        this.rulesConfig = rulesConfig;
     }
 
     public void setRulesCollection(String ruleCollection) {
@@ -623,6 +641,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         throw new UnsupportedOperationException();
     }
 
+    public void exportSynonyms() throws RepositoryException, SearchServerException {
+        exportSynonyms(Locale.ENGLISH);
+    }
+
     /**
      * Export the synonym lists in the search repository to Zoo Keeper. Each
      * synonym list is exported into its own file. When renaming a new list or
@@ -662,9 +684,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
      */
     public void reloadCollections() throws SearchServerException {
         // @TODO add support to reload all locale cores
-        String collectionName = getCatalogCollection();
+        String collectionName = getCatalogCollection(Locale.ENGLISH);
         reloadCollection(collectionName, Locale.ENGLISH);
-        collectionName = getRulesCollection();
+        collectionName = getRulesCollection(Locale.ENGLISH);
         reloadCollection(collectionName, Locale.ENGLISH);
     }
 

@@ -24,10 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -188,9 +185,15 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             }
             out.close();
 
-            for (String collection : Arrays.asList(getCatalogCollection(), getRulesCollection())) {
+            String environment = "preview";
+
+            if (getCatalogCollection().endsWith("Public")) {
+                environment = "public";
+            }
+
+            for (String config : Arrays.asList(getCatalogConfig(), getRulesConfig())) {
                 byte[] data = byteStream.toByteArray();
-                String path = new StringBuffer("/configs/").append(collection).append("/synonyms/")
+                String path = new StringBuffer("/configs/").append(config).append("/synonyms-").append(environment).append("/")
                         .append(formatSynonymListFileName(synonymList.getItemDisplayName())).toString();
 
                 try {
@@ -257,7 +260,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                     logInfo("Reloading core " + collectionName + " on " + node);
                 }
                 HttpClient httpClient = getSolrServer(collectionName, locale).getLbServer().getHttpClient();
-                HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getCoreUrl(), httpClient, getResponseParser());
+                HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getBaseUrl(), httpClient, getResponseParser());
                 try {
                     CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
                     if (isLoggingInfo()) {
