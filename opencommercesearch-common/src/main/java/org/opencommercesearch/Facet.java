@@ -26,6 +26,7 @@ public class Facet {
     private String name;
     private List<Filter> filters;
     private Map<String,String> metadata;
+    private Integer minBuckets;
     
     public String getName() {
         return name;
@@ -49,6 +50,14 @@ public class Facet {
 
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
+    }
+
+    public Integer getMinBuckets() {
+        return minBuckets;
+    }
+
+    public void setMinBuckets(Integer minBuckets) {
+        this.minBuckets = minBuckets;
     }
 
     @Override
