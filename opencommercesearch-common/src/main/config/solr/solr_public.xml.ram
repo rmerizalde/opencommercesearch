@@ -35,7 +35,11 @@
     <core name="catalogPublic_fr" instanceDir="product_catalog" schema="schema_fr.xml" />
   </cores>
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
-    <core name="rulePublic_en" instanceDir="rules"/>
-    <core name="rulePublic_fr" instanceDir="rules"/>
+    <core name="rulePublic_en" instanceDir="rules">
+        <property name="solr.env.dir" value="public" />
+    </core>
+    <core name="rulePublic_fr" instanceDir="rules" >
+        <property name="solr.env.dir" value="public" />
+    </core>
   </cores>
 </solr>

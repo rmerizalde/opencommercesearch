@@ -42,11 +42,11 @@
         <filter class="solr.KeywordMarkerFilterFactory" protected="protwords_fr.txt"/>
         <filter class="solr.FrenchLightStemFilterFactory" />
         <!-- attempt to expand synonyms after expansion -->
-        <filter class="solr.SynonymFilterFactory" synonyms="synonyms/index_synonyms.txt" ignoreCase="true" expand="true"/>
+        <filter class="solr.SynonymFilterFactory" synonyms="synonyms-${solr.env.dir:preview}/index_synonyms.txt" ignoreCase="true" expand="true"/>
       </analyzer>
       <analyzer type="query">
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
-        <filter class="solr.SynonymFilterFactory" synonyms="synonyms/query_synonyms.txt" ignoreCase="true" expand="true"/>
+        <filter class="solr.SynonymFilterFactory" synonyms="synonyms-${solr.env.dir:preview}/query_synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory"
                 ignoreCase="true"
                 words="stopwords_fr.txt"
