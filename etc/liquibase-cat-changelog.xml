@@ -425,20 +425,6 @@
     <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position" constraintName="cs_ranking_rule_expr_pk"/>
   </changeSet>
   
-  <changeSet author="commercesearch" id="18">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_ranking_rule"/>
-    </preConditions>
-
-    <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
-
-    <addColumn tableName="cs_ranking_rule">
-        <column name="notes" type="varchar(512)"> 
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-  </changeSet>
-
  <changeSet author="commercesearch" id="19">
     <preConditions onFail="MARK_RAN">
 	  <not><columnExists tableName="cs_rule" columnName="target"/></not>
@@ -501,15 +487,29 @@
   
   <changeSet author="commercesearch" id="24">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="cs_facet" columnName="min_fields"/></not>
+      <not><columnExists tableName="cs_facet" columnName="min_buckets"/></not>
     </preConditions>
 
     <addColumn tableName="cs_facet">
-        <column name="min_fields" type="INTEGER">
+        <column name="min_buckets" type="INTEGER">
             <constraints nullable="true"/>
         </column>
     </addColumn>
   </changeSet>
+  
+  <changeSet author="commercesearch" id="25">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_ranking_rule" columnName="notes" /></not>
+    </preConditions>
+
+    <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
+
+    <addColumn tableName="cs_ranking_rule">
+        <column name="notes" type="varchar(512)"> 
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>  
 
 </databaseChangeLog>
 
