@@ -509,7 +509,52 @@
             <constraints nullable="true"/>
         </column>
     </addColumn>
-  </changeSet>  
+  </changeSet>
+
+  <changeSet author="commercesearch" id="26">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL)
+          AND    utc.column_name = 'TARGET'
+          AND    uc.search_condition is not null;
+      </sqlCheck>
+    </preConditions>
+    <addNotNullConstraint tableName="cs_rule" columnName="target"/>    
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="27">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RANKING_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL)
+          AND    utc.column_name = 'NOTES'
+          AND    uc.search_condition is not null;
+      </sqlCheck>
+    </preConditions>
+    <sql>UPDATE cs_ranking_rule SET notes='Update me' WHERE notes IS NULL</sql>
+    <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>    
+  </changeSet>    
 
 </databaseChangeLog>
 
