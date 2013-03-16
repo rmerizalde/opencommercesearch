@@ -59,8 +59,15 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
 
     private String inventoryName = "In Memory Inventory";
 
-    protected Long processRecord(ResultSet rs) throws SQLException {
-        return rs.getLong("stock_level");
+    @Override
+    public void doStartService() throws ServiceException {
+        super.doStartService();
+        setRecordProcessor(new RecordProcessor<Long>() {
+            @Override
+            public Long processRecord(ResultSet rs) throws SQLException {
+                return rs.getLong("stock_level");
+            }
+        });
     }
 
     @Override

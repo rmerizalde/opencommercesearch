@@ -60,6 +60,17 @@ import java.util.Map;
  */
 public abstract class SequentialDataLoaderService<K extends Comparable, V> extends GenericService {
 
+    public interface  RecordProcessor<V> {
+        /**
+         * Process each row in a result set. Concrete classes must provide an implementation of this interface in order
+         * to build the item the will be stored in a cache
+         * @param rs is the result set
+         * @return the item that will be cache for the current row in the result set
+         * @throws SQLException is exception occurrs while retrieving the row columns
+         */
+        V processRecord(ResultSet rs) throws SQLException;
+    }
+
     private Repository repository;
     private K minId;
     private K maxId;
@@ -68,6 +79,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     private long cacheHitCount;
     private int cacheSize = 1000;
     private String sqlQuery;
+    private RecordProcessor<V> recordProcessor;
 
     public Repository getRepository() {
         return repository;
@@ -108,6 +120,14 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
             }
             return (cacheHitCount / (double) requestCount) * 100;
         }
+    }
+
+    public RecordProcessor<V> getRecordProcessor() {
+        return recordProcessor;
+    }
+
+    protected void setRecordProcessor(RecordProcessor<V> recordProcessor) {
+        this.recordProcessor = recordProcessor;
     }
 
     @Override
@@ -161,7 +181,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
             PreparedStatement stmt = null;
             try {
                 stmt = connection.prepareStatement(getSqlQuery());
-                loadData(stmt, id);
+                loadData(id, stmt);
             } catch (SQLException ex) {
                 if (isLoggingError()) {
                     logError("Could not load inventory into memory", ex);
@@ -173,7 +193,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
                     }
                 } catch (SQLException ex) {
                     if (isLoggingError()) {
-                        logError("Could not close prepared statements ", ex);
+                        logError("Could not close prepared statement ", ex);
                     }
                 }
             }
@@ -197,7 +217,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     /**
      * Another helper method that actually does executes the query
      */
-    private void loadData(PreparedStatement stmt, K id) throws SQLException {
+    private void loadData(K id, PreparedStatement stmt) throws SQLException {
         if (cache == null) {
             cache = new HashMap<K, V>(getCacheSize());
         } else {
@@ -223,7 +243,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
 
             while (rs.next()) {
                 K nextId = (K) rs.getObject("id");
-                V item = processRecord(rs);
+                V item = getRecordProcessor().processRecord(rs);
                 if (item != null) {
                     cache.put(nextId, item);
                 }
@@ -234,7 +254,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
                 rs.close();
             } catch (SQLException ex) {
                 if (isLoggingError()) {
-                    logError("Error result set", ex);
+                    logError("Exception closing result set", ex);
                 }
             }
         }
@@ -247,13 +267,62 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     }
 
     /**
-     * Process each row in the result set. Concrete classes must override this method to build the item the will be
-     * stored in the cache
-     * @param rs is the result set
-     * @return the item that will be cache for the current row in the result set
-     * @throws SQLException is exception occurrs while retrieving the row columns
+     * Utility method to execute SQL statements
+     *
+     * @param sqlQuery the SQL to be executed
+     * @param recordProcessor the processor to process each record
      */
-    protected abstract V processRecord(ResultSet rs) throws SQLException;
+    private void loadData(String sqlQuery, RecordProcessor<V> recordProcessor) {
+        Connection connection = null;
 
+        try {
+            connection = ((GSARepository) getRepository()).getDataSource().getConnection();
+            PreparedStatement stmt = null;
+            try {
+                stmt = connection.prepareStatement(getSqlQuery());
+                if (stmt.execute()) {
+                    ResultSet rs = stmt.getResultSet();
 
+                    while (rs.next()) {
+                        recordProcessor.processRecord(rs);
+                    }
+                    try {
+                        rs.close();
+                    } catch (SQLException ex) {
+                        if (isLoggingError()) {
+                            logError("Exception closing result set", ex);
+                        }
+                    }
+                }
+            } catch (SQLException ex) {
+                if (isLoggingError()) {
+                    logError("Could execute query '" + sqlQuery +"'", ex);
+                }
+            } finally {
+                try {
+                    if (null != stmt) {
+                        stmt.close();
+                    }
+                } catch (SQLException ex) {
+                    if (isLoggingError()) {
+                        logError("Could not close prepared statement ", ex);
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            if (isLoggingError()) {
+                logError("Could not connect to the database", ex);
+            }
+        } finally {
+            try {
+                if (null != connection) {
+                    connection.close();
+                }
+            } catch (SQLException ex) {
+                if (isLoggingError()) {
+                    logError("Could not close database connection ", ex);
+                }
+            }
+        }
+    }
 }

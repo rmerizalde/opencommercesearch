@@ -70,7 +70,9 @@ public class SequentialInMemoryInventoryManagerTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
+        manager.setSqlQuery("select 'dummy' from dual");
         manager.setRepository(inventoryRepository);
+        manager.doStartService();
         when(inventoryRepository.getDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(anyString())).thenReturn(stmt);
