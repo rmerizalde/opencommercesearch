@@ -22,7 +22,6 @@
   <field name="id"                type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="productId"         type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="title"             type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
-  <field name="feature_*"         type="string"            indexed="false" stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="category"          type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="categoryPath"      type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="categoryId"        type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
@@ -52,13 +51,15 @@
   <field name="timestamp" type="tdate" indexed="true" stored="true" default="NOW" multiValued="false"/>
 
   <!-- dynamic facet fields -->
-  <dynamicField name="stockLevel*"      type="int"     indexed="true" stored="true"  required="fasle"  multiValued="false" omitNorms="true" />
+  <dynamicField name="stockLevel*"      type="int"     indexed="true" stored="true"  required="fasle"   multiValued="false" omitNorms="true" />
   <dynamicField name="onsale*"          type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
   <dynamicField name="reviewAverage*"   type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
   <dynamicField name="reviews*"         type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"        type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="seoUrl*"          type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
   <dynamicField name="ha_*"             type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <dynamicField name="feature_*"        type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
+
 
   <!-- other sorting/facet fields -->
   <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
