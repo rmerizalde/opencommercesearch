@@ -70,7 +70,7 @@ public class SequentialInMemoryInventoryManagerTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        manager.setInventoryRepository(inventoryRepository);
+        manager.setRepository(inventoryRepository);
         when(inventoryRepository.getDataSource()).thenReturn(dataSource);
         when(dataSource.getConnection()).thenReturn(connection);
         when(connection.prepareStatement(anyString())).thenReturn(stmt);
@@ -94,7 +94,7 @@ public class SequentialInMemoryInventoryManagerTest {
                 index.set(-1);
                 return null;
             }
-        }).when(stmt).setString(eq(1), anyString());
+        }).when(stmt).setObject(eq(1), anyString());
 
         when(rs.next()).then(new Answer<Boolean>() {
             public Boolean answer(InvocationOnMock invocation) throws Throwable {
@@ -108,7 +108,7 @@ public class SequentialInMemoryInventoryManagerTest {
             }
         });
 
-        when(rs.getString("catalog_ref_id")).then(new Answer<String>() {
+        when(rs.getObject("id")).then(new Answer<String>() {
             public String answer(InvocationOnMock invocation) throws Throwable {
                 String[] ids = (String[]) map.get(id.toString());
                 return ids[index.get()];

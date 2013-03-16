@@ -34,6 +34,7 @@ import atg.commerce.inventory.InventoryManager;
 import atg.nucleus.GenericService;
 import atg.nucleus.ServiceException;
 import atg.repository.Repository;
+import org.opencommercesearch.service.SequentialDataLoaderService;
 
 /**
  * This class implements a sequential in-memory inventory manager to help speeding up the feed
@@ -52,148 +53,14 @@ import atg.repository.Repository;
  *
  * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
  */
-public class SequentialInMemoryInventoryManager extends GenericService implements InventoryManager {
+public class SequentialInMemoryInventoryManager extends SequentialDataLoaderService<String, Long> implements InventoryManager {
 
     public static final String LOCALE_SEPARATOR = ":";
 
-    private Map<String, Long> inventoryMap = null;
     private String inventoryName = "In Memory Inventory";
-    private String inventorySql;
-    private int batchSize = 10000;
-    private Repository inventoryRepository;
-    private String minSkuId = null;
-    private String maxSkuId = null;
 
-    public String getInventorySql() {
-        return inventorySql;
-    }
-
-    public void setInventorySql(String inventorySql) {
-        this.inventorySql = inventorySql;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public Repository getInventoryRepository() {
-        return inventoryRepository;
-    }
-
-    public void setInventoryRepository(Repository inventoryRepository) {
-        this.inventoryRepository = inventoryRepository;
-    }
-
-    @Override
-    public void doStartService() throws ServiceException {
-        super.doStartService();
-        if (getInventorySql() == null) {
-            throw new ServiceException("Inventory count SQL is required");
-        }
-        if (getInventoryRepository() == null) {
-            throw new ServiceException("Inventory repository is required");
-        }
-    }
-
-    /**
-     * Loads the inventory items into a hash map
-     */
-    void loadInventory(String id) {
-        Connection connection = null;
-        try {
-            connection = ((GSARepository) getInventoryRepository()).getDataSource().getConnection();
-            PreparedStatement countStmt = null;
-            PreparedStatement inventoryStmt = null;
-            try {
-                inventoryStmt = connection.prepareStatement(getInventorySql());
-                loadInventory(inventoryStmt, id);
-            } catch (SQLException ex) {
-                if (isLoggingError()) {
-                    logError("Could not load inventory into memory", ex);
-                }
-            } finally {
-                try {
-                    if (null != countStmt) {
-                        countStmt.close();
-                    }
-                    if (null != inventoryStmt) {
-                        inventoryStmt.close();
-                    }
-                } catch (SQLException ex) {
-                    if (isLoggingError()) {
-                        logError("Could not close prepared statements ", ex);
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            if (isLoggingError()) {
-                logError("Could not connect to the database", ex);
-            }
-        } finally {
-            try {
-                if (null != connection) {
-                    connection.close();
-                }
-            } catch (SQLException ex) {
-                if (isLoggingError()) {
-                    logError("Could not close database connection ", ex);
-                }
-            }
-        }
-    }
-
-
-    /**
-     *  Just a helper method to load inventory items
-     */
-    private void loadInventory(PreparedStatement inventoryStmt, String id) throws SQLException {
-        if (inventoryMap == null) {
-            inventoryMap = new HashMap<String, Long>(batchSize);
-        } else {
-            inventoryMap.clear();
-        }
-
-        long startTime = System.currentTimeMillis();
-        if (isLoggingDebug()) {
-            logDebug("Loading " + id + " + " +  getBatchSize() + " successors");
-        }
-
-        int offset = 1;
-        int hits = getBatchSize();
-
-        inventoryStmt.setString(1, id);
-        inventoryStmt.setInt(2, offset);
-        inventoryStmt.setInt(3, hits);
-        minSkuId = id;
-        maxSkuId = id;
-
-        if (inventoryStmt.execute()) {
-            ResultSet rs = inventoryStmt.getResultSet();
-
-            while (rs.next()) {
-                String skuId = rs.getString("catalog_ref_id");
-                inventoryMap.put(skuId, rs.getLong("stock_level"));
-                maxSkuId = skuId;
-            }
-
-            try {
-                rs.close();
-            } catch (SQLException ex) {
-                if (isLoggingError()) {
-                    logError("Error result set", ex);
-                }
-            }
-        }
-
-        if (isLoggingInfo()) {
-            logInfo("Building map finished in " + ((System.currentTimeMillis() - startTime) / 1000)
-                    + " seconds. Sku range: " + minSkuId + " - " + maxSkuId + ". Inventory contains "
-                    + inventoryMap.size() + " items");
-        }
+    protected Long processRecord(ResultSet rs) throws SQLException {
+        return rs.getLong("stock_level");
     }
 
     @Override
@@ -307,15 +174,7 @@ public class SequentialInMemoryInventoryManager extends GenericService implement
             id = id.substring(0, localeSeparatorIndex);
         }
 
-        if (minSkuId != null && minSkuId.equals(maxSkuId)) {
-            throw new InventoryException("Inventory not found for " + id);
-        }
-
-        if (maxSkuId == null || id.compareTo(minSkuId) < 0 || id.compareTo(maxSkuId) > 0) {
-            loadInventory(id);
-        }
-
-        Long stockLevel = inventoryMap.get(id);
+        Long stockLevel = getItem(id);
 
         if (stockLevel == null) {
             throw new InventoryException("Inventory not found for " + id);
