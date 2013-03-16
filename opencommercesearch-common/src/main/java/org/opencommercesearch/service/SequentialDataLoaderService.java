@@ -272,7 +272,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
      * @param sqlQuery the SQL to be executed
      * @param recordProcessor the processor to process each record
      */
-    protected void loadData(String sqlQuery, RecordProcessor<V> recordProcessor) {
+    protected <T> void loadData(String sqlQuery, RecordProcessor<T> recordProcessor) {
         Connection connection = null;
 
         try {
