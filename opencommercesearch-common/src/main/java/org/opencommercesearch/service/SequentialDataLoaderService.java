@@ -279,7 +279,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
             connection = ((GSARepository) getRepository()).getDataSource().getConnection();
             PreparedStatement stmt = null;
             try {
-                stmt = connection.prepareStatement(getSqlQuery());
+                stmt = connection.prepareStatement(sqlQuery);
 
                 int argCount = 1;
                 for (Object arg : args) {
