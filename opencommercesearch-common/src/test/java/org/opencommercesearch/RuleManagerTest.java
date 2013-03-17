@@ -25,10 +25,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.hasItem;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.opencommercesearch.RulesTestUtil.mockRule;
 
 import java.util.*;
@@ -163,7 +160,7 @@ public class RuleManagerTest {
     }  
     
     @Test 
-    public void testSetRuleParamsAndSetFilterQueries() throws RepositoryException, SolrServerException {    
+    public void testSetRuleParamsAndSetFilterQueries() throws RepositoryException, SolrServerException {
         // make sure that the facetManager gets addFacet called when we supply facets
         final FacetManager facetManager = mock(FacetManager.class);        
         RuleManager mgr = new RuleManager(repository, builder, server) {
@@ -230,7 +227,8 @@ public class RuleManagerTest {
         verify(query).setFacetPrefix("category", "1.bobcatalog");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
-        verify(query).addSortField("isToos", ORDER.asc);
+        verify(query, times(2)).getSortFields();
+        verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);        
         verify(query).setFacetPrefix("category", "13.jackets"); 
 
@@ -281,7 +279,8 @@ public class RuleManagerTest {
         verify(query).setFacetPrefix("category", "1.bobcatalog");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
-        verify(query).addSortField("isToos", ORDER.asc);
+        verify(query, times(2)).getSortFields();
+        verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
         verifyNoMoreInteractions(query);
     }
@@ -308,7 +307,7 @@ public class RuleManagerTest {
         when(blockedProduct2.getRepositoryId()).thenReturn("your_highnesness");
         
         mgr.setRuleParams(query, typeToRules);
-        verify(query).addSortField("isToos", ORDER.asc);
+        verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addFilterQuery("-productId:walking_carpet");
         verify(query).addFilterQuery("-productId:your_highnesness");
         verify(query).addSortField("score", ORDER.desc);        
@@ -336,7 +335,7 @@ public class RuleManagerTest {
         when(boostedProduct2.getRepositoryId()).thenReturn("i like food");
         
         mgr.setRuleParams(query, typeToRules);
-        verify(query).addSortField("isToos", ORDER.asc);
+        verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("fixedBoost(productId,'hello world','i like food')", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);        
     }  
@@ -403,14 +402,59 @@ public class RuleManagerTest {
         } catch (NullPointerException ex) {
             fail("Should protect against no rules set");
         }
-    }  
+    }
+
+    @Test
+    public void testSetRuleParamsWithSort() {
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        SolrQuery query = mock(SolrQuery.class);
+        when(query.getSortFields()).thenReturn(new String[] {"reviewAverage desc", "reviews asc", "reviews desc", "score asc"});
+        mgr.setRuleParams(query, new HashMap());
+        verify(query).getSortFields();
+        verify(query).setSortField("isToos", ORDER.asc);
+        verify(query).addSortField("reviewAverage", ORDER.desc);
+        verify(query).addSortField("reviews", ORDER.asc);
+        verify(query).addSortField("score", ORDER.desc);
+        verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    public void testSetRuleParamsWithSortAndBoostRule() {
+        Map<String, List<RepositoryItem>> typeToRules = new HashMap<String, List<RepositoryItem>>();
+        List<RepositoryItem> rules = new ArrayList<RepositoryItem>();
+        typeToRules.put(boostRule, rules);
+        RepositoryItem rule = mock(RepositoryItem.class);
+        rules.add(rule);
+        List<RepositoryItem> boostedProducts = new ArrayList<RepositoryItem>();
+        when(rule.getPropertyValue(BoostRuleProperty.BOOSTED_PRODUCTS)).thenReturn(boostedProducts);
+
+        RepositoryItem boostedProduct1 = mock(RepositoryItem.class);
+        boostedProducts.add(boostedProduct1);
+        when(boostedProduct1.getRepositoryId()).thenReturn("hello world");
+
+        RepositoryItem boostedProduct2 = mock(RepositoryItem.class);
+        boostedProducts.add(boostedProduct2);
+        when(boostedProduct2.getRepositoryId()).thenReturn("i like food");
+
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        SolrQuery query = mock(SolrQuery.class);
+        when(query.getSortFields()).thenReturn(new String[] {"reviewAverage desc", "reviews asc", "reviews desc", "score asc"});
+        mgr.setRuleParams(query, typeToRules);
+        verify(query, times(2)).getSortFields();
+        verify(query).setSortField("isToos", ORDER.asc);
+        verify(query).addSortField("reviewAverage", ORDER.desc);
+        verify(query).addSortField("reviews", ORDER.asc);
+        verify(query).addSortField("score", ORDER.desc);
+        verifyNoMoreInteractions(query);
+    }
     
     @Test
     public void testSetRuleParamsEmptyRules() {
         RuleManager mgr = new RuleManager(repository, builder, server);
         SolrQuery query = mock(SolrQuery.class);
         mgr.setRuleParams(query, new HashMap());
-        verify(query).addSortField("isToos", ORDER.asc);
+        verify(query).getSortFields();
+        verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
         verifyNoMoreInteractions(query);
     }    

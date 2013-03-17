@@ -76,6 +76,12 @@ public class RuleManager<T extends SolrServer> {
         },
         boostRule() {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
+                String[] sortFields = query.getSortFields();
+                if (sortFields != null && sortFields.length > 1) {
+                    // user has selected a sorting option, ignore manual boosts
+                    return;
+                }
+
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
                     List<RepositoryItem> products = (List<RepositoryItem>) rule
@@ -267,9 +273,28 @@ public class RuleManager<T extends SolrServer> {
         if (rules == null) {
             return;
         }
-        //TODO gsegura: i think this sort fields are been added twice after adding sorting functionality 
-        //need to fix this
-        query.addSortField("isToos", ORDER.asc);
+
+        String[] sortFields = query.getSortFields();
+
+        // always push the products out of stock to the bottom, even when manual boosts have been selected
+        query.setSortField("isToos", ORDER.asc);
+
+        // add sort specs after the isToos and possibly
+        if (sortFields != null) {
+            Set sortFieldSet = new HashSet(sortFields.length);
+
+            for (String sortField : sortFields) {
+                String[] parts = StringUtils.split(sortField, ' ');
+                String fieldName = parts[0];
+                String order = parts[1];
+
+                if (!("score".equals(fieldName) || sortFieldSet.contains(fieldName))) {
+                    query.addSortField(fieldName, ORDER.valueOf(order));
+                    sortFieldSet.add(fieldName);
+                }
+            }
+        }
+
         for (Entry<String, List<RepositoryItem>> entry : rules.entrySet()) {
             RuleType type = RuleType.valueOf(entry.getKey());
 
@@ -277,6 +302,8 @@ public class RuleManager<T extends SolrServer> {
                 type.setParams(this, query, entry.getValue(), ruleDocs);
             }
         }
+
+        // finally add the score field to the sorting spec. Score will be a tie breaker when other sort specs are added
         query.addSortField("score", ORDER.desc);
     }
 

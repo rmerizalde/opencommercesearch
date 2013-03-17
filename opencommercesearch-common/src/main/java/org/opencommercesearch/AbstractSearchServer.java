@@ -366,11 +366,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (isLoggingError()) {
                 logError("Unable to load search rules", ex);
             }
-        } finally {
-            if (query.getSortFields() == null || query.getSortFields().length == 0) {
-                query.addSortField("isToos", SolrQuery.ORDER.asc);
-                query.addSortField("score", SolrQuery.ORDER.desc);
-            }
         }
 
         try {
