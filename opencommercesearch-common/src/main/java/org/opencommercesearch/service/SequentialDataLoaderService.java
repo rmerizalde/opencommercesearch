@@ -38,11 +38,13 @@ import java.util.Map;
  * I/O operations.
  *
  * The concrete class must specify the SQL query that the loader will use to retrieve data. The SQL statement must support
- * three parameters in the following order:
+ * three parameters:
  *
  * 1. id: a Comparable object representing the unique id of the record
  * 2. offset: the offset use to load the data in batches
- * 3. batch size: the amount of records that will be cached in memory.
+ * 3. row count: the amount of rows that will be cached in memory.
+ *
+ * Concrete classes can override the method preparedArguments if additional parameters are required.
  *
  * In addition, the SQL must return a column named id for each row.
  *
@@ -230,11 +232,9 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         }
 
         int offset = 1;
-        int hits = getCacheSize();
+        int rowCount = getCacheSize();
 
-        stmt.setObject(1, id);
-        stmt.setInt(2, offset);
-        stmt.setInt(3, hits);
+        prepareArguments(id, offset, rowCount, stmt);
         minId = id;
         maxId = id;
 
@@ -330,5 +330,21 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
                 }
             }
         }
+    }
+
+    /**
+     * Sets the arguments for the prepared statements. Concrete classes can override this method if different parameters
+     * are needed.
+     *
+     * @param id the id of the record to start loading from
+     * @param offset is the offset of the batch or row been loaded.
+     * @param rowCount the number of rows to load
+     * @param stmt the statement
+     * @throws SQLException if an error occurs
+     */
+    protected void prepareArguments(K id, int offset, int rowCount, PreparedStatement stmt) throws SQLException {
+        stmt.setObject(1, id);
+        stmt.setInt(2, offset);
+        stmt.setInt(3, rowCount);
     }
 }
