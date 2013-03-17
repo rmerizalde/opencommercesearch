@@ -23,10 +23,12 @@ import java.util.List;
 import java.util.Map;
 
 public class Facet {
+    public static final Integer DEFAULT_MIN_BUCKETS = 2;
+
     private String name;
     private List<Filter> filters;
     private Map<String,String> metadata;
-    private Integer minBuckets;
+    private Integer minBuckets = DEFAULT_MIN_BUCKETS;
     
     public String getName() {
         return name;
@@ -57,7 +59,9 @@ public class Facet {
     }
 
     public void setMinBuckets(Integer minBuckets) {
-        this.minBuckets = minBuckets;
+        if (minBuckets != null) {
+            this.minBuckets = minBuckets;
+        }
     }
 
     @Override
