@@ -129,6 +129,7 @@
   <!-- low -->
   <copyField source="colorFamily" dest="low"/>
   <copyField source="ha_*"        dest="low"/>
+  <copyField source="attr_*"      dest="low"/>
   <copyField source="feature_*"   dest="low"/>
 
   <!-- spell checking -->
@@ -139,6 +140,7 @@
   <copyField source="size"           dest="textSpellCheck"/>
   <copyField source="colorFamily"    dest="textSpellCheck"/>
   <copyField source="ha_*"           dest="textSpellCheck"/>
+  <copyField source="attr_*"         dest="textSpellCheck"/>
   <copyField source="feature_*"      dest="textSpellCheck"/>
 
   <!-- other -->

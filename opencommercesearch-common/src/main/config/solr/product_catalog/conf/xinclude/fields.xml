@@ -58,7 +58,9 @@
   <dynamicField name="reviews*"               type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"              type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="seoUrl*"                type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
+  <dynamicField name="url*"                   type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
   <dynamicField name="ha_*"                   type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <dynamicField name="attr_*"                 type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
   <dynamicField name="feature_*"              type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
 
 
