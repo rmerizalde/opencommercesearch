@@ -54,7 +54,7 @@
   <dynamicField name="stockLevel*"            type="int"     indexed="true" stored="true"  required="fasle"   multiValued="false" omitNorms="true" />
   <dynamicField name="onsale*"                type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
   <dynamicField name="reviewAverage*"         type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
-  <dynamicField name="bayesianReviewAverage*" type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
+  <dynamicField name="bayesianReviewAverage*" type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" sortMissingLast="true" />
   <dynamicField name="reviews*"               type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"              type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
   <dynamicField name="seoUrl*"                type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
@@ -63,9 +63,9 @@
 
 
   <!-- other sorting/facet fields -->
-  <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
-  <dynamicField name="salePrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
-  <dynamicField name="discountPercent*"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <dynamicField name="listPrice*"        type="tdouble" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <dynamicField name="salePrice*"        type="tdouble" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <dynamicField name="discountPercent*"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
   <field name="isToos"                   type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
   <field name="isPastSeason"             type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
 

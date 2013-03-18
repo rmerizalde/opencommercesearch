@@ -279,7 +279,7 @@ public class RuleManager<T extends SolrServer> {
         // always push the products out of stock to the bottom, even when manual boosts have been selected
         query.setSortField("isToos", ORDER.asc);
 
-        // add sort specs after the isToos and possibly
+        // add sort specs after the isToos
         if (sortFields != null) {
             Set sortFieldSet = new HashSet(sortFields.length);
 
