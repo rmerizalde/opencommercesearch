@@ -660,9 +660,6 @@
        queries across multiple shards
     -->
   <requestHandler name="/select" class="solr.SearchHandler">
-    <!-- default values for query parameters can be specified, these
-         will be overridden by parameters in the request
-      -->
     <lst name="defaults">
       <str name="echoParams">explicit</str>
       <int name="rows">10</int>
@@ -673,7 +670,8 @@
       <str name="spellcheck">true</str>
       <str name="spellcheck.count">10</str>
       <str name="spellcheck.dictionary">textSpellCheck</str>
-      <str name="spellcheck.collate">true</str>   
+      <str name="spellcheck.collate">true</str>
+      <str name="fl">productId,title,brand,isToos,salePrice*,listPrice*,discountPercent*,seoUrl*,url*,bayesianReviewAverage,reviews,isPastSeason*,freeGift*</str>
     </lst>
     <arr name="last-components">
       <str>spellcheck</str>
