@@ -137,6 +137,7 @@ public class AbstractSearchServerIntegrationTest {
         //scenario where we want to show results for products from a given brand. Not only display the top level categories
         options = new BrowseOptions(false, true, false, false, 100, "88", null, null, "mycatalog");                
         query = new SolrQuery();
+        query.setFields("brandId");
         response = server.browse(options, query, site, Locale.US, null);
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
@@ -147,6 +148,7 @@ public class AbstractSearchServerIntegrationTest {
         //scenario where we want to show results for products from a given brand and category. Not only display the top level categories
         options = new BrowseOptions(false, true, false, false, 100, "88", "cat3000003", "mycatalog.cat3000003", "mycatalog");                
         query = new SolrQuery();
+        query.setFields("brandId");
         response = server.browse(options, query, site, Locale.US, null);
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
@@ -172,6 +174,7 @@ public class AbstractSearchServerIntegrationTest {
         //scenario where we want to show results for products that are on sale. not only display the top level categories
         options = new BrowseOptions(false, true, true, false, 100, null, null, null, "mycatalog");                
         query = new SolrQuery();
+        query.setFields("id");
         response = server.browse(options, query, site, Locale.US, null);
         
         validateCategoryPathNotInFacets(response);
@@ -191,6 +194,7 @@ public class AbstractSearchServerIntegrationTest {
         BrowseOptions options = new BrowseOptions(false, false, false, true,  100, null, "cat3000003", null, "mycatalog");     
         when(rulesBuilder.buildRulesFilter(options.getCategoryId(), Locale.US)).thenReturn("(categoryId:ruleCategory) OR (discountPercentUS:[15 TO 100])");
         SolrQuery query = new SolrQuery();
+        query.setFields("id");
         SearchResponse response = server.browse(options, query, site, Locale.US, null);
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
@@ -299,5 +303,4 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals(expectedCorrectedTerm, res.getCorrectedTerm());
         assertEquals(matchesAll, res.matchesAll());  
     }
-
 }

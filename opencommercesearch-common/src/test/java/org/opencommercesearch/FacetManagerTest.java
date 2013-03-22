@@ -185,7 +185,7 @@ public class FacetManagerTest {
         Count count = mockCount("1.bcs.root");
         mockFacetField(count, "category");     
         FilterQuery[] filterQueries = {mockFilterQuery("category", "1.bcs.root"), mockFilterQuery("filter2", "exp2")};        
-        assertEquals("filter_filter2_queryList", manager.getCountPath(count, filterQueries));
+        assertEquals("filter_filter2|queryList", manager.getCountPath(count, filterQueries));
     }
 
 
@@ -202,7 +202,7 @@ public class FacetManagerTest {
 	    	    
 	    assertEquals("root", crumbs.get(1).getExpression());
         assertEquals("category", crumbs.get(1).getFieldName());
-        assertEquals("_filter_fieldName", crumbs.get(1).getPath());
+        assertEquals("|filter_fieldName", crumbs.get(1).getPath());
         
         assertEquals("exp", crumbs.get(0).getExpression());
 	    assertEquals("fieldName", crumbs.get(0).getFieldName());

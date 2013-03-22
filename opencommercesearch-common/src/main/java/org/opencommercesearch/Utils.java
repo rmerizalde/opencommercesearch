@@ -24,7 +24,7 @@ import java.util.ResourceBundle;
 import org.apache.commons.lang.StringUtils;
 
 public class Utils {
-    public static final String PATH_SEPARATOR = "_";
+    public static final String PATH_SEPARATOR = "|";
     public static final String RESOURCE_IN_RANGE = "inrange";
     public static final String RESOURCE_BEFORE = "before";
     public static final String RESOURCE_AFTER = "after";
