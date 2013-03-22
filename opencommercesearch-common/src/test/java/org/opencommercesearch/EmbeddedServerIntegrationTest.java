@@ -92,7 +92,7 @@ public class EmbeddedServerIntegrationTest {
         doc.setField("isToos", "false");
         doc.setField("category", "0.mycatalog");
         doc.setField("categoryPath", "mycatalog");
-        doc.setField("categoryId", "category0");
+        doc.setField("ancestorCategoryId", "category0");
         doc.setField("categoryLeaves", "category 0");
         doc.setField("listRank", "1");
         doc.setField("seoUrl", "/santa-cruz-bicycles-tallboy-lt-carbon");

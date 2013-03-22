@@ -6,7 +6,7 @@
     <field name="isToos">true</field>
     <field name="category">0.myCatalog.category 0</field>
     <field name="categoryPath">myCatalog.category0</field>
-    <field name="categoryId">category0</field>
+    <field name="ancestorCategoryId">category0</field>
     <field name="categoryLeaves">category 0</field>
     <field name="listRank">1</field>
     <field name="seoUrl">/santa-cruz-bicycles-tallboy-lt-carbon</field>

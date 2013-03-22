@@ -42,8 +42,9 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.util.*;
 
-@RunWith(MockitoJUnitRunner.class)
+//@RunWith(MockitoJUnitRunner.class)
 public class SearchFeedTest {
+
     private SearchFeed feed = new SearchFeed() {
         protected void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete) {
             throw new UnsupportedOperationException();
@@ -207,11 +208,15 @@ public class SearchFeedTest {
         verify(solrDocument, times(15)).addField(eq("category"), anyString());
 
         // verify leaf category ids
-        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat41110026");
-        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat41110025");
-        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
-        verify(solrDocument, times(3)).addField(eq("categoryId"), anyString());
-        
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat4000003");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat4100004");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat41100024");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat41110026");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat41110025");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat11000219");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111110031");
         verify(solrDocument, times(8)).addField(eq("categoryNodes"), objectCaptor.capture());
         
         assertEquals("Men's Clothing", objectCaptor.getAllValues().get(0));
@@ -264,13 +269,14 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
-        verify(solrDocument, never()) .addField("category", "otherCatalog");
-        verify(solrDocument, never()) .addField("category", "otherCatalog.otherCategory");
         verify(solrDocument, times(5)).addField(eq("categoryPath"), anyString());
-        
-        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
-        verify(solrDocument, never() ).addField("categoryId", "otherCategory");
-        verify(solrDocument, times(1)).addField(eq("categoryId"), anyString());
+
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat11000003");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111110031");
+        verify(solrDocument, never()).addField("ancestorCategoryId", "otherCategory");
+        verify(solrDocument, atMost(5)).addField(eq("ancestorCategoryId"), anyString());
         
     }
     
@@ -298,11 +304,11 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
         verify(solrDocument, never()) .addField("categoryPath", "outdoorCatalog.catRulesBased");
         verify(solrDocument, times(5)).addField(eq("categoryPath"), anyString());
-        
-        verify(solrDocument, times(1)).addField("categoryId", "outdoorCat111110031");
-        verify(solrDocument, times(1)).addField("categoryId", "catRulesBased");
-        verify(solrDocument, times(2)).addField(eq("categoryId"), anyString());
-        
+
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat11000003");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111000028");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111100030");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111110031");
     }
         
     private void mockCategory(RepositoryItem category, String categoryId, String displayName, Set<RepositoryItem> categoryCatalogs, Set<RepositoryItem>  parentCategories, String itemDescriptorName) throws RepositoryException{

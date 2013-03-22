@@ -12,7 +12,7 @@
     <field name="categoryPath">ycatalog.catId1</field>
     <field name="categoryPath">mycatalog.catId1.catId2</field>
     <field name="categoryPath">mycatalog.catId1.catId2.catId3</field>
-    <field name="categoryId">category0</field>
+    <field name="ancestorCategoryId">category0</field>
     <field name="categoryNodes">Catégorie Un</field>
     <field name="categoryNodes">Catégorie Deux</field>
     <field name="categoryLeaves">Catégorie Trois</field>

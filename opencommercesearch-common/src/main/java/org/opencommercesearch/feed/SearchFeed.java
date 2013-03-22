@@ -218,7 +218,8 @@ public abstract class SearchFeed extends GenericService {
                 @SuppressWarnings("unchecked")
                 Set<RepositoryItem> productCategories = (Set<RepositoryItem>) product
                         .getPropertyValue("parentCategories");
-                Set<String> tokenCache = new HashSet<String>(20);
+                Set<String> tokenCache = new HashSet<String>();
+                Set<String> ancestorCache = new HashSet<String>();
                 Set<String> leaveCache = new HashSet<String>();
                 
                 if (productCategories != null) {
@@ -226,9 +227,8 @@ public abstract class SearchFeed extends GenericService {
                     for (RepositoryItem productCategory : productCategories) {
                         if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
                             if (! isRulesCategory(productCategory) && isCategoryIndexable(productCategory)) {
-                                loadCategoryPaths(document, productCategory, categoryIds, catalogAssignments, tokenCache);
+                                loadCategoryPathsAndAncestorIds(document, productCategory, categoryIds, catalogAssignments, tokenCache, ancestorCache);
                             }
-                            document.addField("categoryId", productCategory.getRepositoryId());
 
                             if (categoryCatalogs != null) {
                                 Set<RepositoryItem> catalogs = (Set<RepositoryItem>) productCategory.getPropertyValue("catalogs");
@@ -238,8 +238,8 @@ public abstract class SearchFeed extends GenericService {
                                     }
                                 }
                             }
-                        }                        
-                        leaveCache.add(productCategory.getItemDisplayName());
+                            leaveCache.add(productCategory.getItemDisplayName());
+                        }
                     }
                     if(leaveCache.size() > 0) {
                         for(String leave : leaveCache) {
@@ -326,14 +326,15 @@ public abstract class SearchFeed extends GenericService {
      * @param catalogAssignments
      *            The list of catalogs to restrict the category token generation
      */
-    private void loadCategoryPaths(SolrInputDocument document, RepositoryItem category,
-            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments, Set<String> tokenCache) {
+    private void loadCategoryPathsAndAncestorIds(SolrInputDocument document, RepositoryItem category,
+            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments, Set<String> tokenCache,
+            Set<String> ancestorCache) {
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
 
         if (parentCategories != null && parentCategories.size() > 0) {
             hierarchyCategories.add(0, category);
             for (RepositoryItem parentCategory : parentCategories) {
-                loadCategoryPaths(document, parentCategory, hierarchyCategories, catalogAssignments, tokenCache);
+                loadCategoryPathsAndAncestorIds(document, parentCategory, hierarchyCategories, catalogAssignments, tokenCache, ancestorCache);
             }
             hierarchyCategories.remove(0);
         } else {
@@ -343,6 +344,11 @@ public abstract class SearchFeed extends GenericService {
                     generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId(), tokenCache);
                 }
             }
+        }
+
+        if (!ancestorCache.contains(category.getRepositoryId())) {
+            document.addField("ancestorCategoryId", category.getRepositoryId());
+            ancestorCache.add(category.getRepositoryId());
         }
     }
 
