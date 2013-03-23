@@ -63,25 +63,8 @@ public class RulesBuilder extends GenericService {
             }
         },
         CATEGORY {
-            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {                
-                    try{
-                        RepositoryItem category = productCatalog.getItem(ruleValue, CategoryProperty.ITEM_DESCRIPTOR);
-                        if(category != null && !RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())){
-                            
-                            Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
-                            if (searchTokens != null && searchTokens.size() > 0) {
-                                String searchToken = ClientUtils.escapeQueryChars(searchTokens.iterator().next());
-                                return new StringBuilder().append("category:").append(searchToken).toString();
-                            } else {
-                                return "";
-                            }
-                        }
-                        else {
-                            return new StringBuilder().append("categoryId:").append(ruleValue).toString();
-                        }
-                    } catch (RepositoryException e) {
-                        throw new RuntimeException("Error loading the search tokens in the rules builder for category: "+ ruleValue, e);
-                    }
+            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
+                return new StringBuilder().append("ancestorCategoryId:").append(ruleValue).toString();
             }
         },
         BRAND {
