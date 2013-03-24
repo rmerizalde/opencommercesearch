@@ -65,7 +65,7 @@ public class RuleManager<T extends SolrServer> {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
-                    Set<RepositoryItem> facets = (Set<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
+                    List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
                     if (facets != null) {
                         for (RepositoryItem facet : facets) {
                             manager.getFacetManager().addFacet(query, facet);

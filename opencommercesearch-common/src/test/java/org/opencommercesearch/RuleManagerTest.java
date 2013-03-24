@@ -357,7 +357,7 @@ public class RuleManagerTest {
         typeToRules.put(facetRule, rules);
         RepositoryItem rule = mock(RepositoryItem.class);
         rules.add(rule);
-        Set<RepositoryItem> facets = new HashSet<RepositoryItem>();        
+        List<RepositoryItem> facets = new ArrayList<RepositoryItem>();
         when(rule.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facets);
                 
         RepositoryItem facet1 = mock(RepositoryItem.class);
