@@ -391,6 +391,8 @@ public class RuleManager<T extends SolrServer> {
             query = WILDCARD;
         }
         doc.setField("query", query);
+        doc.setField("sortPriority", rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
+        doc.setField("combineMode", rule.getPropertyValue(RuleProperty.COMBINE_MODE));
         
         String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
         if(target != null) {
@@ -431,38 +433,53 @@ public class RuleManager<T extends SolrServer> {
             doc.setField(FIELD_CATEGORY, WILDCARD);
         }
 
-        if (RuleProperty.TYPE_RANKING_RULE.equals(rule.getPropertyValue(RuleProperty.RULE_TYPE))) {
-            String rankAction = null;
-
-            if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
-                String strength = (String) rule.getPropertyValue(STRENGTH);
-                rankAction = mapStrength(strength);
-            } else {
-                rankAction = (String) rule.getPropertyValue(ATTRIBUTE);
-                if (rankAction == null) {
-                    rankAction = "1.0";
-                }
-            }
-
-            // TODO: add support for locales
-            String conditionQuery = rulesBuilder.buildRankingRuleFilter(rule, Locale.US);
-            StringBuilder boostFunctionQuery = new StringBuilder();
-
-            if (conditionQuery.length() > 0) {
-                boostFunctionQuery
-                    .append("if(exists(query({!lucene v='")
-                    .append(StringUtils.remove(conditionQuery, '\''))
-                    .append("'})),")
-                    .append(rankAction)
-                    .append(",1.0)");
-            } else {
-                boostFunctionQuery.append(rankAction);
-            }
-
-            doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
+        String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
+        if (RuleProperty.TYPE_RANKING_RULE.equals(ruleType)) {
+            setRankingRuleFields(rule, doc);
+        } else if (RuleProperty.TYPE_FACET_RULE.equals(ruleType)) {
+            setFacetRuleFields(rule, doc);
         }
 
         return doc;
+    }
+
+    private void setFacetRuleFields(RepositoryItem rule, SolrInputDocument doc) {
+        List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
+
+        for (RepositoryItem facet : facets) {
+            doc.addField("facetField", facet.getPropertyValue(FacetProperty.FIELD));
+        }
+    }
+
+    private void setRankingRuleFields(RepositoryItem rule, SolrInputDocument doc) {
+        String rankAction = null;
+
+        if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
+            String strength = (String) rule.getPropertyValue(STRENGTH);
+            rankAction = mapStrength(strength);
+        } else {
+            rankAction = (String) rule.getPropertyValue(ATTRIBUTE);
+            if (rankAction == null) {
+                rankAction = "1.0";
+            }
+        }
+
+        // TODO: add support for locales
+        String conditionQuery = rulesBuilder.buildRankingRuleFilter(rule, Locale.US);
+        StringBuilder boostFunctionQuery = new StringBuilder();
+
+        if (conditionQuery.length() > 0) {
+            boostFunctionQuery
+                .append("if(exists(query({!lucene v='")
+                .append(StringUtils.remove(conditionQuery, '\''))
+                .append("'})),")
+                .append(rankAction)
+                .append(",1.0)");
+        } else {
+            boostFunctionQuery.append(rankAction);
+        }
+
+        doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
     }
 
     /**
