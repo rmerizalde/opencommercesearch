@@ -97,7 +97,8 @@ public class FacetManagerTest {
 	public void testGetFacetItem() {
 		addFacets();
 		assertEquals(fieldFacet, manager.getFacetItem("fieldName"));
-		assertEquals(rangeFacet, manager.getFacetItem("rangeName"));		
+		assertEquals(rangeFacet, manager.getFacetItem("rangeName"));
+        manager.setParams(query);
 		verify(query).addFacetQuery("{!ex=queryName}queryName:valQueryFacet");		
 	}
 	
@@ -109,7 +110,7 @@ public class FacetManagerTest {
 	@Test
 	public void testAddFacet() {
 		assertNull(manager.getFacetItem("fieldName"));
-		manager.addFacet(query, fieldFacet);
+		manager.addFacet(fieldFacet);
 		assertEquals(fieldFacet, manager.getFacetItem("fieldName"));
 	}
 
@@ -132,7 +133,7 @@ public class FacetManagerTest {
 
 	@Test
 	public void testGetFacetNameRangeFacet() {
-	    manager.addFacet(query, rangeFacet);
+	    manager.addFacet(rangeFacet);
 	    RangeFacet rangeFacetElement = mock(RangeFacet.class);
 	    when(rangeFacetElement.getName()).thenReturn("rangeName");
 	    assertEquals("rangeName", manager.getFacetName(rangeFacetElement));
@@ -239,9 +240,9 @@ public class FacetManagerTest {
     }
 	
 	private void addFacets(){		
-		manager.addFacet(query, fieldFacet);
-		manager.addFacet(query, rangeFacet);
-		manager.addFacet(query, queryFacet);
+		manager.addFacet(fieldFacet);
+		manager.addFacet(rangeFacet);
+		manager.addFacet(queryFacet);
 		//TODO gsegura: uncomment when date facet is implemented
 		//manager.addFacet(query, dateFacet);
 	}

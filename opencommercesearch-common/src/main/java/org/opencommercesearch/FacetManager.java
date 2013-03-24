@@ -19,11 +19,7 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -50,57 +46,49 @@ import atg.repository.RepositoryItem;
  * 
  */
 public class FacetManager {
-    private Map<String, RepositoryItem> fieldFacets;
+    private Map<String, RepositoryItem> facetMap;
 
     enum FacetType {
         fieldFacet() {
             void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
                 String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
-                if (manager.getFacetItem(fieldName) == null) {
-                    String localParams = "";
-                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
-                    if (isMultiSelect != null && isMultiSelect) {
-                        localParams = "{!ex=" + fieldName + "}";
-                    }
-                    query.addFacetField(localParams + fieldName);
-                    setParam(query, fieldName, "limit", (Integer) facet.getPropertyValue(FieldFacetProperty.LIMIT));
-                    setParam(query, fieldName, "mincount",
-                            (Integer) facet.getPropertyValue(FieldFacetProperty.MIN_COUNT));
-                    setParam(query, fieldName, "sort", (String) facet.getPropertyValue(FieldFacetProperty.SORT));
-                    setParam(query, fieldName, "missing", (Boolean) facet.getPropertyValue(FieldFacetProperty.MISSING));
-                    manager.addFieldFacet(fieldName, facet);
+                String localParams = "";
+                Boolean isMultiSelect = (Boolean) facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+                if (isMultiSelect != null && isMultiSelect) {
+                    localParams = "{!ex=" + fieldName + "}";
                 }
+                query.addFacetField(localParams + fieldName);
+                setParam(query, fieldName, "limit", (Integer) facet.getPropertyValue(FieldFacetProperty.LIMIT));
+                setParam(query, fieldName, "mincount",
+                        (Integer) facet.getPropertyValue(FieldFacetProperty.MIN_COUNT));
+                setParam(query, fieldName, "sort", (String) facet.getPropertyValue(FieldFacetProperty.SORT));
+                setParam(query, fieldName, "missing", (Boolean) facet.getPropertyValue(FieldFacetProperty.MISSING));
             }
         },
         rangeFacet() {
             void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
                 String fieldName = (String) facet.getPropertyValue(RangeFacetProperty.FIELD);
-                if (manager.getFacetItem(fieldName) == null) {
-                    Integer start = (Integer) facet.getPropertyValue(RangeFacetProperty.START);
-                    Integer end = (Integer) facet.getPropertyValue(RangeFacetProperty.END);
-                    Integer gap = (Integer) facet.getPropertyValue(RangeFacetProperty.GAP);
-                    String localParams = "";
-                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(RangeFacetProperty.IS_MULTI_SELECT);
-                    if (isMultiSelect != null && isMultiSelect) {
-                        localParams = "{!ex=" + fieldName + "}";
-                    }
-
-                    query.addNumericRangeFacet(fieldName, start, end, gap);
-                    if (StringUtils.isNotBlank(localParams)) {
-                        query.add(FacetParams.FACET_RANGE, localParams + fieldName);
-                    }
-                    Boolean hardened = (Boolean) facet.getPropertyValue(RangeFacetProperty.HARDENED);
-                    if (hardened != null) {
-                        setParam(query, fieldName, "hardened", hardened);
-                    }
-                    setParam(query, fieldName, "mincount", 1);
-                    addRangeParam(query, fieldName, "include", "lower");
-                    addRangeParam(query, fieldName, "other", "before");
-                    addRangeParam(query, fieldName, "other", "after");
-
-
-                    manager.addFieldFacet(fieldName, facet);
+                Integer start = (Integer) facet.getPropertyValue(RangeFacetProperty.START);
+                Integer end = (Integer) facet.getPropertyValue(RangeFacetProperty.END);
+                Integer gap = (Integer) facet.getPropertyValue(RangeFacetProperty.GAP);
+                String localParams = "";
+                Boolean isMultiSelect = (Boolean) facet.getPropertyValue(RangeFacetProperty.IS_MULTI_SELECT);
+                if (isMultiSelect != null && isMultiSelect) {
+                    localParams = "{!ex=" + fieldName + "}";
                 }
+
+                query.addNumericRangeFacet(fieldName, start, end, gap);
+                if (StringUtils.isNotBlank(localParams)) {
+                    query.add(FacetParams.FACET_RANGE, localParams + fieldName);
+                }
+                Boolean hardened = (Boolean) facet.getPropertyValue(RangeFacetProperty.HARDENED);
+                if (hardened != null) {
+                    setParam(query, fieldName, "hardened", hardened);
+                }
+                setParam(query, fieldName, "mincount", 1);
+                addRangeParam(query, fieldName, "include", "lower");
+                addRangeParam(query, fieldName, "other", "before");
+                addRangeParam(query, fieldName, "other", "after");
             }
         },
         dateFacet() {
@@ -110,25 +98,22 @@ public class FacetManager {
         queryFacet() {
             void setParams(FacetManager manager, SolrQuery query, RepositoryItem facet) {
                 String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
-                if (manager.getFacetItem(fieldName) == null) {
-                    String localParams = "";
-                    Boolean isMultiSelect = (Boolean) facet.getPropertyValue(QueryFacetProperty.IS_MULTI_SELECT);
-                    if (isMultiSelect != null && isMultiSelect) {
-                        localParams = "{!ex=" + fieldName + "}";
-                    }
-                    @SuppressWarnings("unchecked")
-                    List<String> queries = (List<String>) facet.getPropertyValue(QueryFacetProperty.QUERIES);
+                String localParams = "";
+                Boolean isMultiSelect = (Boolean) facet.getPropertyValue(QueryFacetProperty.IS_MULTI_SELECT);
+                if (isMultiSelect != null && isMultiSelect) {
+                    localParams = "{!ex=" + fieldName + "}";
+                }
+                @SuppressWarnings("unchecked")
+                List<String> queries = (List<String>) facet.getPropertyValue(QueryFacetProperty.QUERIES);
 
-                    if (queries != null) {
-                        for (String q : queries) {
-                            q = q.trim();
-                            if (!q.startsWith("[") && !q.endsWith("]")) {
-                                q = ClientUtils.escapeQueryChars(q);
-                            }
-                            query.addFacetQuery(localParams + fieldName + ":" + q);
+                if (queries != null) {
+                    for (String q : queries) {
+                        q = q.trim();
+                        if (!q.startsWith("[") && !q.endsWith("]")) {
+                            q = ClientUtils.escapeQueryChars(q);
                         }
+                        query.addFacetQuery(localParams + fieldName + ":" + q);
                     }
-                    manager.addFieldFacet(fieldName, facet);
                 }
             }
         };
@@ -161,10 +146,10 @@ public class FacetManager {
     }
 
     public RepositoryItem getFacetItem(String fieldName) {
-        if (fieldFacets == null) {
+        if (facetMap == null) {
             return null;
         }
-        return fieldFacets.get(fieldName);
+        return facetMap.get(fieldName);
     }
 
     /**
@@ -172,24 +157,43 @@ public class FacetManager {
      * facet's parameters to the given query. In addition, the facet is
      * registered for future use. If multiple facet for the same field are added
      * only the first one is used. The rest are ignored
-     * 
-     * @param query
+     *
      *            to query to apply the facet params
      * @param facet
      *            the facet item from the repository
      */
-    void addFacet(SolrQuery query, RepositoryItem facet) {
-        FacetType type = FacetType.valueOf((String) facet.getPropertyValue(FacetProperty.TYPE));
-
-        type.setParams(this, query, facet);
+    void addFacet(RepositoryItem facet) {
+        String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
+        addField(fieldName, facet);
     }
 
-    // Helper method to to register a field facet to this manager
-    private void addFieldFacet(String fieldName, RepositoryItem fieldFacet) {
-        if (fieldFacets == null) {
-            fieldFacets = new HashMap<String, RepositoryItem>();
+    /**
+     * Add facet parameters to the given query.
+     * @param query the query object
+     */
+    void setParams(SolrQuery query) {
+        if (facetMap == null || facetMap.size() == 0) {
+            return;
         }
-        fieldFacets.put(fieldName, fieldFacet);
+        for (RepositoryItem facet : facetMap.values()) {
+            FacetType type = FacetType.valueOf((String) facet.getPropertyValue(FacetProperty.TYPE));
+            type.setParams(this, query, facet);
+        }
+    }
+
+    /**
+     * This method register the facet for the given fieldName. A linked hash map is used to preserver the insertion order.
+     * Facet rules are process sort priority and facet within a rule are already sorted. Using the field name as the key
+     * allows redefining a rule of lower priority.
+     *
+     * @param fieldName the field name of the facet
+     * @param fieldFacet the facet object
+     */
+    private void addField(String fieldName, RepositoryItem fieldFacet) {
+        if (facetMap == null) {
+            facetMap = new LinkedHashMap<String, RepositoryItem>();
+        }
+        facetMap.put(fieldName, fieldFacet);
     }
 
     public String getFacetName(String fieldName) {

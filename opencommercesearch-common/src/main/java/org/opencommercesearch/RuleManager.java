@@ -47,8 +47,11 @@ import static org.opencommercesearch.repository.RankingRuleProperty.*;
  * 
  */
 public class RuleManager<T extends SolrServer> {
-    public static final String FIELD_BOOST_FUNCTION = "boostFunction";
     public  static final String FIELD_CATEGORY = "category";
+    public static final String FIELD_BOOST_FUNCTION = "boostFunction";
+    public static final String FIELD_FACET_FIELD = "facetField";
+    public static final String FIELD_SORT_PRIORITY = "sortPriority";
+    public static final String FIELD_COMBINE_MODE = "combineMode";
 
     private static final String WILDCARD = "__all__";
 
@@ -63,15 +66,22 @@ public class RuleManager<T extends SolrServer> {
     enum RuleType {
         facetRule() {
             void setParams(RuleManager manager, SolrQuery query, List<RepositoryItem> rules, Map<String, SolrDocument> ruleDocs) {
+                if (rules == null || rules.size() == 0) {
+                    return;
+                }
+
+                FacetManager facetManager = manager.getFacetManager();
+
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
                     List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
                     if (facets != null) {
                         for (RepositoryItem facet : facets) {
-                            manager.getFacetManager().addFacet(query, facet);
+                            facetManager.addFacet(facet);
                         }
                     }
                 }
+                facetManager.setParams(query);
             }
         },
         boostRule() {
@@ -198,7 +208,8 @@ public class RuleManager<T extends SolrServer> {
         query.setStart(start);
         query.setRows(rows);
         query.setParam("fl", "id");
-        query.add("fl", FIELD_BOOST_FUNCTION);
+        query.addSortField(FIELD_SORT_PRIORITY, ORDER.asc);
+        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE);
 
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
@@ -269,6 +280,7 @@ public class RuleManager<T extends SolrServer> {
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
     }
 
+    // Helper method to process the rules for this request
     void setRuleParams(SolrQuery query, Map<String, List<RepositoryItem>> rules) {
         if (rules == null) {
             return;

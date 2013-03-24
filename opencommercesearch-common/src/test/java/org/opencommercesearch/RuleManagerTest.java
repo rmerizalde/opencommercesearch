@@ -367,8 +367,9 @@ public class RuleManagerTest {
         facets.add(facet2);
         
         mgr.setRuleParams(query, typeToRules);
-        verify(facetManager).addFacet(query, facet1);
-        verify(facetManager).addFacet(query, facet2);
+        verify(facetManager).addFacet(facet1);
+        verify(facetManager).addFacet(facet2);
+        verify(facetManager).setParams(query);
         verifyNoMoreInteractions(facetManager);     
     }
     
