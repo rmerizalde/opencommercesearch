@@ -34,6 +34,7 @@
         sub-type-property="ruleType" sub-type-value="rule">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="TriggerPriority" value="1" />
+      <attribute name="PriorityPriority" value="9" />
       <attribute name="LifetimePriority" value="10" />
       <table name="cs_rule" type="primary" id-column-name="rule_id">
         <property name="ruleType" data-type="enumerated" column-name="type" hidden="false">
@@ -62,13 +63,24 @@
                   column-name="query" category="Trigger">
           <attribute name="propertySortPriority" value="2" />
         </property>
+        <property name="sortPriority" data-type="int" display-name="Sort Priority (default 0)"
+                  column-name="sort_priority" required="true" category="Priority">
+          <attribute name="propertySortPriority" value="6" />
+        </property>
+        <property name="combineMode" data-type="enumerated" display-name="Combine (default 'Replace')"
+                  column-name="combine_mode" required="true" category="Priority">
+          <attribute name="propertySortPriority" value="7" />
+          <attribute name="useCodeForValue" value="false"/>
+          <option value="Replace" code="1"/>
+          <option value="Append"  code="2"/>
+        </property>
         <property name="startDate" data-type="timestamp" display-name="Start Date"
             column-name="start_date" required="false" category="Lifetime">
-            <attribute name="propertySortPriority" value="6" />
+            <attribute name="propertySortPriority" value="8" />
         </property>
         <property name="endDate" data-type="timestamp" display-name="End Date"
             column-name="end_date" required="false" category="Lifetime">
-            <attribute name="propertySortPriority" value="7" />
+            <attribute name="propertySortPriority" value="9" />
         </property>
       </table>
 

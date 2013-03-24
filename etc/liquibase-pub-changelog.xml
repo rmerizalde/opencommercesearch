@@ -845,6 +845,24 @@
     </preConditions>
     <sql>UPDATE cs_ranking_rule SET notes='Update me' WHERE notes IS NULL</sql>
     <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>    
-  </changeSet>       
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="30">
+    <preConditions onFail="MARK_RAN">
+        <not><columnExists tableName="cs_rule" columnName="sort_priority"/></not>
+        <not><columnExists tableName="cs_rule" columnName="combine_mode"/></not>
+    </preConditions>  
+    <addColumn tableName="cs_rule">
+        <column name="sort_priority" type="number(19)" defaultValueNumeric="0">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+    <addColumn tableName="cs_rule">
+        <column name="combine_mode" type="VARCHAR2(15 BYTE)" defaultValue="1">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>  
+  </changeSet>    
+        
 
 </databaseChangeLog>
