@@ -25,6 +25,7 @@ public class FacetProperty {
 
     public static final String TYPE = "facetType";
     public static final String IS_MULTI_SELECT = "isMultiSelect";
+    public static final String NAME = "name";
     public static final String UI_TYPE = "uiType";
     public static final String MIN_BUCKETS = "minBuckets";
     // TODO: refactor fieldName column to cs_facet table.

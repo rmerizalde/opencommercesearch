@@ -67,7 +67,7 @@
                   column-name="sort_priority" required="true" category="Priority">
           <attribute name="propertySortPriority" value="6" />
         </property>
-        <property name="combineMode" data-type="enumerated" display-name="Combine (default 'Replace')"
+        <property name="combineMode" data-type="enumerated" display-name="Combine Mode (default 'Replace')"
                   column-name="combine_mode" required="true" category="Priority">
           <attribute name="propertySortPriority" value="7" />
           <attribute name="useCodeForValue" value="false"/>
@@ -160,7 +160,7 @@
     </item-descriptor>
 
     <!-- facets -->
-    <item-descriptor display-name="Facet" name="facet" display-property="name" item-cache-size="100" query-cache-size="100"
+    <item-descriptor display-name="Facet" name="facet" display-property="systemName" item-cache-size="100" query-cache-size="100"
         sub-type-property="facetType" sub-type-value="facet">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="OptionalPriority" value="2" />
@@ -175,9 +175,14 @@
           <option value="pivotRule"  code="5"/>
         </property>
 
-        <property name="name" data-type="string" display-name="Name"
-                  column-name="name" required="true" category="Basic">
+
+        <property name="systemName" data-type="string" display-name="System Name"
+                  column-name="system_name" required="true" category="Basic">
           <attribute name="propertySortPriority" value="1" />
+        </property>
+        <property name="name" data-type="string" display-name="Display Name"
+                  column-name="name" required="true" category="Basic">
+          <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="isMultiSelect" data-type="boolean" display-name="Allow Multiple Selection"
                   column-name="is_multi_select" required="false" category="Optional">

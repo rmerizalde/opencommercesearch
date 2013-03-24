@@ -74,6 +74,26 @@ public class SearchResponse {
         return filterQueries;
     }
 
+    public String getRedirectResponse() {
+        return redirectResponse;
+    }
+
+    public List<CategoryGraph> getCategoryGraph() {
+        return categoryGraph;
+    }
+
+    public void setCategoryGraph(List<CategoryGraph> categoryGraph) {
+        this.categoryGraph = categoryGraph;
+    }
+
+    public boolean matchesAll() {
+        return matchesAll;
+    }
+
+    public String getCorrectedTerm() {
+        return correctedTerm;
+    }
+
     public void removeFacet(String name){
         for (FacetField facetField : queryResponse.getFacetFields()) {
             if(name.equals(facetField.getName())){
@@ -84,7 +104,7 @@ public class SearchResponse {
     }
     
     public List<Facet> getFacets() {
-        List<Facet> facets = new ArrayList<Facet>();
+        Map<String, Facet> facetMap = new HashMap<String, Facet>();
         FacetManager manager = getRuleManager().getFacetManager();
 
         for (FacetField facetField : queryResponse.getFacetFields()) {
@@ -101,7 +121,6 @@ public class SearchResponse {
             facet.setMetadata(metadata);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
-            int pos = 0;
             for (Count count : facetField.getValues()) {
                 Filter filter = new Filter();
                 filter.setName(manager.getCountName(count));
@@ -110,15 +129,31 @@ public class SearchResponse {
                 filters.add(filter);
             }
             facet.setFilter(filters);
-            facets.add(facet);
+            facetMap.put(facetField.getName(), facet);
         }
-        getRangeFacets(facets);
-        getQueryFacets(facets);
+        getRangeFacets(facetMap);
+        getQueryFacets(facetMap);
 
-        return facets;
+        List<Facet> sortedFacets = new ArrayList<Facet>(facetMap.size());
+
+        for (String fieldName : new String[] {"category", "categoryPath"}) {
+            Facet facet = facetMap.get(fieldName);
+            if (facet != null) {
+                sortedFacets.add(facet);
+            }
+        }
+
+        for (String fieldName : manager.facetFieldNames()) {
+            Facet facet = facetMap.get(fieldName);
+            if (facet != null) {
+                sortedFacets.add(facet);
+            }
+        }
+
+        return sortedFacets;
     }
     
-    private void getRangeFacets(List<Facet> facets) {
+    private void getRangeFacets(Map<String, Facet> facetMap) {
         FacetManager manager = getRuleManager().getFacetManager();
 
         if (getQueryResponse().getFacetRanges() == null) {
@@ -167,7 +202,7 @@ public class SearchResponse {
             }
 
             facet.setFilter(filters);
-            facets.add(facet);
+            facetMap.put(range.getName(), facet);
         }
     }
 
@@ -218,7 +253,7 @@ public class SearchResponse {
         return number;
     }
 
-    private void getQueryFacets(List<Facet> facets) {
+    private void getQueryFacets(Map<String, Facet> facetMap) {
         FacetManager manager = getRuleManager().getFacetManager();
 
         Map<String, Integer> queryFacets = getQueryResponse().getFacetQuery();
@@ -254,10 +289,10 @@ public class SearchResponse {
                 filters = new ArrayList<Filter>();
                 facet.setName(manager.getFacetName(fieldName));
                 facet.setFilter(filters);
-                facets.add(facet);
+                facetMap.put(fieldName, facet);
             }
             Filter filter = new Filter();
-            filter.setName(Utils.getRangeName(fieldName, expression));
+            filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
             filter.setPath(manager.getCountPath(query, fieldName, fieldName + ':' + expression, filterQueries));
             filter.setCount(count);
             filters.add(filter);
@@ -275,25 +310,4 @@ public class SearchResponse {
         }
         return null;
     }
-
-    public String getRedirectResponse() {
-        return redirectResponse;
-    }
-
-    public List<CategoryGraph> getCategoryGraph() {
-        return categoryGraph;
-    }
-
-    public void setCategoryGraph(List<CategoryGraph> categoryGraph) {
-        this.categoryGraph = categoryGraph;
-    }
-
-    public boolean matchesAll() {
-        return matchesAll;
-    }
-
-    public String getCorrectedTerm() {
-        return correctedTerm;
-    }
-    
 }

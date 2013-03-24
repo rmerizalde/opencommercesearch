@@ -31,6 +31,7 @@ import org.opencommercesearch.repository.RangeFacetProperty;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.hamcrest.collection.IsIterableContainingInOrder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class FacetManagerTest {
 
-	FacetManager manager = new FacetManager();
+	private FacetManager manager = new FacetManager();
 	
 	@Mock
 	RepositoryItem fieldFacet;
@@ -63,7 +64,7 @@ public class FacetManagerTest {
 		initMocks(this);
 		
 		when(fieldFacet.getPropertyValue(FacetProperty.TYPE)).thenReturn("fieldFacet");
-		when(fieldFacet.getItemDisplayName()).thenReturn("fieldName");
+        when(fieldFacet.getPropertyValue(FacetProperty.NAME)).thenReturn("fieldName");
 		when(fieldFacet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn("fieldName");
 		when(fieldFacet.getPropertyValue(FieldFacetProperty.IS_MULTI_SELECT)).thenReturn(true);
 		when(fieldFacet.getPropertyValue(FieldFacetProperty.LIMIT)).thenReturn(100);
@@ -72,7 +73,7 @@ public class FacetManagerTest {
 		when(fieldFacet.getPropertyValue(FieldFacetProperty.MISSING)).thenReturn(false);
 		
 		when(rangeFacet.getPropertyValue(FacetProperty.TYPE)).thenReturn("rangeFacet");
-		when(rangeFacet.getItemDisplayName()).thenReturn("rangeName");
+		when(rangeFacet.getPropertyValue(FacetProperty.NAME)).thenReturn("rangeName");
 		when(rangeFacet.getPropertyValue(RangeFacetProperty.FIELD)).thenReturn("rangeName");
 		when(rangeFacet.getPropertyValue(RangeFacetProperty.START)).thenReturn(0);
 		when(rangeFacet.getPropertyValue(RangeFacetProperty.END)).thenReturn(1000);
@@ -82,7 +83,7 @@ public class FacetManagerTest {
 		
 		
 		when(queryFacet.getPropertyValue(FacetProperty.TYPE)).thenReturn("queryFacet");
-		when(queryFacet.getItemDisplayName()).thenReturn("queryName");
+        when(queryFacet.getPropertyValue(FacetProperty.NAME)).thenReturn("queryName");
 		when(queryFacet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn("queryName");
 		when(queryFacet.getPropertyValue(QueryFacetProperty.IS_MULTI_SELECT)).thenReturn(true);
 		List<String> queries = new ArrayList<String>();
@@ -246,4 +247,55 @@ public class FacetManagerTest {
 		//TODO gsegura: uncomment when date facet is implemented
 		//manager.addFacet(query, dateFacet);
 	}
+
+
+    @Test
+    public void testFacetFieldNames() {
+        FacetManager manager = new FacetManager();
+        RepositoryItem colorFacet = mockFacetItem("facet1", "color");
+        RepositoryItem brandFacet = mockFacetItem("facet2", "brand");
+        RepositoryItem sizeFacet  = mockFacetItem("facet2", "size");
+        manager.addFacet(colorFacet);
+        manager.addFacet(brandFacet);
+        manager.addFacet(sizeFacet);
+
+        assertThat(manager.facetFieldNames(), IsIterableContainingInOrder.contains("color", "brand", "size"));
+        assertEquals(colorFacet, manager.getFacetItem("color"));
+        assertEquals(brandFacet, manager.getFacetItem("brand"));
+        assertEquals(sizeFacet, manager.getFacetItem("size"));
+    }
+
+    @Test
+    public void testFacetFieldNamesReplace() {
+        FacetManager manager = new FacetManager();
+        RepositoryItem colorFacet = mockFacetItem("facet1", "color");
+        RepositoryItem brandFacet = mockFacetItem("facet2", "brand");
+        RepositoryItem sizeFacet  = mockFacetItem("facet3", "size");
+
+        manager.addFacet(colorFacet);
+        manager.addFacet(brandFacet);
+        manager.addFacet(sizeFacet);
+        manager.clear();
+
+        RepositoryItem priceFacet = mockFacetItem("facet4", "price");
+        RepositoryItem genderFacet = mockFacetItem("facet5", "gender");
+        RepositoryItem colorFacet2  = mockFacetItem("facet6", "color");
+
+        manager.addFacet(priceFacet);
+        manager.addFacet(genderFacet);
+        manager.addFacet(colorFacet2);
+
+
+        assertThat(manager.facetFieldNames(), IsIterableContainingInOrder.contains("price", "gender", "color"));
+        assertEquals(priceFacet, manager.getFacetItem("price"));
+        assertEquals(genderFacet, manager.getFacetItem("gender"));
+        assertEquals(colorFacet2, manager.getFacetItem("color"));
+    }
+
+    private RepositoryItem mockFacetItem(String id, String fieldName) {
+        RepositoryItem item = mock(RepositoryItem.class, id);
+        when(item.getRepositoryId()).thenReturn(id);
+        when(item.getPropertyValue(FacetProperty.FIELD)).thenReturn(fieldName);
+        return item;
+    }
 }

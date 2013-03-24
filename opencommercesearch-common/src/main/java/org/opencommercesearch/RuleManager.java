@@ -44,6 +44,8 @@ import static org.opencommercesearch.repository.RankingRuleProperty.*;
  * query or triggers.
  * 
  * @author rmerizalde
+ *
+ * @todo decouple this class from ATG
  * 
  */
 public class RuleManager<T extends SolrServer> {
@@ -74,6 +76,12 @@ public class RuleManager<T extends SolrServer> {
 
                 for (RepositoryItem rule : rules) {
                     @SuppressWarnings("unchecked")
+                    SolrDocument doc = ruleDocs.get(rule.getRepositoryId());
+
+                    if (FacetRuleProperty.COMBINE_MODE_REPLACE.equals(doc.getFieldValue(FacetRuleProperty.COMBINE_MODE))) {
+                        facetManager.clear();
+                    }
+
                     List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
                     if (facets != null) {
                         for (RepositoryItem facet : facets) {
@@ -282,6 +290,11 @@ public class RuleManager<T extends SolrServer> {
 
     // Helper method to process the rules for this request
     void setRuleParams(SolrQuery query, Map<String, List<RepositoryItem>> rules) {
+        setRuleParams(query, rules, ruleDocs);
+    }
+
+    // Helper method to process the rules for this request
+    void setRuleParams(SolrQuery query, Map<String, List<RepositoryItem>> rules, Map<String, SolrDocument> ruleDocs) {
         if (rules == null) {
             return;
         }

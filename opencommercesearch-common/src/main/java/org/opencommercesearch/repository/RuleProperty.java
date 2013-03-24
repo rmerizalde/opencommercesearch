@@ -45,4 +45,7 @@ public class RuleProperty {
     public static final String TYPE_FACET_RULE = "facetRule";
     public static final String TYPE_RANKING_RULE = "rankingRule";
     public static final String TYPE_REDIRECT_RULE  = "redirectRule";
+
+    public static final String COMBINE_MODE_REPLACE = "Replace";
+    public static final String COMBINE_MODE_APPEND = "Append";
 }

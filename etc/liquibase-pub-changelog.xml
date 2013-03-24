@@ -886,5 +886,20 @@
         <tableExists tableName="cs_facet_rule_facets"/>
     </preConditions>
     <sql>DELETE cs_facet_rule_facets WHERE position = 0</sql>
-  </changeSet>      
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="34">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet"/>
+      <not><columnExists tableName="cs_facet" columnName="system_name"/></not>
+    </preConditions>
+    
+    <addColumn tableName="cs_facet">
+        <column name="system_name" type="VARCHAR2(30 BYTE)" />
+    </addColumn>
+      
+    <sql>UPDATE cs_facet SET system_name = name</sql>
+
+    <addNotNullConstraint tableName="cs_facet" columnName="system_name" />
+  </changeSet>          
 </databaseChangeLog>

@@ -358,18 +358,28 @@ public class RuleManagerTest {
         RepositoryItem rule = mock(RepositoryItem.class);
         rules.add(rule);
         List<RepositoryItem> facets = new ArrayList<RepositoryItem>();
+        when(rule.getRepositoryId()).thenReturn("facetRule1");
         when(rule.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facets);
                 
         RepositoryItem facet1 = mock(RepositoryItem.class);
         facets.add(facet1);
+        when(facet1.getRepositoryId()).thenReturn("facet1");
         
         RepositoryItem facet2 = mock(RepositoryItem.class);
         facets.add(facet2);
+        when(facet1.getRepositoryId()).thenReturn("facet2");
+
+        Map<String, SolrDocument> ruleDocs = new HashMap<String, SolrDocument>();
+        SolrDocument facetRuleDoc = mock(SolrDocument.class);
+        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(FacetRuleProperty.COMBINE_MODE_REPLACE);
+        ruleDocs.put("facetRule1", facetRuleDoc);
+
         
-        mgr.setRuleParams(query, typeToRules);
+        mgr.setRuleParams(query, typeToRules, ruleDocs);
         verify(facetManager).addFacet(facet1);
         verify(facetManager).addFacet(facet2);
         verify(facetManager).setParams(query);
+        verify(facetManager).clear();
         verifyNoMoreInteractions(facetManager);     
     }
     
@@ -384,7 +394,13 @@ public class RuleManagerTest {
         List<RepositoryItem> facetRules = new ArrayList<RepositoryItem>();
         typeToRules.put(facetRule, facetRules);
         RepositoryItem frule1 = mock(RepositoryItem.class);
+        when(frule1.getRepositoryId()).thenReturn("facetRule1");
         facetRules.add(frule1);
+
+        Map<String, SolrDocument> ruleDocs = new HashMap<String, SolrDocument>();
+        SolrDocument facetRuleDoc = mock(SolrDocument.class);
+        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(FacetRuleProperty.COMBINE_MODE_REPLACE);
+        ruleDocs.put("facetRule1", facetRuleDoc);
 
         List<RepositoryItem> boostRules = new ArrayList<RepositoryItem>();
         typeToRules.put(boostRule, boostRules);
@@ -399,7 +415,7 @@ public class RuleManagerTest {
                 
         // this should NOT throw if no FACETS, BOOSTED_PRODUCTS or BLOCKED_PRODUCTS are found
         try {
-            mgr.setRuleParams(query, typeToRules);
+            mgr.setRuleParams(query, typeToRules, ruleDocs);
         } catch (NullPointerException ex) {
             fail("Should protect against no rules set");
         }
@@ -1043,6 +1059,112 @@ public class RuleManagerTest {
         assertEquals(Float.toString(10f), mgr.mapStrength(RankingRuleProperty.STRENGTH_MAXIMUM_BOOST));
 
     }
-    
 
+    @Test
+    public void testFacetRuleSorting() {
+        final FacetManager facetManager = mock(FacetManager.class);
+        RuleManager mgr = new RuleManager(repository, builder, server) {
+            @Override
+            public FacetManager getFacetManager() {
+                return facetManager;
+            }
+        };
+        SolrQuery query = mock(SolrQuery.class);
+        Map<String, List<RepositoryItem>> typeToRules = new HashMap<String, List<RepositoryItem>>();
+
+        List<RepositoryItem> facetRules = new ArrayList<RepositoryItem>();
+        typeToRules.put(facetRule, facetRules);
+        RepositoryItem facetRule1 = mock(RepositoryItem.class);
+        when(facetRule1.getRepositoryId()).thenReturn("facetRule1");
+        facetRules.add(facetRule1);
+
+        RepositoryItem facet1 = mock(RepositoryItem.class, "facet1");
+        RepositoryItem facet2 = mock(RepositoryItem.class, "facet2");
+        RepositoryItem facet3 = mock(RepositoryItem.class, "facet3");
+
+        when(facetRule1.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(Arrays.asList(facet1, facet2, facet3));
+
+        Map<String, SolrDocument> ruleDocs = new HashMap<String, SolrDocument>();
+        SolrDocument facetRuleDoc = mock(SolrDocument.class);
+        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(FacetRuleProperty.COMBINE_MODE_REPLACE);
+        ruleDocs.put("facetRule1", facetRuleDoc);
+
+
+        mgr.setRuleParams(query, typeToRules, ruleDocs);
+        verify(facetManager).clear();
+        verify(facetManager).addFacet(facet1);
+        verify(facetManager).addFacet(facet2);
+        verify(facetManager).addFacet(facet3);
+        verify(facetManager).setParams(query);
+        verifyNoMoreInteractions(facetManager);
+    }
+
+    @Test
+    public void testFacetRuleSortingReplace() {
+        testFacetRuleSortingAux(FacetRuleProperty.COMBINE_MODE_REPLACE, 2);
+    }
+
+    @Test
+    public void testFacetRuleSortingAppend() {
+        testFacetRuleSortingAux(FacetRuleProperty.COMBINE_MODE_APPEND, 0);
+    }
+
+    private void testFacetRuleSortingAux(String combineMode, int clearTimes) {
+        final FacetManager facetManager = mock(FacetManager.class);
+        RuleManager mgr = new RuleManager(repository, builder, server) {
+            @Override
+            public FacetManager getFacetManager() {
+                return facetManager;
+            }
+        };
+        SolrQuery query = mock(SolrQuery.class);
+        Map<String, List<RepositoryItem>> typeToRules = new HashMap<String, List<RepositoryItem>>();
+
+        List<RepositoryItem> facetRules = new ArrayList<RepositoryItem>();
+        Map<String, SolrDocument> ruleDocs = new HashMap<String, SolrDocument>();
+
+
+        // first rule
+        RepositoryItem facetRule1 = mock(RepositoryItem.class, "facetRule1");
+        when(facetRule1.getRepositoryId()).thenReturn("facetRule1");
+        facetRules.add(facetRule1);
+
+        SolrDocument facetRuleDoc = mock(SolrDocument.class);
+        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(combineMode);
+        ruleDocs.put("facetRule1", facetRuleDoc);
+
+        RepositoryItem facet1 = mock(RepositoryItem.class, "facet1");
+        RepositoryItem facet2 = mock(RepositoryItem.class, "facet2");
+        RepositoryItem facet3 = mock(RepositoryItem.class, "facet3");
+
+        when(facetRule1.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(Arrays.asList(facet1, facet2, facet3));
+        typeToRules.put(facetRule, facetRules);
+
+        // second rule
+        RepositoryItem facetRule2 = mock(RepositoryItem.class, "facetRule2");
+        when(facetRule2.getRepositoryId()).thenReturn("facetRule2");
+        facetRules.add(facetRule2);
+
+        SolrDocument facetRuleDoc2 = mock(SolrDocument.class);
+        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(combineMode);
+        ruleDocs.put("facetRule2", facetRuleDoc);
+
+        RepositoryItem facet4 = mock(RepositoryItem.class, "facet4");
+        RepositoryItem facet5 = mock(RepositoryItem.class, "facet5");
+        RepositoryItem facet6 = mock(RepositoryItem.class, "facet6");
+
+        when(facetRule2.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(Arrays.asList(facet4, facet5, facet6));
+        typeToRules.put(facetRule, facetRules);
+
+        mgr.setRuleParams(query, typeToRules, ruleDocs);
+        verify(facetManager, times(clearTimes)).clear();
+        verify(facetManager).addFacet(facet1);
+        verify(facetManager).addFacet(facet2);
+        verify(facetManager).addFacet(facet3);
+        verify(facetManager).addFacet(facet4);
+        verify(facetManager).addFacet(facet5);
+        verify(facetManager).addFacet(facet6);
+        verify(facetManager).setParams(query);
+        verifyNoMoreInteractions(facetManager);
+    }
 }

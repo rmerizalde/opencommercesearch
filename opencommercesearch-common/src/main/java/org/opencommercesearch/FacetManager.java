@@ -43,6 +43,8 @@ import atg.repository.RepositoryItem;
  * retrieve information about facet applied applied to the query.
  * 
  * @author rmerizalde
+ *
+ * @todo decouple this class from ATG
  * 
  */
 public class FacetManager {
@@ -153,6 +155,16 @@ public class FacetManager {
     }
 
     /**
+     * Returns the names for all facets
+     */
+    Set<String> facetFieldNames() {
+        if (facetMap == null) {
+            return Collections.emptySet();
+        }
+        return facetMap.keySet();
+    }
+
+    /**
      * Helper method to process a facet item. The facet is used to populate the
      * facet's parameters to the given query. In addition, the facet is
      * registered for future use. If multiple facet for the same field are added
@@ -165,6 +177,15 @@ public class FacetManager {
     void addFacet(RepositoryItem facet) {
         String fieldName = (String) facet.getPropertyValue(FieldFacetProperty.FIELD);
         addField(fieldName, facet);
+    }
+
+    /**
+     * Clear all facets in this manager
+     */
+    void clear() {
+        if (facetMap != null) {
+            facetMap.clear();
+        }
     }
 
     /**
@@ -200,7 +221,7 @@ public class FacetManager {
         String facetName = fieldName;
         RepositoryItem facetItem = getFacetItem(fieldName);
         if (facetItem != null) {
-            facetName = facetItem.getItemDisplayName();
+            facetName = (String) facetItem.getPropertyValue(FacetProperty.NAME);
         }
         return facetName;
     }
@@ -209,7 +230,7 @@ public class FacetManager {
         String facetName = facet.getName();
         RepositoryItem facetItem = getFacetItem(facet.getName());
         if (facetItem != null) {
-            facetName = facetItem.getItemDisplayName();
+            facetName = (String) facetItem.getPropertyValue(FacetProperty.NAME);
         }
         return facetName;
     }
@@ -218,7 +239,7 @@ public class FacetManager {
         String facetName = facet.getName();
         RepositoryItem facetItem = getFacetItem(facet.getName());
         if (facetItem != null) {
-            facetName = facetItem.getItemDisplayName();
+            facetName = (String) facetItem.getPropertyValue(FacetProperty.NAME);
         }
         return facetName;
     }
