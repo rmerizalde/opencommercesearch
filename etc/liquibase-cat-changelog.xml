@@ -571,8 +571,32 @@
             <constraints nullable="true"/>
         </column>
     </addColumn>  
-  </changeSet>    
-
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="29">
+    <preConditions onFail="MARK_RAN">
+        <not><columnExists tableName="cs_facet_rule_facets" columnName="position"/></not>
+    </preConditions>  
+    <addColumn tableName="cs_facet_rule_facets">
+        <column name="position" type="number(19)" defaultValueNumeric="0" />
+    </addColumn>  
+  </changeSet>   
+  
+  <changeSet author="commercesearch" id="30">
+    <preConditions onFail="MARK_RAN">
+        <primaryKeyExists tableName="cs_facet_rule_facets" primaryKeyName="cs_facet_rule_facet_pk"/>
+    </preConditions>     
+    <dropPrimaryKey tableName="cs_facet_rule_facets" constraintName="cs_facet_rule_facet_pk"/>
+    <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,position" constraintName="cs_facet_rule_facet_pk"/>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="31">
+    <preConditions onFail="MARK_RAN">
+        <tableExists tableName="cs_facet_rule_facets"/>
+    </preConditions>
+    <sql>DELETE cs_facet_rule_facets WHERE position = 0</sql>
+  </changeSet>  
+   
 </databaseChangeLog>
 
 

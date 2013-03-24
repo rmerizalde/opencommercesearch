@@ -151,8 +151,8 @@
 
       <table name="cs_facet_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1"/>
 
-      <table name="cs_facet_rule_facets" type="multi" id-column-name="rule_id" shared-table-sequence="1">
-          <property name="facets" display-name="Facets" data-type="set" component-item-type="facet"
+      <table name="cs_facet_rule_facets" type="multi" id-column-name="rule_id" shared-table-sequence="1" multi-column-name="position">
+          <property name="facets" display-name="Facets" data-type="list" component-item-type="facet"
               column-name="facet_id" category="Facets">
               <attribute name="cacheReferencesById" value="false"/>
           </property>
