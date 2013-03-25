@@ -34,6 +34,7 @@
         sub-type-property="ruleType" sub-type-value="rule">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="TriggerPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
       <attribute name="PriorityPriority" value="9" />
       <attribute name="LifetimePriority" value="10" />
       <table name="cs_rule" type="primary" id-column-name="rule_id">
@@ -63,24 +64,28 @@
                   column-name="query" category="Trigger">
           <attribute name="propertySortPriority" value="2" />
         </property>
+        <property name="includeSubcategories" data-type="boolean" display-name="Include Subcategories (default 'No')"
+                  column-name="include_subcats" required="false" category="Context">
+          <attribute name="propertySortPriority" value="6" />
+        </property>
         <property name="sortPriority" data-type="int" display-name="Sort Priority (default 0)"
                   column-name="sort_priority" required="true" category="Priority">
-          <attribute name="propertySortPriority" value="6" />
+          <attribute name="propertySortPriority" value="7" />
         </property>
         <property name="combineMode" data-type="enumerated" display-name="Combine Mode (default 'Replace')"
                   column-name="combine_mode" required="true" category="Priority">
-          <attribute name="propertySortPriority" value="7" />
+          <attribute name="propertySortPriority" value="8" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="Replace" code="1"/>
           <option value="Append"  code="2"/>
         </property>
         <property name="startDate" data-type="timestamp" display-name="Start Date"
             column-name="start_date" required="false" category="Lifetime">
-            <attribute name="propertySortPriority" value="8" />
+            <attribute name="propertySortPriority" value="9" />
         </property>
         <property name="endDate" data-type="timestamp" display-name="End Date"
             column-name="end_date" required="false" category="Lifetime">
-            <attribute name="propertySortPriority" value="9" />
+            <attribute name="propertySortPriority" value="10" />
         </property>
       </table>
 
@@ -102,7 +107,7 @@
 
       <table name="cs_rule_cats" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="categories" display-name="Categories" data-type="set" component-item-type="category"
-            column-name="category_id" repository="/atg/commerce/catalog/ProductCatalog" category="Trigger">
+            column-name="category_id" repository="/atg/commerce/catalog/ProductCatalog" category="Context">
             <attribute name="cacheReferencesById" value="true"/>
             <attribute name="propertySortPriority" value="5" />
         </property>
@@ -115,7 +120,7 @@
       <table name="cs_redirect_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1" >
           <property name="url" data-type="string" display-name="Url"
                   column-name="url" required="true" category="Redirects">
-            <attribute name="propertySortPriority" value="8" />
+            <attribute name="propertySortPriority" value="9" />
           </property>
       </table>
     </item-descriptor>

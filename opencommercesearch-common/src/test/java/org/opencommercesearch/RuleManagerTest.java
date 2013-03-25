@@ -531,6 +531,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         when(testRuleItem.getRepositoryId()).thenReturn("howdy_id");
         when(testRuleItem.getPropertyValue(RuleProperty.QUERY)).thenReturn("arc'teryx");
+        when(testRuleItem.getPropertyValue(RuleProperty.INCLUDE_SUBCATEGORIES)).thenReturn(Boolean.TRUE);
         
         when(testRuleItem.getPropertyValue(RuleProperty.SITES)).thenReturn(new HashSet<RepositoryItem>(Arrays.asList(new RepositoryItem[]{ siteA, siteB, siteC})));
         when(testRuleItem.getPropertyValue(RuleProperty.CATALOGS)).thenReturn(new HashSet<RepositoryItem>(Arrays.asList(new RepositoryItem[]{ cataA, cataB, cataC})));

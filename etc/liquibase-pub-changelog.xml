@@ -901,5 +901,20 @@
     <sql>UPDATE cs_facet SET system_name = name</sql>
 
     <addNotNullConstraint tableName="cs_facet" columnName="system_name" />
-  </changeSet>          
+  </changeSet>   
+  
+  <changeSet author="commercesearch" id="35">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <not><columnExists tableName="cs_rule" columnName="include_subcats"/></not>
+    </preConditions>
+    
+    <addColumn tableName="cs_rule">
+        <column name="include_subcats" type="NUMBER(1)" defaultValueNumeric="0" />
+    </addColumn>
+      
+    <sql>UPDATE cs_rule SET include_subcats = 1</sql>
+
+    <addNotNullConstraint tableName="cs_rule" columnName="include_subcats" />
+  </changeSet>            
 </databaseChangeLog>

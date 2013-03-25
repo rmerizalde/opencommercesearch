@@ -450,9 +450,16 @@ public class RuleManager<T extends SolrServer> {
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> categories = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATEGORIES);
 
+
         if (categories != null && categories.size() > 0) {
+            Boolean includeSubcategories = (Boolean) rule.getPropertyValue(RuleProperty.INCLUDE_SUBCATEGORIES);
+
+            if (includeSubcategories == null) {
+                includeSubcategories = Boolean.FALSE;
+            }
+
             for (RepositoryItem category : categories) {
-                setCategorySearchTokens(doc, category);
+                setCategorySearchTokens(doc, category, includeSubcategories);
             }
         } else {
             doc.setField(FIELD_CATEGORY, WILDCARD);
@@ -555,7 +562,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws RepositoryException
      *             if an exception occurs while retrieving category info
      */
-    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category) throws RepositoryException {
+    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) throws RepositoryException {
         if (!"category".equals(category.getItemDescriptor().getItemDescriptorName())) {
             return;
         }
@@ -567,13 +574,15 @@ public class RuleManager<T extends SolrServer> {
             }
         }
 
-        @SuppressWarnings("unchecked")
-        List<RepositoryItem> childCategories = (List<RepositoryItem>) category
-                .getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
+        if (includeSubcategories) {
+            @SuppressWarnings("unchecked")
+            List<RepositoryItem> childCategories = (List<RepositoryItem>) category
+                    .getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
 
-        if (childCategories != null) {
-            for (RepositoryItem childCategory : childCategories) {
-                setCategorySearchTokens(doc, childCategory);
+            if (childCategories != null) {
+                for (RepositoryItem childCategory : childCategories) {
+                    setCategorySearchTokens(doc, childCategory, includeSubcategories);
+                }
             }
         }
     }
