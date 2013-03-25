@@ -121,4 +121,12 @@
   <xi:include href="xinclude/admin-handler.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
 
+  <requestHandler name="/analysis/field"
+    startup="lazy"
+    class="solr.FieldAnalysisRequestHandler" />
+
+  <requestHandler name="/analysis/document"
+                  class="solr.DocumentAnalysisRequestHandler"
+                  startup="lazy" />
+
 </config>
