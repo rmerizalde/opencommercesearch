@@ -22,6 +22,7 @@ package org.opencommercesearch.feed;
 import java.sql.SQLException;
 import java.util.*;
 
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
@@ -181,7 +182,8 @@ public abstract class SearchFeed extends GenericService {
                 for (SolrInputDocument doc : documentList) {
                     doc.setField("indexStamp", indexStamp);
                 }
-                getSearchServer().add(documentList, entry.getKey());
+                UpdateResponse response = getSearchServer().add(documentList, entry.getKey());
+                documentsSent(response, documentList);
                 documentList.clear();
             }
         }
@@ -190,6 +192,8 @@ public abstract class SearchFeed extends GenericService {
     protected abstract void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete);
 
     protected abstract void feedStarted(long indexStamp);
+
+    protected abstract void documentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
 
     protected abstract void feedFinished(long indexStamp);
 
