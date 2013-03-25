@@ -78,6 +78,7 @@
 
     <fieldType name="text_en_splitting" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
       <analyzer type="index">
+        <charFilter class="solr.MappingCharFilterFactory" mapping="mapping-ISOLatin1Accent.txt" />
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms-${solr.env.dir:preview}/index_synonyms.txt" ignoreCase="true" expand="true"/>
         <!-- Case insensitive stop word removal.
@@ -95,6 +96,7 @@
         <filter class="solr.PorterStemFilterFactory"/>
       </analyzer>
       <analyzer type="query">
+        <charFilter class="solr.MappingCharFilterFactory" mapping="mapping-ISOLatin1Accent.txt" />
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.SynonymFilterFactory" synonyms="synonyms-${solr.env.dir:preview}/query_synonyms.txt" ignoreCase="true" expand="true"/>
         <filter class="solr.StopFilterFactory"
