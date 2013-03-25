@@ -139,7 +139,7 @@ public abstract class SearchFeed extends GenericService {
         int processedProductCount = 0;
         int indexedProductCount = 0;
 
-        feedStarted(indexStamp);
+        onFeedStarted(indexStamp);
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
         RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
@@ -165,7 +165,7 @@ public abstract class SearchFeed extends GenericService {
         }
 
         sendDocuments(documents, indexStamp, 0);
-        feedFinished(indexStamp);
+        onFeedFinished(indexStamp);
 
         if (isLoggingInfo()) {
             logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
@@ -174,7 +174,7 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    protected void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) throws SearchServerException {
+    protected void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) {
         for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
             List<SolrInputDocument> documentList = entry.getValue();
 
@@ -182,20 +182,30 @@ public abstract class SearchFeed extends GenericService {
                 for (SolrInputDocument doc : documentList) {
                     doc.setField("indexStamp", indexStamp);
                 }
-                UpdateResponse response = getSearchServer().add(documentList, entry.getKey());
-                documentsSent(response, documentList);
-                documentList.clear();
+
+                try {
+                    UpdateResponse response = getSearchServer().add(documentList, entry.getKey());
+                    onDocumentsSent(response, documentList);
+                    documentList.clear();
+                } catch (SearchServerException ex) {
+                    if (isLoggingError()) {
+                        logError(ex);
+                    }
+                    onDocumentsSentError(documentList);
+                }
             }
         }
     }
 
     protected abstract void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete);
 
-    protected abstract void feedStarted(long indexStamp);
+    protected abstract void onFeedStarted(long indexStamp);
 
-    protected abstract void documentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
+    protected abstract void onDocumentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
 
-    protected abstract void feedFinished(long indexStamp);
+    protected abstract void onDocumentsSentError(List<SolrInputDocument> documentList);
+
+    protected abstract void onFeedFinished(long indexStamp);
 
     protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
             throws RepositoryException, InventoryException;
