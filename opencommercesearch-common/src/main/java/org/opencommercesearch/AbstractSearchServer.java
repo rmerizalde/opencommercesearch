@@ -43,7 +43,7 @@ import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.common.util.SimpleOrderedMap;
+import org.apache.solr.common.SolrException;
 import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
@@ -362,10 +362,17 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (isLoggingError()) {
                 logError("Unable to load search rules", ex);
             }
+            throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrServerException ex) {
             if (isLoggingError()) {
                 logError("Unable to load search rules", ex);
             }
+            throw create(SEARCH_EXCEPTION, ex);
+        } catch (SolrException ex) {
+            if (isLoggingError()) {
+                logError("Unable to load search rules", ex);
+            }
+            throw create(SEARCH_EXCEPTION, ex);
         }
 
         try {
@@ -408,7 +415,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             return new SearchResponse(queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
+        } catch (SolrException ex) {
+             throw create(SEARCH_EXCEPTION, ex);
         }
+
     }
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{

@@ -87,11 +87,11 @@ public class SchemaEnIntegrationTest extends SchemaIntegrationTest {
 
     @SearchTest
     public void testWordDelimiterFilterSlash(SearchServer server) throws SearchServerException {
-        Analysis analysis = analyzeFieldName(server, "text", "Norrøna 29/");
+        Analysis analysis = analyzeFieldName(server, "text", "Norrona 29/");
 
         for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("norrøna", words.get(0).get("text"));
+            assertEquals("norrona", words.get(0).get("text"));
             assertEquals("29", words.get(1).get("text"));
         }
     }
