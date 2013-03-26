@@ -24,6 +24,7 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
 
+import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,11 +51,19 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
 
-        protected void feedStarted(long indexStamp) {
+        protected void onFeedStarted(long indexStamp) {
             throw new UnsupportedOperationException();
         }
 
-        protected void feedFinished(long indexStamp) {
+        protected void onFeedFinished(long indexStamp) {
+            throw new UnsupportedOperationException();
+        }
+
+        protected void onDocumentsSent(UpdateResponse response, List<SolrInputDocument> documentList) {
+            throw new UnsupportedOperationException();
+        }
+
+        protected void onDocumentsSentError(List<SolrInputDocument> documentList) {
             throw new UnsupportedOperationException();
         }
 
