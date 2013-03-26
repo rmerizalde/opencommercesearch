@@ -54,6 +54,7 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_FACET_FIELD = "facetField";
     public static final String FIELD_SORT_PRIORITY = "sortPriority";
     public static final String FIELD_COMBINE_MODE = "combineMode";
+    public static final String FIELD_QUERY = "query";
 
     private static final String WILDCARD = "__all__";
 
@@ -217,7 +218,7 @@ public class RuleManager<T extends SolrServer> {
         query.setRows(rows);
         query.setParam("fl", "id");
         query.addSortField(FIELD_SORT_PRIORITY, ORDER.asc);
-        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE);
+        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY);
 
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
@@ -254,6 +255,12 @@ public class RuleManager<T extends SolrServer> {
             for (int i=(int) docs.getStart(); i<docs.size(); i++) {
                 ++processed;
                 SolrDocument doc = docs.get(i);
+
+                if (isSearch && !matchesQuery(q, doc)) {
+                    // skip this rule
+                    continue;
+                }
+
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
                         SearchRepositoryItemDescriptor.RULE);
                 if (rule != null) {
@@ -275,6 +282,34 @@ public class RuleManager<T extends SolrServer> {
                 docs = res.getResults();
             }
         }
+    }
+
+    /**
+     * Returns true if the given rule was configured as an exact match and the query q matches the query in the rule
+     */
+    private boolean matchesQuery(String q, SolrDocument rule) {
+        String targetQuery = (String) rule.getFieldValue(FIELD_QUERY);
+
+        if (isExactMatch(targetQuery)) {
+            targetQuery = removeBrackets(targetQuery).toLowerCase();
+            return targetQuery.equals(q.toLowerCase());
+        }
+        return true;
+    }
+
+    /**
+     * Return true if the given query is an exact match, owtherwise false. The exact match syntax is to put the query
+     * in the rule between brackets. For example ("the bike").
+     */
+    private boolean isExactMatch(String query) {
+        return query != null && query.startsWith("[") && query.endsWith("]");
+    }
+
+    /**
+     * Just a helper method to strip off the characters
+     */
+    private String removeBrackets(String query) {
+        return query.substring(1, query.length() - 1);
     }
 
     void setRuleParams(FilterQuery[] filterQueries, RepositoryItem catalog, SolrQuery query, boolean isSearch)
@@ -414,10 +449,12 @@ public class RuleManager<T extends SolrServer> {
         String query = (String) rule.getPropertyValue(RuleProperty.QUERY);
         if (query == null || query.equals("*")) {
             query = WILDCARD;
+        } else {
+            query = query.toLowerCase();
         }
-        doc.setField("query", query);
-        doc.setField("sortPriority", rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
-        doc.setField("combineMode", rule.getPropertyValue(RuleProperty.COMBINE_MODE));
+        doc.setField(FIELD_QUERY, query);
+        doc.setField(FIELD_SORT_PRIORITY, rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
+        doc.setField(FIELD_COMBINE_MODE, rule.getPropertyValue(RuleProperty.COMBINE_MODE));
         
         String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
         if(target != null) {
