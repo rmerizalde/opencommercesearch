@@ -153,7 +153,7 @@ public class SchemaEnIntegrationTest extends SchemaIntegrationTest {
 
         for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 1, words.size());
-            assertEquals("alpinestars", words.get(0).get("text"));
+            assertEquals("alpinestar", words.get(0).get("text"));
         }
     }
 }

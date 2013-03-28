@@ -126,6 +126,7 @@ public class SearchResponse {
                 filter.setName(manager.getCountName(count));
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
+                filter.setFilterQuery(count.getAsFilterQuery());
                 filters.add(filter);
             }
             facet.setFilter(filters);

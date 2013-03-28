@@ -74,7 +74,8 @@ public class Facet {
 
         private String name;
         private long count;
-        private String path; 
+        private String path;
+        private String filterQuery;
         
         public String getName() {
             return name;
@@ -99,11 +100,19 @@ public class Facet {
         public void setPath(String path) {
             this.path = path;
         }
+
+        public String getFilterQuery() {
+            return filterQuery;
+        }
+
+        public void setFilterQuery(String filterQuery) {
+            this.filterQuery = filterQuery;
+        }
         
         @Override
         public String toString() {
             return "Filter [name=" + name + ", count=" + count + ", path="
-                    + path + "]";
+                    + path + ", fq=" + filterQuery + "]";
         }
         
     }
