@@ -269,7 +269,8 @@
      <!-- <infoStream file="INFOSTREAM.txt">false</infoStream> -->
   </indexConfig>
 
-  <!--<jmx />-->
+  <xi:include href="xinclude/jmx.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
 
   <!-- If you want to connect to a particular server, specify the
        agentId

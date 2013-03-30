@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 
 <!--
  Licensed to OpenCommerceSearch under one
@@ -46,6 +47,9 @@
   <indexConfig>
     <lockType>${solr.lockFactory:native}</lockType>
   </indexConfig>
+
+  <xi:include href="xinclude/jmx.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
 
   <xi:include href="xinclude/update-handler.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
