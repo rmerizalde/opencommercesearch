@@ -916,5 +916,23 @@
     <sql>UPDATE cs_rule SET include_subcats = 1</sql>
 
     <addNotNullConstraint tableName="cs_rule" columnName="include_subcats" />
-  </changeSet>            
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="36">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_redirect_rule"/>
+      <columnExists tableName="cs_redirect_rule" columnName="url"/>
+    </preConditions>
+
+    <modifyDataType tableName="cs_redirect_rule" columnName="url" newDataType="VARCHAR2(1024)"/>
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="37">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <columnExists tableName="cs_rule" columnName="name"/>
+    </preConditions>
+
+    <modifyDataType tableName="cs_rule" columnName="name" newDataType="VARCHAR2(256)"/>
+  </changeSet>                
 </databaseChangeLog>
