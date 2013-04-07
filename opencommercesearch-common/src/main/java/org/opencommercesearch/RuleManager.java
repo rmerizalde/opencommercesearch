@@ -49,12 +49,14 @@ import static org.opencommercesearch.repository.RankingRuleProperty.*;
  * 
  */
 public class RuleManager<T extends SolrServer> {
-    public  static final String FIELD_CATEGORY = "category";
+    public static final String FIELD_CATEGORY = "category";
+    public static final String FIELD_ID = "id";
     public static final String FIELD_BOOST_FUNCTION = "boostFunction";
     public static final String FIELD_FACET_FIELD = "facetField";
     public static final String FIELD_SORT_PRIORITY = "sortPriority";
     public static final String FIELD_COMBINE_MODE = "combineMode";
     public static final String FIELD_QUERY = "query";
+    public static final String FIELD_SCORE = "score";
 
     private static final String WILDCARD = "__all__";
 
@@ -218,6 +220,8 @@ public class RuleManager<T extends SolrServer> {
         query.setRows(rows);
         query.setParam("fl", "id");
         query.addSortField(FIELD_SORT_PRIORITY, ORDER.asc);
+        query.addSortField(FIELD_SCORE, ORDER.asc);
+        query.addSortField(FIELD_ID, ORDER.asc);
         query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY);
 
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
