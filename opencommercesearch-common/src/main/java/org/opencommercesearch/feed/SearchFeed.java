@@ -240,7 +240,9 @@ public abstract class SearchFeed extends GenericService {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
                         if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
-                            if (! isRulesCategory(productCategory) && isCategoryIndexable(productCategory)) {
+                            if (isRulesCategory(productCategory)) {
+                                document.addField("ancestorCategoryId", productCategory.getRepositoryId());
+                            } else if (isCategoryIndexable(productCategory)) {
                                 loadCategoryPathsAndAncestorIds(document, productCategory, categoryIds, catalogAssignments, tokenCache, ancestorCache);
                             }
 
@@ -359,7 +361,6 @@ public abstract class SearchFeed extends GenericService {
                 }
             }
         }
-
         if (!ancestorCache.contains(category.getRepositoryId())) {
             document.addField("ancestorCategoryId", category.getRepositoryId());
             ancestorCache.add(category.getRepositoryId());

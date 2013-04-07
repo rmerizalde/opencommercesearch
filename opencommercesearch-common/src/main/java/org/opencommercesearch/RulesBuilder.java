@@ -181,7 +181,7 @@ public class RulesBuilder extends GenericService {
                 Rule rule = Rule.valueOf(type.toUpperCase());
     
                 int nestLevel = (Integer) ruleItem.getPropertyValue(RuleExpressionProperty.NESTED_LEVEL);
-                String operator = (String) ruleItem.getPropertyValue(RuleExpressionProperty.OPERATOR);
+                String operator = getOperator(ruleItem);
                 String ruleString = (rule.toFilter(ruleItem, locale, productCatalog));
     
                 isClosingLevel = nestLevel < currentNestLevel;
@@ -227,5 +227,14 @@ public class RulesBuilder extends GenericService {
         }
         
         return filter.toString().trim();
+    }
+
+    private String getOperator(RepositoryItem ruleItem) {
+        String operator = (String) ruleItem.getPropertyValue(RuleExpressionProperty.OPERATOR);
+
+        if ("ANDNOT".equals(operator)) {
+            operator = "AND NOT";
+        }
+        return operator;
     }
 }

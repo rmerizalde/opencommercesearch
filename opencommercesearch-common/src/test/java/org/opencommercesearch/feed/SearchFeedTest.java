@@ -303,7 +303,6 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("category", "2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
         verify(solrDocument, times(1)).addField("category", "3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
         verify(solrDocument, times(1)).addField("category", "4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
-        verify(solrDocument, never()) .addField("category", "1.outdoorCatalog.Rules Based");
         verify(solrDocument, times(5)).addField(eq("category"), anyString());
         
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog");
@@ -311,13 +310,18 @@ public class SearchFeedTest {
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
         verify(solrDocument, times(1)).addField("categoryPath", "outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
-        verify(solrDocument, never()) .addField("categoryPath", "outdoorCatalog.catRulesBased");
         verify(solrDocument, times(5)).addField(eq("categoryPath"), anyString());
 
         verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat11000003");
         verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111000028");
         verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111100030");
         verify(solrDocument, times(1)).addField("ancestorCategoryId", "outdoorCat111110031");
+
+        // for rule based categories we only index the ancestor id. This is to support hand pick rules.
+        verify(solrDocument, never()) .addField("category", "1.outdoorCatalog.Rules Based");
+        verify(solrDocument, never()) .addField("categoryPath", "outdoorCatalog.catRulesBased");
+        verify(solrDocument, times(1)).addField("ancestorCategoryId", "catRulesBased");
+
     }
         
     private void mockCategory(RepositoryItem category, String categoryId, String displayName, Set<RepositoryItem> categoryCatalogs, Set<RepositoryItem>  parentCategories, String itemDescriptorName) throws RepositoryException{
