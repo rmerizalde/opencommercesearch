@@ -255,8 +255,7 @@ public class RuleManager<T extends SolrServer> {
         int total = (int) docs.getNumFound();
         int processed = 0;
         while (processed < total) {
-            processed += (int) docs.getStart();
-            for (int i=(int) docs.getStart(); i<docs.size(); i++) {
+            for (int i = 0; i < docs.size(); i++) {
                 ++processed;
                 SolrDocument doc = docs.get(i);
 

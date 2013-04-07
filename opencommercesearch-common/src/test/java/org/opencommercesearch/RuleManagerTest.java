@@ -697,8 +697,8 @@ public class RuleManagerTest {
         // ----------- set up doclist attributes ----------
         docList1.setNumFound(docList1.size() + docList2.size()); // set numfound to be both pagefuls...
         docList2.setNumFound(docList1.size() + docList2.size()); // set numfound to be both pagefuls...
-        docList1.setStart(1L); // starts at 1 ****
-        docList2.setStart(1L); // starts at 1 also (this will test that we respect the start field for a docList)
+        docList1.setStart(0L);
+        docList2.setStart(0L);
 //        solrDocumentList.setMaxScore(1000.0);
         QueryResponse queryResponse1 = mock(QueryResponse.class);
         QueryResponse queryResponse2 = mock(QueryResponse.class);
@@ -729,8 +729,8 @@ public class RuleManagerTest {
         List<RepositoryItem> boostItems = rules.get(boostRule);
         List<RepositoryItem> blockItems = rules.get(blockRule);
         
-        assertEquals(4-1/*we are skipping 1st one*/, facetItems.size());
-        assertEquals(6-1/*we are skipping 1st one*/, boostItems.size());
+        assertEquals(4, facetItems.size());
+        assertEquals(6, boostItems.size());
         assertEquals(2, blockItems.size());
         
         // test facets...
