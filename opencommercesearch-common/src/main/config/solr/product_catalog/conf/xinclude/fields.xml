@@ -39,6 +39,7 @@
   <field name="categoryLeaves"     type="string"            indexed="true"  stored="false" required="true"  multiValued="true"  omitNorms="true" />
   <!-- facet fields -->
   <field name="brand"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="pBrand"             type="phonetic"                                         required="false" multiValued="false" omitNorms="true" />
   <field name="scale"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="size"               type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="colorFamily"        type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />

@@ -172,6 +172,7 @@
 
   <!-- other -->
   <copyField source="brand" dest="sBrand"/>
+  <copyField source="brand" dest="pBrand"/>
   <copyField source="title" dest="keyword"/>
 
 </schema>

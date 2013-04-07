@@ -110,4 +110,11 @@
       <filter class="solr.EnglishMinimalStemFilterFactory"/>
     </analyzer>
   </fieldType>
+
+  <fieldType name="phonetic" class="solr.TextField">
+    <analyzer>
+      <tokenizer class="solr.StandardTokenizerFactory" />
+      <filter class="solr.PhoneticFilterFactory" encoder="DoubleMetaphone" inject="false"/>
+    </analyzer>
+  </fieldType>
 </types>
