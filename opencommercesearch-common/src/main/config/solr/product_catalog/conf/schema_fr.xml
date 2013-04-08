@@ -126,25 +126,27 @@
   <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
   <solrQueryParser defaultOperator="AND"/>
 
-  <copyField source="id"    dest="text"/>
   <copyField source="title" dest="text"/>
   <copyField source="brand" dest="text"/>
 
   <!-- highest -->
-  <copyField source="categoryLeaves" dest="highest"/>
+  <copyField source="id"    dest="highest"/>
 
   <!-- high -->
   <copyField source="year" dest="high"/>
 
   <!-- medium -->
-  <copyField source="categoryNodes" dest="medium"/>
-  <copyField source="size"          dest="medium"/>
+  <copyField source="categoryLeaves" dest="medium"/>
 
   <!-- low -->
-  <copyField source="colorFamily" dest="low"/>
-  <copyField source="ha_*"        dest="low"/>
-  <copyField source="attr_*"      dest="low"/>
-  <copyField source="feature_*"   dest="low"/>
+  <copyField source="categoryNodes"  dest="low"/>
+  <copyField source="size"           dest="low"/>
+
+  <!-- lowes -->
+  <copyField source="colorFamily"   dest="lowest"/>
+  <copyField source="ha_*"          dest="lowest"/>
+  <copyField source="attr_*"        dest="lowest"/>
+  <copyField source="feature_*"     dest="lowest"/>
 
   <!-- spell checking -->
   <copyField source="title"          dest="textSpellCheck"/>
