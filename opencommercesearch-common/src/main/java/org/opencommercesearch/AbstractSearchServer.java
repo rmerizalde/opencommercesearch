@@ -360,17 +360,17 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             
         } catch (RepositoryException ex) {
             if (isLoggingError()) {
-                logError("Unable to load search rules", ex);
+                logError("Unable to load search rules: " + ex.getMessage());
             }
             throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrServerException ex) {
             if (isLoggingError()) {
-                logError("Unable to load search rules", ex);
+                logError("Unable to load search rules: " + ex.getMessage());
             }
             throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrException ex) {
             if (isLoggingError()) {
-                logError("Unable to load search rules", ex);
+                logError("Unable to load search rules: " + ex.getMessage());
             }
             throw create(SEARCH_EXCEPTION, ex);
         }

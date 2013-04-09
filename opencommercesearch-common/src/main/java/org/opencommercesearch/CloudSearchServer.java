@@ -127,33 +127,56 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
+        try {
+            initSolrServer();
+        } catch (MalformedURLException ex) {
+            throw new ServiceException(ex);
+        }
+    }
+
+    public void connect() throws MalformedURLException {
         initSolrServer();
     }
 
-    public void initSolrServer() throws ServiceException {
-        try {
-            for (Locale locale : SUPPORTED_LOCALES) {
-                CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
-                String languagePrefix = "_" + locale.getLanguage();
+    public void close() throws IOException {
+        for (Locale locale : SUPPORTED_LOCALES) {
+            CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
+            String languagePrefix = "_" + locale.getLanguage();
 
-                if (catalogSolrServer != null) {
-                    catalogSolrServer.shutdown();
-                }
-                catalogSolrServer = new CloudSolrServer(getHost());
-                catalogSolrServer.setDefaultCollection(getCatalogCollection() + languagePrefix);
-                setCatalogSolrServer(catalogSolrServer, locale);
-
-                CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection(), locale);
-
-                if (rulesSolrServer != null) {
-                    rulesSolrServer.shutdown();
-                }
-                rulesSolrServer = new CloudSolrServer(getHost());
-                rulesSolrServer.setDefaultCollection(getRulesCollection() + languagePrefix);
-                setRulesSolrServer(rulesSolrServer, locale);
+            if (catalogSolrServer != null) {
+                catalogSolrServer.shutdown();
             }
-        } catch (MalformedURLException ex) {
-            throw new ServiceException(ex);
+            setCatalogSolrServer(null, locale);
+
+            CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection(), locale);
+
+            if (rulesSolrServer != null) {
+                rulesSolrServer.shutdown();
+            }
+            setRulesSolrServer(null, locale);
+        }
+    }
+
+    public void initSolrServer() throws MalformedURLException {
+        for (Locale locale : SUPPORTED_LOCALES) {
+            CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
+            String languagePrefix = "_" + locale.getLanguage();
+
+            if (catalogSolrServer != null) {
+                catalogSolrServer.shutdown();
+            }
+            catalogSolrServer = new CloudSolrServer(getHost());
+            catalogSolrServer.setDefaultCollection(getCatalogCollection() + languagePrefix);
+            setCatalogSolrServer(catalogSolrServer, locale);
+
+            CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection(), locale);
+
+            if (rulesSolrServer != null) {
+                rulesSolrServer.shutdown();
+            }
+            rulesSolrServer = new CloudSolrServer(getHost());
+            rulesSolrServer.setDefaultCollection(getRulesCollection() + languagePrefix);
+            setRulesSolrServer(rulesSolrServer, locale);
         }
     }
 

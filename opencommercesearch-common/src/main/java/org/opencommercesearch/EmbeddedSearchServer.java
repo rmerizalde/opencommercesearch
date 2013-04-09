@@ -29,13 +29,9 @@ import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.request.DirectXmlRequest;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
-import org.omg.CORBA.LocalObject;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Locale;
 
 /**
@@ -94,6 +90,86 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     public void setDataDir(String dataDir) {
         this.dataDir = dataDir;
     }
+
+    public void connect() throws FileNotFoundException {
+        InputStream in = null;
+
+        try{
+            long startTime = System.currentTimeMillis();
+
+            String configUrl = getSolrConfigUrl();
+
+            if(getInMemoryIndex()){
+                System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
+                System.setProperty("solr.lockFactory", "single");
+                configUrl += ".ram";
+                if (isLoggingInfo()) {
+                    logInfo("Initializing in-memery embedded search server");
+                }
+            } else {
+                if (getDataDir() != null) {
+                    if (!checkDataDirectory(getDataDir())) {
+                        throw new FileNotFoundException("Directory not found " + getDataDir());
+                    }
+                    System.setProperty("data.dir", getDataDir());
+                }
+
+                if (isLoggingInfo()) {
+                    logInfo("Initializing embedded search server, data directory is " + getDataDir());
+                }
+            }
+
+            in = getClass().getResourceAsStream(configUrl);
+
+            if (in != null) {
+                File tmpConfigFile = File.createTempFile("solr-", ".xml");
+
+                FileWriter out = new FileWriter(tmpConfigFile);
+
+                IOUtils.copy(in, out);
+                if (isLoggingInfo()) {
+                    logInfo("Using embedded sarch server with config file " + tmpConfigFile.getPath());
+                }
+                out.close();
+
+                coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
+                tmpConfigFile.delete();
+                // @TODO fix this support configurable supported locales
+                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(),  Locale.ENGLISH), Locale.ENGLISH);
+                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.ENGLISH), Locale.ENGLISH);
+                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(), Locale.FRENCH), Locale.FRENCH);
+                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.FRENCH), Locale.FRENCH);
+            } else {
+                throw new FileNotFoundException("Resource not found " + getSolrConfigUrl());
+            }
+
+            if (isLoggingInfo()) {
+                logInfo("Embedded search server initialized in " + (System.currentTimeMillis() - startTime) + "ms");
+            }
+
+        } catch (IOException ex) {
+            if(isLoggingError()){
+                logError(ex);
+            }
+        } finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException ex) {
+                if(isLoggingError()){
+                    logError(ex);
+                }
+            }
+        }
+    }
+
+    public void close() throws IOException {
+        if (coreContainer != null) {
+            coreContainer.shutdown();
+        }
+    }
+
 
     /**
      * Creates a copy of this search server by cloning the cores
@@ -233,84 +309,19 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
-
-        InputStream in = null;
-
-        try{            
-            long startTime = System.currentTimeMillis();
-
-            String configUrl = getSolrConfigUrl();
-
-            if(getInMemoryIndex()){
-                System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
-                System.setProperty("solr.lockFactory", "single");
-                configUrl += ".ram";
-                if (isLoggingInfo()) {
-                    logInfo("Initializing in-memery embedded search server");
-                }
-            } else {
-                if (getDataDir() != null) {
-                    if (!checkDataDirectory(getDataDir())) {
-                        throw new ServiceException("Directory not found " + getDataDir());
-                    }
-                    System.setProperty("data.dir", getDataDir());
-                }
-
-                if (isLoggingInfo()) {
-                    logInfo("Initializing embedded search server, data directory is " + getDataDir());
-                }
-            }
-
-            in = getClass().getResourceAsStream(configUrl);
-
-            if (in != null) {
-                File tmpConfigFile = File.createTempFile("solr-", ".xml");
-
-                FileWriter out = new FileWriter(tmpConfigFile);
-
-                IOUtils.copy(in, out);
-                if (isLoggingInfo()) {
-                    logInfo("Using embedded sarch server with config file " + tmpConfigFile.getPath());
-                }
-                out.close();
-
-                coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
-                tmpConfigFile.delete();
-                // @TODO fix this support configurable supported locales
-                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(),  Locale.ENGLISH), Locale.ENGLISH);
-                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.ENGLISH), Locale.ENGLISH);
-                setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(), Locale.FRENCH), Locale.FRENCH);
-                setRulesSolrServer(createEmbeddedSolrServer(coreContainer, getRulesCollection(), Locale.FRENCH), Locale.FRENCH);
-            } else {
-                throw new ServiceException("Resource not found " + getSolrConfigUrl());
-            }
-
-            if (isLoggingInfo()) {
-                logInfo("Embedded search server initialized in " + (System.currentTimeMillis() - startTime) + "ms");
-            }
-
-        } catch (IOException ex) {
-            if(isLoggingError()){
-                logError(ex);
-            }
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException ex) {
-                if(isLoggingError()){
-                    logError(ex);
-                }
-            }
+        try {
+            connect();
+        } catch (FileNotFoundException ex) {
+            throw new ServiceException(ex);
         }
-
     }
 
     @Override
     public void doStopService() throws ServiceException {
-        if (coreContainer != null) {
-            coreContainer.shutdown();
+        try {
+            close();
+        } catch (IOException ex) {
+            throw new ServiceException(ex);
         }
     }
 

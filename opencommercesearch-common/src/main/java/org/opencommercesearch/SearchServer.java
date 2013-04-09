@@ -25,10 +25,8 @@ import java.util.Locale;
 import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
 import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
-import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -46,6 +44,9 @@ import org.apache.solr.common.util.NamedList;
  *
  */
 public interface SearchServer {
+
+    void connect() throws IOException;
+    void close() throws IOException;
 
     SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException;
     SearchResponse browse(BrowseOptions options, SolrQuery query, Locale locale, FilterQuery... filterQueries) throws SearchServerException;
