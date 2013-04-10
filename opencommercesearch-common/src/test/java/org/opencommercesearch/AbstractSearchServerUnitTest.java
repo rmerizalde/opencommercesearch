@@ -130,6 +130,12 @@ public class AbstractSearchServerUnitTest {
     private AbstractSearchServer server = new AbstractSearchServer() {
 
         @Override
+        public void connect() {}
+
+        @Override
+        public void close() {}
+
+        @Override
         protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
             dummySearchServer.exportSynonymList(synonymList, locale);
         }

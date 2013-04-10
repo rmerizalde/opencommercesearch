@@ -357,6 +357,12 @@ public class SearchServerManager {
         }
 
         @Override
+        public void connect() {}
+
+        @Override
+        public void close() {}
+
+        @Override
         public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
             return server.search(query, filterQueries);
         }
