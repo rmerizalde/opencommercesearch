@@ -147,7 +147,6 @@
   <solrQueryParser defaultOperator="AND"/>
 
   <copyField source="title" dest="text"/>
-  <copyField source="brand" dest="text"/>
 
   <!-- highest -->
 
