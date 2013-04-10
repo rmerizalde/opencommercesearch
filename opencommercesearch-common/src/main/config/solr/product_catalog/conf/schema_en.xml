@@ -144,7 +144,6 @@
   <copyField source="brand" dest="text"/>
 
   <!-- highest -->
-  <copyField source="id"    dest="highest"/>
 
   <!-- high -->
   <copyField source="year" dest="high"/>
