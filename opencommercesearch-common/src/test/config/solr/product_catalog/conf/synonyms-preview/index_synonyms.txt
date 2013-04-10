@@ -1,1 +1,1 @@
-shoe,shoes,sneaker
+shoe,sneaker

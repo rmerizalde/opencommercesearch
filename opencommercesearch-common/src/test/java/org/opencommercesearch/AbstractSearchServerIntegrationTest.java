@@ -85,7 +85,7 @@ public class AbstractSearchServerIntegrationTest {
 
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testSearchCategoryNameSynonyms(SearchServer server) throws SearchServerException {
-        testSearchCategoryAux(server, "sneaker", "TNF3137");
+        testSearchCategoryAux(server, "sneakers", "TNF3137");
     }
     
     @SearchTest(newInstance = true, rulesData = "/rules/redirect.xml")

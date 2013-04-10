@@ -1,0 +1,5 @@
+running	run
+ran	run
+swimming	swim
+swam	swim
+swum	swim

@@ -25,6 +25,7 @@ import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
 import org.apache.solr.client.solrj.response.AnalysisResponseBase;
 import org.apache.solr.client.solrj.response.FieldAnalysisResponse;
 import org.apache.solr.common.util.NamedList;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -57,6 +58,10 @@ public class AutocompleteSchemaIntegrationTest extends SolrTestCaseJ4 {
         solrServer = new EmbeddedSolrServer(h.getCore());
     }
 
+    @AfterClass
+    public static void tearDownSuite() {
+        solrServer = null;
+    }
 
     @Test
     public void testLowercase() throws Exception {

@@ -141,7 +141,7 @@
   <copyField source="categoryNodes"  dest="low"/>
   <copyField source="size"           dest="low"/>
 
-  <!-- lowes -->
+  <!-- lowest -->
   <copyField source="colorFamily"   dest="lowest"/>
   <copyField source="ha_*"          dest="lowest"/>
   <copyField source="attr_*"        dest="lowest"/>

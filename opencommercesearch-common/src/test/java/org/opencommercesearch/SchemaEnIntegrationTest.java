@@ -121,30 +121,33 @@ public class SchemaEnIntegrationTest extends SchemaIntegrationTest {
         Analysis analysis = analyzeFieldName(server, "text", "Tires 26\"");
 
         for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
-            assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("tire", words.get(0).get("text"));
-            assertEquals("26", words.get(1).get("text"));
+            assertEquals("Failed validating word count: ", 3, words.size());
+            assertEquals("tires", words.get(0).get("text"));
+            assertEquals("tire", words.get(1).get("text"));
+            assertEquals("26", words.get(2).get("text"));
         }
 
         analysis = analyzeFieldName(server, "text", "Tires 26x1.95");
         ArrayList<NamedList<Object>> words = analysis.getIndexWords();
 
-        assertEquals("Failed validating word count: ", 6, words.size());
-        assertEquals("tire", words.get(0).get("text"));
-        assertEquals("26", words.get(1).get("text"));
-        assertEquals("x", words.get(2).get("text"));
-        assertEquals("1", words.get(3).get("text"));
-        assertEquals("95", words.get(4).get("text"));
-        assertEquals("195", words.get(5).get("text"));
+        assertEquals("Failed validating word count: ", 7, words.size());
+        assertEquals("tires", words.get(0).get("text"));
+        assertEquals("tire", words.get(1).get("text"));
+        assertEquals("26", words.get(2).get("text"));
+        assertEquals("x", words.get(3).get("text"));
+        assertEquals("1", words.get(4).get("text"));
+        assertEquals("95", words.get(5).get("text"));
+        assertEquals("195", words.get(6).get("text"));
 
         words = analysis.getIndexWords();
 
-        assertEquals("Failed validating word count: ", 6, words.size());
-        assertEquals("tire", words.get(0).get("text"));
-        assertEquals("26", words.get(1).get("text"));
-        assertEquals("x", words.get(2).get("text"));
-        assertEquals("1", words.get(3).get("text"));
-        assertEquals("95", words.get(4).get("text"));
+        assertEquals("Failed validating word count: ",7, words.size());
+        assertEquals("tires", words.get(0).get("text"));
+        assertEquals("tire", words.get(1).get("text"));
+        assertEquals("26", words.get(2).get("text"));
+        assertEquals("x", words.get(3).get("text"));
+        assertEquals("1", words.get(4).get("text"));
+        assertEquals("95", words.get(5).get("text"));
     }
 
     @SearchTest
@@ -153,7 +156,7 @@ public class SchemaEnIntegrationTest extends SchemaIntegrationTest {
 
         for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 1, words.size());
-            assertEquals("alpinestar", words.get(0).get("text"));
+            assertEquals("alpinestars", words.get(0).get("text"));
         }
     }
 }

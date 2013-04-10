@@ -170,6 +170,8 @@
                     <include>**/*.txt</include>
                     <include>**/*.html</include>
                     <include>**/*.ram</include>
+                    <include>**/*.aff</include>
+                    <include>**/*.dic</include>
                 </includes>
             </resource>
         </resources>
@@ -244,7 +246,7 @@
               </dependencies>
               <configuration>
                 <groups>org.opencommercesearch.IntegrationSearchTest</groups>
-                <argLine>-ea ${jacoco.agent.argLine}</argLine>
+                <argLine>-ea -Xms256M -Xmx256M ${jacoco.agent.argLine}</argLine>
               </configuration>
               <executions>
                 <execution>
