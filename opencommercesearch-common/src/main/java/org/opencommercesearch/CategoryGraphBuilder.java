@@ -99,7 +99,12 @@ public class CategoryGraphBuilder {
         
         node.setCount((int) filter.getCount());
         node.setPath(filter.getPath());
-        node.setId(filter.getName());
+        String name = filter.getName();
+        int lastDotIndex = name.lastIndexOf('.');
+        if (lastDotIndex != -1) {
+            name = name.substring(lastDotIndex+1);
+        }
+        node.setId(name);
         Collections.sort(parentChildList);
     }
     

@@ -218,7 +218,7 @@ public class FacetManagerTest {
     }
 
     @Test
-    public void testFacetWithDotInNameNoPrexi() {
+    public void testFacetWithDotInNameNoPrefix() {
         Count count = mockCount("MyBrand.com");
         assertEquals("MyBrand.com", manager.getCountName(count));
     }
