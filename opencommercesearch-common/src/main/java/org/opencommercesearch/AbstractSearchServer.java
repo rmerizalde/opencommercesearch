@@ -354,7 +354,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
                 if(redirects != null){
                     RepositoryItem redirect = redirects.get(0);
-                    return new SearchResponse(null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL), null, true);
+                    return new SearchResponse(query, null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL), null, true);
                 }
             }
             
@@ -377,8 +377,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
-            
-            
+
             String correctedTerm = null;
             boolean matchesAll = true;
             
@@ -405,14 +404,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 }
 
             }
-               
-            
+
             long searchTime = System.currentTimeMillis() - startTime;
          // @TODO change ths to debug mode
             if (isLoggingInfo()) {
                 logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
-            return new SearchResponse(queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
+            return new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrException ex) {
@@ -611,7 +609,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(solrQuery);
-            return new SearchResponse(queryResponse, null, null, null, null, true);
+            return new SearchResponse(solrQuery, queryResponse, null, null, null, null, true);
         } catch (SolrServerException ex) {
             throw create(TERMS_EXCEPTION, ex);
         }

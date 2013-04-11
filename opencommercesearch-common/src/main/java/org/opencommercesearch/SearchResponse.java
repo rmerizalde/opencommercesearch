@@ -26,10 +26,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.RangeFacet;
+import org.apache.solr.common.params.FacetParams;
 import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.repository.RangeFacetProperty;
 
@@ -44,6 +46,7 @@ import atg.repository.RepositoryItem;
  */
 public class SearchResponse {
 
+    private SolrQuery query;
     private QueryResponse queryResponse;
     private RuleManager ruleManager;
     private FacetManager facetManager;
@@ -53,7 +56,8 @@ public class SearchResponse {
     private boolean matchesAll;
     private String correctedTerm;
     
-    SearchResponse(QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse, String correctedTerm, boolean matchesAll) {
+    SearchResponse(SolrQuery query, QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse, String correctedTerm, boolean matchesAll) {
+        this.query = query;
         this.queryResponse = queryResponse;
         this.ruleManager = ruleManager;
         this.filterQueries = filterQueries;
@@ -121,9 +125,10 @@ public class SearchResponse {
             facet.setMetadata(metadata);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
+            String prefix = query.getFieldParam(facet.getName(), FacetParams.FACET_PREFIX);
             for (Count count : facetField.getValues()) {
                 Filter filter = new Filter();
-                filter.setName(manager.getCountName(count));
+                filter.setName(manager.getCountName(count, prefix));
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());

@@ -280,12 +280,16 @@ public class FacetManager {
             return null;
         }
     }
-    
+
     public String getCountName(Count count) {
+        return getCountName(count, null);
+    }
+
+    public String getCountName(Count count, String prefix) {
         String name = count.getName();
-        int lastIndex = name.lastIndexOf(SearchConstants.CATEGORY_SEPARATOR);
-        if (lastIndex != -1) {
-            name = name.substring(lastIndex + 1);
+
+        if (prefix != null && name.startsWith(prefix)) {
+            name = name.substring(prefix.length());
         }
         return name;
     }

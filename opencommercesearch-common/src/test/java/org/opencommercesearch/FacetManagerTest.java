@@ -143,8 +143,8 @@ public class FacetManagerTest {
 	@Test
 	public void testGetCountNameCount() {
 	    Count count = mock(Count.class);
-	    when(count.getName()).thenReturn("0.bcs");
-	    assertEquals("bcs", manager.getCountName(count));
+	    when(count.getName()).thenReturn("MyBrand");
+	    assertEquals("MyBrand", manager.getCountName(count));
 	}
 
 	@Test
@@ -176,17 +176,17 @@ public class FacetManagerTest {
 	
 	@Test
     public void testGetCountPathCategoryFilterSelected() {        
-        Count count = mockCount("1.bcs.root");
+        Count count = mockCount("1.catalog.root");
         mockFacetField(count, "category");     
-        FilterQuery[] filterQueries = {mockFilterQuery("category", "1.bcs.root")};        
+        FilterQuery[] filterQueries = {mockFilterQuery("category", "1.catalog.root")};
         assertEquals("queryList", manager.getCountPath(count, filterQueries));
     }
 
 	@Test
     public void testGetCountPathCategoryFilterSelectedWithPath() {        
-        Count count = mockCount("1.bcs.root");
+        Count count = mockCount("1.catalog.root");
         mockFacetField(count, "category");     
-        FilterQuery[] filterQueries = {mockFilterQuery("category", "1.bcs.root"), mockFilterQuery("filter2", "exp2")};        
+        FilterQuery[] filterQueries = {mockFilterQuery("category", "1.catalog.root"), mockFilterQuery("filter2", "exp2")};
         assertEquals("filter_filter2|queryList", manager.getCountPath(count, filterQueries));
     }
 
@@ -199,7 +199,7 @@ public class FacetManagerTest {
 
 	@Test
 	public void testGetBreadCrumbs() {
-	    FilterQuery[] filterQueries = {mockFilterQuery("fieldName", "exp"), mockFilterQuery("category", "1.bcs.root")};
+	    FilterQuery[] filterQueries = {mockFilterQuery("fieldName", "exp"), mockFilterQuery("category", "1.catalog.root")};
 	    List<BreadCrumb> crumbs = manager.getBreadCrumbs(filterQueries);
 	    	    
 	    assertEquals("root", crumbs.get(1).getExpression());
@@ -209,8 +209,19 @@ public class FacetManagerTest {
         assertEquals("exp", crumbs.get(0).getExpression());
 	    assertEquals("fieldName", crumbs.get(0).getFieldName());
 	    assertEquals("filter_category", crumbs.get(0).getPath());
-
 	}
+
+    @Test
+    public void testFacetWithDotInName() {
+        Count count = mockCount("0.catalog.Category.X");
+        assertEquals("Category.X", manager.getCountName(count, "0.catalog."));
+    }
+
+    @Test
+    public void testFacetWithDotInNameNoPrexi() {
+        Count count = mockCount("MyBrand.com");
+        assertEquals("MyBrand.com", manager.getCountName(count));
+    }
 	
 	@Test
     public void testGetBreadCrumbsNoFacet() {

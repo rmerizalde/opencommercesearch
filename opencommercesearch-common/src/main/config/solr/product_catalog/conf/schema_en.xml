@@ -148,6 +148,7 @@
   <solrQueryParser defaultOperator="AND"/>
 
   <copyField source="title" dest="text"/>
+  <copyField source="brand" dest="text"/>
   <copyField source="brand" dest="brandText"/>
 
   <!-- highest -->
@@ -157,13 +158,13 @@
 
   <!-- medium -->
   <copyField source="categoryLeaves" dest="medium"/>
+  <copyField source="colorFamily"    dest="medium"/>
 
   <!-- low -->
   <copyField source="categoryNodes"  dest="low"/>
   <copyField source="size"           dest="low"/>
 
   <!-- lowest -->
-  <copyField source="colorFamily"   dest="lowest"/>
   <copyField source="ha_*"          dest="lowest"/>
   <copyField source="attr_*"        dest="lowest"/>
   <copyField source="feature_*"     dest="lowest"/>
