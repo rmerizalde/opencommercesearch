@@ -124,6 +124,7 @@
     <!-- catchall field, containing all other searchable text fields (implemented
       via copyField further on in this schema  -->
     <field name="text"           type="text_en_splitting"  indexed="true" stored="false" multiValued="true"  omitNorms="false" />
+    <field name="brandText"      type="text_en_splitting"  indexed="true" stored="false" multiValued="true"  omitNorms="false" />
     <field name="textSpellCheck" type="text_en_spellcheck" indexed="true" stored="false" multiValued="true"  omitNorms="true" />
     <field name="keyword"        type="text_en_splitting"  indexed="true" stored="false" multiValued="false" omitNorms="true" />
 
@@ -147,6 +148,7 @@
   <solrQueryParser defaultOperator="AND"/>
 
   <copyField source="title" dest="text"/>
+  <copyField source="brand" dest="brandText"/>
 
   <!-- highest -->
 
