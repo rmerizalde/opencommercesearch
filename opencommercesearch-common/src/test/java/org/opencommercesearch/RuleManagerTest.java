@@ -224,13 +224,13 @@ public class RuleManagerTest {
 
         mgr.setRuleParams(filterQueries, catalog, query, true);
         
-        verify(query).setFacetPrefix("category", "1.bobcatalog");
+        verify(query).setFacetPrefix("category", "1.bobcatalog.");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
         verify(query, times(2)).getSortFields();
         verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);        
-        verify(query).setFacetPrefix("category", "13.jackets"); 
+        verify(query).setFacetPrefix("category", "13.jackets.");
 
         // verify the single calls to addFilterQuery
         verify(query).addFilterQuery("hasPinStripes:redstripes"); // this will have a facet
@@ -276,7 +276,7 @@ public class RuleManagerTest {
         when(query.getQuery()).thenReturn("jackets");
         
         mgr.setRuleParams(null, catalog, query, true);
-        verify(query).setFacetPrefix("category", "1.bobcatalog");
+        verify(query).setFacetPrefix("category", "1.bobcatalog.");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
         verify(query, times(2)).getSortFields();

@@ -371,7 +371,7 @@ public class RuleManager<T extends SolrServer> {
     }
 
     private void setFilterQueries(FilterQuery[] filterQueries, String catalogId, SolrQuery query) {
-        query.setFacetPrefix("category", "1." + catalogId);
+        query.setFacetPrefix("category", "1." + catalogId + ".");
         query.addFilterQuery("category:" + "0." + catalogId);
 
         if (filterQueries == null) {
@@ -387,7 +387,7 @@ public class RuleManager<T extends SolrServer> {
                 if (index != -1) {
                     int level = Integer.parseInt(category.substring(0, index));
 
-                    category = ++level + FilterQuery.unescapeQueryChars(category.substring(index));
+                    category = ++level + FilterQuery.unescapeQueryChars(category.substring(index)) + ".";
                     query.setFacetPrefix("category", category);
                 }
             }
