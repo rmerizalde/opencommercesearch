@@ -27,6 +27,7 @@
         <opencommercesearch.version>0.2-SNAPSHOT</opencommercesearch.version>
         <jacoco.version>0.6.0.201210061924</jacoco.version>
         <commons.codecs>1.7</commons.codecs>
+        <lucene.synonyms>1.2.2-solr-4.1.0</lucene.synonyms>
     </properties>
 
     <scm>
@@ -81,7 +82,15 @@
           <version>${atg.version}</version>
           <scope>system</scope>
           <systemPath>${env.ATG_HOME}/Publishing/base/lib/classes.jar</systemPath>
-      </dependency>      
+      </dependency>
+
+      <dependency>
+      	<groupId>org.healthonnet.lucene</groupId>
+      	<artifactId>hon-lucene-synonyms</artifactId>
+      	<version>${lucene.synonyms}</version>
+        <scope>system</scope>
+        <systemPath>${basedir}/lib/hon-lucene-synonyms-${lucene.synonyms}.jar</systemPath>
+      </dependency>
 
       <!-- provided -->
       <dependency>
@@ -246,7 +255,7 @@
               </dependencies>
               <configuration>
                 <groups>org.opencommercesearch.IntegrationSearchTest</groups>
-                <argLine>-ea -Xms256M -Xmx256M ${jacoco.agent.argLine}</argLine>
+                <argLine>-ea -Xms256M -Xmx256M</argLine>
               </configuration>
               <executions>
                 <execution>
@@ -275,6 +284,8 @@
                         <include>**/*.txt</include>
                         <include>**/*.html</include>
                         <include>**/*.ram</include>
+                        <include>**/*.aff</include>
+                        <include>**/*.dic</include>
                     </includes>
                 </configuration>
             </plugin>

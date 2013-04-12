@@ -4,3 +4,4 @@ swimming	swim
 swam	swim
 swum	swim
 north	north
+device	device

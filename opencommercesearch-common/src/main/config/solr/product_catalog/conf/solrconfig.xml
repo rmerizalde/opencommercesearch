@@ -70,7 +70,12 @@
     <lst name="defaults">
       <str name="echoParams">none</str>
       <int name="rows">20</int>
-      <str name="defType">edismax</str>
+      <str name="defType">synonym_edismax</str>
+      <str name="synonyms">true</str>
+      <str name="synonyms.originalBoost">1.0</str>
+      <str name="synonyms.synonymBoost">1.2</str>
+      <str name="synonyms.disablePhraseQueries">true</str>
+      <str name="synonyms.constructPhrases">false</str>
       <str name="qf">text^3 brandText^2 highest^3.5 high^2.5 medium^1.6 low^1.3 lowest^0.5</str>
       <!-- df is used in subqueries in boost functions -->
       <str name="df">text</str>
@@ -175,5 +180,22 @@
       <str>tvComponent</str>
     </arr>
   </requestHandler>
+
+  <queryParser name="synonym_edismax" class="solr.SynonymExpandingExtendedDismaxQParserPlugin">
+    <str name="luceneMatchVersion">LUCENE_41</str>
+    <lst name="synonymAnalyzers">
+      <lst name="default">
+        <lst name="tokenizer">
+          <str name="class">solr.WhitespaceTokenizerFactory</str>
+        </lst>
+        <lst name="filter">
+          <str name="class">solr.SynonymFilterFactory</str>
+          <str name="synonyms">synonyms-${solr.env.dir:preview}/query_parser_synonyms.txt</str>
+          <str name="expand">false</str>
+          <str name="ignoreCase">true</str>
+        </lst>
+      </lst>
+    </lst>
+  </queryParser>
 
 </config>
