@@ -186,12 +186,20 @@
     <lst name="synonymAnalyzers">
       <lst name="default">
         <lst name="tokenizer">
-          <str name="class">solr.WhitespaceTokenizerFactory</str>
+          <str name="class">solr.StandardTokenizerFactory</str>
+        </lst>
+        <lst name="filter">
+          <str name="class">solr.ShingleFilterFactory</str>
+          <str name="outputUnigramsIfNoShingles">true</str>
+          <str name="outputUnigrams">true</str>
+          <str name="minShingleSize">2</str>
+          <str name="maxShingleSize">4</str>
         </lst>
         <lst name="filter">
           <str name="class">solr.SynonymFilterFactory</str>
           <str name="synonyms">synonyms-${solr.env.dir:preview}/query_parser_synonyms.txt</str>
-          <str name="expand">false</str>
+          <str name="tokenizerFactory">solr.KeywordTokenizerFactory</str>
+          <str name="expand">true</str>
           <str name="ignoreCase">true</str>
         </lst>
       </lst>
