@@ -21,7 +21,7 @@
      this file, see http://wiki.apache.org/solr/SolrConfigXml.
 -->
 <config>
-  <luceneMatchVersion>LUCENE_41</luceneMatchVersion>
+  <luceneMatchVersion>LUCENE_42</luceneMatchVersion>
 
   <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
   <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
@@ -182,7 +182,7 @@
   </requestHandler>
 
   <queryParser name="synonym_edismax" class="solr.SynonymExpandingExtendedDismaxQParserPlugin">
-    <str name="luceneMatchVersion">LUCENE_41</str>
+    <str name="luceneMatchVersion">LUCENE_42</str>
     <lst name="synonymAnalyzers">
       <lst name="default">
         <lst name="tokenizer">
