@@ -12,6 +12,7 @@
 
     <properties>
         <solr.version>4.2.1</solr.version>
+        <org.restlet.jee.version>2.1.1</org.restlet.jee.version>
     </properties>  
 
     <scm>
@@ -28,6 +29,21 @@
 	      <version>${solr.version}</version>
         <scope>provided</scope>
       </dependency>
+
+      <dependency>
+       <groupId>org.restlet.jee</groupId>
+       <artifactId>org.restlet</artifactId>
+       <version>${org.restlet.jee.version}</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+       <groupId>org.restlet.jee</groupId>
+       <artifactId>org.restlet.ext.servlet</artifactId>
+       <version>${org.restlet.jee.version}</version>
+        <scope>provided</scope>
+      </dependency>
+
     </dependencies>
 
     <build>
