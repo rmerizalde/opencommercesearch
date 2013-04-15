@@ -1005,7 +1005,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
 
-        assertEquals("if(exists(query({!lucene v='(keyword:this\\ is\\ a\\ big\\ weird\\ keyword)'})),1.5,1.0)",
+        assertEquals("if(exists(query({!lucene v='(keyword:this\\ is\\ a\\ big\\ weird\\ keyword\')'})),1.5,1.0)",
                 (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
     }
 

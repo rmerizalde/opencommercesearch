@@ -74,7 +74,7 @@ public class RulesBuilder extends GenericService {
         },
         GENDER {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
-                return new StringBuilder().append("gender:").append(ruleValue).toString();
+                return new StringBuilder().append("gender:").append(ClientUtils.escapeQueryChars(ruleValue)).toString();
             }
         },
         SHOW_SALE {
