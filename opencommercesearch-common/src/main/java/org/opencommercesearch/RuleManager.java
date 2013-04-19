@@ -543,7 +543,7 @@ public class RuleManager<T extends SolrServer> {
         if (conditionQuery.length() > 0) {
             boostFunctionQuery
                 .append("if(exists(query({!lucene v='")
-                .append(conditionQuery)
+                .append(StringUtils.replace(conditionQuery, "'", "\\'"))
                 .append("'})),")
                 .append(rankAction)
                 .append(",1.0)");
