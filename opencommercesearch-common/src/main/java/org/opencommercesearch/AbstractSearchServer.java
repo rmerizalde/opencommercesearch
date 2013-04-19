@@ -384,7 +384,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             //if no results, check for spelling errors
             if(isEmptySearch(queryResponse.getGroupResponse()) && StringUtils.isNotEmpty(query.getQuery())){                
                 
-                    SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
+                SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
                 //try to do searching for the corrected term matching all terms (q.op=AND)
                 QueryResponse tentativeResponse = handleSpellCheck(spellCheckResponse, getCatalogSolrServer(locale), query, "AND");
                 if(tentativeResponse != null) {
