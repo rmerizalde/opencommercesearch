@@ -85,6 +85,12 @@
       </dependency>
 
       <dependency>
+        <groupId>org.opencommercesearch</groupId>
+        <artifactId>opencommercesearch-solr</artifactId>
+        <version>${opencommercesearch.version}</version>
+      </dependency>
+
+      <dependency>
       	<groupId>org.healthonnet.lucene</groupId>
       	<artifactId>hon-lucene-synonyms</artifactId>
       	<version>${lucene.synonyms}</version>
@@ -147,13 +153,6 @@
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-all</artifactId>
         <version>${harmcrest.version}</version>
-        <scope>test</scope>
-      </dependency>
-
-      <dependency>
-        <groupId>org.opencommercesearch</groupId>
-        <artifactId>opencommercesearch-solr</artifactId>
-        <version>${opencommercesearch.version}</version>
         <scope>test</scope>
       </dependency>
 
@@ -255,7 +254,7 @@
               </dependencies>
               <configuration>
                 <groups>org.opencommercesearch.IntegrationSearchTest</groups>
-                <argLine>-ea -Xms256M -Xmx256M</argLine>
+                <argLine>-ea -Xms512M -Xmx512M</argLine>
               </configuration>
               <executions>
                 <execution>
@@ -278,7 +277,6 @@
                 <configuration>
                     <includes>
                         <include>**/*.class</include>
-                        <include>**/*.java</include>
                         <include>**/*.xml</include>
                         <include>**/*.properties</include>
                         <include>**/*.txt</include>
