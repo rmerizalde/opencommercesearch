@@ -926,7 +926,7 @@ public class RuleManagerTest {
     public void testRankingRuleSimpleGenderRule() throws RepositoryException {
 
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
-        RepositoryItem expression = mockRule("gender", 1, "male", null);
+        RepositoryItem expression = mockRule("gender", 1, "Boys'", null);
 
         expresionList.add(expression);
         when(testRuleItem.getPropertyValue(RankingRuleProperty.CONDITIONS)).thenReturn(expresionList);
@@ -936,7 +936,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
 
-        assertEquals("if(exists(query({!lucene v='(gender:male)'})),listRank,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(gender:Boys\')'})),listRank,1.0)", (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
