@@ -173,7 +173,9 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
                             GroupFieldSummary summary = getSummary(groupValue, fieldName);
                             IndexableField indexableField = doc.getField(fieldName);
 
-                            summary.processFieldValue(indexableField.numericValue().floatValue());
+                            if (indexableField != null) {
+                                summary.processFieldValue(indexableField.numericValue().floatValue());
+                            }
                         }
                     }
 

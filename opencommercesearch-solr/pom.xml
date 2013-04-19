@@ -86,13 +86,43 @@
 
     </dependencies>
 
-    <build>
-        <resources>
-            <resource>
-                <directory>${basedir}/src/main/java</directory>
-            </resource>
-        </resources>
-    </build>
+  <build>
+      <resources>
+          <resource>
+              <directory>${basedir}/src/main/java</directory>
+          </resource>
+      </resources>
+
+      <testResources>
+          <testResource>
+            <directory>${basedir}/src/test/java</directory>
+          </testResource>
+      </testResources>
+
+      <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>2.5.1</version>
+
+            <configuration>
+              <source>1.6</source>
+              <target>1.6</target>
+            </configuration>
+          </plugin>
+
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jar-plugin</artifactId>
+              <version>2.4</version>
+              <configuration>
+                  <includes>
+                      <include>**/*.class</include>
+                  </includes>
+              </configuration>
+          </plugin>
+      </plugins>
+  </build>
 
     <reporting>
       <plugins>
