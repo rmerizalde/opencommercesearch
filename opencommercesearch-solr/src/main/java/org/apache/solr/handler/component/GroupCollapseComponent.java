@@ -40,16 +40,7 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * This search component allows to collapse a group response to return into a limited
- * number (currently one) of documents within a group and provide a summary for specific
- * fields. The summary include min/max values.
- *
- * Notice this is different than group.limit. This component is actually useful when group
- * limit is set to a high number.
- *
- * For example, if an index has multiple product items (skus) and the goal is to group them by
- * product but still surface summarize (min price, min discount etc.) data from all product items
- * this may be useful.
+ * @author rmerizalde
  */
 public class GroupCollapseComponent extends SearchComponent implements SolrCoreAware {
     private static Logger log = LoggerFactory.getLogger(GroupCollapseComponent.class);
