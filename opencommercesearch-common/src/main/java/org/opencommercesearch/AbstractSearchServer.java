@@ -804,8 +804,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 if (currentLevelVO != null) {
                     categoryGraphList = currentLevelVO.getCategoryGraphNodes();
                 } else {
-                    if (isLoggingError()) {
-                        logError("Error creating CategoryGraph from solr for catalog: "
+                    if (isLoggingDebug()) {
+                        logDebug("Empty CategoryGraph from solr for catalog: "
                                 + catalogId
                                 + " category: "
                                 + categoryId
