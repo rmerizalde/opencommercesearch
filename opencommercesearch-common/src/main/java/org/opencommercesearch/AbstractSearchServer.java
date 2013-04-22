@@ -821,11 +821,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                     categoryGraphList = currentLevelVO.getCategoryGraphNodes();
                 } else {
                     if (isLoggingDebug()) {
-                        logDebug("Empty CategoryGraph from solr for catalog: "
+                        logDebug("The CategoryGraph is empty for catalog: "
                                 + catalogId
-                                + " category: "
+                                + " and category: "
                                 + categoryId
-                                + " path: " + path);
+                                + " path: " + path
+                                + " This is expected for leaf categories");
                     }
                 }
             }
