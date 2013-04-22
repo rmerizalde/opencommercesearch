@@ -42,6 +42,7 @@ import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.SpellCheckResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.GroupCollapseParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.SolrException;
 import org.opencommercesearch.Facet.Filter;
@@ -338,12 +339,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         query.addFacetField("category");
         query.set("facet.mincount", 1);
 
-        query.set("group", true);
-        query.set("group.ngroups", true);
-        query.set("group.limit", 50);
-        query.set("group.field", "productId");
-        query.set("group.facet", true);
-
+        setGroupParams(query);
+        setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
 
         RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
         try {
@@ -384,7 +381,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             //if no results, check for spelling errors
             if(isEmptySearch(queryResponse.getGroupResponse()) && StringUtils.isNotEmpty(query.getQuery())){                
                 
-                    SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
+                SpellCheckResponse spellCheckResponse = queryResponse.getSpellCheckResponse();
                 //try to do searching for the corrected term matching all terms (q.op=AND)
                 QueryResponse tentativeResponse = handleSpellCheck(spellCheckResponse, getCatalogSolrServer(locale), query, "AND");
                 if(tentativeResponse != null) {
@@ -416,6 +413,25 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         } catch (SolrException ex) {
              throw create(SEARCH_EXCEPTION, ex);
         }
+
+    }
+
+    private void setGroupParams(SolrQuery query) {
+        query.set("group", true);
+        query.set("group.ngroups", true);
+        query.set("group.limit", 50);
+        query.set("group.field", "productId");
+        query.set("group.facet", true);
+    }
+
+    private void setFieldListParams(SolrQuery query, String country, String catalog) {
+        String listPrice = "listPrice" + country;
+        String salePrice =  "salePrice" + country;
+        String dicountPercent = "discountPercent" + country;
+        query.setFields("id", "productId", "title", "brandId", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+            "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image");
+        query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
+        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + dicountPercent);
 
     }
 
