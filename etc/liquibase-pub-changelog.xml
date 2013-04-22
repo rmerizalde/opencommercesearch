@@ -934,5 +934,56 @@
     </preConditions>
 
     <modifyDataType tableName="cs_rule" columnName="name" newDataType="VARCHAR2(256)"/>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="38">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_acls"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_acls">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="39">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <tableExists tableName="cs_facet"/>
+      <tableExists tableName="cs_synonym"/>
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_rule" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_facet" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="item_owner"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_facet">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym_list">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
   </changeSet>                
+
 </databaseChangeLog>

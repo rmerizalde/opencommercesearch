@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<gsa-template xml-combine="append">
+	<header>
+		<name>Search Repository</name>
+		<author>gsegura</author>
+		<version>1.0</version>
+	</header>
+
+    <item-descriptor name="synonymList" xml-combine="append">
+        <table name="cs_synonym_list" xml-combine="append">
+            <property name="item_owner" column-name="item_owner" data-type="string" />
+        </table>
+
+		<table name="cs_acls" type="multi" id-column-names="item_acl_id"
+			multi-column-name="acl_index">
+			<property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
+				<attribute name="maxFragmentSize" value="254" />
+			</property>
+		</table>
+
+    </item-descriptor>
+    
+    <item-descriptor name="synonym" xml-combine="append">
+        <table name="cs_synonym" xml-combine="append">
+            <property name="item_owner" column-name="item_owner" data-type="string" />
+        </table>
+        
+        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+            multi-column-name="acl_index">
+            <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
+                <attribute name="maxFragmentSize" value="254" />
+            </property>
+        </table>
+    </item-descriptor>
+    
+    <item-descriptor name="facet" xml-combine="append">
+        <table name="cs_facet" xml-combine="append">
+            <property name="item_owner" column-name="item_owner" data-type="string" />
+        </table>
+        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+            multi-column-name="acl_index">
+            <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
+                <attribute name="maxFragmentSize" value="254" />
+            </property>
+        </table>        
+    </item-descriptor>
+    
+	<item-descriptor name="rule" xml-combine="append">
+		<table name="cs_rule" type="primary" id-column-name="rule_id"
+			xml-combine="append">
+			<property name="item_owner" column-name="item_owner" data-type="string" />
+		</table>
+        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+            multi-column-name="acl_index">
+            <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
+                <attribute name="maxFragmentSize" value="254" />
+            </property>
+        </table>		
+	</item-descriptor>
+
+</gsa-template>

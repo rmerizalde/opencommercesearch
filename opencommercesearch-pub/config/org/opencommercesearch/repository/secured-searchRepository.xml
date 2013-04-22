@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gsa-template PUBLIC "-//ART Technology Group Inc," "http://www.atg.com/dtds/security/secured_repository_template_1.1.dtd">
+
+<secured-repository-template>
+
+<!-- 
+    Add the desired ACL's for each of the Search Repository items
+ -->
+
+</secured-repository-template>
