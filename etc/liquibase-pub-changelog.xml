@@ -986,4 +986,20 @@
     </addColumn>
   </changeSet>                
 
+  <changeSet author="commercesearch" id="40">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet_blacklist"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet_blacklist">
+      <column name="id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="asset_version" type="NUMBER(19)">
+        <constraints nullable="false" />
+      </column>
+      <column name="blacklist_term" type="VARCHAR2(254 BYTE)"/>
+    </createTable>
+  </changeSet>
+  
 </databaseChangeLog>

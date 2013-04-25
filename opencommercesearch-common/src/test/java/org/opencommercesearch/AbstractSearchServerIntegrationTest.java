@@ -19,12 +19,18 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import atg.multisite.Site;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
@@ -37,11 +43,15 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.opencommercesearch.junit.SearchTest;
 import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
+import org.opencommercesearch.repository.FacetProperty;
+import org.opencommercesearch.repository.FacetRuleProperty;
+import org.opencommercesearch.repository.FieldFacetProperty;
 import org.opencommercesearch.repository.RedirectRuleProperty;
+import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
 /**
@@ -239,7 +249,46 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals(new Integer(0), groupResponse.getValues().get(0).getNGroups());
     }
     
-    
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml", rulesData = "/rules/facetBlacklist.xml")
+    public void testFacetBlacklist(SearchServer server) throws SearchServerException, RepositoryException {
+        // Scenario to validate that the facet blacklist removes facet filter items.
+        
+        // The test creates a global facet rule, in the rules collection, with the scale and brand facets.
+        // The test data has two values for scale: "US Kids Footwear" and "UK Kids Footwear". For this facet, we are
+        // adding a blacklist that should remove the "UK Kids Footwear".
+        // For the brand facet, the test data only has one entry: "The North Face" and we defined a 
+        // blacklist with "Fake Brand". Because the terms don't match, then we shouldn't filter any entry.
+        
+        AbstractSearchServer baseServer = (AbstractSearchServer) server;
+        baseServer.setSearchRepository(searchRepository);
+        
+        RepositoryItem facetRepoItem = mock(RepositoryItem.class);
+        when(searchRepository.getItem("facetRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(facetRepoItem);
+        when(facetRepoItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("facetRule");
+        when(facetRepoItem.getRepositoryId()).thenReturn("facetRuleId");
+        
+        List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
+        facetList.add(mockFacet("scale", "scale", "fieldFacet", "UK Kids Footwear"));
+        facetList.add(mockFacet("brand", "brand", "fieldFacet", "Fake Brand"));
+        when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
+        
+        
+        SolrQuery query = new SolrQuery("shoe");
+        SearchResponse response = server.search(query, site);
+        
+        
+        for(Facet facet :response.getFacets()){
+            if(facet.getName().equals("scale")) {
+                assertEquals(facet.getFilters().size(), 1);
+                assertEquals(facet.getFilters().get(0).getName(), "US Kids Footwear");
+            }
+            if(facet.getName().equals("brand")) {
+                assertEquals(facet.getFilters().size(), 1);
+                assertEquals(facet.getFilters().get(0).getName(), "The North Face");
+            }
+        }
+
+    }
     
     protected void validateFilterByTopLevelCat(SearchResponse response) {
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());        
@@ -302,5 +351,19 @@ public class AbstractSearchServerIntegrationTest {
         //assertEquals(expectedCorrectedTerm, params.get("q"));
         assertEquals(expectedCorrectedTerm, res.getCorrectedTerm());
         assertEquals(matchesAll, res.matchesAll());  
+    }
+    
+    private RepositoryItem mockFacet(String name, String field, String type, String blacklist){
+        RepositoryItem facet = mock(RepositoryItem.class);
+        when(facet.getRepositoryId()).thenReturn(name);
+        when(facet.getPropertyValue(FacetProperty.TYPE)).thenReturn(type);
+        when(facet.getPropertyValue(FacetProperty.NAME)).thenReturn(name);
+        when(facet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn(field);
+        if(StringUtils.isNotBlank(blacklist)) {
+            Set<String> blackListSet = new HashSet<String>();
+            blackListSet.add(blacklist);
+            when(facet.getPropertyValue(FieldFacetProperty.BLACKLIST)).thenReturn(blackListSet);
+        }
+        return facet;
     }
 }
