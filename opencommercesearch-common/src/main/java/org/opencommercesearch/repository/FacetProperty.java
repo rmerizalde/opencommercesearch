@@ -30,7 +30,5 @@ public class FacetProperty {
     public static final String MIN_BUCKETS = "minBuckets";
     // TODO: refactor fieldName column to cs_facet table.
     public static final String FIELD = "fieldName";
-    
-    public static final String ITEM_DESCRIPTOR = "facet";
     public static final String BLACKLIST = "blacklist";
 }

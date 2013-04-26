@@ -110,10 +110,10 @@ public class SearchResponse {
         }
     }
     
-    private Set<String> getFacetBlacklist (String facetId) {
+    private Set<String> getFacetBlacklist (String facetName) {
         HashSet<String> blackList = new HashSet<String>();
 
-            RepositoryItem facetItem =  getRuleManager().getFacetManager().getFacetItem(facetId);
+            RepositoryItem facetItem =  getRuleManager().getFacetManager().getFacetItem(facetName);
             if (facetItem != null) {
                 Set<String> facetBlacklist = (Set<String>) facetItem.getPropertyValue(FacetProperty.BLACKLIST);
                 if (facetBlacklist != null && facetBlacklist.size() > 0) {
