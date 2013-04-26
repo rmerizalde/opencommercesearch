@@ -202,6 +202,12 @@
           <attribute name="propertySortPriority" value="3" />
         </property>
       </table>
+      
+      <table name="cs_facet_blacklist" type="multi" id-column-names="id" >
+         <property name="blacklist" display-name="Facet terms Blacklist" column-names="blacklist_term" data-type="set" 
+                component-data-type="string" category="Optional"/>
+      </table>
+      
     </item-descriptor>
 
     <item-descriptor display-name="Field Facet" name="fieldFacet" super-type="facet" sub-type-value="fieldFacet">

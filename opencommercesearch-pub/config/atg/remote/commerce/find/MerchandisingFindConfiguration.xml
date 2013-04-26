@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE find-configuration
+  PUBLIC "-//Art Technology Group, Inc.//DTD Asset Manager Find Configuration//EN"
+  'http://www.atg.com/dtds/find-configuration/find-configuration_1.0.dtd'>
+
+<find-configuration site-filtering="true" xml-combine="append">
+
+	<asset-family id="Search" site-filtering="false">
+		<display-name>Search</display-name>
+		<enable-default-query>true</enable-default-query>
+		<enable-filter-as-you-type>true</enable-filter-as-you-type>
+		<result-list page-size="50" />
+		<default-asset-type>boostRule</default-asset-type>
+
+		<asset-type id="synonymList" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>synonymList</repository-item-type>
+		</asset-type>
+
+		<asset-type id="synonym" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>synonym</repository-item-type>
+		</asset-type>
+
+		<asset-type id="redirectRule" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>redirectRule</repository-item-type>
+		</asset-type>
+
+		<asset-type id="boostRule" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>boostRule</repository-item-type>
+		</asset-type>
+
+		<asset-type id="blockRule" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>blockRule</repository-item-type>
+		</asset-type>
+
+		<asset-type id="facetRule" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>facetRule</repository-item-type>
+		</asset-type>
+
+		<asset-type id="rankingRule" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>rankingRule</repository-item-type>
+		</asset-type>
+
+		<asset-type id="fieldFacet" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>fieldFacet</repository-item-type>
+		</asset-type>
+
+		<asset-type id="rangeFacet" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>rangeFacet</repository-item-type>
+		</asset-type>
+
+		<asset-type id="dateFacet" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>dateFacet</repository-item-type>
+		</asset-type>
+
+		<asset-type id="queryFacet" site-filtering="false">
+			<enable-default-query>true</enable-default-query>
+			<enable-filter-as-you-type>true</enable-filter-as-you-type>
+			<repository-path>/org/opencommercesearch/repository/SecuredSearchRepository</repository-path>
+			<repository-item-type>queryFacet</repository-item-type>
+		</asset-type>
+
+	</asset-family>
+
+</find-configuration>

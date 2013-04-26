@@ -21,9 +21,11 @@ package org.opencommercesearch;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -33,6 +35,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.RangeFacet;
 import org.apache.solr.common.params.FacetParams;
 import org.opencommercesearch.Facet.Filter;
+import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.RangeFacetProperty;
 
 import atg.repository.RepositoryItem;
@@ -107,13 +110,27 @@ public class SearchResponse {
         }
     }
     
+    private Set<String> getFacetBlacklist (String facetName) {
+        HashSet<String> blackList = new HashSet<String>();
+
+            RepositoryItem facetItem =  getRuleManager().getFacetManager().getFacetItem(facetName);
+            if (facetItem != null) {
+                Set<String> facetBlacklist = (Set<String>) facetItem.getPropertyValue(FacetProperty.BLACKLIST);
+                if (facetBlacklist != null && facetBlacklist.size() > 0) {
+                    blackList.addAll(facetBlacklist);
+                }
+            }
+
+        return blackList;
+    }
+    
     public List<Facet> getFacets() {
         Map<String, Facet> facetMap = new HashMap<String, Facet>();
         FacetManager manager = getRuleManager().getFacetManager();
 
         for (FacetField facetField : queryResponse.getFacetFields()) {
             Facet facet = new Facet();
-
+            
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
             
@@ -126,9 +143,17 @@ public class SearchResponse {
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
             String prefix = query.getFieldParam(facet.getName(), FacetParams.FACET_PREFIX);
+            
+            Set<String> facetBlackList = getFacetBlacklist(facetField.getName());
+            
             for (Count count : facetField.getValues()) {
+                String filterName = manager.getCountName(count, prefix);
+                if (facetBlackList.contains(filterName)) {
+                    continue;
+                }
+                
                 Filter filter = new Filter();
-                filter.setName(manager.getCountName(count, prefix));
+                filter.setName(filterName);
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());
