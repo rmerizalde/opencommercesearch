@@ -42,6 +42,9 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @Category(IntegrationSearchTest.class)
 @RunWith(SearchJUnit4ClassRunner.class)
 public class EmbeddedServerIntegrationTest {
+
+    public static final int ROWS = 20;
+
     @Mock
     private Site site;
 
@@ -71,6 +74,8 @@ public class EmbeddedServerIntegrationTest {
         updateProduct(server);
 
         SolrQuery query = new SolrQuery("tallboy");
+
+        query.setRows(ROWS);
         SearchResponse res = server.search(query, site);
         QueryResponse queryResponse = res.getQueryResponse();
         GroupResponse groupResponse = queryResponse.getGroupResponse();
@@ -106,6 +111,7 @@ public class EmbeddedServerIntegrationTest {
     @SearchTest
     public void testSearch(SearchServer server) throws SearchServerException {
         SolrQuery query = new SolrQuery("face");
+        query.setRows(ROWS);
         SearchResponse res = server.search(query, site);
         QueryResponse queryResponse = res.getQueryResponse();
         GroupResponse groupResponse = queryResponse.getGroupResponse();
@@ -124,6 +130,7 @@ public class EmbeddedServerIntegrationTest {
     public void testEmptySearch(SearchServer server) throws SearchServerException {
 
         SolrQuery query = new SolrQuery("bike");
+        query.setRows(ROWS);
         SearchResponse res = server.search(query, site);
         QueryResponse queryResponse = res.getQueryResponse();
         GroupResponse groupResponse = queryResponse.getGroupResponse();

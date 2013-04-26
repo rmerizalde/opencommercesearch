@@ -694,6 +694,22 @@
     </addColumn>
   </changeSet>
   
+  <changeSet author="commercesearch" id="38">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet_blacklist"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet_blacklist">
+      <column name="id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="blacklist_term" type="VARCHAR2(254 BYTE)"/>
+    </createTable>
+  </changeSet>
+
   <changeSet author="commercesearch" id="39">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_synonym"/>
@@ -730,7 +746,7 @@
                                                                                                                                                                   
    <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
   </changeSet>
-
+ 
 </databaseChangeLog>
 
 
