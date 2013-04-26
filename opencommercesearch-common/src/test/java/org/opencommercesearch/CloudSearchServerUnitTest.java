@@ -24,6 +24,8 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import com.google.common.collect.Sets;
+import com.objectspace.jgl.Array;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -110,11 +112,17 @@ public class CloudSearchServerUnitTest {
     private Repository searchRepository;
 
     @Mock
-    private RepositoryView repositoryView;
+    private RepositoryView synonymListRepositoryView;
+    
+    @Mock
+    private RepositoryView synonymRepositoryView;
 
     @Mock
-    private RqlStatement synonymsRql;
+    private RqlStatement synonymListRql;
 
+    @Mock
+    private RqlStatement synonymRql;
+    
     @Mock
     private SolrZkClient solrZkClient;
 
@@ -145,13 +153,15 @@ public class CloudSearchServerUnitTest {
         cloudSearchServer.setLoggingTrace(true);
         cloudSearchServer.setResponseParser(responseParser);
         cloudSearchServer.setSearchRepository(searchRepository);
-        cloudSearchServer.setSynonymRql(synonymsRql);
-
+        cloudSearchServer.setSynonymListRql(synonymListRql);
+        cloudSearchServer.setSynonymRql(synonymRql);
+        
         initZkMocks();
         initHttpMocks();
 
         //when(responseParser.)
-        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(repositoryView);
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(synonymListRepositoryView);
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM)).thenReturn(synonymRepositoryView);
         when(responseParser.processResponse(eq(httpInputStream), anyString())).thenReturn(new NamedList<Object>());
     }
 
@@ -200,8 +210,9 @@ public class CloudSearchServerUnitTest {
     public void testExportSynonymsNewFile() throws Exception {
         
         RepositoryItem synonymList = initExportSynonyms(zkClient);
-        when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
-
+        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
+        when(synonymRql.executeQuery(eq(synonymRepositoryView), any(Object[].class))).thenReturn(new RepositoryItem[]{synonymList});
+        
         cloudSearchServer.exportSynonyms(getLocale());
         
         ArgumentCaptor<byte[]> dataCaptor = ArgumentCaptor.forClass(byte[].class);
@@ -215,8 +226,9 @@ public class CloudSearchServerUnitTest {
     public void testExportSynonymsExistingFile() throws Exception {
 
         RepositoryItem synonymList = initExportSynonyms(zkClient);
-        when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
-
+        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
+        when(synonymRql.executeQuery(eq(synonymRepositoryView), any(Object[].class))).thenReturn(new RepositoryItem[]{synonymList});
+        
         when(zkClient.exists(anyString(), anyBoolean())).thenReturn(true);
 
         cloudSearchServer.exportSynonyms(getLocale());
@@ -230,8 +242,9 @@ public class CloudSearchServerUnitTest {
 
     @Test
     public void testExportSynonymZeroLists() throws Exception {
-        when(synonymsRql.executeQuery(repositoryView, null)).thenReturn(null);
-
+        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(null);
+        when(synonymRql.executeQuery(synonymRepositoryView, null)).thenReturn(null);
+        
         cloudSearchServer.exportSynonyms(getLocale());
 
         verifyZeroInteractions(zkClient);
@@ -243,22 +256,18 @@ public class CloudSearchServerUnitTest {
         String capturedDataStr = new String(capturedData);
         
         assertTrue(capturedDataStr.contains("synonym1 > mapping1"));
-        assertTrue(capturedDataStr.contains("synonym2 > mapping2"));
-        
-        assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/product_catalog_conf/synonyms-preview/synonymlist.txt"));
-        assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/rules_conf/synonyms-preview/synonymlist.txt"));
+        assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/product_catalog_conf/synonyms-preview/index_synonyms.txt"));
+        assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/rules_conf/synonyms-preview/index_synonyms.txt"));
     }
 
     private RepositoryItem initExportSynonyms(SolrZkClient zkClient) throws SearchServerException {
         cloudSearchServer.setSolrZkClient(zkClient);
         
         RepositoryItem synonymList = mock(RepositoryItem.class);
+        when(synonymList.getRepositoryId()).thenReturn("synLst01");
         when(synonymList.getItemDisplayName()).thenReturn("synonymList");
-
-        Set<RepositoryItem> mappings = 
-                Sets.newHashSet(mockMapping("synonym1 > mapping1"), 
-                                mockMapping("synonym2 > mapping2"));
-        when(synonymList.getPropertyValue(SynonymListProperty.MAPPINGS)).thenReturn(mappings);
+        when(synonymList.getPropertyValue(SynonymListProperty.FILENAME)).thenReturn("index_synonyms");
+        when(synonymList.getPropertyValue(SynonymProperty.MAPPING)).thenReturn("synonym1 > mapping1.txt");
         
         cloudSearchServer.setCatalogCollection("catalogCollection");
         cloudSearchServer.setRulesCollection("ruleCollection");
@@ -266,13 +275,6 @@ public class CloudSearchServerUnitTest {
         return synonymList;
     }
     
-    private RepositoryItem mockMapping(String mappingStr){
-        RepositoryItem mapping = mock(RepositoryItem.class);
-        when(mapping.getPropertyValue(SynonymProperty.MAPPING)).thenReturn(mappingStr);
-        return mapping;
-                
-    }
-
     @Test
     public void testReloadCollections() throws Exception {
        cloudSearchServer.reloadCollections();

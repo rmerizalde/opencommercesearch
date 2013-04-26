@@ -9,26 +9,29 @@
     </header>
 
     <item-descriptor display-name="Synonym List" name="synonymList" display-property="name" item-cache-size="1000" query-cache-size="100">
-        <table name="cs_synonym_list" type="primary" id-column-name="syn_list_id">
-          <property name="name" data-type="string" display-name="Name"
-                  column-name="name" required="true">
-            <attribute name="propertySortPriority" value="1" />
-          </property>
-        </table>
-        <table name="cs_syn_list_mapping" type="multi" id-column-names="syn_list_id">
-          <property name="mappings" display-name="Synonym Mappings" column-names="syn_id" data-type="set"
-            component-item-type="synonym">
-            <attribute name="propertySortPriority" value="2" />
-          </property>
-        </table>
+         <table name="cs_synonym_list" type="primary" id-column-name="syn_list_id">
+                <property name="name" data-type="string" display-name="Name"
+                          column-name="name" required="true">
+                          <attribute name="propertySortPriority" value="1" />
+                 </property>
+                 <property name="filename" data-type="string" display-name="File Name"
+                           column-name="fileName" required="true">
+                          <attribute name="propertySortPriority" value="1" />
+                 </property>
+         </table>
     </item-descriptor>
 
-    <item-descriptor display-name="Synonym" name="synonym" display-property="mapping" item-cache-size="1000" query-cache-size="100">
-        <table name="cs_synonym" type="primary" id-column-name="syn_id">
-            <property name="mapping" data-type="string" display-name="Mapping"
-                    column-name="mapping" required="true"/>
-        </table>
-    </item-descriptor>
+    <item-descriptor display-name="Synonym" name="synonym" display-property="mappings" item-cache-size="1000" query-cache-size="100">
+         <table name="cs_synonym" type="primary" id-column-name="syn_id">
+                <property name="mappings" data-type="string" display-name="Mapping"
+                          column-name="mapping" required="true">
+                          <attribute name="propertySortPriority" value="2" />
+                </property>          
+                <property name="synonymList" display-name="Synonym List" column-names="syn_list_id" item-type="synonymList">
+                          <attribute name="propertySortPriority" value="1" />
+                </property>
+          </table>
+     </item-descriptor>
 
     <item-descriptor display-name="Rule" name="rule" display-property="name" item-cache-size="1000" query-cache-size="100"
         sub-type-property="ruleType" sub-type-value="rule">

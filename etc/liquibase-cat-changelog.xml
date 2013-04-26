@@ -693,7 +693,44 @@
         <column name="item_owner" type="VARCHAR2(128)"/>
     </addColumn>
   </changeSet>
- 
+  
+  <changeSet author="commercesearch" id="39">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_synonym"/>
+      <tableExists tableName="cs_syn_list_mapping"/>
+      <not><columnExists tableName="cs_synonym" columnName="syn_list_id"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_synonym">
+      <column name="syn_list_id" type="VARCHAR2(40)"/>
+    </addColumn>
+
+    <sql>update cs_synonym a set a.syn_list_id = (select b.syn_list_id from cs_syn_list_mapping b where a.syn_id = b.syn_id and rownum=1)</sql>
+                                                     
+    <addNotNullConstraint tableName="cs_synonym" columnName="syn_list_id" />
+    <addForeignKeyConstraint baseColumnNames="syn_list_id" baseTableName="cs_synonym" constraintName="CS_SYN_FK" deferrable="false" initiallyDeferred="false"
+                             referencedColumnNames="syn_list_id" referencedTableName="cs_synonym_list"/>
+    <dropTable cascadeConstraints="true" tableName="cs_syn_list_mapping"/>
+  </changeSet>          
+                                                                                                   
+  <changeSet author="commercesearch" id="40">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_synonym_list" columnName="fileName"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_synonym_list">
+      <column name="fileName" type="VARCHAR2(256)"/>
+    </addColumn>
+                                                                                                                                              
+   <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
+                                                                                                                                                                  
+   <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
+  </changeSet>
+
 </databaseChangeLog>
 
 
