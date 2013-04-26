@@ -339,7 +339,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         query.addFacetField("category");
         query.set("facet.mincount", 1);
 
-        setGroupParams(query);
+        if (query.getRows() != null && query.getRows() > 0) {
+            setGroupParams(query);
+        }
         setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
 
         RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
