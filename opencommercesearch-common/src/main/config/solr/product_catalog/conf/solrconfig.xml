@@ -67,6 +67,9 @@
   <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
 
   <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="invariants">
+      <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image</str>
+    </lst>
     <lst name="defaults">
       <str name="echoParams">none</str>
       <int name="rows">20</int>
