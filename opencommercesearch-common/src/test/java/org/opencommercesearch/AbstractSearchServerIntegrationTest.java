@@ -281,6 +281,7 @@ public class AbstractSearchServerIntegrationTest {
         
         
         SolrQuery query = new SolrQuery("shoe");
+        query.setRows(ROWS);
         SearchResponse response = server.search(query, site);
         
         

@@ -204,6 +204,7 @@ public class AbstractSearchServerUnitTest {
 
         // solr servers
         when(query.getQuery()).thenReturn("my search term");
+        when(query.getRows()).thenReturn(20);
         when(catalogServerEn.query(any(SolrParams.class))).thenReturn(catalogQueryResponse);
         when(rulesServerEn.query(any(SolrParams.class))).thenReturn(rulesQueryResponse);
         when(catalogServerFr.query(any(SolrParams.class))).thenReturn(catalogQueryResponse);
