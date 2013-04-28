@@ -112,13 +112,13 @@
     <item-descriptor display-name="Redirect Rule" name="redirectRule" super-type="rule" sub-type-value="redirectRule">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="ContextPriority" value="2" />
-      <attribute name="RedirectsPriority" value="3" />
+      <attribute name="RedirectPriority" value="3" />
       <attribute name="PriorityPriority" value="4" />
       <attribute name="LifetimePriority" value="5" />
 
       <table name="cs_redirect_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1" >
           <property name="url" data-type="string" display-name="Url"
-                  column-name="url" required="true" category="Redirects">
+                  column-name="url" required="true" category="Redirect">
             <attribute name="propertySortPriority" value="9" />
           </property>
       </table>
