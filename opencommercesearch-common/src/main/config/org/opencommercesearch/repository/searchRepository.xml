@@ -32,11 +32,6 @@
 
     <item-descriptor display-name="Rule" name="rule" display-property="name" item-cache-size="1000" query-cache-size="100"
         sub-type-property="ruleType" sub-type-value="rule">
-      <attribute name="GeneralPriority" value="1" />
-      <attribute name="TriggerPriority" value="1" />
-      <attribute name="ContextPriority" value="2" />
-      <attribute name="PriorityPriority" value="9" />
-      <attribute name="LifetimePriority" value="10" />
       <table name="cs_rule" type="primary" id-column-name="rule_id">
         <property name="ruleType" data-type="enumerated" column-name="type" hidden="false">
           <attribute name="useCodeForValue" value="false"/>
@@ -52,8 +47,8 @@
                   column-name="name" required="true" category="General">
           <attribute name="propertySortPriority" value="1" />
         </property>
-        <property name="target" data-type="enumerated" display-name="Target"
-                  column-name="target" required="true" category="Trigger">
+        <property name="target" data-type="enumerated" display-name="Target Pages"
+                  column-name="target" required="true" category="Context">
           <attribute name="propertySortPriority" value="1" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="All Pages"        code="1"/>
@@ -61,7 +56,7 @@
           <option value="Category Pages"   code="3"/>
         </property>
         <property name="query" data-type="string" display-name="Query"
-                  column-name="query" category="Trigger">
+                  column-name="query" category="Context">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="includeSubcategories" data-type="boolean" display-name="Include Subcategories (default 'No')"
@@ -69,11 +64,11 @@
           <attribute name="propertySortPriority" value="6" />
         </property>
         <property name="sortPriority" data-type="int" display-name="Sort Priority (default 0)"
-                  column-name="sort_priority" required="true" category="Priority">
+                  column-name="sort_priority" required="false" category="Priority">
           <attribute name="propertySortPriority" value="7" />
         </property>
         <property name="combineMode" data-type="enumerated" display-name="Combine Mode (default 'Replace')"
-                  column-name="combine_mode" required="true" category="Priority">
+                  column-name="combine_mode" required="false" category="Priority">
           <attribute name="propertySortPriority" value="8" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="Replace" code="1"/>
@@ -91,7 +86,7 @@
 
       <table name="cs_rule_sites" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="sites" display-name="Sites" data-type="set" component-item-type="siteConfiguration"
-            column-name="site_id" repository="/atg/multisite/SiteRepository" category="Trigger">
+            column-name="site_id" repository="/atg/multisite/SiteRepository" category="Context">
             <attribute name="cacheReferencesById" value="true"/>
             <attribute name="propertySortPriority" value="3" />
         </property>
@@ -99,7 +94,7 @@
 
       <table name="cs_rule_catalogs" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="catalogs" display-name="Catalogs" data-type="set" component-item-type="catalog"
-            column-name="catalog_id" repository="/atg/commerce/catalog/ProductCatalog" category="Trigger">
+            column-name="catalog_id" repository="/atg/commerce/catalog/ProductCatalog" category="Context">
             <attribute name="cacheReferencesById" value="true"/>
             <attribute name="propertySortPriority" value="4" />
         </property>
@@ -115,8 +110,12 @@
     </item-descriptor>
 
     <item-descriptor display-name="Redirect Rule" name="redirectRule" super-type="rule" sub-type-value="redirectRule">
-      <attribute name="RedirectsPriority" value="4" />
-      
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
+      <attribute name="RedirectsPriority" value="3" />
+      <attribute name="PriorityPriority" value="4" />
+      <attribute name="LifetimePriority" value="5" />
+
       <table name="cs_redirect_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1" >
           <property name="url" data-type="string" display-name="Url"
                   column-name="url" required="true" category="Redirects">
@@ -126,7 +125,11 @@
     </item-descriptor>
     
     <item-descriptor display-name="Boost Rule" name="boostRule" super-type="rule" sub-type-value="boostRule">
-      <attribute name="BoostsPriority" value="4" />
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
+      <attribute name="BoostsPriority" value="3" />
+      <attribute name="PriorityPriority" value="4" />
+      <attribute name="LifetimePriority" value="5" />
       
       <table name="cs_boost_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1"/>
 
@@ -139,7 +142,11 @@
     </item-descriptor>
 
     <item-descriptor display-name="Block Rule" name="blockRule" super-type="rule" sub-type-value="blockRule">
-      <attribute name="BlocksPriority" value="4" />
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
+      <attribute name="BlocksPriority" value="3" />
+      <attribute name="PriorityPriority" value="4" />
+      <attribute name="LifetimePriority" value="5" />
 
       <table name="cs_block_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1"/>
 
@@ -152,7 +159,11 @@
     </item-descriptor>
 
     <item-descriptor display-name="Facet Rule" name="facetRule" super-type="rule" sub-type-value="facetRule">
-      <attribute name="FacetsPriority" value="4" />
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
+      <attribute name="FacetsPriority" value="3" />
+      <attribute name="PriorityPriority" value="4" />
+      <attribute name="LifetimePriority" value="5" />
 
       <table name="cs_facet_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1"/>
 
@@ -167,8 +178,6 @@
     <!-- facets -->
     <item-descriptor display-name="Facet" name="facet" display-property="systemName" item-cache-size="100" query-cache-size="100"
         sub-type-property="facetType" sub-type-value="facet">
-      <attribute name="GeneralPriority" value="1" />
-      <attribute name="OptionalPriority" value="2" />
       <table name="cs_facet" type="primary" id-column-name="facet_id">
         <property name="facetType" data-type="enumerated" column-name="type" hidden="false">
           <attribute name="useCodeForValue" value="false"/>
@@ -182,11 +191,11 @@
 
 
         <property name="systemName" data-type="string" display-name="System Name"
-                  column-name="system_name" required="true" category="Basic">
+                  column-name="system_name" required="true" category="General">
           <attribute name="propertySortPriority" value="1" />
         </property>
         <property name="name" data-type="string" display-name="Display Name"
-                  column-name="name" required="true" category="Basic">
+                  column-name="name" required="true" category="General">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="isMultiSelect" data-type="boolean" display-name="Allow Multiple Selection"
@@ -204,17 +213,22 @@
       </table>
       
       <table name="cs_facet_blacklist" type="multi" id-column-names="id" >
-         <property name="blacklist" display-name="Facet terms Blacklist" column-names="blacklist_term" data-type="set" 
-                component-data-type="string" category="Optional"/>
+         <property name="blacklist" display-name="Facet Value Blacklist" column-names="blacklist_term" data-type="set"
+                component-data-type="string" category="Optional">
+           <attribute name="propertySortPriority" value="20" />
+         </property>
       </table>
       
     </item-descriptor>
 
     <item-descriptor display-name="Field Facet" name="fieldFacet" super-type="facet" sub-type-value="fieldFacet">
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="OptionalPriority" value="2" />
       <attribute name="AdvancedPriority" value="3" />
+
       <table name="cs_field_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
         <property name="fieldName" data-type="string" display-name="Field Name"
-                  column-name="field_name" required="true" category="Basic">
+                  column-name="field_name" required="true" category="General">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="sort" data-type="enumerated" column-name="sort" required="false" hidden="false"
@@ -254,48 +268,54 @@
     </item-descriptor>
 
     <item-descriptor display-name="Range Facet" name="rangeFacet" super-type="facet" sub-type-value="rangeFacet">
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="OptionalPriority" value="2" />
       <attribute name="AdvancedPriority" value="3" />
+
       <table name="cs_range_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
         <property name="fieldName" data-type="string" display-name="Field Name"
-                  column-name="field_name" required="true" category="Basic">
+                  column-name="field_name" required="true" category="General">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="start" data-type="int" display-name="Range Start"
-                  column-name="range_start" required="true" category="Basic">
+                  column-name="range_start" required="true" category="General">
           <attribute name="propertySortPriority" value="3" />
         </property>
         <property name="end" data-type="int" display-name="Range End"
-                  column-name="range_end" required="false" category="Basic">
+                  column-name="range_end" required="false" category="General">
           <attribute name="propertySortPriority" value="4" />
         </property>
         <property name="gap" data-type="int" display-name="Range Gap"
-                  column-name="range_gap" required="true" category="Basic">
+                  column-name="range_gap" required="true" category="General">
           <attribute name="propertySortPriority" value="5" />
         </property>
         <property name="hardened" data-type="boolean" display-name="Hardened (default false)"
-                  column-name="hardened" required="true" category="Optional">
+                  column-name="hardened" required="false" category="Optional">
           <attribute name="propertySortPriority" value="1" />
         </property>
       </table>
     </item-descriptor>
 
     <item-descriptor display-name="Date Facet" name="dateFacet" super-type="facet" sub-type-value="dateFacet">
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="OptionalPriority" value="2" />
       <attribute name="AdvancedPriority" value="3" />
+
       <table name="cs_date_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
         <property name="fieldName" data-type="string" display-name="Field Name"
-                  column-name="field_name" required="true" category="Basic">
+                  column-name="field_name" required="true" category="General">
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="start" data-type="timestamp" display-name="Range Start"
-                  column-name="range_start" required="true" category="Basic">
+                  column-name="range_start" required="true" category="General">
           <attribute name="propertySortPriority" value="3" />
         </property>
         <property name="end" data-type="timestamp" display-name="Range End"
-                  column-name="range_end" required="true" category="Basic">
+                  column-name="range_end" required="true" category="General">
           <attribute name="propertySortPriority" value="4" />
         </property>
         <property name="gap" data-type="string" display-name="Range Gap"
-                  column-name="range_gap" required="true" category="Basic">
+                  column-name="range_gap" required="true" category="General">
           <attribute name="propertySortPriority" value="5" />
         </property>
         <property name="hardened" data-type="boolean" display-name="Hardened (default false)"
@@ -306,24 +326,33 @@
     </item-descriptor>
 
     <item-descriptor display-name="Query Facet" name="queryFacet" super-type="facet" sub-type-value="queryFacet">
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="OptionalPriority" value="2" />
       <attribute name="AdvancedPriority" value="3" />
+
       <table name="cs_query_facet" type="auxiliary" id-column-names="facet_id" shared-table-sequence="1">
         <property name="fieldName" data-type="string" display-name="Field Name"
-                  column-name="field_name" required="true" category="Basic">
+                  column-name="field_name" required="true" category="General">
           <attribute name="propertySortPriority" value="2" />
         </property>
       </table>
 
       <table name="cs_query_facet_queries" id-column-name="facet_id" multi-column-name="seq_num" type="multi" shared-table-sequence="1">
           <property name="queries" display-name="Queries" data-type="list" component-data-type="string"
-              column-name="query">
+              column-name="query" required="true" category="General">
               <attribute name="cacheReferencesById" value="false"/>
+              <attribute name="propertySortPriority" value="4" />
           </property>
       </table>
     </item-descriptor>
 
     <item-descriptor display-name="Ranking Rule" name="rankingRule" super-type="rule" sub-type-value="rankingRule">
-      <attribute name="RankingPriority" value="2" />
+      <attribute name="GeneralPriority" value="1" />
+      <attribute name="ContextPriority" value="2" />
+      <attribute name="RankingPriority" value="3" />
+      <attribute name="PriorityPriority" value="4" />
+      <attribute name="LifetimePriority" value="5" />
+
       <table name="cs_ranking_rule" type="auxiliary" id-column-names="rule_id" shared-table-sequence="1">
         <property name="boostBy" data-type="enumerated" column-name="boost_by" required="true" hidden="false" display-name="Boost By" category="Ranking">
           <attribute name="useCodeForValue" value="false"/>
@@ -355,7 +384,6 @@
       </table>
 
       <table name="cs_ranking_rule_expression" type="multi" id-column-name="rule_id" multi-column-name="position">
-        <attribute name="AdvancedPriority" value="3" />
         <property name="conditions" display-name="Boost Conditions" data-type="list" component-item-type="ruleExpression"
                   repository="/atg/commerce/catalog/ProductCatalog" column-name="rule_expression_id" category="Ranking">
           <attribute name="cacheReferencesById" value="true"/>
