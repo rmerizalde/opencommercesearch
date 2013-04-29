@@ -68,6 +68,9 @@ public interface SearchServer {
     UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException;
     UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException;
 
+    UpdateResponse rollback() throws SearchServerException;
+    UpdateResponse rollback(Locale locale) throws SearchServerException;
+    
     UpdateResponse commit() throws SearchServerException;
     UpdateResponse commit(Locale locale) throws SearchServerException;
 
