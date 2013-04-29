@@ -67,6 +67,9 @@
   <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
 
   <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="invariants">
+      <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image</str>
+    </lst>
     <lst name="defaults">
       <str name="echoParams">none</str>
       <int name="rows">20</int>
@@ -77,6 +80,7 @@
       <str name="synonyms.disablePhraseQueries">true</str>
       <str name="synonyms.constructPhrases">false</str>
       <str name="qf">text^3 brandText^2 highest^3.5 high^2.5 medium^1.6 low^1.3 lowest^0.5</str>
+      <str name="mm"><![CDATA[4<80% 5<60%]]></str>
       <!-- df is used in subqueries in boost functions -->
       <str name="df">text</str>
       <str name="spellcheck">true</str>

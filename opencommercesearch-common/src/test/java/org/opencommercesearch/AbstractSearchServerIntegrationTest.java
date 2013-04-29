@@ -150,11 +150,10 @@ public class AbstractSearchServerIntegrationTest {
         options = new BrowseOptions(false, true, false, false, 100, "88", null, null, "mycatalog");
         query = new SolrQuery();
         query.setRows(ROWS);
-        query.setFields("brandId");
         response = server.browse(options, query, site, Locale.US, null);
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
-        assertEquals("88", getFirstResponseProperty(response, "brandId"));
+        assertEquals("The North Face", getFirstResponseProperty(response, "brand"));
         validateFilterByTopLevelCat(response, options.isFetchProducts());
         validateCategoryPathNotInFacets(response);
         
@@ -162,11 +161,10 @@ public class AbstractSearchServerIntegrationTest {
         options = new BrowseOptions(false, true, false, false, 100, "88", "cat3000003", "mycatalog.cat3000003", "mycatalog");                
         query = new SolrQuery();
         query.setRows(ROWS);
-        query.setFields("brandId");
         response = server.browse(options, query, site, Locale.US, null);
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
-        assertEquals("88", getFirstResponseProperty(response, "brandId"));
+        assertEquals("The North Face", getFirstResponseProperty(response, "brand"));
         validateFilterByCat3000003(response);
         validateCategoryPathNotInFacets(response);
 
@@ -380,4 +378,6 @@ public class AbstractSearchServerIntegrationTest {
         }
         return facet;
     }
+
+
 }

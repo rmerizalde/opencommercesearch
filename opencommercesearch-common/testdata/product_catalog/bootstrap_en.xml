@@ -20,5 +20,6 @@
     <field name="seoUrl">/my-product</field>
     <field name="image">my-product.jpg</field>
     <field name="brandId">88</field>
+    <field name="brand"><![CDATA[The North Face]]></field>
   </doc>
 </add>

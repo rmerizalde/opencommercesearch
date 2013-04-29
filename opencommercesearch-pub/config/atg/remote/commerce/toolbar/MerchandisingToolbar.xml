@@ -6,7 +6,18 @@
 <toolbar xml-combine="append">
   
   <operation-menu id="browseSearchOperationMenu">
-    <toolbar-scope pane-id="browse" asset-area="search"/>
+    <toolbar-scope pane-id="browse" asset-area="searchRankingRules"/>
+    <toolbar-scope pane-id="browse" asset-area="searchFacetRules"/>
+    <toolbar-scope pane-id="browse" asset-area="searchBoostsBlocks"/>
+    <toolbar-scope pane-id="browse" asset-area="searchRedirectRules"/>
+    <toolbar-scope pane-id="browse" asset-area="searchBoosts"/>
+    <toolbar-scope pane-id="browse" asset-area="searchBlocks"/>
+    <toolbar-scope pane-id="browse" asset-area="searchFieldFacets"/>
+    <toolbar-scope pane-id="browse" asset-area="searchQueryFacets"/>
+    <toolbar-scope pane-id="browse" asset-area="searchRangeFacets"/>
+    <toolbar-scope pane-id="browse" asset-area="searchDateFacets"/>
+    <toolbar-scope pane-id="browse" asset-area="searchSynonymLists"/>
+    <toolbar-scope pane-id="browse" asset-area="searchSynonymMappings"/>
     <operation-menu-item id="edit" divider="false" submenu="false"/>
     <operation-menu-item id="duplicate" divider="false" submenu="false"/>
     <operation-menu-item id="delete" divider="false" submenu="false"/>
