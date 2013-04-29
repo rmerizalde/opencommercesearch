@@ -411,6 +411,16 @@ public class SearchServerManager {
         public UpdateResponse commit(Locale locale) throws SearchServerException {
             throw new UnsupportedOperationException("Can't coommit on a read only search server");
         }
+        
+        @Override
+        public UpdateResponse rollback() throws SearchServerException {
+            throw new UnsupportedOperationException("Can't rollback on a read only search server");
+        }
+
+        @Override
+        public UpdateResponse rollback(Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't rollback on a read only search server");
+        }
 
         @Override
         public UpdateResponse deleteByQuery(String query) throws SearchServerException {
@@ -491,5 +501,6 @@ public class SearchServerManager {
         public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
             return server.browse(options, query, site, locale, filterQueries);
         }
+        
     }
 }

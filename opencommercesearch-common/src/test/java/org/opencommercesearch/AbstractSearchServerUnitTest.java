@@ -21,6 +21,7 @@ package org.opencommercesearch;
 
 import atg.multisite.Site;
 import atg.repository.Repository;
+import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
 import atg.repository.RepositoryView;
@@ -267,6 +268,15 @@ public class AbstractSearchServerUnitTest {
             blockRule.getRepositoryId(), boostRule.getRepositoryId());
     }
 
+    @Test
+    public void testIndexRulesRollback() throws Exception {
+        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
+        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
+        server.indexRules();
+        verify(rulesServerEn).rollback();
+        verify(rulesServerEn, never()).commit();
+    }
+    
     private void verifyIndexedRules(int count, String... expectedRuleIds) throws SolrServerException, IOException {
 
         ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);

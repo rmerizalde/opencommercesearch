@@ -1001,5 +1001,14 @@
       <column name="blacklist_term" type="VARCHAR2(254 BYTE)"/>
     </createTable>
   </changeSet>
+
+  <changeSet author="commercesearch" id="41">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet_blacklist"/>
+      <columnExists tableName="cs_facet_blacklist" columnName="seq_num"/>
+    </preConditions>
+
+    <dropColumn tableName="cs_facet_blacklist" columnName="seq_num"/>
+  </changeSet>
   
 </databaseChangeLog>
