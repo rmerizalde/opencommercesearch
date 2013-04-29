@@ -16,7 +16,7 @@
                  </property>
                  <property name="filename" data-type="string" display-name="File Name"
                            column-name="fileName" required="true">
-                          <attribute name="propertySortPriority" value="1" />
+                          <attribute name="propertySortPriority" value="2" />
                  </property>
          </table>
     </item-descriptor>
