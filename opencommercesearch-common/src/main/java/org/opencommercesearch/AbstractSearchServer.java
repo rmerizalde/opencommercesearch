@@ -792,7 +792,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                     ++processed;
                 }
                 add(docs, getRulesCollection());
-                commit(getRulesCollection());
     
                 rqlArgs[0] += getRuleBatchSize();
                 rules = ruleRql.executeQueryUncached(view, rqlArgs);
@@ -801,6 +800,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                     logInfo("Processed " + processed + " out of " + ruleCount);
                 }
             }
+            commit(getRulesCollection());            
         } catch (Exception e) {
             rollback(getRulesCollection());
             if(isLoggingError()) {
