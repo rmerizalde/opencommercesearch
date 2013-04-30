@@ -537,6 +537,32 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
 
     @Override
+    public UpdateResponse rollback() throws SearchServerException {
+        return rollback(getCatalogCollection(), Locale.ENGLISH);
+    }
+
+    @Override
+    public UpdateResponse rollback(Locale locale) throws SearchServerException {
+        return rollback(getCatalogCollection(), locale);
+    }
+
+    public UpdateResponse rollback(String collection) throws SearchServerException {
+        return rollback(collection, Locale.ENGLISH);
+    }
+
+    public UpdateResponse rollback(String collection, Locale locale) throws SearchServerException {
+ 
+        try {
+            return getSolrServer(collection, locale).rollback();
+        } catch (SolrServerException ex) {
+            throw create(COMMIT_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(COMMIT_EXCEPTION, ex);
+        }
+
+    }
+    
+    @Override
     public UpdateResponse commit() throws SearchServerException {
         return commit(getCatalogCollection(), Locale.ENGLISH);
     }
@@ -755,32 +781,39 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         if (isLoggingInfo()) {
             logInfo("Started rule feed for " + ruleCount + " rules");
         }
-
-        // TODO fix this
-        deleteByQuery("*:*", getRulesCollection());
-
-        List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-        Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
-        RepositoryItem[] rules = ruleRql.executeQueryUncached(view, rqlArgs);
-
+        
         int processed = 0;
-
-        // TODO fix: add support for localized rules
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(Locale.ENGLISH));
-        while (rules != null) {
-
-            for (RepositoryItem rule : rules) {
-                docs.add(ruleManager.createRuleDocument(rule));
-                ++processed;
+                
+        try {
+            //TODO fix this
+            deleteByQuery("*:*", getRulesCollection());
+    
+            List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
+            Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
+            RepositoryItem[] rules = ruleRql.executeQueryUncached(view, rqlArgs);
+        
+            // TODO fix: add support for localized rules
+            RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(Locale.ENGLISH));
+            while (rules != null) {
+    
+                for (RepositoryItem rule : rules) {
+                    docs.add(ruleManager.createRuleDocument(rule));
+                    ++processed;
+                }
+                add(docs, getRulesCollection());
+    
+                rqlArgs[0] += getRuleBatchSize();
+                rules = ruleRql.executeQueryUncached(view, rqlArgs);
+    
+                if (isLoggingInfo()) {
+                    logInfo("Processed " + processed + " out of " + ruleCount);
+                }
             }
-            add(docs, getRulesCollection());
-            commit(getRulesCollection());
-
-            rqlArgs[0] += getRuleBatchSize();
-            rules = ruleRql.executeQueryUncached(view, rqlArgs);
-
-            if (isLoggingInfo()) {
-                logInfo("Processed " + processed + " out of " + ruleCount);
+            commit(getRulesCollection());            
+        } catch (Exception e) {
+            rollback(getRulesCollection());
+            if(isLoggingError()) {
+                logError("Error exporting indexing rules", e);
             }
         }
 

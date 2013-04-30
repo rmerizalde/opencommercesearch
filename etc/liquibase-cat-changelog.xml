@@ -748,6 +748,15 @@
    <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
   </changeSet>
  
+  <changeSet author="commercesearch" id="39">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet_blacklist"/>
+      <columnExists tableName="cs_facet_blacklist" columnName="seq_num"/>
+    </preConditions>
+
+    <dropColumn tableName="cs_facet_blacklist" columnName="seq_num"/>
+  </changeSet>
+
 </databaseChangeLog>
 
 
