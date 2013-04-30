@@ -1014,6 +1014,8 @@
     </addColumn>
 
     <sql>update cs_synonym a set a.syn_list_id = (select b.syn_list_id from cs_syn_list_mapping b where a.syn_id = b.syn_id and rownum=1)</sql>
+    <sql>delete from cs_synonym where syn_list_id is null</sql>
+
     <addNotNullConstraint tableName="cs_synonym" columnName="syn_list_id" />
     <dropTable cascadeConstraints="true" tableName="cs_syn_list_mapping"/>
   </changeSet>          
