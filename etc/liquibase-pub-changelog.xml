@@ -1,1050 +1,955 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog
-    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
+     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd"
+     logicalFilePath="./../script/liquibase/liquibase-pub-changelog.xml">
 
+    <!-- changesets to run against the atg_pub (publishing) schema -->
 
-  <changeSet author="commercesearch" id="1">
+	  <changeSet author="kkhaliqi" id="2">
+       <addColumn tableName="bc_category">
+            <column name="featured_brand_info_id" type="varchar2(40)"/>
+        </addColumn>
+     </changeSet>
+     
+    <changeSet author="schen" id="11">
+ 		<addColumn tableName="bc_category">
+			<column name="rule_promo_type" type="NUMBER"/>
+ 		</addColumn>
+ 	</changeSet>
+ 	
+ 	<!-- update the existing rule cateory type to "rule based" -->
+ 	<changeSet author="schen" id="12">
+ 		<sql>
+ 		update bc_category set rule_promo_type=1 where category_id in (select category_id from dcs_category where category_type=1);
+ 		</sql>
+ 	</changeSet>
+
+  <changeSet author="mmonge" id="10">
     <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_synonym_list"/></not>
-      <not><tableExists tableName="cs_syn_list_mapping"/></not>
-      <not><tableExists tableName="cs_synonym"/></not>
+      <not><columnExists tableName="bc_category" columnName="custom_page_title_tag"/></not>
+      <not><columnExists tableName="bc_category" columnName="custom_page_h1_heading"/></not>
+      <not><columnExists tableName="bc_category" columnName="custom_page_meta_description"/></not>
+      <not><columnExists tableName="bc_brand_info" columnName="custom_page_title_tag"/></not>
+      <not><columnExists tableName="bc_brand_info" columnName="custom_page_h1_heading"/></not>
+      <not><columnExists tableName="bc_brand_info" columnName="custom_page_meta_description"/></not>
     </preConditions>
-
-    <createTable tableName="cs_synonym_list">
-      <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="workspace_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="branch_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="is_head" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_deleted" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_editable" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="pred_version" type="NUMBER(19)"/>
-      <column name="checkin_date" type="TIMESTAMP"/>      
-    </createTable>
-    <addPrimaryKey tableName="cs_synonym_list" columnNames="syn_list_id,asset_version" constraintName="cs_syn_list_pk"/>
-
-    <createTable tableName="cs_syn_list_mapping">
-       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-       </column>
-       <column name="syn_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-       </column>
-       <column name="asset_version" type="NUMBER(19)">
-            <constraints nullable="false"/>
-       </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_syn_list_mapping" columnNames="syn_list_id,syn_id,asset_version" constraintName="cs_syn_list_map_pk"/>
-
-    <createTable tableName="cs_synonym">
-      <column name="syn_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="mapping" type="VARCHAR2(512 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="workspace_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="branch_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="is_head" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_deleted" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_editable" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="pred_version" type="NUMBER(19)"/>
-      <column name="checkin_date" type="TIMESTAMP"/>
-    </createTable>
-    <addPrimaryKey tableName="cs_synonym" columnNames="syn_id,asset_version" constraintName="cs_synonym_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="2">
-    <preConditions onFail="MARK_RAN">
-        <sqlCheck expectedResult="0">        
-        SELECT COUNT(*)
-            FROM vmap_pv
-            WHERE id='EsPvSynonymMapping'
-        </sqlCheck>
-    </preConditions>
-    <!-- Property View for Synonym's mapping property -->
-    <insert tableName="vmap_pv">
-        <column name="id" value="EsPvSynonymMapping"/>
-        <column name="name" value="Synonym Mapping Editor"/>
-        <column name="type" value="string"/>
-        <column name="component_type" value=""/>
-        <column name="description" value="Synonym Mapping Editor"/>
-        <column name="uri" value=""/>
-        <column name="view_component" value="atg.assetmanager.editor.view.property.DefaultEditor"/>
-        <column name="app_name" value="Commerce Search"/>
-        <column name="mode_id" value="AmMmDef"/>
-        <column name="container_family" value=""/>
-        <column name="is_default" valueNumeric="0"/>
-        <column name="is_readonly" valueNumeric="0"/>
-        <column name="is_component" valueNumeric="0"/>
-    </insert>
-
-    <!-- Define Property View attributes -->
-    <insert tableName="vmap_pvattrdef">
-        <column name="id" value="EsPvAdDefSynonymMappingPropSvc"/>
-        <column name="description" value=""/>
-        <column name="default_value" value="/org/commercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService"/>
-    </insert>
-
-    <insert tableName="vmap_pvattrdef">
-        <column name="id" value="EsPvAdSynonymMappingResBund"/>
-        <column name="description" value=""/>
-        <column name="default_value" value="atg.remote.commerce.Resources"/>
-    </insert>
-
-    <!-- linke Propevety VIew attributes to Property View -->
-    <insert tableName="vmap_pv2pvad_rel">
-      <column name="view_id" value="EsPvSynonymMapping"/>
-      <column name="attr_id" value="EsPvAdDefSynonymMappingPropSvc"/>
-      <column name="name" value="customAssetPropertyService"/>
-    </insert>
-
-    <insert tableName="vmap_pv2pvad_rel">
-      <column name="view_id" value="EsPvSynonymMapping"/>
-      <column name="attr_id" value="EsPvAdSynonymMappingResBund"/>
-      <column name="name" value="resourceBundle"/>
-    </insert>
-
-    <!-- Property View Mapping for Synonym's Mapping property -->
-    <insert tableName="vmap_pvm">
-      <column name="id" value="EsPvmSynonymMapping"/>
-      <column name="description" value="Synonym Mapping Editor Property Mapping"/>
-      <column name="pview_id" value="EsPvSynonymMapping"/>
-      <column name="cpview_id" value=""/>
-    </insert>
-
-    <!-- Item View Mapping -->
-    <insert tableName="vmap_ivm">
-      <column name="id" value="EsIvmSynonymMapping"/>
-      <column name="name" value="SynonymMapping"/>
-      <column name="display_name" value="EsIvmSynonymMapping.displayName"/>
-      <column name="view_id" value="AmIvDef"/>
-      <column name="description" value="Synonym Mapping"/>
-    </insert>
-
-    <!-- Define Property View Mapping attributes -->
-    <insert tableName="vmap_attrval">
-      <column name="id" value="EsAvSynonymAdvProp"/>
-      <column name="attr_value" value="false"/>
-    </insert>
-
-    <insert tableName="vmap_attrval">
-      <column name="id" value="EsAvSynonymBnd"/>
-      <column name="attr_value" value="org.commercesearch.ca.BCCResources"/>
-    </insert>
-
-    <!-- Linke Property View Mapping attributes -->
-    <insert tableName="vmap_attrval_rel">
-      <column name="mapper_id" value="EsIvmSynonymMapping"/>
-      <column name="attribute_id" value="EsAvSynonymAdvProp"/>
-      <column name="name" value="includeNewProperties"/>
-    </insert>
-
-    <insert tableName="vmap_attrval_rel">
-      <column name="mapper_id" value="EsImSynonymMapping"/>
-      <column name="attribute_id" value="EsAvSynonymBnd"/>
-      <column name="name" value="resourceBundle"/>
-    </insert>
-
-    <!-- Link Item View Mapping with Property VIew Mapping -->
-    <insert tableName="vmap_ivm2pvm_rel">
-      <column name="ivm_id" value="EsIvmSynonymMapping"/>
-      <column name="pvm_id" value="EsPvmSynonymMapping"/>
-      <column name="name" value="mapping"/>
-    </insert>
-
-    <!-- Item Mapping -->
-    <insert tableName="vmap_im">
-      <column name="id" value="EsImSynonymMapping"/>
-      <column name="name" value="AssetManager"/>
-      <column name="item_path" value="/org/commercesearch/repository/SearchRepository"/>
-      <column name="item_name" value="synonym"/>
-      <column name="is_readonly" value=""/>
-      <column name="form_handler" value="AmFhDef"/>
-      <column name="mode_id" value="AmMmDef"/>
-      <column name="description" value="Synonym Mapping Item Mapping"/>
-    </insert>
-
-    <!-- Link Item Mapping to Item View Mapping -->
-    <insert tableName="vmap_im2ivm_rel">
-      <column name="item_id" value="EsImSynonymMapping"/>
-      <column name="sequence_num" value="0"/>
-      <column name="view_id" value="EsIvmSynonymMapping"/>
-    </insert>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="3">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_rule"/></not>
-      <not><tableExists tableName="cs_rule_cats"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_rule">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="type" type="VARCHAR2(10 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="query" type="VARCHAR2(100 BYTE)">
-        <constraints nullable="false" />
-      </column>      
-      <column name="start_date" type="Date">
-        <constraints nullable="true" />
-      </column>
-      <column name="end_date" type="Date">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="workspace_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="branch_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="is_head" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_deleted" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_editable" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="pred_version" type="NUMBER(19)"/>
-      <column name="checkin_date" type="TIMESTAMP"/>
-    </createTable>
-    <addPrimaryKey tableName="cs_rule" columnNames="rule_id,asset_version" constraintName="cs_rule_pk"/>
-
-    <createTable tableName="cs_rule_sites">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="site_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-            <constraints nullable="false"/>
-       </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_rule_sites" columnNames="rule_id,site_id,asset_version" constraintName="cs_rule_sites_pk"/>     
-
-    <createTable tableName="cs_rule_catalogs">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="catalog_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-            <constraints nullable="false"/>
-       </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_rule_catalogs" columnNames="rule_id,catalog_id,asset_version" constraintName="cs_rule_catalogs_pk"/>    
-
-    <createTable tableName="cs_rule_cats">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="category_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-            <constraints nullable="false"/>
-       </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_rule_cats" columnNames="rule_id,category_id,asset_version" constraintName="cs_rule_cats_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="4">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_boost_rule"/></not>
-      <not><tableExists tableName="cs_boost_rule_prods"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_boost_rule">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false" />
-       </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_boost_rule" columnNames="rule_id,asset_version" constraintName="cs_boost_rule_pk"/>
-
-    <createTable tableName="cs_boost_rule_prods">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="seq_num" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="product_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_boost_rule_prods" columnNames="rule_id,product_id,asset_version" constraintName="cs_boost_rule_prod_pk"/>
-
-    <createTable tableName="cs_block_rule">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false" />
-       </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_block_rule" columnNames="rule_id,asset_version" constraintName="cs_block_rule_pk"/>
-
-    <createTable tableName="cs_block_rule_prods">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="product_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_block_rule_prods" columnNames="rule_id,product_id,asset_version" constraintName="cs_block_rule_prod_pk"/>    
-  </changeSet>
-
-  <changeSet author="commercesearch" id="5">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_facet"/></not>
-      <not><tableExists tableName="cs_field_facet"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_facet">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="type" type="VARCHAR2(10 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="is_multi_select" type="NUMBER(1)">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="workspace_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="branch_id" type="VARCHAR2(40)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="is_head" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_deleted" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="version_editable" type="NUMBER(1)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="pred_version" type="NUMBER(19)"/>
-      <column name="checkin_date" type="TIMESTAMP"/>
-    </createTable>
-    <addPrimaryKey tableName="cs_facet" columnNames="facet_id,asset_version" constraintName="cs_facet_pk"/>
-
-    <createTable tableName="cs_field_facet">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="field_name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="sort" type="VARCHAR2(10 BYTE)">
-        <constraints nullable="true" />
-      </column>
-      <column name="limit" type="INTEGER">
-        <constraints nullable="true" />
-      </column>
-      <column name="min_count" type="INTEGER">
-        <constraints nullable="true" />
-      </column>
-      <column name="missing" type="NUMBER(1)">
-        <constraints nullable="true" />
-      </column>
-      <column name="prefix" type="VARCHAR2(100 BYTE)">
-        <constraints nullable="true" />
-      </column>
-      <column name="method" type="VARCHAR2(10 BYTE)">
-        <constraints nullable="true" />
-      </column>
-      <column name="min_df" type="INTEGER">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>      
-    </createTable>
-    <addPrimaryKey tableName="cs_field_facet" columnNames="facet_id,asset_version" constraintName="cs_field_facet_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="6">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_facet_rule"/></not>
-      <not><tableExists tableName="cs_facet_rule_facets"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_facet_rule">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_facet_rule" columnNames="rule_id,asset_version" constraintName="cs_facet_rule_pk"/>
-
-    <createTable tableName="cs_facet_rule_facets">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,asset_version" constraintName="cs_facet_rule_facet_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="7">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_range_facet"/></not>
-      <not><tableExists tableName="cs_date_facet"/></not>
-    </preConditions>
-    <createTable tableName="cs_range_facet">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="field_name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_start" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_end" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_gap" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="hardened" type="NUMBER(1)">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_range_facet" columnNames="facet_id,asset_version" constraintName="cs_range_facet_pk"/>
-
-    <createTable tableName="cs_date_facet">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="field_name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_start" type="Date">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_end" type="Date">
-        <constraints nullable="false" />
-      </column>
-      <column name="range_gap" type="VARCHAR2(100 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="hardened" type="NUMBER(1)">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_date_facet" columnNames="facet_id,asset_version" constraintName="cs_date_facet_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="8">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_query_facet"/></not>
-      <not><tableExists tableName="cs_query_facet_queries"/></not>
-    </preConditions>
-    <createTable tableName="cs_query_facet">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="field_name" type="VARCHAR2(30 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_query_facet" columnNames="facet_id,asset_version" constraintName="cs_query_facet_pk"/>
-
-    <createTable tableName="cs_query_facet_queries">
-      <column name="facet_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="seq_num" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="query" type="VARCHAR2(200 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_query_facet_queries" columnNames="facet_id,seq_num,asset_version" constraintName="cs_query_facet_queries_pk"/>
+    <comment>
+      FSD-3564 Add new fields to manage H1 title, page title tag, page meta description and menu on
+      Category and Brand pages. A clean up changeSet will follow this one removing the columns
+      (web_display_name, meta_description, h1_title, short_display_name) used currently for those purposes.
+    </comment>
+    <addColumn tableName="bc_category">
+      <column name="custom_short_display_name" type="varchar2(40)"/>
+      <column name="custom_page_title_tag" type="varchar2(512)"/>
+      <column name="custom_page_h1_heading" type="varchar2(100)"/>
+      <column name="custom_page_meta_description" type="varchar2(512)"/>
+    </addColumn>
+    <addColumn tableName="bc_brand_info">
+      <column name="display_name" type="varchar2(64)"/>
+      <column name="custom_page_title_tag" type="varchar2(512)"/>
+      <column name="custom_page_h1_heading" type="varchar2(100)"/>
+      <column name="custom_page_meta_description" type="varchar2(512)"/>
+    </addColumn>
+    <sql>
+      update bc_category
+      set custom_short_display_name = short_display_name,
+      custom_page_title_tag = web_display_name,
+      custom_page_h1_heading = h1_title,
+      custom_page_meta_description = meta_description
+    </sql>
+    <sql>
+      update bc_brand_info
+      set custom_page_title_tag = web_display_name,
+      custom_page_h1_heading = h1_title,
+      custom_page_meta_description = meta_description
+    </sql>
+    <sql>
+      update bc_brand_info
+      set bc_brand_info.display_name = (select bc_brand.display_name
+      from bc_brand
+      where bc_brand_info.brand_id = bc_brand.brand_id)
+    </sql>
   </changeSet>
   
-  <changeSet author="commercesearch" id="9">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_redirect_rule"/></not>
-    </preConditions>
-    <createTable tableName="cs_redirect_rule">
-       <column name="rule_id" type="VARCHAR2(40 BYTE)">
-         <constraints nullable="false" />
-       </column>
-       <column name="asset_version" type="NUMBER(19)">
-         <constraints nullable="false"/>
-       </column>
-       <column name="url" type="VARCHAR2(200 BYTE)">
-         <constraints nullable="false" />
-       </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_redirect_rule" columnNames="rule_id,asset_version" constraintName="cs_redirect_rule_pk"/>
-  </changeSet>
-  
-   <changeSet author="commercesearch" id="10">
+  <changeSet author="aglemann" id="1">
       <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="cs_rule_expression"/></not>
-            <not><tableExists tableName="cs_category_rule_expression"/></not>
+          <sqlCheck expectedResult="0">
+              select count(*) from bc_feature where name = 'redesignNavFlyout'
+          </sqlCheck>
       </preConditions>
-      <createTable tableName="cs_rule_expression">
-          <column name="id" type="VARCHAR2(40 BYTE)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="position" type="NUMBER"/>
-          <column name="value" type="VARCHAR2(40 BYTE)"/>
-          <column name="nest_level" type="NUMBER"/>
-          <column name="type" type="NUMBER"/>
-          <column name="operator" type="NUMBER"/>
-          <column name="asset_version" type="NUMBER(19)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="workspace_id" type="VARCHAR2(40)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="branch_id" type="VARCHAR2(40)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="is_head" type="NUMBER(1)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="version_deleted" type="NUMBER(1)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="version_editable" type="NUMBER(1)">
-              <constraints nullable="false"/>
-          </column>
-          <column name="pred_version" type="NUMBER(19)"/>
-          <column name="checkin_date" type="TIMESTAMP"/>
-      </createTable>
-      <createTable tableName="cs_category_rule_expression">
-          <column name="category_id" type="VARCHAR2(40 BYTE)">
-            <constraints nullable="false"/>
-          </column>
-          <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
-            <constraints nullable="false"/>
-          </column>
-          <column name="asset_version" type="NUMBER(19)">
-                <constraints nullable="false"/>
-          </column>
-          <column name="position" type="number(19)"/>
-        </createTable>
-      <addPrimaryKey tableName="cs_rule_expression" columnNames="id,asset_version" constraintName="cs_rule_expression_pk"/>
-      <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position,asset_version" constraintName="cs_cat_rul_exp_pk"/>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="11">
-    <sql>
-        UPDATE vmap_pvattrdef SET default_value = '/org/opencommercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService'
-         WHERE default_value = '/org/commercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService'
-    </sql>
-    <sql>
-        UPDATE vmap_im SET item_path = '/org/opencommercesearch/repository/SearchRepository'
-         WHERE item_path = '/org/commercesearch/repository/SearchRepository'
-    </sql>
+      <insert tableName="bc_feature">
+          <column name="name" value="redesignNavFlyout" />
+          <column name="enabled" value="0" />
+      </insert>
   </changeSet>
   
-  <changeSet author="commercesearch" id="17">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_ranking_rule"/></not>
-      <not><tableExists tableName="cs_ranking_rule_expression"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_ranking_rule">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="boost_by" type="VARCHAR2(20 BYTE)">
-        <constraints nullable="false" />
-      </column>
-      <column name="strength" type="VARCHAR2(20 BYTE)">
-        <constraints nullable="true" />
-      </column>  
-      <column name="attribute_name" type="VARCHAR2(60 BYTE)">
-        <constraints nullable="true" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>          
-    </createTable>
-    <addPrimaryKey tableName="cs_ranking_rule" columnNames="rule_id,asset_version" constraintName="cs_ranking_rule_pk" />
-
-    <createTable tableName="cs_ranking_rule_expression">
-      <column name="rule_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false" />
-      </column>
-      <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
-          <constraints nullable="false"/>
-      </column>
-      <column name="position" type="number(19)"/>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false"/>
-      </column>
-    </createTable>
-    <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position,asset_version" constraintName="cs_ranking_rule_expr_pk"/>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="19">
-    <sql>
-        UPDATE vmap_attrval SET attr_value = 'org.opencommercesearch.ca.BCCResources'
-         WHERE id ='EsAvSynonymBnd'
-    </sql>
-  </changeSet> 
-
- <changeSet author="commercesearch" id="20">
-    <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="cs_rule" columnName="target"/></not>
-    </preConditions>
-
-    <addColumn tableName="cs_rule">
-        <column name="target" type="VARCHAR2(15 BYTE)">
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="21">
+ 	    <changeSet author="kkhaliqi" id="3">
         <preConditions onFail="MARK_RAN">
-            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target is null</sqlCheck></not>
+            <not><tableExists tableName="bc_payment_txn_gateway"/></not>
         </preConditions>
-        <sql>update cs_rule set target='1' where target is null;</sql>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="22">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">
-            SELECT COUNT(*)
-                FROM vmap_fh
-                WHERE id='EsFhRuleTarget'
-            </sqlCheck>
-        </preConditions>
-        <insert tableName="vmap_fh">
-            <column name="id" value="EsFhRuleTarget" />
-            <column name="name" value="OpenCommerceSearch Rule formHandler" />
-            <column name="component_path" value="/org/opencommercesearch/remote/assetmanager/editor/service/RuleTargetAssetService" />
-        </insert>
-        <insert tableName="vmap_im">
-            <column name="id" value="EsImRuleTarget" />
-            <column name="name" value="AssetManager" />
-            <column name="description" value="Rule Target item mapping" />
-            <column name="item_path" value="/org/opencommercesearch/repository/SearchRepository" />
-            <column name="item_name" value="rule" />
-            <column name="form_handler" value="EsFhRuleTarget" />
-            <column name="mode_id" value="AmMmDef" />
-        </insert>
-        <insert tableName="vmap_attrval_rel">
-            <column name="attribute_id" value="AmAvDefBnd" />
-            <column name="mapper_id" value="EsIvmRuleTarget" />
-            <column name="name" value="resourceBundle"/>
-        </insert>
-        <insert tableName="vmap_im2ivm_rel">
-            <column name="item_id" value="EsImRuleTarget" />
-            <column name="view_id" value="AmIvmDef" />
-            <column name="sequence_num" value="0" />
-        </insert>
-        <insert tableName="vmap_ivm">
-            <column name="id" value="EsIvmRuleTarget" />
-            <column name="display_name" value="AssetManager RuleTarget itemViewMapping" />
-            <column name="view_id" value="AmIvDef" />
-            <column name="name" value="AssetManager RuleTarget itemViewMapping" />
-            <column name="description" value="AssetManager RuleTarget itemViewMapping" />
-        </insert>
+        <comment>
+            bc_payment_txn_gateway stores cybersource transaction data for tax, cc, bml, and paypal
+        </comment>
+        <createTable tableName="bc_payment_txn_gateway">
+            <column name="id" type="VARCHAR2(40)">
+                 <constraints nullable="false" />
+            </column>
+            <column name="txn_date" type="timestamp">
+                 <constraints nullable="true" />
+            </column>
+            <column name="txn_type" type="VARCHAR2(255)">
+                 <constraints nullable="true" />
+            </column>
+            <column name="merchant_ref_code" type="VARCHAR2(40)">
+                 <constraints nullable="true" />
+            </column>
+            <column name="custom_field1" type="VARCHAR2(255)">
+                 <constraints nullable="true" />
+            </column>
+            <column name="decision" type="VARCHAR2(40)">
+                 <constraints nullable="true" />
+            </column>                                 
+            <column name="reason_code" type="VARCHAR2(20)">
+                 <constraints nullable="true" />
+            </column>  
+            <column name="gpn_code" type="VARCHAR2(10)">
+                 <constraints nullable="true" />
+            </column>              
+            <column name="server_name" type="VARCHAR2(512)">
+                 <constraints nullable="true" />
+            </column>   
+            <column name="req_xml" type="CLOB">
+                 <constraints nullable="true" />
+            </column> 
+            <column name="res_xml" type="CLOB">
+                 <constraints nullable="true" />
+            </column>             
+        </createTable>        
+        <addPrimaryKey tableName="bc_payment_txn_gateway" columnNames="id" constraintName="bc_payment_txn_gateway_pk" />
     </changeSet>
-  
-  <changeSet author="commercesearch" id="23">
-    <preConditions onFail="MARK_RAN">
-      <not><sqlCheck expectedResult="0">
-	      SELECT count(*)
-	       FROM   user_tab_columns  utc
-	              LEFT OUTER JOIN
-	              user_cons_columns ucc
-	             ON (    utc.table_name  = ucc.table_name
-	                 AND utc.column_name = ucc.column_name)
-	             LEFT OUTER JOIN
-	             user_constraints  uc
-	             ON (ucc.constraint_name = uc.constraint_name)
-	      WHERE  utc.table_name = 'CS_RULE'
-	      AND     (   uc.constraint_type = 'C'
-	             OR uc.constraint_type IS NULL) 
-	      AND    utc.column_name = 'QUERY'
-	      AND    uc.search_condition is not null;
-      </sqlCheck></not>
-    </preConditions>
-    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="24">
-    <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="cs_facet" columnName="ui_type"/></not>
-    </preConditions>
-
-    <addColumn tableName="cs_facet">
-        <column name="ui_type" type="VARCHAR2(25 BYTE)">
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="25">
+    
+    <changeSet author="jcordero" id="24">
         <preConditions onFail="MARK_RAN">
-            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target = '1' and type = '5'</sqlCheck></not>
+            <tableExists tableName="bc_content"/>
+            <not><columnExists tableName="bc_content" columnName="admin_display"/></not>
+        </preConditions> 
+        <addColumn tableName="bc_content">
+          <column name="admin_display" type="VARCHAR2(254)"/>
+        </addColumn>
+    </changeSet>
+    
+    <changeSet author="jcordero" id="25">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="bc_brand_category"/>
+            <not><columnExists tableName="bc_brand_category" columnName="has_stock"/></not>
+        </preConditions> 
+        <addColumn tableName="bc_brand_category">
+              <column name="has_stock" type="NUMBER(1,0)" defaultValue="1"/>
+            </addColumn>
+    </changeSet>
+ 
+    <changeSet author="eharrison" id="1">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_url_mapping"/></not>
+            <not><tableExists tableName="bc_url_mapping_sites"/></not>
         </preConditions>
-        <sql>update cs_rule set target='2' where target = '1' and type = '5';</sql>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="26">
-    <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="cs_facet" columnName="min_buckets"/></not>
-    </preConditions>
 
-    <addColumn tableName="cs_facet">
-        <column name="min_buckets" type="INTEGER">
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="27">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_ranking_rule"/>
-      <not><columnExists tableName="cs_ranking_rule" columnName="notes" /></not>
-    </preConditions>
+        <createTable tableName="bc_url_mapping">
+            <column name="url_mapping_id" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>             
+             
+            <column name="type" type="VARCHAR2(10 BYTE)">
+                <constraints nullable="false" />
+            </column>
 
-    <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
-
-    <addColumn tableName="cs_ranking_rule">
-        <column name="notes" type="varchar(512)"> 
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-  </changeSet> 
-  
-  <changeSet author="commercesearch" id="28">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-          SELECT count(*)
-           FROM   user_tab_columns  utc
-                  LEFT OUTER JOIN
-                  user_cons_columns ucc
-                 ON (    utc.table_name  = ucc.table_name
-                     AND utc.column_name = ucc.column_name)
-                 LEFT OUTER JOIN
-                 user_constraints  uc
-                 ON (ucc.constraint_name = uc.constraint_name)
-          WHERE  utc.table_name = 'CS_RULE'
-          AND     (   uc.constraint_type = 'C'
-                 OR uc.constraint_type IS NULL)
-          AND    utc.column_name = 'TARGET'
-          AND    uc.search_condition is not null;
-      </sqlCheck>
-    </preConditions>
-    <addNotNullConstraint tableName="cs_rule" columnName="target"/>    
-  </changeSet> 
-  
-  <changeSet author="commercesearch" id="29">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-          SELECT count(*)
-           FROM   user_tab_columns  utc
-                  LEFT OUTER JOIN
-                  user_cons_columns ucc
-                 ON (    utc.table_name  = ucc.table_name
-                     AND utc.column_name = ucc.column_name)
-                 LEFT OUTER JOIN
-                 user_constraints  uc
-                 ON (ucc.constraint_name = uc.constraint_name)
-          WHERE  utc.table_name = 'CS_RANKING_RULE'
-          AND     (   uc.constraint_type = 'C'
-                 OR uc.constraint_type IS NULL)
-          AND    utc.column_name = 'NOTES'
-          AND    uc.search_condition is not null;
-      </sqlCheck>
-    </preConditions>
-    <sql>UPDATE cs_ranking_rule SET notes='Update me' WHERE notes IS NULL</sql>
-    <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>    
-  </changeSet> 
-  
-  <changeSet author="commercesearch" id="30">
-    <preConditions onFail="MARK_RAN">
-        <not><columnExists tableName="cs_rule" columnName="sort_priority"/></not>
-        <not><columnExists tableName="cs_rule" columnName="combine_mode"/></not>
-    </preConditions>  
-    <addColumn tableName="cs_rule">
-        <column name="sort_priority" type="number(19)" defaultValueNumeric="0">
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>
-    <addColumn tableName="cs_rule">
-        <column name="combine_mode" type="VARCHAR2(15 BYTE)" defaultValue="1">
-            <constraints nullable="true"/>
-        </column>
-    </addColumn>  
-  </changeSet>    
+            <column name="source_path" type="VARCHAR2(1024 BYTE)">
+                <constraints nullable="false" />
+            </column>
+             
+            <column name="destination_path" type="VARCHAR2(1024 BYTE)">
+                <constraints nullable="true" />
+            </column>
+            
+            <column name="asset_version" type="NUMBER(19)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="workspace_id" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="branch_id" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_head" type="NUMBER(1)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version_deleted" type="NUMBER(1)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version_editable" type="NUMBER(1)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="pred_version" type="NUMBER(19)"/>
+            <column name="checkin_date" type="TIMESTAMP"/>                        
+        </createTable>
         
-  <changeSet author="commercesearch" id="31">
-    <preConditions onFail="MARK_RAN">
-        <not><columnExists tableName="cs_facet_rule_facets" columnName="position"/></not>
-    </preConditions>  
-    <addColumn tableName="cs_facet_rule_facets">
-        <column name="position" type="number(19)" defaultValueNumeric="0" />
-    </addColumn>  
-  </changeSet>   
-  
-  <changeSet author="commercesearch" id="32">
-    <preConditions onFail="MARK_RAN">
-        <primaryKeyExists tableName="cs_facet_rule_facets" primaryKeyName="cs_facet_rule_facet_pk"/>
-    </preConditions>     
-    <dropPrimaryKey tableName="cs_facet_rule_facets" constraintName="cs_facet_rule_facet_pk"/>
-    <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,position,asset_version" constraintName="cs_facet_rule_facet_pk"/>
-  </changeSet> 
-  
-  <changeSet author="commercesearch" id="33">
-    <preConditions onFail="MARK_RAN">
-        <tableExists tableName="cs_facet_rule_facets"/>
-    </preConditions>
-    <sql>DELETE cs_facet_rule_facets WHERE position = 0</sql>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="34">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_facet"/>
-      <not><columnExists tableName="cs_facet" columnName="system_name"/></not>
-    </preConditions>
+        <addPrimaryKey tableName="bc_url_mapping" columnNames="url_mapping_id, asset_version" constraintName="bc_url_mapping_pk"/>
+        
+        <createTable tableName="bc_url_mapping_sites">
+            <column name="url_mapping_id" type="VARCHAR2(40)">
+                <constraints nullable="false" />
+            </column>
+
+            <column name="site_id" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="asset_version" type="NUMBER(19)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>        
+        
+        <addPrimaryKey tableName="bc_url_mapping_sites" columnNames="url_mapping_id, site_id, asset_version" constraintName="bc_url_mapping_sites_pk"/>
+                              
+    </changeSet>
+ 
+    <changeSet author="gsegura" id="20">
+        <sql>
+            update vmap_attrval set attr_value = 'creationDate,itemAcl,parentCategoryForCatalog,ancestorCategoryIds' where id = 'AmAvCatAdvExc';
+        </sql>
+    </changeSet>
+
+    <changeSet author="bbergendahl" id="3000">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="bc_shipping_method_names" columnName="method_name"/>
+        </preConditions>
+        <modifyDataType tableName="bc_shipping_method_names" columnName="method_name" newDataType="VARCHAR2(50)"/>
+    </changeSet>
     
-    <addColumn tableName="cs_facet">
-        <column name="system_name" type="VARCHAR2(30 BYTE)" />
-    </addColumn>
-      
-    <sql>UPDATE cs_facet SET system_name = name</sql>
+    <changeSet author="jcordero" id="26">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="bc_shipping_methods"/>
+            <not><columnExists tableName="bc_shipping_methods" columnName="method_velocity_sort_pos"/></not>
+        </preConditions> 
+        <addColumn tableName="bc_shipping_methods">
+            <column name="method_velocity_sort_pos" type="numeric(2,0)"/>
+        </addColumn>
+    </changeSet>
 
-    <addNotNullConstraint tableName="cs_facet" columnName="system_name" />
-  </changeSet>   
-  
-  <changeSet author="commercesearch" id="35">
+    <changeSet author="jcordero" id="27">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="bc_shipping_methods"/>
+            <not><columnExists tableName="bc_shipping_methods" columnName="method_custom_sort_pos"/></not>
+        </preConditions> 
+        <addColumn tableName="bc_shipping_methods">
+            <column name="method_custom_sort_pos" type="numeric(2,0)"/>
+        </addColumn>
+    </changeSet>
+
+    <changeSet author="jcordero" id="30">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_promo_content_deli_prom"/></not>
+        </preConditions> 
+        <createTable tableName="bc_promo_content_deli_prom">
+              <column name="content_id" type="VARCHAR2(40 BYTE)">
+                <constraints  nullable="false" />
+              </column>               
+              <column name="targeted_ship_method_id" type="VARCHAR2(40 BYTE)">
+                <constraints  nullable="false"/>
+              </column>
+              <column name="asset_version" type="NUMBER(19)">
+                <constraints nullable="false"/>
+              </column>
+        </createTable>
+        <addPrimaryKey tableName="bc_promo_content_deli_prom" columnNames="content_id,asset_version" constraintName="bc_pro_con_deli_prom_pk"/>
+    </changeSet>
+
+    <changeSet author="jcordero" id="31">
     <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_rule"/>
-      <not><columnExists tableName="cs_rule" columnName="include_subcats"/></not>
-    </preConditions>
+        <not><tableExists tableName="bc_delivery_promise_exc_cat"/></not>
+    </preConditions> 
+    <createTable tableName="bc_delivery_promise_exc_cat">
+          <column name="content_id" type="VARCHAR2(40 BYTE)">
+            <constraints  nullable="false"/>
+          </column>               
+          <column name="excluded_cat_id" type="VARCHAR2(40 BYTE)">
+            <constraints  nullable="false"/>
+          </column>
+          <column name="asset_version" type="NUMBER(19)">
+            <constraints nullable="false"/>
+          </column>
+    </createTable>
+    <addPrimaryKey tableName="bc_delivery_promise_exc_cat" columnNames="content_id,excluded_cat_id,asset_version" constraintName="bc_delivery_promise_exc_cat_pk"/>
+</changeSet>
+
+    <changeSet author="kkhaliqi" id="10">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_cat_xlate"/></not>
+            <not><tableExists tableName="bc_cat_cat_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_cat_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,
+			display_name	varchar2(254)	null,
+			description	varchar2(254)	null,
+			long_description	varchar2(4000)	null,
+			custom_short_display_name	varchar2(254)	null,
+			custom_page_title_tag varchar2(512),
+			custom_page_h1_heading varchar2(100),
+			custom_page_meta_description varchar2(512)
+		,constraint bc_cat_xlate_p primary key (translation_id,asset_version));        
+		create index bc_cat_xlate_wsx on bc_cat_xlate (workspace_id);
+		create index bc_cat_xlate_cix on bc_cat_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_cat_cat_xlate (
+				asset_version	number(19)	not null,
+				category_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_cat_cat_xlt_p primary key (category_id,locale,asset_version));
+			
+			create index bc_cat_xlt_tr_id on bc_cat_cat_xlate (translation_id);     
+        </sql>
+   </changeSet>
+   
+    <changeSet author="kkhaliqi" id="11">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_prd_xlate"/></not>
+            <not><tableExists tableName="bc_prd_prd_xlate"/></not>
+        </preConditions> 
+        <sql>
+			create table bc_prd_xlate (
+				asset_version	number(19)	not null,
+				workspace_id	varchar2(40)	not null,
+				branch_id	varchar2(40)	not null,
+				is_head	number(1)	not null,
+				version_deleted	number(1)	not null,
+				version_editable	number(1)	not null,
+				pred_version	number(19)	null,
+				checkin_date	date	null,
+				translation_id	varchar2(40)	not null,
+				display_name	varchar2(254)	null,
+				description	varchar2(254)	null,
+				long_description	varchar2(4000)	null,
+				bottom_line	clob	null
+			,constraint bc_prd_xlate_p primary key (translation_id,asset_version));
+			
+			create index bc_prd_xlate_wsx on bc_prd_xlate (workspace_id);
+			create index bc_prd_xlate_cix on bc_prd_xlate (checkin_date)
+        </sql>
+        <sql>
+			create table bc_prd_prd_xlate (
+				asset_version	number(19)	not null,
+				product_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_prd_prd_xlt_p primary key (product_id,locale,asset_version));
+			
+			create index bc_prd_xlt_tr_id on bc_prd_prd_xlate (translation_id);    
+        </sql>
+   </changeSet>   
+    <changeSet author="kkhaliqi" id="12">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_sku_xlate"/></not>
+            <not><tableExists tableName="bc_sku_sku_xlate"/></not>
+        </preConditions> 
+        <sql>
+			create table bc_sku_xlate (
+				asset_version	number(19)	not null,
+				workspace_id	varchar2(40)	not null,
+				branch_id	varchar2(40)	not null,
+				is_head	number(1)	not null,
+				version_deleted	number(1)	not null,
+				version_editable	number(1)	not null,
+				pred_version	number(19)	null,
+				checkin_date	date	null,
+				translation_id	varchar2(40)	not null,
+				display_name	varchar2(254)	null,
+				description	varchar2(254)	null,
+				color			varchar2(254)	null,
+				color_family	varchar2(254)	null
+			,constraint bc_sku_xlate_p primary key (translation_id,asset_version));
+			
+			create index bc_sku_xlate_wsx on bc_sku_xlate (workspace_id);
+			create index bc_sku_xlate_cix on bc_sku_xlate (checkin_date)
+        </sql>
+        <sql>
+			create table bc_sku_sku_xlate (
+				asset_version	number(19)	not null,
+				sku_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_sku_sku_xlt_p primary key (sku_id,locale,asset_version));
+			
+			create index bc_sku_xlt_tr_id on bc_sku_sku_xlate (translation_id);    
+        </sql>
+   </changeSet>   
+   
+   <changeSet author="kkhaliqi" id="13">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_binfo_xlate"/></not>
+            <not><tableExists tableName="bc_binfo_binfo_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_binfo_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,			
+			description	clob	null,
+			custom_page_meta_description varchar2(512)
+		,constraint bc_binfo_xlate_p primary key (translation_id,asset_version));        
+		create index bc_binfo_xlate_wsx on bc_binfo_xlate (workspace_id);
+		create index bc_binfo_xlate_cix on bc_binfo_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_binfo_binfo_xlate (
+				asset_version	number(19)	not null,
+				brand_info_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_binfo_binfo_xlt_p primary key (brand_info_id,locale,asset_version));
+			
+			create index bc_binfo_xlt_tr_id on bc_binfo_binfo_xlate (translation_id);     
+        </sql>
+   </changeSet> 
+
+    <changeSet author="kkhaliqi" id="14">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_promcnt_xlate"/></not>
+            <not><tableExists tableName="bc_promcnt_promcnt_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_promcnt_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,
+			display_name	varchar2(254)	null,
+			description	varchar2(254)	null,
+			long_description	clob	null,
+			link_text	varchar2(254)	null
+		,constraint bc_promcnt_xlate_p primary key (translation_id,asset_version));        
+		create index bc_promcnt_xlate_wsx on bc_promcnt_xlate (workspace_id);
+		create index bc_promcnt_xlate_cix on bc_promcnt_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_promcnt_promcnt_xlate (
+				asset_version	number(19)	not null,
+				promo_content_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_promcnt_promcnt_xlt_p primary key (promo_content_id,locale,asset_version));
+			
+			create index bc_promcnt_xlt_tr_id on bc_promcnt_promcnt_xlate (translation_id);     
+        </sql>
+   </changeSet>    
+    <changeSet author="kkhaliqi" id="15">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_content_xlate"/></not>
+            <not><tableExists tableName="bc_cont_cont_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_content_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,
+			display_name	varchar2(254)	null,
+			description	clob	null,
+			meta_description				varchar2(512)	null
+		,constraint bc_content_xlate_p primary key (translation_id,asset_version));        
+		create index bc_content_xlate_wsx on bc_content_xlate (workspace_id);
+		create index bc_content_xlate_cix on bc_content_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_cont_cont_xlate (
+				asset_version	number(19)	not null,
+				content_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_cont_cont_xlt_p primary key (content_id,locale,asset_version));
+			
+			create index bc_content_xlt_tr_id on bc_cont_cont_xlate (translation_id);     
+        </sql>
+   </changeSet>   
+   <!-- move message key table to catalog schema -->
+    <changeSet author="kkhaliqi" id="16">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="BC_MESSAGE_KEY" />
+        </preConditions>
+        <dropTable tableName="BC_MESSAGE_KEY"/>
+    </changeSet>
+
+    <!-- create message key table -->
+    <changeSet author="kkhaliqi" id="17">
+        <createTable tableName="BC_MESSAGE">
+            <column name="asset_version" type="VARCHAR(19)">
+                <constraints nullable="false" />
+            </column>
+            <column name="workspace_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="branch_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_head" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_deleted" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_editable" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="pred_version" type="NUMBER(19)" />
+            <column name="checkin_date" type="DATE" />
+            <column name="ID" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="MESSAGE_KEY" type="VARCHAR2(1024)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="SITE_ID" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="TYPE" type="integer">
+                <constraints nullable="false"/>
+            </column>
+            <column name="MESSAGE_VALUE" type="VARCHAR2(4000)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+            <sql>
+            	create index bc_message_key_idx on bc_message (message_key);
+            	create index bc_message_site_id_idx on bc_message (site_id);
+ 				create index bc_message_wsx on bc_message (workspace_id);
+				create index bc_message_cix on bc_message (checkin_date);           	
+            </sql>
+        <addPrimaryKey tableName="BC_MESSAGE" columnNames="id,asset_version" constraintName="BC_MESSAGE_KEY_P"/>
+    </changeSet> 
+    <changeSet author="kkhaliqi" id="18">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_message_xlate"/></not>
+            <not><tableExists tableName="bc_message_message_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_message_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,
+			message_value	varchar2(254)	not null
+		,constraint bc_message_xlate_p primary key (translation_id,asset_version));        
+		create index bc_message_xlate_wsx on bc_message_xlate (workspace_id);
+		create index bc_message_xlate_cix on bc_message_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_message_message_xlate (
+				asset_version	number(19)	not null,
+				message_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_message_message_xlt_p primary key (message_id,locale,asset_version));
+			
+			create index bc_message_xlt_tr_id on bc_message_message_xlate (translation_id);     
+        </sql>
+   </changeSet>        
+
+    <changeSet author="kkhaliqi" id="19">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="bc_techspec_xlate"/></not>
+            <not><tableExists tableName="bc_techspec_techspec_xlate"/></not>
+        </preConditions> 
+        <sql>
+		create table bc_techspec_xlate (
+			asset_version	number(19)	not null,
+			workspace_id	varchar2(40)	not null,
+			branch_id	varchar2(40)	not null,
+			is_head	number(1)	not null,
+			version_deleted	number(1)	not null,
+			version_editable	number(1)	not null,
+			pred_version	number(19)	null,
+			checkin_date	date	null,
+			translation_id	varchar2(40)	not null,
+			label	varchar(255) null,
+			value	varchar2(4000)  null
+		,constraint bc_techspec_xlate_p primary key (translation_id,asset_version));        
+		create index bc_techspec_xlate_wsx on bc_techspec_xlate (workspace_id);
+		create index bc_techspec_xlate_cix on bc_techspec_xlate (checkin_date) 
+        </sql>
+        <sql>
+			 create table bc_techspec_techspec_xlate (
+				asset_version	number(19)	not null,
+				tech_spec_id	varchar2(40)	not null,
+				locale	varchar2(40)	not null,
+				translation_id	varchar2(40)	not null
+			,constraint bc_techspec_techspec_xlt_p primary key (tech_spec_id,locale,asset_version));
+			
+			create index bc_techspec_xlt_tr_id on bc_techspec_techspec_xlate (translation_id);     
+        </sql>
+   </changeSet> 
+
+    <changeSet author="kkhaliqi" id="20">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="BC_SITE_LOCALE"/></not>
+        </preConditions>
+       <createTable tableName="BC_SITE_LOCALE">
+            <column name="asset_version" type="VARCHAR(19)">
+                <constraints nullable="false" />
+            </column>
+            <column name="workspace_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="branch_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_head" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_deleted" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_editable" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="pred_version" type="NUMBER(19)" />
+            <column name="checkin_date" type="DATE" />
+            <column name="LOCALE_ID" type="VARCHAR(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LOCALE" type="VARCHAR2(40)">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+            <sql>
+ 				create index BC_SITE_LOCALE_WSX on BC_SITE_LOCALE (workspace_id);
+				create index BC_SITE_LOCALE_CIX on BC_SITE_LOCALE (checkin_date);           	
+            </sql>
+        <addPrimaryKey tableName="BC_SITE_LOCALE" columnNames="locale_id,asset_version" constraintName="BC_SITE_LOCALE_P"/>
+    </changeSet>
     
-    <addColumn tableName="cs_rule">
-        <column name="include_subcats" type="NUMBER(1)" defaultValueNumeric="0" />
-    </addColumn>
-      
-    <sql>UPDATE cs_rule SET include_subcats = 1</sql>
+     <changeSet author="kkhaliqi" id="21">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="BC_SITE_SITE_LOCALE"/></not>
+        </preConditions>
+       <createTable tableName="BC_SITE_SITE_LOCALE">
+            <column name="asset_version" type="VARCHAR(19)">
+                <constraints nullable="false" />
+            </column>
+            <column name="SITE_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LOCALE_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+		<addPrimaryKey tableName="BC_SITE_SITE_LOCALE"
+			columnNames="SITE_ID,LOCALE_ID,ASSET_VERSION" constraintName="BC_SITE_SITE_LOCALE_PK" /> 
+        <sql>
+        	create index bc_site_site_locale_idx on BC_SITE_SITE_LOCALE (LOCALE_ID);  
+        </sql>
+    </changeSet>
 
-    <addNotNullConstraint tableName="cs_rule" columnName="include_subcats" />
-  </changeSet> 
+    <changeSet author="kkhaliqi" id="22">
+        <preConditions onFail="MARK_RAN">
+          <tableExists tableName="bc_prd_prd_xlate" />
+          <tableExists tableName="bc_prd_xlate" />
+          <tableExists tableName="bc_sku_sku_xlate" />
+          <tableExists tableName="bc_sku_xlate" />
+          <tableExists tableName="bc_techspec_techspec_xlate" />
+          <tableExists tableName="bc_techspec_xlate" />
+        </preConditions>
+        <dropTable tableName="bc_prd_prd_xlate"/>
+        <dropTable tableName="bc_prd_xlate"/>
+        <dropTable tableName="bc_sku_sku_xlate"/>
+        <dropTable tableName="bc_sku_xlate"/>
+        <dropTable tableName="bc_techspec_techspec_xlate"/>
+        <dropTable tableName="bc_techspec_xlate"/>
+    </changeSet>
+
+
+    <changeSet author="kkhaliqi" id="23">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="bc_promo_content" columnName="description"/>
+        </preConditions>
+        <modifyDataType tableName="bc_promo_content" columnName="description" newDataType="VARCHAR2(1000)"/>
+    </changeSet>	
+
+     <changeSet author="kkhaliqi" id="28">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="BC_CAT_LOCALE"/></not>
+        </preConditions>
+       <createTable tableName="BC_CAT_LOCALE">
+            <column name="LOCALE_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column> 
+             <column name="LOCALE" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+           <column name="asset_version" type="VARCHAR(19)">
+                <constraints nullable="false" />
+            </column>
+            <column name="workspace_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="branch_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_head" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_deleted" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_editable" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="pred_version" type="NUMBER(19)" />
+            <column name="checkin_date" type="DATE" />
+	       </createTable>
+		<addPrimaryKey tableName="BC_CAT_LOCALE"
+			columnNames="LOCALE_ID" constraintName="BC_CAT_LOCALE_PK" /> 
+            <sql>
+ 				create index BC_CAT_LOCALE_WSX on BC_CAT_LOCALE (workspace_id);
+				create index BC_CAT_LOCALEe_CIX on BC_CAT_LOCALE (checkin_date);           	
+            </sql>	
+	</changeSet>
+     <changeSet author="kkhaliqi" id="29">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="BC_CAT_EXCLUDED_LOCALE"/></not>
+        </preConditions>
+       <createTable tableName="BC_CAT_EXCLUDED_LOCALE">
+       	   <column name="ASSET_VERSION" type="NUMBER(19)">
+       	   	<constraints nullable="false"/>
+       	   </column>
+            <column name="CATEGORY_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="LOCALE_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+		<addPrimaryKey tableName="BC_CAT_EXCLUDED_LOCALE"
+			columnNames="CATEGORY_ID,LOCALE_ID,ASSET_VERSION" constraintName="BC_CAT_EXCLUDED_LOCALE_PK" /> 
+     </changeSet>
+    	
+     <changeSet author="kkhaliqi" id="30">
+        <preConditions onFail="MARK_RAN">
+            <tableExists tableName="BC_CAT_LOCALE"/>
+        </preConditions>
+        <dropTable tableName="BC_CAT_LOCALE" cascadeConstraints="true"/>	
+	</changeSet>
+     <changeSet author="kkhaliqi" id="31">
+        <preConditions onFail="MARK_RAN">
+            <not><tableExists tableName="BC_VERSIONED_LOCALE"/></not>
+        </preConditions>
+       <createTable tableName="BC_VERSIONED_LOCALE">
+            <column name="LOCALE_ID" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column> 
+             <column name="LOCALE" type="VARCHAR2(40)">
+                <constraints nullable="false"/>
+            </column>
+           <column name="asset_version" type="VARCHAR(19)">
+                <constraints nullable="false" />
+            </column>
+            <column name="workspace_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="branch_id" type="VARCHAR(40)">
+                <constraints nullable="false" />
+            </column>
+            <column name="is_head" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_deleted" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="version_editable" type="number(1)">
+                <constraints nullable="false" />
+            </column>
+            <column name="pred_version" type="NUMBER(19)" />
+            <column name="checkin_date" type="DATE" />
+	       </createTable>
+		<addPrimaryKey tableName="BC_VERSIONED_LOCALE"
+			columnNames="LOCALE_ID" constraintName="BC_VERSIONED_LOCALE_PK" /> 
+            <sql>
+ 				create index BC_VERSIONED_LOCALE_WSX on BC_VERSIONED_LOCALE (workspace_id);
+				create index BC_VERSIONED_LOCALE_CIX on BC_VERSIONED_LOCALE (checkin_date);           	
+            </sql>	
+	</changeSet>
+
+    
+  	<changeSet author="schen" id="13">
+       <addColumn tableName="bc_binfo_xlate">
+            <column name="custom_page_title_tag" type="varchar2(512)"/>
+            <column name="custom_page_h1_heading" type="varchar2(100)"/>
+        </addColumn>
+     </changeSet>
+
+  	<changeSet author="schen" id="14">
+       <addColumn tableName="bc_promcnt_xlate">
+            <column name="image_url" type="varchar2(254)"/>
+        </addColumn>
+     </changeSet>
+
+    
+     <!-- update Property Mapping from displayName to displayNameDefault for i18n -->
+     <changeSet author="schen" id="15">
+ 		<sql>
+ 		update vmap_ivm2pvm_rel set name='displayNameDefault' where IVM_ID='AmIvmCatGen' and PVM_ID='BcPvmCategoryName';
+ 		</sql>
+ 	</changeSet>
+
+    <changeSet author="schen" id="16">
+        <preConditions onFail="MARK_RAN">
+            <columnExists tableName="bc_message_xlate" columnName="message_value"/>
+        </preConditions>
+        <modifyDataType tableName="bc_message_xlate" columnName="message_value" newDataType="varchar2(4000)"/>
+    </changeSet>
+     
+    <!-- Add field to store nav menu flyout template based on category context -->
+	<changeSet author="kirving" id="37">
+	    <preConditions onFail="MARK_RAN">
+	      <not><columnExists tableName="bc_category" columnName="flyout_template_id"/></not>
+	    </preConditions>
+ 		<addColumn tableName="bc_category">
+			<column name="flyout_template_id" type="varchar2(40)"/>
+ 		</addColumn>
+ 	</changeSet>
+
+	<changeSet author="kkhaliqi" id="50">	
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="bc_cat_xlate" columnName="translation_name"/></not>
+      <not><columnExists tableName="bc_binfo_xlate" columnName="translation_name"/></not>
+      <not><columnExists tableName="bc_promcnt_xlate" columnName="translation_name"/></not>
+      <not><columnExists tableName="bc_content_xlate" columnName="translation_name"/></not>
+      <not><columnExists tableName="bc_message_xlate" columnName="translation_name"/></not>
+    </preConditions>
+    <comment>
+		add searchable field for bcc managed translation assets
+    </comment>
+    <addColumn tableName="bc_cat_xlate">
+      <column name="translation_name" type="varchar2(255)"/>
+    </addColumn>	
+    <addColumn tableName="bc_binfo_xlate">
+      <column name="translation_name" type="varchar2(255)"/>
+    </addColumn>
+    <addColumn tableName="bc_promcnt_xlate">
+      <column name="translation_name" type="varchar2(255)"/>
+    </addColumn>
+    <addColumn tableName="bc_content_xlate">
+      <column name="translation_name" type="varchar2(255)"/>
+    </addColumn>
+    <addColumn tableName="bc_message_xlate">
+      <column name="translation_name" type="varchar2(255)"/>
+    </addColumn>            
+	</changeSet>     	
+
+    <changeSet author="rmerizalde" id="15">
+      <insert tableName="vmap_ivm2pvm_rel">
+        <column name="ivm_id" value="AmIvmDef"/>
+        <column name="pvm_id" value="BcPvmFastColl"/>
+        <column name="name" value="conditions"/>
+     </insert>
+    </changeSet> 
+
+    <changeSet author="kkhaliqi" id="32">
+      <preConditions onFail="MARK_RAN">
+              <not><tableExists tableName="bc_tagging_tool_tags_locales" /></not>
+      </preConditions>
+      <createTable tableName="bc_tagging_tool_tags_locales">
+              <column name="tag_id" type="VARCHAR2(40 BYTE)">
+                      <constraints nullable="false" />
+              </column>
+              <column name="locale_id" type="VARCHAR2(40 BYTE)">
+                      <constraints nullable="false" />
+              </column>
+              <column name="asset_version" type="NUMBER(19)">
+                      <constraints nullable="false" />
+              </column>
+              <column name="sec_asset_version" type="NUMBER(19)">
+                      <constraints nullable="false" />
+              </column>
+      </createTable>
+      <addPrimaryKey tableName="bc_tagging_tool_tags_locales"
+              columnNames="tag_id,asset_version,sec_asset_version" constraintName="tag_tool_tag_locales_pk" />
+    </changeSet>
+
+ 	<changeSet author="schen" id="17">	
+	    <preConditions onFail="MARK_RAN">
+	      <columnExists tableName="bc_tagging_tool_tags_locales" columnName="sec_asset_version"/>
+	    </preConditions>
+	    <comment>
+			drop column sec_asset_version from bc_tagging_tool_tags_locales, and recreate the primary key
+	    </comment>
+	    <dropPrimaryKey tableName="bc_tagging_tool_tags_locales" constraintName="tag_tool_tag_locales_pk"/>
+	    <dropColumn tableName="bc_tagging_tool_tags_locales" columnName="sec_asset_version"/>
+	    <addPrimaryKey tableName="bc_tagging_tool_tags_locales" columnNames="tag_id,locale_id,asset_version" constraintName="tag_tool_tag_locales_pk" />
+ 	</changeSet>
+ 	
+ 	<changeSet author="schen" id="18">
+		<preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">select count(*) from bc_tagging_tool_tags_locales</sqlCheck>
+        </preConditions>
+
+  		<sql>
+		insert into bc_tagging_tool_tags_locales(tag_id, locale_id, asset_version) select dtag_id, 'en_US', dasset_version from (select tag_id as dtag_id,asset_version as dasset_version from bc_tagging_tool_tag where is_head=1);
+ 		</sql>
+ 	</changeSet>  
+
+    <changeSet author="kkhaliqi" id="33">
+        <preConditions onFail="MARK_RAN">
+            <not><columnExists tableName="bc_shipping_method_ranges" columnName="store_id" /></not>
+        </preConditions>
+        <addColumn tableName="bc_shipping_method_ranges">
+            <column name="store_id" type="varchar2(10)" defaultValue="US"/>
+        </addColumn>
+    </changeSet>
+     	
   
-  <changeSet author="commercesearch" id="36">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_redirect_rule"/>
-      <columnExists tableName="cs_redirect_rule" columnName="url"/>
-    </preConditions>
+    <include file="commercesearch/liquibase-pub-changelog.xml" relativeToChangelogFile="true" />
 
-    <modifyDataType tableName="cs_redirect_rule" columnName="url" newDataType="VARCHAR2(1024)"/>
-  </changeSet> 
-  
-  <changeSet author="commercesearch" id="37">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_rule"/>
-      <columnExists tableName="cs_rule" columnName="name"/>
-    </preConditions>
+	<!-- tables to add before running core changes -->
 
-    <modifyDataType tableName="cs_rule" columnName="name" newDataType="VARCHAR2(256)"/>
-  </changeSet>
+	<!-- add this here so the non-versioned definition is skipped when running the core changelog -->
 
-  <changeSet author="commercesearch" id="38">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_acls"/></not>
-    </preConditions>
+    <!-- NOTE: these should always run LAST, insert your changes above this -->
+    <!-- Synonyms for unversioned data from pub to preview -->
+    <include file="includes/synonyms.xml" relativeToChangelogFile="true" />
 
-    <createTable tableName="cs_acls">
-      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="acl_index" type="INTEGER">
-        <constraints nullable="false" />
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false" />
-      </column>
-      <column name="item_acl" type="VARCHAR2(254 BYTE)">
-        <constraints nullable="false" />
-      </column>
-    </createTable>
-  </changeSet>
+    <!-- Add all core changes to publishing first -->
+    <include file="liquibase-core-changelog.xml" relativeToChangelogFile="true" />  
 
-  <changeSet author="commercesearch" id="39">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_rule"/>
-      <tableExists tableName="cs_facet"/>
-      <tableExists tableName="cs_synonym"/>
-      <tableExists tableName="cs_synonym_list"/>
-      <not><columnExists tableName="cs_rule" columnName="item_owner"/></not>
-      <not><columnExists tableName="cs_facet" columnName="item_owner"/></not>
-      <not><columnExists tableName="cs_synonym" columnName="item_owner"/></not>
-      <not><columnExists tableName="cs_synonym_list" columnName="item_owner"/></not>
-    </preConditions>
-
-    <addColumn tableName="cs_rule">
-        <column name="item_owner" type="VARCHAR2(128)"/>
-    </addColumn>
-
-    <addColumn tableName="cs_facet">
-        <column name="item_owner" type="VARCHAR2(128)"/>
-    </addColumn>
-
-    <addColumn tableName="cs_synonym">
-        <column name="item_owner" type="VARCHAR2(128)"/>
-    </addColumn>
-
-    <addColumn tableName="cs_synonym_list">
-        <column name="item_owner" type="VARCHAR2(128)"/>
-    </addColumn>
-  </changeSet>                
-
-  <changeSet author="commercesearch" id="40">
-    <preConditions onFail="MARK_RAN">
-      <not><tableExists tableName="cs_facet_blacklist"/></not>
-    </preConditions>
-
-    <createTable tableName="cs_facet_blacklist">
-      <column name="id" type="VARCHAR2(40 BYTE)">
-        <constraints nullable="false"/>
-      </column>
-      <column name="asset_version" type="NUMBER(19)">
-        <constraints nullable="false" />
-      </column>
-      <column name="blacklist_term" type="VARCHAR2(254 BYTE)"/>
-    </createTable>
-  </changeSet>
-
-  <changeSet author="commercesearch" id="41">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_facet_blacklist"/>
-      <columnExists tableName="cs_facet_blacklist" columnName="seq_num"/>
-    </preConditions>
-
-    <dropColumn tableName="cs_facet_blacklist" columnName="seq_num"/>
-  </changeSet>
-  
-  <changeSet author="commercesearch" id="41">
-    <preConditions onFail="MARK_RAN">
-       <tableExists tableName="cs_synonym"/>
-       <tableExists tableName="cs_syn_list_mapping"/>
-       <not><columnExists tableName="cs_synonym" columnName="syn_list_id"/></not>
-    </preConditions>
-
-    <addColumn tableName="cs_synonym">
-       <column name="syn_list_id" type="VARCHAR2(40)"/>
-    </addColumn>
-
-    <sql>update cs_synonym a set a.syn_list_id = (select b.syn_list_id from cs_syn_list_mapping b where a.syn_id = b.syn_id and rownum=1)</sql>
-    <sql>delete from cs_synonym where syn_list_id is null</sql>
-
-    <addNotNullConstraint tableName="cs_synonym" columnName="syn_list_id" />
-    <dropTable cascadeConstraints="true" tableName="cs_syn_list_mapping"/>
-  </changeSet>          
-                                                        
-  <changeSet author="commercesearch" id="42">
-    <preConditions onFail="MARK_RAN">
-      <tableExists tableName="cs_synonym_list"/>
-      <not><columnExists tableName="cs_synonym_list" columnName="fileName"/></not>
-    </preConditions>
-
-    <addColumn tableName="cs_synonym_list">
-      <column name="fileName" type="VARCHAR2(256)"/>
-    </addColumn>
-                                                                                                   
-    <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
-    <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
-    <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
-    <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
-                                                                          
-    <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
-   </changeSet>          
-  
 </databaseChangeLog>
