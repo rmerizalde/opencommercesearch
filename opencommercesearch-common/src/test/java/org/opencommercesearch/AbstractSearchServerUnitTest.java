@@ -279,8 +279,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testIndexRulesRollback() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(4);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
         server.indexRules();
         verify(rulesServerEn).rollback();
         verify(rulesServerEn, never()).commit();
