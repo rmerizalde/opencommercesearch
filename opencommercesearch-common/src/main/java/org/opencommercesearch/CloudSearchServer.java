@@ -211,7 +211,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             RepositoryItem[] synonymMappings = getSynonymRql().executeQuery(view, params);
            
             for (RepositoryItem synonym : synonymMappings) {
-            	 out.println((String) synonym.getPropertyValue(SynonymProperty.MAPPING));
+                out.println((String) synonym.getPropertyValue(SynonymProperty.MAPPING));
             }
             
             out.close();
@@ -315,6 +315,11 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
      * @return the file name
      */
     private String formatSynonymListFileName(String synonymListName) {
+    	
+    	if(synonymListName.trim().endsWith(".txt")) {
+    	    return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase();
+    	}
+    	
         return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase() + ".txt";
     }
 

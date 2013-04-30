@@ -27,7 +27,7 @@
                           column-name="mapping" required="true">
                           <attribute name="propertySortPriority" value="2" />
                 </property>          
-                <property name="synonymList" display-name="Synonym List" column-names="syn_list_id" item-type="synonymList">
+                <property name="synonymList" display-name="Synonym List" column-names="syn_list_id" required="true" item-type="synonymList">
                           <attribute name="propertySortPriority" value="1" />
                 </property>
           </table>

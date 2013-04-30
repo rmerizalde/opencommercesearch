@@ -20,11 +20,10 @@ package org.opencommercesearch;
 */
 
 import atg.repository.Repository;
+import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
-import com.google.common.collect.Sets;
-import com.objectspace.jgl.Array;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -158,8 +157,7 @@ public class CloudSearchServerUnitTest {
         
         initZkMocks();
         initHttpMocks();
-
-        //when(responseParser.)
+        
         when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(synonymListRepositoryView);
         when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM)).thenReturn(synonymRepositoryView);
         when(responseParser.processResponse(eq(httpInputStream), anyString())).thenReturn(new NamedList<Object>());
@@ -209,10 +207,7 @@ public class CloudSearchServerUnitTest {
     @Test
     public void testExportSynonymsNewFile() throws Exception {
         
-        RepositoryItem synonymList = initExportSynonyms(zkClient);
-        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
-        when(synonymRql.executeQuery(eq(synonymRepositoryView), any(Object[].class))).thenReturn(new RepositoryItem[]{synonymList});
-        
+        initExportSynonyms(zkClient);
         cloudSearchServer.exportSynonyms(getLocale());
         
         ArgumentCaptor<byte[]> dataCaptor = ArgumentCaptor.forClass(byte[].class);
@@ -225,10 +220,7 @@ public class CloudSearchServerUnitTest {
     @Test
     public void testExportSynonymsExistingFile() throws Exception {
 
-        RepositoryItem synonymList = initExportSynonyms(zkClient);
-        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
-        when(synonymRql.executeQuery(eq(synonymRepositoryView), any(Object[].class))).thenReturn(new RepositoryItem[]{synonymList});
-        
+        initExportSynonyms(zkClient);
         when(zkClient.exists(anyString(), anyBoolean())).thenReturn(true);
 
         cloudSearchServer.exportSynonyms(getLocale());
@@ -256,23 +248,38 @@ public class CloudSearchServerUnitTest {
         String capturedDataStr = new String(capturedData);
         
         assertTrue(capturedDataStr.contains("synonym1 > mapping1"));
+        assertTrue(capturedDataStr.contains("synonym2 > mapping2"));
+        
         assertTrue(pathCaptor.getAllValues().get(0).contains("/configs/product_catalog_conf/synonyms-preview/index_synonyms.txt"));
         assertTrue(pathCaptor.getAllValues().get(1).contains("/configs/rules_conf/synonyms-preview/index_synonyms.txt"));
     }
 
-    private RepositoryItem initExportSynonyms(SolrZkClient zkClient) throws SearchServerException {
+    private RepositoryItem initExportSynonyms(SolrZkClient zkClient) throws SearchServerException, RepositoryException {
         cloudSearchServer.setSolrZkClient(zkClient);
         
         RepositoryItem synonymList = mock(RepositoryItem.class);
         when(synonymList.getRepositoryId()).thenReturn("synLst01");
         when(synonymList.getItemDisplayName()).thenReturn("synonymList");
         when(synonymList.getPropertyValue(SynonymListProperty.FILENAME)).thenReturn("index_synonyms");
-        when(synonymList.getPropertyValue(SynonymProperty.MAPPING)).thenReturn("synonym1 > mapping1.txt");
+        when(synonymListRql.executeQuery(synonymListRepositoryView, null)).thenReturn(new RepositoryItem[]{synonymList});
         
+        RepositoryItem synonym1 = mockMapping(synonymList, "synonym1 > mapping1");
+        RepositoryItem synonym2 = mockMapping(synonymList, "synonym2 > mapping2");
+        
+        when(synonymRql.executeQuery(eq(synonymRepositoryView), any(Object[].class))).thenReturn(new RepositoryItem[]{synonym1, synonym2});
+
         cloudSearchServer.setCatalogCollection("catalogCollection");
         cloudSearchServer.setRulesCollection("ruleCollection");
         
         return synonymList;
+    }
+    
+    private RepositoryItem mockMapping(RepositoryItem synonymList, String mappingStr){
+        RepositoryItem synonym = mock(RepositoryItem.class);
+        when(synonym.getPropertyValue(SynonymProperty.SYNONYM_LIST)).thenReturn(synonymList);
+        when(synonym.getPropertyValue(SynonymProperty.MAPPING)).thenReturn(mappingStr);
+        return synonym;
+                
     }
     
     @Test
