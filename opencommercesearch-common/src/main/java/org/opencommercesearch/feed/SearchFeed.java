@@ -254,7 +254,10 @@ public abstract class SearchFeed extends GenericService {
                                     }
                                 }
                             }
-                            leaveCache.add(productCategory.getItemDisplayName());
+                                               
+                            if(!isRulesCategory(productCategory)) {
+                                leaveCache.add(productCategory.getItemDisplayName());
+                            }
                         }
                     }
                     if(leaveCache.size() > 0) {

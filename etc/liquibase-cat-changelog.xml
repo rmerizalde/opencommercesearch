@@ -1,1168 +1,761 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog
-     xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd"
-         logicalFilePath="./../script/liquibase/liquibase-cat-changelog.xml">
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-2.0.xsd">
 
 
-    <!-- changesets to run against the atg_prev_cat (Catalog) schema -->
-
-	  <changeSet author="kkhaliqi" id="2">
-       <addColumn tableName="bc_category">
-            <column name="featured_brand_info_id" type="varchar2(40)"/>
-        </addColumn>
-     </changeSet>
-     
-     
-	<changeSet author="schen" id="11">
- 		<addColumn tableName="bc_category">
-			<column name="rule_promo_type" type="NUMBER"/>
- 		</addColumn>
- 	</changeSet>
- 	
- 	<!-- update the existing rule cateory type to "rule based" -->
- 	<changeSet author="schen" id="12">
- 		<sql>
- 		insert into bc_category (category_id) select category_id from dcs_category where category_type=1 and category_id not in (select category_id from bc_category) ;
- 		update bc_category set rule_promo_type=1 where category_id in (select category_id from dcs_category where category_type=1);
- 		</sql>
- 	</changeSet>  
- 	
-  <changeSet author="mmonge" id="10">
+  <changeSet author="commercesearch" id="1">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="bc_category" columnName="custom_page_title_tag"/></not>
-      <not><columnExists tableName="bc_category" columnName="custom_page_h1_heading"/></not>
-      <not><columnExists tableName="bc_category" columnName="custom_page_meta_description"/></not>
-      <not><columnExists tableName="bc_brand_info" columnName="custom_page_title_tag"/></not>
-      <not><columnExists tableName="bc_brand_info" columnName="custom_page_h1_heading"/></not>
-      <not><columnExists tableName="bc_brand_info" columnName="custom_page_meta_description"/></not>
+      <not><tableExists tableName="cs_synonym_list"/></not>
+      <not><tableExists tableName="cs_syn_list_mapping"/></not>
+      <not><tableExists tableName="cs_synonym"/></not>
     </preConditions>
-    <comment>
-      FSD-3564 Add new fields to manage H1 title, page title tag and page meta description on
-      Category and Brand pages. A clean up changeSet will follow this one removing the columns
-      (web_display_name, meta_description, h1_title) used currently for those purposes.
-    </comment>
-    <addColumn tableName="bc_category">
-      <column name="custom_short_display_name" type="varchar2(40)"/>
-      <column name="custom_page_title_tag" type="varchar2(512)"/>
-      <column name="custom_page_h1_heading" type="varchar2(100)"/>
-      <column name="custom_page_meta_description" type="varchar2(512)"/>
-    </addColumn>
-    <addColumn tableName="bc_brand_info">
-      <column name="display_name" type="varchar2(64)"/>
-      <column name="custom_page_title_tag" type="varchar2(512)"/>
-      <column name="custom_page_h1_heading" type="varchar2(100)"/>
-      <column name="custom_page_meta_description" type="varchar2(512)"/>
-    </addColumn>
-    <sql>
-      update bc_category
-      set custom_short_display_name = short_display_name,
-      custom_page_title_tag = web_display_name,
-      custom_page_h1_heading = h1_title,
-      custom_page_meta_description = meta_description
-    </sql>
-    <sql>
-      update bc_brand_info
-      set custom_page_title_tag = web_display_name,
-      custom_page_h1_heading = h1_title,
-      custom_page_meta_description = meta_description
-    </sql>
-    <sql>
-      update bc_brand_info
-      set bc_brand_info.display_name = (select bc_brand.display_name
-      from bc_brand
-      where bc_brand_info.brand_id = bc_brand.brand_id)
-    </sql>
+
+    <createTable tableName="cs_synonym_list">
+      <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_synonym_list" columnNames="syn_list_id" constraintName="cs_syn_list_pk"/>
+
+    <createTable tableName="cs_synonym">
+      <column name="syn_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="mapping" type="VARCHAR2(512 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_synonym" columnNames="syn_id" constraintName="cs_synonym_pk"/>
+
+    <createTable tableName="cs_syn_list_mapping">
+       <column name="syn_list_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"
+                   foreignKeyName="cs_syn_mapping_list_fk" references="cs_synonym_list(syn_list_id)"/>
+       </column>
+       <column name="syn_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"
+                   foreignKeyName="cs_syn_mapping_syn_fk" references="cs_synonym(syn_id)"/>
+       </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_syn_list_mapping" columnNames="syn_list_id,syn_id" constraintName="cs_syn_list_map_pk"/>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="2">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_rule"/></not>
+      <not><tableExists tableName="cs_rule_cats"/></not>
+    </preConditions>
+    
+    <createTable tableName="cs_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="type" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="query" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="start_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+      <column name="end_date" type="Date">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_rule" columnNames="rule_id" constraintName="cs_rule_pk"/>
+
+    <createTable tableName="cs_rule_sites">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_sites_pk"
+               foreignKeyName="cs_rule_site_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="site_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_sites_pk"
+              foreignKeyName="cs_rule_site_site_fk" references="site_configuration(id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_rule_catalogs">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_catalogs_pk"
+               foreignKeyName="cs_rule_catalog_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="catalog_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_catalogs_pk"
+              foreignKeyName="cs_rule_catalog_cat_fk" references="dcs_catalog(catalog_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_rule_cats">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_cats_pk"
+               foreignKeyName="cs_rule_cat_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="category_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_cats_pk"
+              foreignKeyName="cs_rule_cat_cat_fk" references="dcs_category(category_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="4">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_boost_rule"/></not>
+      <not><tableExists tableName="cs_boost_rule_prods"/></not>
+    </preConditions>
+    
+    <createTable tableName="cs_boost_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_pk"
+          foreignKeyName="cs_boost_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_boost_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_prod_pk"
+               foreignKeyName="cs_boot_rule_prod_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_prod_pk"
+              foreignKeyName="cs_boot_rule_prod_prod_fk" references="dcs_product(product_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_block_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_pk"
+          foreignKeyName="cs_block_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_block_rule_prods">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_prod_pk"
+               foreignKeyName="cs_block_rule_prod_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="product_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_block_rule_prod_pk"
+              foreignKeyName="cs_block_rule_prod_prod_fk" references="dcs_product(product_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="5">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet"/></not>
+      <not><tableExists tableName="cs_field_facet"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="type" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="is_multi_select" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+    <addPrimaryKey tableName="cs_facet" columnNames="facet_id" constraintName="cs_facet_pk"/>
+
+    <createTable tableName="cs_field_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_field_facet_pk"
+               foreignKeyName="cs_field_facet_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="sort" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="limit" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+      <column name="min_count" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+      <column name="missing" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+      <column name="prefix" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="method" type="VARCHAR2(10 BYTE)">
+        <constraints nullable="true" />
+      </column>
+      <column name="min_df" type="INTEGER">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="6">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_facet_rule"/></not>
+      <not><tableExists tableName="cs_facet_rule_facets"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_facet_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_pk"
+          foreignKeyName="cs_facet_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_facet_rule_facets">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_facet_pk"
+               foreignKeyName="cs_facet_rule_facet_rule_fk"  references="cs_rule(rule_id)" />
+      </column>
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_facet_rule_facet_pk"
+               foreignKeyName="cs_facet_rule_facet_facet_fk" references="cs_facet(facet_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="7">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_range_facet"/></not>
+      <not><tableExists tableName="cs_date_facet"/></not>
+    </preConditions>
+    <createTable tableName="cs_range_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_range_facet_pk"
+               foreignKeyName="cs_range_facet_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+    <createTable tableName="cs_date_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_date_facet_pk"
+               foreignKeyName="cs_date_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_start" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_end" type="Date">
+        <constraints nullable="false" />
+      </column>
+      <column name="range_gap" type="VARCHAR2(100 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="hardened" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="8">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_query_facet"/></not>
+      <not><tableExists tableName="cs_query_facet_queries"/></not>
+    </preConditions>
+    <createTable tableName="cs_query_facet">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_pk"
+               foreignKeyName="cs_query_facet_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="field_name" type="VARCHAR2(30 BYTE)">
+        <constraints nullable="false" />
+      </column>      
+    </createTable>
+
+    <createTable tableName="cs_query_facet_queries">
+      <column name="facet_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_q_pk"
+               foreignKeyName="cs_query_facet_q_facet_fk" references="cs_facet(facet_id)" />
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_query_facet_q_pk"/>
+      </column>
+      <column name="query" type="VARCHAR2(200 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="9">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_redirect_rule"/></not>
+    </preConditions>
+    <createTable tableName="cs_redirect_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_redirect_rule_pk"
+          foreignKeyName="cs_redirect_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+      <column name="url" type="VARCHAR2(200 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
   </changeSet>
   
-  <changeSet author="gsegura" id="15">
-  		<preConditions onFail="MARK_RAN">
-      		<not><columnExists tableName="bc_brand_category" columnName="latest_brand_cat_id"/></not>
-      	</preConditions>
- 		<addColumn tableName="bc_brand_category">
-			<column name="latest_brand_cat_id" type="varchar2(40)"/>
- 		</addColumn>
- 	</changeSet>
-  
-  <changeSet author="jfennelly" id="17">
+  <changeSet author="commercesearch" id="11">
     <preConditions onFail="MARK_RAN">
-      <not><indexExists indexName="bc_prd_techspecs_techspec_idx"/></not>
-      <not><indexExists indexName="bc_sku_main_image_idx"/></not>
-      <not><indexExists indexName="bc_prd_harmattr_techspec_idx"/></not>
-      <not><indexExists indexName="bc_prd_detail_images_img_idx"/></not>
-      <not><indexExists indexName="dcs_product_id_type_idx"/></not>
-      <not><indexExists indexName="bc_dcscat_dchldprd_chldprd_idx"/></not>
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_site_site_fk" />
     </preConditions>
-    <createIndex tableName="bc_prd_tech_specs" indexName="bc_prd_techspecs_techspec_idx">
-      <column name="tech_spec_id"></column>
-    </createIndex>
-    <createIndex tableName="bc_sku" indexName="bc_sku_main_image_idx">
-      <column name="main_image_id"></column>
-    </createIndex>
-    <createIndex tableName="bc_prd_harmonizing_attr" indexName="bc_prd_harmattr_techspec_idx">
-      <column name="tech_spec_id"></column>
-    </createIndex>
-    <createIndex tableName="bc_prd_detail_images" indexName="bc_prd_detail_images_img_idx">
-      <column name="image_id"></column>
-    </createIndex>
-    <createIndex tableName="dcs_product" indexName="dcs_product_id_type_idx">
-      <column name="product_id"></column>
-      <column name="product_type"></column>
-    </createIndex>
-    <createIndex tableName="bc_dcs_cat_dchldprd" indexName="bc_dcscat_dchldprd_chldprd_idx">
-      <column name="child_prd_id"></column>
-    </createIndex>
-  </changeSet>
- 
- 
-   <changeSet author="kkhaliqi" id="3">
-    <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="bc_sku" columnName="availability_date"/></not>
-      <not><columnExists tableName="bc_sku" columnName="sellout_code"/></not>
-    </preConditions> 	  
-       <addColumn tableName="bc_sku">
-            <column name="availability_date" type="date"/>
-        </addColumn>
-       <addColumn tableName="bc_sku">
-            <column name="sellout_code" type="number"/>
-        </addColumn>  
-     </changeSet>
-
-
-	<changeSet author="kkhaliqi" id="4">
-		<preConditions onFail="MARK_RAN">
-				<columnExists tableName="bc_sku" columnName="availability_date" />
-				<columnExists tableName="bc_sku" columnName="sellout_code" />
-			<not>
-				<indexExists indexName="bc_sku_availability_date_idx" />
-			</not>
-			<not>
-				<indexExists indexName="bc_sku_sellout_code_idx" />
-			</not>
-		</preConditions>
-		<createIndex tableName="bc_sku" indexName="bc_sku_availability_date_idx">
-			<column name="availability_date"></column>
-		</createIndex>
-		<createIndex tableName="bc_sku" indexName="bc_sku_sellout_code_idx">
-			<column name="sellout_code"></column>
-		</createIndex>
-	</changeSet>
+    <dropForeignKeyConstraint constraintName="cs_rule_site_site_fk" baseTableName="cs_rule_sites"/>
+  </changeSet> 
   
-    <changeSet author="rmerizalde" id="13">
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_incl_cat_tag_fk" baseTableName="bc_tag_tool_mtag_incl_cats"/>
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_excl_cat_tag_fk" baseTableName="bc_tag_tool_mtag_excl_cats"/>
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_incl_brnd_tag_fk" baseTableName="bc_tag_tool_mtag_incl_brands"/>
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_excl_brnd_tag_fk" baseTableName="bc_tag_tool_mtag_excl_brands"/>
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_incl_prd_tag_fk" baseTableName="bc_tag_tool_mtag_incl_prds"/>
-        <dropForeignKeyConstraint constraintName="tag_tool_mtag_excl_prd_tag_fk" baseTableName="bc_tag_tool_mtag_excl_prds"/>
-        
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_incl_cat_tag_fk" baseTableName="bc_tag_tool_mtag_incl_cats" baseColumnNames="tag_id"  
-             referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_excl_cat_tag_fk" baseTableName="bc_tag_tool_mtag_excl_cats" baseColumnNames="tag_id" 
-            referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_incl_brnd_tag_fk" baseTableName="bc_tag_tool_mtag_incl_brands" baseColumnNames="tag_id" 
-            referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_excl_brnd_tag_fk" baseTableName="bc_tag_tool_mtag_excl_brands" baseColumnNames="tag_id" 
-            referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_incl_prd_tag_fk" baseTableName="bc_tag_tool_mtag_incl_prds" baseColumnNames="tag_id" 
-            referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />
-        <addForeignKeyConstraint constraintName="tag_tool_mtag_excl_prd_tag_fk" baseTableName="bc_tag_tool_mtag_excl_prds" baseColumnNames="tag_id" 
-            referencedTableName="bc_tagging_tool_tag" referencedColumnNames="tag_id" />                                            
-    </changeSet>
-        
-	<changeSet author="gleiva" id="4">
-                <sql>
-                update bc_sku set sellout_code=32 where sellout_code is null;
-                </sql>
-        </changeSet>
-        
-    <changeSet author="jcordero" id="27">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="bc_content"/>
-            <not><columnExists tableName="bc_content" columnName="admin_display"/></not>
-        </preConditions> 
-        <addColumn tableName="bc_content">
-		      <column name="admin_display" type="VARCHAR2(254)"/>
-		    </addColumn>
-    </changeSet>
-	         
-	<changeSet author="gsegura" id="16">
-		<preConditions onFail="MARK_RAN">
-			<tableExists tableName="BC_PRECOMP_FEED_PRD_ATTR" />
-			<tableExists tableName="BC_PRECOMPUTE_FEED_PRD" />
-		</preConditions>
-	
-		<dropTable tableName="BC_PRECOMP_FEED_PRD_ATTR" />
-		<dropTable tableName="BC_PRECOMPUTE_FEED_PRD" />
-	
-		<createTable tableName="BC_PRECOMPUTE_FEED_PRD">
-			<column name="PRODUCT_ID" type="VARCHAR2(40 BYTE)">
-				<constraints nullable="false" />
-			</column>
-			<column name="COLLECTION" type="VARCHAR2(20 BYTE)" />
-			<column name="CATEGORY_IDS" type="VARCHAR2(4000 BYTE)" />
-			<column name="PRIMARY_CAT_ID" type="VARCHAR2(400 BYTE)" />
-			<column name="DELETE_DOC" type="NUMBER(1,0)">
-				<constraints nullable="false" />
-			</column>
-		</createTable>
-		<addPrimaryKey tableName="BC_PRECOMPUTE_FEED_PRD"
-			columnNames="PRODUCT_ID" constraintName="BC_PRECMP_FEED_PRD_PK" />
-	
-		<createTable tableName="BC_PRECOMP_FEED_PRD_ATTR">
-			<column name="PRODUCT_ID" type="VARCHAR2(40 BYTE)">
-				<constraints nullable="false" foreignKeyName="BC_PRECMP_FEED_PRD_ATT_FK"
-					references="BC_PRECOMPUTE_FEED_PRD(PRODUCT_ID)" />
-			</column>
-			<column name="KEY" type="VARCHAR2(50 BYTE)">
-				<constraints nullable="false" />
-			</column>
-			<column name="VALUE" type="CLOB" />
-		</createTable>
-		<addPrimaryKey tableName="BC_PRECOMP_FEED_PRD_ATTR"
-			columnNames="PRODUCT_ID,KEY" constraintName="BC_PRECMP_FEED_PRD_ATT_PK" />
-    </changeSet>
-    
-    <changeSet author="eharrison" id="1">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_url_mapping"/></not>
-            <not><tableExists tableName="bc_url_mapping_sites"/></not>
-        </preConditions>
-
-        <createTable tableName="bc_url_mapping">
-            <column name="url_mapping_id" type="VARCHAR2(40)">
-                <constraints nullable="false" />
-            </column>             
-             
-            <column name="type" type="VARCHAR2(10 BYTE)">
-                <constraints nullable="false" />
-            </column>
-
-            <column name="source_path" type="VARCHAR2(1024 BYTE)">
-                <constraints nullable="false" unique="true"/>
-            </column>
-             
-            <column name="destination_path" type="VARCHAR2(1024 BYTE)">
-                <constraints nullable="true" />
-            </column>
-        </createTable>
-        <addPrimaryKey tableName="bc_url_mapping" columnNames="url_mapping_id" constraintName="bc_url_mapping_pk"/>
-        
-        <createTable tableName="bc_url_mapping_sites">
-            <column name="url_mapping_id" type="VARCHAR2(40)">
-                <constraints nullable="false" foreignKeyName="bc_url_mapping_sites_fk" references="bc_url_mapping(url_mapping_id)"/>
-            </column>
-
-            <column name="site_id" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable> 
-        <addPrimaryKey tableName="bc_url_mapping_sites" columnNames="url_mapping_id, site_id" constraintName="bc_url_mapping_sites_pk"/>                             
-    </changeSet>
-
-    <changeSet author="jcordero" id="28">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="bc_brand_category"/>
-            <not><columnExists tableName="bc_brand_category" columnName="has_stock"/></not>
-        </preConditions> 
-        <addColumn tableName="bc_brand_category">
-              <column name="has_stock" type="NUMBER(1,0)" defaultValue="1"/>
-            </addColumn>
-    </changeSet>
-
-    <changeSet author="bbergendahl" id="3000">
-        <preConditions onFail="MARK_RAN">
-            <columnExists tableName="bc_shipping_method_names" columnName="method_name"/>
-        </preConditions>
-        <modifyDataType tableName="bc_shipping_method_names" columnName="method_name" newDataType="VARCHAR2(50)"/>
-    </changeSet>
-            
-    <changeSet author="jcordero" id="29">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="bc_shipping_methods"/>
-            <not><columnExists tableName="bc_shipping_methods" columnName="method_velocity_sort_pos"/></not>
-        </preConditions> 
-        <addColumn tableName="bc_shipping_methods">
-            <column name="method_velocity_sort_pos" type="numeric(2,0)"/>
-        </addColumn>
-    </changeSet>
-
-    <changeSet author="jcordero" id="30">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="bc_shipping_methods"/>
-            <not><columnExists tableName="bc_shipping_methods" columnName="method_custom_sort_pos"/></not>
-        </preConditions> 
-        <addColumn tableName="bc_shipping_methods">
-            <column name="method_custom_sort_pos" type="numeric(2,0)"/>
-        </addColumn>
-    </changeSet>
-    
-    <changeSet author="rmerizalde" id="14">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_indexed_harmonizing_attr"/></not>
-        </preConditions>
-
-        <createTable tableName="bc_indexed_harmonizing_attr">
-            <column name="attr_name" type="VARCHAR2(255)">
-                <constraints nullable="false" />
-            </column>             
-        </createTable>
-        <addPrimaryKey tableName="bc_indexed_harmonizing_attr" columnNames="attr_name" constraintName="bc_indexed_harmonizing_attr_pk"/>
-    </changeSet>     
-    
-    <changeSet author="rmerizalde" id="15">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_indexed_harmonizing_attr'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_indexed_harmonizing_attr"/></insert>
-    </changeSet>   
-
-    <changeSet author="jcordero" id="33">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_promo_content_deli_prom"/></not>
-        </preConditions> 
-        <createTable tableName="bc_promo_content_deli_prom">
-              <column name="content_id" type="VARCHAR2(40 BYTE)">
-                <constraints  nullable="false" 
-                              primaryKey="true" primaryKeyName="bc_pro_con_deli_prom_pk"
-                              foreignKeyName="bc_promo_content_del_prom_fk" 
-                              references="bc_promo_content(content_id)"/>
-              </column>               
-              <column name="targeted_ship_method_id" type="VARCHAR2(40 BYTE)">
-                <constraints  nullable="false"/>
-              </column>
-        </createTable>
-    </changeSet>
-    
-    <changeSet author="jcordero" id="34">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_delivery_promise_exc_cat"/></not>
-        </preConditions> 
-        <createTable tableName="bc_delivery_promise_exc_cat">
-              <column name="content_id" type="VARCHAR2(40 BYTE)">
-                <constraints  nullable="false" 
-                              foreignKeyName="bc_pro_con_del_prom_fk" 
-                              references="bc_promo_content(content_id)"/>
-              </column>               
-              <column name="excluded_cat_id" type="VARCHAR2(40 BYTE)">
-                <constraints  nullable="false"/>
-              </column>
-        </createTable>
-        <addPrimaryKey tableName="bc_delivery_promise_exc_cat" columnNames="content_id,excluded_cat_id" constraintName="bc_delivery_promise_exc_cat_pk"/>
-    </changeSet>
-
-    <changeSet author="kkhaliqi" id="10">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_cat_xlate"/></not>
-            <not><tableExists tableName="bc_cat_cat_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_cat_xlate (
-					translation_id			varchar2(40)	not null,
-					display_name			varchar2(254)	null,
-					description			varchar2(254)	null,
-					long_description		varchar2(4000)	null,
-					custom_short_display_name	varchar2(254)	null,
-					custom_page_title_tag varchar2(512),
-					custom_page_h1_heading varchar2(100),
-					custom_page_meta_description varchar2(512)	
-				,constraint bc_cat_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_cat_cat_xlate (
-					category_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_cat_cat_xlt_p primary key (category_id,locale)
-				,constraint bc_cat_xlate_f foreign key (translation_id) references bc_cat_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_cat_xlt_tr_id on bc_cat_cat_xlate (translation_id)
-            </sql>
-   </changeSet>    
-    <changeSet author="kkhaliqi" id="11">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_prd_xlate"/></not>
-            <not><tableExists tableName="bc_prd_prd_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_prd_xlate (
-					translation_id	varchar2(40)	not null,
-					display_name	varchar2(254)	null,
-					description	varchar2(254)	null,
-					long_description	varchar2(4000)	null,
-					bottom_line	clob	null
-				,constraint bc_prd_xlate_p primary key (translation_id))       
-            </sql>
-            <sql>
-				create table bc_prd_prd_xlate (
-					product_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_prd_prd_xlt_p primary key (product_id,locale)
-				,constraint bc_prd_xlate_f foreign key (translation_id) references bc_prd_xlate (translation_id))           	
-            </sql>
-            <sql>
-            	create index bc_prd_xlt_tr_id on bc_prd_prd_xlate (translation_id)
-            </sql>
-   </changeSet>
-    <changeSet author="kkhaliqi" id="12">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_sku_xlate"/></not>
-            <not><tableExists tableName="bc_sku_sku_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_sku_xlate (
-					translation_id	varchar2(40)	not null,
-					display_name	varchar2(254)	null,
-					description		varchar2(254)	null,
-					color			varchar2(254)	null,
-					color_family	varchar2(254)	null
-				,constraint bc_sku_xlate_p primary key (translation_id))       
-            </sql>
-            <sql>
-				create table bc_sku_sku_xlate (
-					sku_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_sku_sku_xlt_p primary key (sku_id,locale)
-				,constraint bc_sku_xlate_f foreign key (translation_id) references bc_sku_xlate (translation_id))           	
-            </sql>
-            <sql>
-            	create index bc_sku_xlt_tr_id on bc_sku_sku_xlate (translation_id)
-            </sql>
-   </changeSet>   
-    <changeSet author="kkhaliqi" id="13">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_binfo_xlate"/></not>
-            <not><tableExists tableName="bc_binfo_binfo_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_binfo_xlate (
-					translation_id			varchar2(40)	not null,
-					description			clob	null,
-					custom_page_meta_description varchar2(512)	
-				,constraint bc_binfo_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_binfo_binfo_xlate (
-					brand_info_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_binfo_binfo_xlt_p primary key (brand_info_id,locale)
-				,constraint bc_binfo_xlate_f foreign key (translation_id) references bc_binfo_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_binfo_xlt_tr_id on bc_binfo_binfo_xlate (translation_id)
-            </sql>
-   </changeSet>   
- 
-     <changeSet author="kkhaliqi" id="14">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_promcnt_xlate"/></not>
-            <not><tableExists tableName="bc_promcnt_promCnt_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_promcnt_xlate (
-					translation_id			varchar2(40)	not null,
-					display_name			varchar2(254)	null,
-					description				varchar2(254)	null,
-					long_description		clob,
-					link_text				varchar2(254)	null	
-				,constraint bc_promcnt_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_promcnt_promcnt_xlate (
-					promo_content_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_promcnt_promcnt_xlt_p primary key (promo_content_id,locale)
-				,constraint bc_promcnt_xlate_f foreign key (translation_id) references bc_promcnt_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_promcnt_xlt_tr_id on bc_promcnt_promcnt_xlate (translation_id)
-            </sql>
-   </changeSet> 
-
-    <changeSet author="kkhaliqi" id="15">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_content_xlate"/></not>
-            <not><tableExists tableName="bc_cont_cont_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_content_xlate (
-					translation_id			varchar2(40)	not null,
-					display_name			varchar2(254)	null,
-					description				clob	null,
-					meta_description				varchar2(512)	null
-				,constraint bc_content_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_cont_cont_xlate (
-					content_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_cont_cont_xlt_p primary key (content_id,locale)
-				,constraint bc_content_xlate_f foreign key (translation_id) references bc_content_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_content_xlt_tr_id on bc_cont_cont_xlate (translation_id)
-            </sql>
-   </changeSet>     
-     <!-- if the table already exists drop it so it can be re-created -->
-    <changeSet author="kkhaliqi" id="16">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="BC_MESSAGE_KEY" />
-        </preConditions>
-        <dropTable tableName="BC_MESSAGE_KEY"/>
-    </changeSet>
-
-    <!-- create message key table -->
-    <changeSet author="kkhaliqi" id="17">
-        <createTable tableName="BC_MESSAGE">
-            <column name="ID" type="VARCHAR(40)">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="BC_MESSAGE_KEY_P"/>
-            </column>
-            <column name="MESSAGE_KEY" type="VARCHAR2(1024)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="SITE_ID" type="integer">
-                <constraints nullable="false"/>
-            </column>
-            <column name="TYPE" type="integer">
-                <constraints nullable="false"/>
-            </column>
-            <column name="MESSAGE_VALUE" type="VARCHAR2(4000)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-            <sql>
-            	create index bc_message_key_idx on bc_message (message_key);
-            	create index bc_message_site_id_idx on bc_message (site_id);
-            </sql>
-    </changeSet>
-    <changeSet author="kkhaliqi" id="18">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_message_xlate"/></not>
-            <not><tableExists tableName="bc_message_message_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_message_xlate (
-					translation_id			varchar2(40)	not null,
-					message_value			varchar2(4000)	null
-				,constraint bc_message_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_message_message_xlate (
-					message_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_message_message_xlt_p primary key (message_id,locale)
-				,constraint bc_message_xlate_f foreign key (translation_id) references bc_message_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_message_xlt_tr_id on bc_message_message_xlate (translation_id)
-            </sql>
-   </changeSet>            
-    <changeSet author="kkhaliqi" id="19">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_techspec_xlate"/></not>
-            <not><tableExists tableName="bc_techspec_techspec_xlate"/></not>
-        </preConditions> 
-            <sql>
-				create table bc_techspec_xlate (
-					translation_id			varchar2(40)	not null,
-					label			varchar2(255),
-					value			varchar2(4000)	null
-				,constraint bc_techspec_xlate_p primary key (translation_id))          
-            </sql>
-            <sql>
-				create table bc_techspec_techspec_xlate (
-					tech_spec_id	varchar2(40)	not null,
-					locale	varchar2(40)	not null,
-					translation_id	varchar2(40)	not null
-				,constraint bc_techspec_techspec_xlt_p primary key (tech_spec_id,locale)
-				,constraint bc_techspec_xlate_f foreign key (translation_id) references bc_techspec_xlate (translation_id))            	
-            </sql>
-            <sql>
-            	create index bc_techspec_xlt_tr_id on bc_techspec_techspec_xlate (translation_id)
-            </sql>
-   </changeSet>  
-
-    <changeSet author="kkhaliqi" id="20">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_SITE_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_SITE_LOCALE">
-            <column name="LOCALE_ID" type="VARCHAR(40)">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="BC_SITE_LOCALE_P"/>
-            </column>
-            <column name="LOCALE" type="VARCHAR2(40)">
-                <constraints nullable="true"/>
-            </column>
-        </createTable>
-    </changeSet>
-    
-     <changeSet author="kkhaliqi" id="21">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_SITE_SITE_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_SITE_SITE_LOCALE">
-            <column name="SITE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="LOCALE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-		<addPrimaryKey tableName="BC_SITE_SITE_LOCALE"
-			columnNames="SITE_ID,LOCALE_ID" constraintName="BC_SITE_SITE_LOCALE_PK" /> 
-        
-        <addForeignKeyConstraint constraintName="BC_SITE_SITE_ID_FK" baseTableName="BC_SITE_SITE_LOCALE" baseColumnNames="SITE_ID"  
-             referencedTableName="site_configuration" referencedColumnNames="ID" />			       
-         
-        <addForeignKeyConstraint constraintName="BC_SITE_LOCALE_ID_FK" baseTableName="BC_SITE_SITE_LOCALE" baseColumnNames="LOCALE_ID"  
-             referencedTableName="BC_SITE_LOCALE" referencedColumnNames="LOCALE_ID" />
-    </changeSet>
-       
-
-    <changeSet author="kkhaliqi" id="22">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_prd_prd_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_prd_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_sku_sku_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_sku_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_techspec_techspec_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_techspec_xlate'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_prd_prd_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_prd_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_sku_sku_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_sku_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_techspec_techspec_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_techspec_xlate"/></insert>
-    </changeSet> 
-
-    <changeSet author="kkhaliqi" id="23">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_LOCALE">
-            <column name="LOCALE_ID" type="VARCHAR(40)">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="BC_LOCALE_P"/>
-            </column>
-            <column name="LOCALE" type="VARCHAR2(40)">
-                <constraints nullable="true"/>
-            </column>
-        </createTable>
-    </changeSet>    
-
-     <changeSet author="kkhaliqi" id="24">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_SKU_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_SKU_LOCALE">
-            <column name="SKU_ID" type="VARCHAR2(128)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="LOCALE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-		<addPrimaryKey tableName="BC_SKU_LOCALE"
-			columnNames="SKU_ID,LOCALE_ID" constraintName="BC_SKU_LOCALE_PK" /> 
-        
-        <addForeignKeyConstraint constraintName="BC_SKU_ID_FK" baseTableName="BC_SKU_LOCALE" baseColumnNames="SKU_ID"  
-             referencedTableName="DCS_SKU" referencedColumnNames="SKU_ID" />			       
-         
-        <addForeignKeyConstraint constraintName="BC_LOCALE_ID_FK" baseTableName="BC_SKU_LOCALE" baseColumnNames="LOCALE_ID"  
-             referencedTableName="BC_LOCALE" referencedColumnNames="LOCALE_ID" />
-    </changeSet>
-
-    <changeSet author="kkhaliqi" id="25">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'BC_LOCALE'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'BC_SKU_LOCALE'</sqlCheck>
-         </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="BC_LOCALE"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="BC_SKU_LOCALE"/></insert>
-     </changeSet> 
-
-    <changeSet author="kkhaliqi" id="26">
-        <preConditions onFail="MARK_RAN">
-            <columnExists tableName="bc_prd_xlate" columnName="description"/>
-        </preConditions>
-        <modifyDataType tableName="bc_prd_xlate" columnName="description" newDataType="VARCHAR2(1000)"/>
-    </changeSet>	
-
-    <changeSet author="kkhaliqi" id="27">
-        <preConditions onFail="MARK_RAN">
-            <columnExists tableName="bc_promo_content" columnName="description"/>
-        </preConditions>
-        <modifyDataType tableName="bc_promo_content" columnName="description" newDataType="VARCHAR2(1000)"/>
-    </changeSet>	
-
-	<changeSet author="cstephens" id="1">
-		<preConditions onFail="MARK_RAN">
-			<not><tableExists tableName="BC_VENDOR" /></not>
-			<not><tableExists tableName="BC_VENDOR_SKU" /></not>
-		</preConditions>
-	
-		<createTable tableName="BC_VENDOR">
-			<column name="VENDOR_ID" type="VARCHAR(40)">
-				<constraints nullable="false" />
-			</column>
-			<column name="NAME" type="VARCHAR2(128 BYTE)">
-				<constraints nullable="false" />
-			</column>
-		</createTable>
-
-		<addPrimaryKey tableName="BC_VENDOR"
-			columnNames="VENDOR_ID" constraintName="BC_VENDOR_PK" />
-    	
-		<createTable tableName="BC_VENDOR_SKU">
-			<column name="VENDOR_SKU_ID" type="VARCHAR2(128 BYTE)">
-				<constraints nullable="false" />
-			</column>
-			<column name="VENDOR_ID" type="VARCHAR(40)" >
-				<constraints nullable="false" foreignKeyName="BC_VENDOR_ID_FK"
-					references="BC_VENDOR(VENDOR_ID)" />
-			</column>
-			<column name="SKU_ID" type="VARCHAR(40)" >
-				<constraints nullable="false" />
-			</column>
-		</createTable>
-		<addPrimaryKey tableName="BC_VENDOR_SKU"
-			columnNames="VENDOR_SKU_ID,VENDOR_ID" constraintName="BC_VENDOR_SKU_PK" />
-    </changeSet>
-
-     <changeSet author="kkhaliqi" id="28">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_CAT_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_CAT_LOCALE">
-            <column name="LOCALE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="LOCALE" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-		<addPrimaryKey tableName="BC_CAT_LOCALE"
-			columnNames="LOCALE_ID" constraintName="BC_CAT_LOCALE_PK" /> 
-         <sql>
-			create index BC_CAT_LOCALE_idx on BC_CAT_LOCALE (locale);        	
-         </sql>			
-	</changeSet>
-     <changeSet author="kkhaliqi" id="29">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_CAT_EXCLUDED_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_CAT_EXCLUDED_LOCALE">
-            <column name="CATEGORY_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="LOCALE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-		<addPrimaryKey tableName="BC_CAT_EXCLUDED_LOCALE"
-			columnNames="CATEGORY_ID,LOCALE_ID" constraintName="BC_CAT_EXCLUDED_LOCALE_PK" /> 
-        
-        <addForeignKeyConstraint constraintName="BC_CAT_EXCLUDED_LOCALE_FK" baseTableName="BC_CAT_EXCLUDED_LOCALE" baseColumnNames="CATEGORY_ID"  
-             referencedTableName="DCS_CATEGORY" referencedColumnNames="CATEGORY_ID" />			       
-         
-        <addForeignKeyConstraint constraintName="BC_CAT_EXCLUDED_lcl_lcl_FK" baseTableName="BC_CAT_EXCLUDED_LOCALE" baseColumnNames="LOCALE_ID"  
-             referencedTableName="BC_CAT_LOCALE" referencedColumnNames="LOCALE_ID" />
-    </changeSet>
-
-    <changeSet author="schen" id="13">
-        <createTable tableName="BC_PRD_XLATE_BULLETPOINTS">
-            <column name="TRANSLATION_ID" type="VARCHAR2(40 BYTE)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="SEQ_NUM" type="INTEGER">
-                <constraints nullable="false"/>
-            </column>
-            <column name="BULLET_POINT" type="VARCHAR2(255 BYTE)"/>
-        </createTable>
-    </changeSet>
-    
-  	<changeSet author="schen" id="14">
-       <addColumn tableName="bc_binfo_xlate">
-            <column name="custom_page_title_tag" type="varchar2(512)"/>
-            <column name="custom_page_h1_heading" type="varchar2(100)"/>
-        </addColumn>
-     </changeSet>
-
-     <changeSet author="kkhaliqi" id="30">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="BC_CAT_LOCALE"/>
-        </preConditions>
-        <dropTable tableName="BC_CAT_LOCALE" cascadeConstraints="true"/>	
-	</changeSet>
-     <changeSet author="kkhaliqi" id="31">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_VERSIONED_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_VERSIONED_LOCALE">
-            <column name="LOCALE_ID" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-            <column name="LOCALE" type="VARCHAR2(40)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-		<addPrimaryKey tableName="BC_VERSIONED_LOCALE"
-			columnNames="LOCALE_ID" constraintName="BC_VERSIONED_LOCALE_PK" /> 
-         <sql>
-			create index BC_VERSIONED_LOCALE_idx on BC_VERSIONED_LOCALE (locale);        	
-         </sql>			
-	</changeSet>
-     <changeSet author="kkhaliqi" id="32">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="BC_CAT_EXCLUDED_LOCALE"/>
-        </preConditions>	       
-        <addForeignKeyConstraint constraintName="BC_CAT_EXCLUDED_LCL_LCL_FK" baseTableName="BC_CAT_EXCLUDED_LOCALE" baseColumnNames="LOCALE_ID"  
-             referencedTableName="BC_VERSIONED_LOCALE" referencedColumnNames="LOCALE_ID" />
-    </changeSet>    
-
-     <changeSet author="kkhaliqi" id="33">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="BC_LOCALE"/>
-        </preConditions>
-        <dropTable tableName="BC_LOCALE" cascadeConstraints="true"/>	
-	</changeSet>
-    <changeSet author="kkhaliqi" id="34">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="BC_NONVERSIONED_LOCALE"/></not>
-        </preConditions>
-       <createTable tableName="BC_NONVERSIONED_LOCALE">
-            <column name="LOCALE_ID" type="VARCHAR(40)">
-                <constraints nullable="false" primaryKey="true" primaryKeyName="BC_NONVERSIONED_LOCALE_P"/>
-            </column>
-            <column name="LOCALE" type="VARCHAR2(40)">
-                <constraints nullable="true"/>
-            </column>
-        </createTable>
-    </changeSet>  
-     <changeSet author="kkhaliqi" id="35">
-        <preConditions onFail="MARK_RAN">
-            <tableExists tableName="BC_SKU_LOCALE"/>
-        </preConditions>	       
-        <addForeignKeyConstraint constraintName="BC_LOCALE_ID_FK" baseTableName="BC_SKU_LOCALE" baseColumnNames="LOCALE_ID"  
-             referencedTableName="BC_NONVERSIONED_LOCALE" referencedColumnNames="LOCALE_ID" />
-     </changeSet>   
-
-   <changeSet author="kkhaliqi" id="36">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="1">select count(*) from synonym_inclusions where TABLE_NAME = 'BC_LOCALE'</sqlCheck>
-             <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'BC_NONVERSIONED_LOCALE'</sqlCheck>
-         </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="BC_NONVERSIONED_LOCALE"/></insert>
-        <delete tableName="SYNONYM_INCLUSIONS"><where>TABLE_NAME='BC_LOCALE'</where></delete>
-     </changeSet> 
-
-     <changeSet author="schen" id="15">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'BC_PRD_XLATE_BULLETPOINTS'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="BC_PRD_XLATE_BULLETPOINTS"/></insert>
-    </changeSet>   
-  	<changeSet author="schen" id="16">
-       <addColumn tableName="bc_promcnt_xlate">
-            <column name="image_url" type="varchar2(254)"/>
-        </addColumn>
-     </changeSet>    	
-    
-    <changeSet author="cstephens" id="2">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_vendor'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_vendor_sku'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_vendor"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_vendor_sku"/></insert>
-    </changeSet> 
+  <changeSet author="commercesearch" id="12">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_sites" /> 
+    </preConditions>
+    <dropForeignKeyConstraint constraintName="cs_rule_catalog_cat_fk" baseTableName="cs_rule_catalogs"/>
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="13">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_cat_cat_fk" /> 
+    </preConditions>
+    <dropForeignKeyConstraint constraintName="cs_rule_cat_cat_fk" baseTableName="cs_rule_cats"/>
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="14">
+    <preConditions onFail="MARK_RAN">
+        <foreignKeyConstraintExists foreignKeyName="cs_boot_rule_prod_prod_fk"  /> 
+    </preConditions>
+    <dropForeignKeyConstraint constraintName="cs_boot_rule_prod_prod_fk" baseTableName="cs_boost_rule_prods"/>
+  </changeSet>       
      
-    <!-- Add field to store nav menu flyout template based on category context -->
-	<changeSet author="kirving" id="37">
-	    <preConditions onFail="MARK_RAN">
-	      <not><columnExists tableName="bc_category" columnName="flyout_template_id"/></not>
-	    </preConditions>
- 		<addColumn tableName="bc_category">
-			<column name="flyout_template_id" type="varchar2(40)"/>
- 		</addColumn>
- 	</changeSet>
-
-	<changeSet author="kkhaliqi" id="50">	
+  <changeSet author="commercesearch" id="15">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="bc_cat_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_binfo_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_promcnt_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_content_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_message_xlate" columnName="translation_name"/></not>
+        <foreignKeyConstraintExists foreignKeyName="cs_block_rule_prod_prod_fk" /> 
     </preConditions>
-    <comment>
-		add searchable field for bcc managed translation assets
-    </comment>
-    <addColumn tableName="bc_cat_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>	
-    <addColumn tableName="bc_binfo_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>
-    <addColumn tableName="bc_promcnt_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>
-    <addColumn tableName="bc_content_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>
-    <addColumn tableName="bc_message_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>            
-	</changeSet>
-
-	<changeSet author="kkhaliqi" id="51">	
-    <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="bc_prd_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_sku_xlate" columnName="translation_name"/></not>
-      <not><columnExists tableName="bc_techspec_xlate" columnName="translation_name"/></not>
-    </preConditions>
-    <comment>
-		non versioned translation tables addition of translation_name column
-    </comment>
-    <addColumn tableName="bc_prd_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>	
-    <addColumn tableName="bc_sku_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>
-    <addColumn tableName="bc_techspec_xlate">
-      <column name="translation_name" type="varchar2(255)"/>
-    </addColumn>          
-	</changeSet>
-    
-	<changeSet author="kirving" id="55">	
-        <preConditions onFail="MARK_RAN">
-          <not><columnExists tableName="BC_SKU" columnName="actual_weight_grams"/></not>
-        </preConditions>
-        <comment>
-           Gram weight field for SKUs (coming in from interchange)
-        </comment>
-        <addColumn tableName="BC_SKU">
-          <column name="actual_weight_grams" type="number(9,2)"/>
-        </addColumn>
-	</changeSet>
-	
-		
-    <changeSet author="cstephens" id="3">
-        <preConditions onFail="MARK_RAN">
-            <foreignKeyConstraintExists  foreignKeyName="BC_VENDOR_ID_FK" />
-        </preConditions>
-        <dropForeignKeyConstraint constraintName="BC_VENDOR_ID_FK" baseTableName="BC_VENDOR_SKU"/>
-        <dropNotNullConstraint tableName="BC_VENDOR_SKU" columnName="VENDOR_ID"/>
-        <dropNotNullConstraint tableName="BC_VENDOR_SKU" columnName="SKU_ID"/>
-
-    </changeSet>
+    <dropForeignKeyConstraint constraintName="cs_block_rule_prod_prod_fk" baseTableName="cs_block_rule_prods"/>
+  </changeSet>  
 
 
-	<changeSet author="schen" id="17">
-		<preConditions onFail="MARK_RAN">
-			<not>
-				<tableExists tableName="bc_sku_costs" />
-			</not>
-		</preConditions>
-		<sql>
-			create table bc_sku_costs(
-			sku_id varchar2(40) not null,
-			locale_country varchar2(40) not null,
-			cost number(9,2) not null
-			,constraint bc_sku_costs_p primary key (sku_id,locale_country)
-			,constraint bc_sku_costs_f foreign key (sku_id) references dcs_sku (sku_id))
-		</sql>
-	</changeSet>   
-
-	<changeSet author="schen" id="18">
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_sku_costs"/></insert>
-	</changeSet>
-	
-  	<changeSet author="kkhaliqi" id="52">
-       <createTable tableName="bc_colorfamily">
-            <column name="colorfamily_id" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="color_family_default" type="varchar2(64)"/>
-        </createTable>
-        <addPrimaryKey tableName="bc_colorfamily"
-			columnNames="colorfamily_id" constraintName="bc_colorfamily_pk" />
-     </changeSet>
-
-  	<changeSet author="kkhaliqi" id="53">
-       <createTable tableName="bc_colorfamily_xlate">
-            <column name="translation_id" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="color_family" type="varchar2(64)"/>
-        </createTable>
-        <addPrimaryKey tableName="bc_colorfamily_xlate"
-			columnNames="translation_id" constraintName="colorfamily_xlate_pk" />
-     </changeSet>
-
-  	<changeSet author="kkhaliqi" id="54">
-       <createTable tableName="bc_clrfmly_clrfmly_xlate">
-            <column name="translation_id" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="locale" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="colorfamily_id" type="varchar2(64)"/>
-        </createTable>
-        <addPrimaryKey tableName="bc_clrfmly_clrfmly_xlate"
-			columnNames="colorfamily_id,locale" constraintName="translation_pk" />
-		<addForeignKeyConstraint constraintName="bc_clrfmly_clrfmly_xlate_fk" baseTableName="bc_clrfmly_clrfmly_xlate" baseColumnNames="translation_id"  
-             referencedTableName="bc_colorfamily_xlate" referencedColumnNames="translation_id" />
-       <createIndex tableName="bc_clrfmly_clrfmly_xlate" indexName="bc_clrfmly_clrfmly_xlate_idx">
-      	<column name="translation_id"></column>
-       </createIndex>
-     </changeSet>
-    <changeSet author="kkhaliqi" id="55">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_colorfamily'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_colorfamily_xlate'</sqlCheck>
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_clrfmly_clrfmly_xlate'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_colorfamily"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_colorfamily_xlate"/></insert>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_clrfmly_clrfmly_xlate"/></insert>
-    </changeSet> 
-
-	<changeSet author="kkhaliqi" id="56">
-		<preConditions onFail="MARK_RAN">
-			<sqlCheck expectedResult="0">select count(*) from bc_colorfamily</sqlCheck>
-		</preConditions>
-		 <sql>
-			insert into bc_colorfamily(colorfamily_id,color_family_default)            
-    			select DISTINCT color_family,color_family from bc_sku where color_family !='null' and color_family is not null
-		</sql>
-	</changeSet>
-
-    <changeSet author="gsegura" id="17">
-        <preConditions onFail="MARK_RAN">
-            <not><columnExists tableName="bc_search_product_change_log" columnName="sku_id" /></not>
-        </preConditions>
-        <addColumn tableName="bc_search_product_change_log">
-            <column name="sku_id" type="varchar2(40)" />
-        </addColumn>
-    </changeSet>
-  
-    <changeSet author="gsegura" id="18">
-        <preConditions onFail="MARK_RAN">
-            <not><columnExists tableName="bc_search_product_change_log" columnName="deployment_id" /></not>
-        </preConditions>
-        <addColumn tableName="bc_search_product_change_log">
-            <column name="deployment_id" type="varchar2(40)" />
-        </addColumn>
-    </changeSet>
-
-	<changeSet author="kkhaliqi" id="57">
-		<preConditions onFail="MARK_RAN">
-			<not>
-				<tableExists tableName="bc_prd_nontaxable" />
-			</not>
-		</preConditions>
-       <createTable tableName="bc_prd_nontaxable">
-            <column name="product_id" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="locale_country" type="varchar2(40)" >
-            	<constraints nullable="false"/>
-            </column>
-            <column name="is_non_taxable" type="number(1,1)">
-            	<constraints nullable="false"/>
-            </column>
-        </createTable>
-        <addPrimaryKey tableName="bc_prd_nontaxable"
-			columnNames="product_id,locale_country" constraintName="bc_prd_nontaxable_pk" />
-			
-		<addForeignKeyConstraint constraintName="bc_prd_nontaxable_fk" baseTableName="bc_prd_nontaxable" baseColumnNames="product_id"  
-             referencedTableName="dcs_product" referencedColumnNames="product_id" />
-       <createIndex tableName="bc_prd_nontaxable" indexName="locale_country_idx">
-      	<column name="locale_country"></column>
-       </createIndex>
-	</changeSet>    
-    <changeSet author="kkhaliqi" id="58">
-        <preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from synonym_inclusions where TABLE_NAME = 'bc_prd_nontaxable'</sqlCheck>
-        </preConditions>
-        <insert tableName="SYNONYM_INCLUSIONS"><column name="TABLE_NAME" value="bc_prd_nontaxable"/></insert>
-    </changeSet>  
-
-    <changeSet author="kkhaliqi" id="59">
-        <preConditions onFail="MARK_RAN">
-            <not><tableExists tableName="bc_tagging_tool_tags_locales"/></not>
-        </preConditions>
-        <createTable tableName="bc_tagging_tool_tags_locales">
-             <column name="tag_id" type="VARCHAR2(40 BYTE)">
+  <changeSet author="commercesearch" id="16">
+     <preConditions onFail="MARK_RAN">
+          <not><tableExists tableName="cs_rule_expression"/></not>
+          <not><tableExists tableName="cs_category_rule_expression"/></not>
+     </preConditions>
+     <createTable tableName="cs_rule_expression">
+          <column name="id" type="VARCHAR2(40 BYTE)">
+              <constraints nullable="false"
+                           primaryKey="true" primaryKeyName="cs_rule_expression_pk"/>
+          </column>
+          <column name="position" type="NUMBER"/>
+          <column name="value" type="VARCHAR2(40 BYTE)"/>
+          <column name="nest_level" type="NUMBER"/>
+          <column name="type" type="NUMBER"/>
+          <column name="operator" type="NUMBER"/>
+      </createTable>
+      <createTable tableName="cs_category_rule_expression">
+            <column name="category_id" type="VARCHAR2(40 BYTE)">
                 <constraints nullable="false"
-                         foreignKeyName="tag_tool_tag_tag_lcl_fk" references="bc_tagging_tool_tag(tag_id)"/>
-             </column>
-             <column name="locale_id" type="VARCHAR2(40 BYTE)">
+                         foreignKeyName="cs_cat_rul_exp_cat_fk" references="dcs_category(category_id)"/>
+            </column>
+            <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
                 <constraints nullable="false"
-                         foreignKeyName="tag_tool_pag_locale_fk" references="bc_site_locale(locale_id)"/>
-             </column>
+                         foreignKeyName="cs_cat_rul_exp_exp_fk" references="cs_rule_expression(id)"/>
+            </column>
+            <column name="position" type="number(19)"/>
         </createTable>
-        <addPrimaryKey tableName="bc_tagging_tool_tags_locales" columnNames="tag_id,locale_id" constraintName="tag_tool_page_locales_pk"/>
-    </changeSet>
-    
-  	<changeSet author="schen" id="19">
-		<preConditions onFail="MARK_RAN">
-            <sqlCheck expectedResult="0">select count(*) from bc_tagging_tool_tags_locales</sqlCheck>
-        </preConditions>
+        <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position" constraintName="cs_cat_rul_exp_pk"/>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="17">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_ranking_rule"/></not>
+      <not><tableExists tableName="cs_ranking_rule_expression"/></not>
+    </preConditions>
 
-  		<sql>
-		insert into bc_tagging_tool_tags_locales(tag_id, locale_id) select dtag_id, 'en_US' from (select tag_id as dtag_id from bc_tagging_tool_tag);
- 		</sql>
- 	</changeSet>  
+    <createTable tableName="cs_ranking_rule">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false" primaryKey="true" primaryKeyName="cs_ranking_rule_pk"
+          foreignKeyName="cs_ranking_rule_fk" references="cs_rule(rule_id)"/>
+      </column>
+      <column name="boost_by" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="false" />
+      </column>
+      <column name="strength" type="VARCHAR2(20 BYTE)">
+        <constraints nullable="true" />
+      </column>  
+      <column name="attribute_name" type="VARCHAR2(60 BYTE)">
+        <constraints nullable="true" />
+      </column>            
+    </createTable>
 
-    <changeSet author="kkhaliqi" id="60">
+    <createTable tableName="cs_ranking_rule_expression">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" foreignKeyName="cs_ranking_rule_expr_rule_fk"  references="cs_rule(rule_id)" />
+      </column>
+      <column name="rule_expression_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false"/>
+      </column>
+      <column name="position" type="number(19)"/>
+    </createTable>
+    <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position" constraintName="cs_ranking_rule_expr_pk"/>
+  </changeSet>
+  
+ <changeSet author="commercesearch" id="19">
+    <preConditions onFail="MARK_RAN">
+	  <not><columnExists tableName="cs_rule" columnName="target"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="target" type="VARCHAR2(15 BYTE)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="20">
         <preConditions onFail="MARK_RAN">
-            <not><columnExists tableName="bc_shipping_method_ranges" columnName="store_id" /></not>
+            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target is null</sqlCheck></not>
         </preConditions>
-        <addColumn tableName="bc_shipping_method_ranges">
-            <column name="store_id" type="varchar2(10)" defaultValue="US"/>
-        </addColumn>
-    </changeSet>
+        <sql>update cs_rule set target='1' where target is null;</sql>
+  </changeSet>
 
-
-  <changeSet author="kirving" id="1363329256374">
+  <changeSet author="commercesearch" id="21">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="BC_PRODUCT" columnName="has_compatibility"/></not>
+      <not><sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL) 
+          AND    utc.column_name = 'QUERY'
+          AND    uc.search_condition is not null;
+      </sqlCheck></not>
     </preConditions>
-    <addColumn tableName="BC_PRODUCT">
-      <column name="has_compatibility" type="numeric(1)"/>
+    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="22">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_facet" columnName="ui_type"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+        <column name="ui_type" type="VARCHAR2(25 BYTE)">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="23">
+        <preConditions onFail="MARK_RAN">
+            <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target = '1' and type = '5'</sqlCheck></not>
+        </preConditions>
+        <sql>update cs_rule set target='2' where target = '1' and type = '5';</sql>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="24">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_facet" columnName="min_buckets"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+        <column name="min_buckets" type="INTEGER">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="25">
+    <preConditions onFail="MARK_RAN">
+      <not><columnExists tableName="cs_ranking_rule" columnName="notes" /></not>
+    </preConditions>
+
+    <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
+
+    <addColumn tableName="cs_ranking_rule">
+        <column name="notes" type="varchar(512)"> 
+            <constraints nullable="true"/>
+        </column>
     </addColumn>
   </changeSet>
 
-  <changeSet author="kirving" id="1363368420775">
+  <changeSet author="commercesearch" id="26">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="BC_PRODUCT" columnName="is_oem"/></not>
+      <sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL)
+          AND    utc.column_name = 'TARGET'
+          AND    uc.search_condition is not null;
+      </sqlCheck>
     </preConditions>
-    <addColumn tableName="BC_PRODUCT">
-      <column name="is_oem" type="numeric(1)"/>
+    <addNotNullConstraint tableName="cs_rule" columnName="target"/>    
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="27">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+          SELECT count(*)
+           FROM   user_tab_columns  utc
+                  LEFT OUTER JOIN
+                  user_cons_columns ucc
+                 ON (    utc.table_name  = ucc.table_name
+                     AND utc.column_name = ucc.column_name)
+                 LEFT OUTER JOIN
+                 user_constraints  uc
+                 ON (ucc.constraint_name = uc.constraint_name)
+          WHERE  utc.table_name = 'CS_RANKING_RULE'
+          AND     (   uc.constraint_type = 'C'
+                 OR uc.constraint_type IS NULL)
+          AND    utc.column_name = 'NOTES'
+          AND    uc.search_condition is not null;
+      </sqlCheck>
+    </preConditions>
+    <sql>UPDATE cs_ranking_rule SET notes='Update me' WHERE notes IS NULL</sql>
+    <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>    
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="28">
+    <preConditions onFail="MARK_RAN">
+        <not><columnExists tableName="cs_rule" columnName="sort_priority"/></not>
+        <not><columnExists tableName="cs_rule" columnName="combine_mode"/></not>
+    </preConditions>  
+    <addColumn tableName="cs_rule">
+        <column name="sort_priority" type="number(19)" defaultValueNumeric="0">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>
+    <addColumn tableName="cs_rule">
+        <column name="combine_mode" type="VARCHAR2(15 BYTE)" defaultValue="1">
+            <constraints nullable="true"/>
+        </column>
+    </addColumn>  
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="29">
+    <preConditions onFail="MARK_RAN">
+        <not><columnExists tableName="cs_facet_rule_facets" columnName="position"/></not>
+    </preConditions>  
+    <addColumn tableName="cs_facet_rule_facets">
+        <column name="position" type="number(19)" defaultValueNumeric="0" />
+    </addColumn>  
+  </changeSet>   
+  
+  <changeSet author="commercesearch" id="30">
+    <preConditions onFail="MARK_RAN">
+        <primaryKeyExists tableName="cs_facet_rule_facets" primaryKeyName="cs_facet_rule_facet_pk"/>
+    </preConditions>     
+    <dropPrimaryKey tableName="cs_facet_rule_facets" constraintName="cs_facet_rule_facet_pk"/>
+    <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,position" constraintName="cs_facet_rule_facet_pk"/>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="31">
+    <preConditions onFail="MARK_RAN">
+        <tableExists tableName="cs_facet_rule_facets"/>
+    </preConditions>
+    <sql>DELETE cs_facet_rule_facets WHERE position = 0</sql>
+  </changeSet> 
+  
+  <changeSet author="commercesearch" id="32">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet"/>
+      <not><columnExists tableName="cs_facet" columnName="system_name"/></not>
+    </preConditions>
+    
+    <addColumn tableName="cs_facet">
+        <column name="system_name" type="VARCHAR2(30 BYTE)" />
+    </addColumn>
+      
+    <sql>UPDATE cs_facet SET system_name = name</sql>
+
+    <addNotNullConstraint tableName="cs_facet" columnName="system_name" />
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="33">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <not><columnExists tableName="cs_rule" columnName="include_subcats"/></not>
+    </preConditions>
+    
+    <addColumn tableName="cs_rule">
+        <column name="include_subcats" type="NUMBER(1)" defaultValueNumeric="0" />
+    </addColumn>
+      
+    <sql>UPDATE cs_rule SET include_subcats = 1</sql>
+
+    <addNotNullConstraint tableName="cs_rule" columnName="include_subcats" />
+  </changeSet>  
+  
+  <changeSet author="commercesearch" id="34">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_redirect_rule"/>
+      <columnExists tableName="cs_redirect_rule" columnName="url"/>
+    </preConditions>
+    
+    <modifyDataType tableName="cs_redirect_rule" columnName="url" newDataType="VARCHAR2(1024)"/>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="35">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <columnExists tableName="cs_rule" columnName="name"/>
+    </preConditions>
+
+    <modifyDataType tableName="cs_rule" columnName="name" newDataType="VARCHAR2(256)"/>
+  </changeSet>          
+  
+
+
+<changeSet author="commercesearch" id="36">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_acls"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_acls">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+</changeSet>
+
+  <changeSet author="commercesearch" id="37">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_rule"/>
+      <tableExists tableName="cs_facet"/>
+      <tableExists tableName="cs_synonym"/>
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_rule" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_facet" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="item_owner"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="item_owner"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_facet">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym">
+        <column name="item_owner" type="VARCHAR2(128)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym_list">
+        <column name="item_owner" type="VARCHAR2(128)"/>
     </addColumn>
   </changeSet>
-
-  <changeSet author="kkhaliqi" id="6001">
+  
+  <changeSet author="commercesearch" id="38">
     <preConditions onFail="MARK_RAN">
-      <not><columnExists tableName="BC_PRODUCT" columnName="is_package"/></not>
+      <not><tableExists tableName="cs_facet_blacklist"/></not>
     </preConditions>
-    <addColumn tableName="BC_PRODUCT">
-      <column name="is_package" type="numeric(1)"/>
-    </addColumn>
+
+    <createTable tableName="cs_facet_blacklist">
+      <column name="id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="seq_num" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="blacklist_term" type="VARCHAR2(254 BYTE)"/>
+    </createTable>
   </changeSet>
 
-  <include file="commercesearch/liquibase-cat-changelog.xml" relativeToChangelogFile="true" />
+  <changeSet author="commercesearch" id="39">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet_blacklist"/>
+      <columnExists tableName="cs_facet_blacklist" columnName="seq_num"/>
+    </preConditions>
 
+    <dropColumn tableName="cs_facet_blacklist" columnName="seq_num"/>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="40">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_synonym"/>
+      <tableExists tableName="cs_syn_list_mapping"/>
+      <not><columnExists tableName="cs_synonym" columnName="syn_list_id"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_synonym">
+      <column name="syn_list_id" type="VARCHAR2(40)"/>
+    </addColumn>
+
+    <sql>update cs_synonym a set a.syn_list_id = (select b.syn_list_id from cs_syn_list_mapping b where a.syn_id = b.syn_id and rownum=1)</sql>
+    <sql>delete from cs_synonym where syn_list_id is null</sql>
+
+    <addNotNullConstraint tableName="cs_synonym" columnName="syn_list_id" />
+    <addForeignKeyConstraint baseColumnNames="syn_list_id" baseTableName="cs_synonym" constraintName="CS_SYN_FK" deferrable="false" initiallyDeferred="false"
+                             referencedColumnNames="syn_list_id" referencedTableName="cs_synonym_list"/>
+    <dropTable cascadeConstraints="true" tableName="cs_syn_list_mapping"/>
+  </changeSet>          
+                                                                                                   
+  <changeSet author="commercesearch" id="41">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_synonym_list" columnName="fileName"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_synonym_list">
+      <column name="fileName" type="VARCHAR2(256)"/>
+    </addColumn>
+                                                                                                                                              
+   <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
+   <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
+                                                                                                                                                                  
+   <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
+  </changeSet>
 </databaseChangeLog>
+
+
