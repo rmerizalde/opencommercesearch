@@ -78,8 +78,11 @@ public class AbstractSearchServerUnitTest {
     private Repository searchRepository;
 
     @Mock
-    private RepositoryView repositoryView;
-
+    private RepositoryView synonymListRepositoryView;
+    
+    @Mock
+    private RepositoryView synonymRepositoryView;
+    
     @Mock
     private SolrServer catalogServerEn;
 
@@ -117,7 +120,10 @@ public class AbstractSearchServerUnitTest {
     private RepositoryItem redirectRule;
 
     @Mock
-    private RqlStatement synonymsRql;
+    private RqlStatement synonymListRql;
+    
+    @Mock
+    private RqlStatement synonymRql;
 
     @Mock
     private RepositoryItem synonymList;
@@ -137,7 +143,7 @@ public class AbstractSearchServerUnitTest {
         public void close() {}
 
         @Override
-        protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
+        protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws RepositoryException, SearchServerException {
             dummySearchServer.exportSynonymList(synonymList, locale);
         }
 
@@ -172,7 +178,8 @@ public class AbstractSearchServerUnitTest {
         server.setSearchRepository(searchRepository);
         server.setRuleCountRql(rulesRqlCount);
         server.setRuleRql(rulesRql);
-        server.setSynonymRql(synonymsRql);
+        server.setSynonymListRql(synonymListRql);
+        server.setSynonymRql(synonymRql);
         server.setLoggingInfo(true);
         server.setLoggingError(true);
         server.setLoggingError(true);
@@ -205,10 +212,12 @@ public class AbstractSearchServerUnitTest {
 
         // repository
         when(searchRepository.getRepositoryName()).thenReturn("SearchRepository");
-        when(searchRepository.getView(SearchRepositoryItemDescriptor.RULE)).thenReturn(repositoryView);
-        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(repositoryView);
-        when(synonymsRql.executeQuery(repositoryView,  null)).thenReturn(new RepositoryItem[]{synonymList});
-
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.RULE)).thenReturn(synonymListRepositoryView);
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(synonymListRepositoryView);
+        when(searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM)).thenReturn(synonymRepositoryView);
+        when(synonymListRql.executeQuery(synonymListRepositoryView,  null)).thenReturn(new RepositoryItem[]{synonymList});
+        when(synonymRql.executeQuery(synonymRepositoryView,  null)).thenReturn(new RepositoryItem[]{synonymList});
+        
         // rules
         Set<RepositoryItem> sites = new HashSet<RepositoryItem>();
         sites.add(site);
@@ -244,7 +253,7 @@ public class AbstractSearchServerUnitTest {
     @Test
     public void testIndexRulesNoRules() throws Exception {
         ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(0);
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(0);
 
         server.indexRules();
 
@@ -257,8 +266,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testIndexRules() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(4);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{
                 redirectRule, boostRule, blockRule, facetRule
         }).thenReturn(null);
 
@@ -270,8 +279,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testIndexRulesRollback() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(4);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
         server.indexRules();
         verify(rulesServerEn).rollback();
         verify(rulesServerEn, never()).commit();
@@ -319,8 +328,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testItemChangedBoostRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
                 .thenReturn(new RepositoryItem[]{boostRule})
                 .thenReturn(null);
 
@@ -333,8 +342,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testItemChangedBlockRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
                 .thenReturn(new RepositoryItem[]{blockRule})
                 .thenReturn(null);
 
@@ -347,8 +356,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testItemChangeFacetRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
                 .thenReturn(new RepositoryItem[]{facetRule})
                 .thenReturn(null);
 
@@ -361,8 +370,8 @@ public class AbstractSearchServerUnitTest {
 
     @Test
     public void testItemChangedRedirectRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(repositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject()))
+        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
+        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
                 .thenReturn(new RepositoryItem[]{redirectRule})
                 .thenReturn(null);
 

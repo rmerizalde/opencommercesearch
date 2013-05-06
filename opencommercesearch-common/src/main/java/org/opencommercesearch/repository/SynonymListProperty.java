@@ -28,5 +28,7 @@ public class SynonymListProperty {
     private SynonymListProperty() {
     }
 
-    public static final String MAPPINGS = "mappings";
+    public static final String NAME = "name";
+    public static final String FILENAME = "filename";
+    
 }
