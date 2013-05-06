@@ -320,6 +320,7 @@ public class SearchFeedTest {
         // for rule based categories we only index the ancestor id. This is to support hand pick rules.
         verify(solrDocument, never()) .addField("category", "1.outdoorCatalog.Rules Based");
         verify(solrDocument, never()) .addField("categoryPath", "outdoorCatalog.catRulesBased");
+        verify(solrDocument, never()) .addField("categoryLeaves", "Rules Based");
         verify(solrDocument, times(1)).addField("ancestorCategoryId", "catRulesBased");
 
     }

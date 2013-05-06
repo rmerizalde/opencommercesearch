@@ -27,5 +27,6 @@ package org.opencommercesearch.repository;
 public class SynonymProperty {
     private SynonymProperty() {}
 
-    public static final String MAPPING = "mapping";
+    public static final String MAPPING = "mappings";
+    public static final String SYNONYM_LIST = "synonymList";
 }
