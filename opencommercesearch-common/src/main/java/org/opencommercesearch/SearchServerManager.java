@@ -21,6 +21,7 @@ package org.opencommercesearch;
 
 import atg.multisite.Site;
 import atg.nucleus.ServiceException;
+import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import org.apache.commons.io.IOUtils;
@@ -237,7 +238,7 @@ public class SearchServerManager {
     *   rules: /rules/bootstrap_en.xml
     */
     public void initServer(boolean loadBootstrapData) {
-        initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap_en.xml"), loadXmlResource("/rules/bootstrap_en.xml"));
+        initServerAux(loadBootstrapData, loadXmlResource("/product_catalog/bootstrap_en.xml"), loadXmlResource("/rules/bootstrap_en.xml"), null, null);
         try {
             searchServer.updateCollection(searchServer.getCatalogCollection(), loadXmlResource("/product_catalog/bootstrap_fr.xml"), Locale.FRENCH);
             searchServer.updateCollection(searchServer.getRulesCollection(), loadXmlResource("/rules/bootstrap_fr.xml"), Locale.FRENCH);
@@ -255,16 +256,18 @@ public class SearchServerManager {
      *
      * This signature allows to use custom catalog and rules xml files.
      */
-    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml) {
-        initServerAux(loadBootstrapData, productDataXml, rulesDataXml);
+    public void initServer(boolean loadBootstrapData,  String productDataXml, String rulesDataXml, RulesBuilder rulesBuilder, Repository searchRepository) {
+        initServerAux(loadBootstrapData, productDataXml, rulesDataXml, rulesBuilder, searchRepository);
     }
 
     /**
      * Helper method to initialize the read only search server. The ro server is a singleton.
      * If the tests are configured to run in parallel multiple JVM will be spawn and each will
      * have its own read only server.
+     * @param searchRepository 
+     * @param rulesBuilder 
      */
-    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml) {
+    private void initServerAux(boolean loadBootstrapData, String productDataXml, String rulesDataXml, RulesBuilder rulesBuilder, Repository searchRepository) {
 
         searchServer = new EmbeddedSearchServer();
         searchServer.setCatalogCollection("catalogPreview");
@@ -277,6 +280,8 @@ public class SearchServerManager {
         searchServer.setLoggingInfo(false);
         searchServer.setLoggingWarning(false);
         searchServer.setLoggingTrace(false);
+        searchServer.setSearchRepository(searchRepository);
+        searchServer.setRulesBuilder(rulesBuilder);
 
         try {
             searchServer.doStartService();
