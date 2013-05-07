@@ -71,9 +71,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private String catalogConfig;
     private String rulesConfig;
     private Repository searchRepository;
-    private RqlStatement synonymRql;
+    private RqlStatement synonymListRql;
     private RqlStatement ruleCountRql;
     private RqlStatement ruleRql;
+    private RqlStatement synonymRql;
     private int ruleBatchSize;
     private RulesBuilder rulesBuilder;
 
@@ -155,12 +156,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         this.searchRepository = searchRepository;
     }
 
-    public RqlStatement getSynonymRql() {
-        return synonymRql;
+    public RqlStatement getSynonymListRql() {
+        return synonymListRql;
     }
 
-    public void setSynonymRql(RqlStatement synonymRql) {
-        this.synonymRql = synonymRql;
+    public void setSynonymListRql(RqlStatement synonymListRql) {
+        this.synonymListRql = synonymListRql;
     }
 
     public RqlStatement getRuleCountRql() {
@@ -179,6 +180,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         this.ruleRql = ruleRql;
     }
 
+    public RqlStatement getSynonymRql() {
+        return synonymRql;
+    }
+
+    public void setSynonymRql(RqlStatement synonymRql) {
+        this.synonymRql = synonymRql;
+    }
+    
     public int getRuleBatchSize() {
         return ruleBatchSize;
     }
@@ -707,7 +716,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
      */
     public void exportSynonyms(Locale locale) throws RepositoryException, SearchServerException {
         RepositoryView view = searchRepository.getView(SearchRepositoryItemDescriptor.SYNONYM_LIST);
-        RepositoryItem[] synonymLists = getSynonymRql().executeQuery(view, null);
+        RepositoryItem[] synonymLists = getSynonymListRql().executeQuery(view, null);
         if (synonymLists != null) {
             for (RepositoryItem synonymList : synonymLists) {
                 exportSynonymList(synonymList, locale);
@@ -719,7 +728,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
-    protected abstract void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException;
+    protected abstract void exportSynonymList(RepositoryItem synonymList, Locale locale) throws RepositoryException, SearchServerException;
 
     /**
      * Reloads the catalog and rule collections

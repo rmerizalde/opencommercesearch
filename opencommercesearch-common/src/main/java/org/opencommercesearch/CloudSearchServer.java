@@ -44,6 +44,7 @@ import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
+import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 import org.opencommercesearch.repository.SynonymListProperty;
 import org.opencommercesearch.repository.SynonymProperty;
 
@@ -52,7 +53,9 @@ import static org.opencommercesearch.SearchServerException.Code.CORE_RELOAD_EXCE
 import static org.opencommercesearch.SearchServerException.Code.EXPORT_SYNONYM_EXCEPTION;
 
 import atg.nucleus.ServiceException;
+import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.RepositoryView;
 
 /**
  * The class implements SearchServer interface. This implementation is intended
@@ -189,23 +192,28 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
      * @throws SearchServerException
      *             if a problem occurs while writing the file in ZooKeeper
      */
-    protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws SearchServerException {
+    protected void exportSynonymList(RepositoryItem synonymList, Locale locale) throws RepositoryException, SearchServerException {
         SolrZkClient client = getZkClient(locale);
 
         if (client != null) {
             if (isLoggingInfo()) {
                 logInfo("Exporting synoymym list '" + synonymList.getItemDisplayName() + "' to ZooKeeper");
             }
+            
+            
             ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
             PrintWriter out = new PrintWriter(byteStream);
-
+            
             out.println("# This file has been auto-generated. Do not modify");
-            @SuppressWarnings("unchecked")
-            Set<RepositoryItem> synonymMappings = (Set<RepositoryItem>) synonymList
-                    .getPropertyValue(SynonymListProperty.MAPPINGS);
+        
+            RepositoryView view = getSearchRepository().getView(SearchRepositoryItemDescriptor.SYNONYM);
+            Object params[] = {new String(synonymList.getRepositoryId())};
+            RepositoryItem[] synonymMappings = getSynonymRql().executeQuery(view, params);
+           
             for (RepositoryItem synonym : synonymMappings) {
                 out.println((String) synonym.getPropertyValue(SynonymProperty.MAPPING));
             }
+            
             out.close();
 
             String environment = "preview";
@@ -217,7 +225,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             for (String config : Arrays.asList(getCatalogConfig(), getRulesConfig())) {
                 byte[] data = byteStream.toByteArray();
                 String path = new StringBuffer("/configs/").append(config).append("/synonyms-").append(environment).append("/")
-                        .append(formatSynonymListFileName(synonymList.getItemDisplayName())).toString();
+                        .append(formatSynonymListFileName((String)synonymList.getPropertyValue(SynonymListProperty.FILENAME))).toString();
 
                 try {
                     if (!client.exists(path, true)) {
@@ -307,6 +315,11 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
      * @return the file name
      */
     private String formatSynonymListFileName(String synonymListName) {
+    	
+    	if(synonymListName.trim().endsWith(".txt")) {
+    	    return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase();
+    	}
+    	
         return StringUtils.replaceChars(synonymListName, ' ', '_').toLowerCase() + ".txt";
     }
 
