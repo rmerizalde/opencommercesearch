@@ -256,11 +256,28 @@ public class FacetManager {
         return minBuckets;
     }
     
-    public Integer getFacetMinBuckets(FacetField fieldName) {
-        if (fieldName != null) {
-            return getFacetMinBuckets(fieldName.getName());
+    public Integer getFacetMinBuckets(FacetField facetField) {
+        if (facetField != null) {
+            return getFacetMinBuckets(facetField.getName());
         } else {
             return 2;
+        }
+    }
+
+    public boolean isMultiSelectFacet(String fieldName) {
+        RepositoryItem facetItem = getFacetItem(fieldName);
+        if (facetItem == null) {
+            return false;
+        }
+        Boolean isMultiSelect = (Boolean) facetItem.getPropertyValue(FacetProperty.IS_MULTI_SELECT);
+        return isMultiSelect != null && isMultiSelect;
+    }
+
+    public boolean isMultiSelectFacet(FacetField facetField) {
+        if (facetField != null) {
+            return isMultiSelectFacet(facetField.getName());
+        } else {
+            return false;
         }
     }
     
@@ -273,9 +290,9 @@ public class FacetManager {
         return uiType;
     }
 
-    public String getFacetUIType(FacetField fieldName) {
-        if (fieldName != null) {
-            return getFacetUIType(fieldName.getName());
+    public String getFacetUIType(FacetField facetField) {
+        if (facetField != null) {
+            return getFacetUIType(facetField.getName());
         } else {
             return null;
         }

@@ -133,6 +133,7 @@ public class SearchResponse {
             
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
+            facet.setMultiSelect(manager.isMultiSelectFacet(facetField));
             
             String uiType = manager.getFacetUIType(facetField);
             Map<String, String> metadata = new HashMap<String, String>();
@@ -157,6 +158,14 @@ public class SearchResponse {
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());
+                if (filterQueries != null) {
+                    for (FilterQuery query : filterQueries) {
+                        if (query.getUnescapeExpression().equals(filter.getName())) {
+                            filter.setSelected(true);
+                            break;
+                        }
+                    }
+                }
                 filters.add(filter);
             }
             facet.setFilter(filters);
