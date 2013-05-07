@@ -36,7 +36,6 @@ import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.util.SimpleOrderedMap;
 import org.junit.Before;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -106,6 +105,7 @@ public class AbstractSearchServerIntegrationTest {
         baseServer.setSearchRepository(searchRepository);
         
         SolrQuery query = new SolrQuery("redirect");
+        query.setRows(ROWS);
         SearchResponse res = server.search(query, site);
         assertEquals("/redirect", res.getRedirectResponse());
     }
@@ -131,9 +131,8 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         assertNull(response.getQueryResponse().getGroupResponse());
         assertNull(response.getCategoryGraph());
-
+        
     }
-
 
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseBrand(SearchServer server) throws SearchServerException {

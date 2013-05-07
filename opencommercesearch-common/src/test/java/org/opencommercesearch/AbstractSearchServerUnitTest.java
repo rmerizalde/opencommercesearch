@@ -249,7 +249,12 @@ public class AbstractSearchServerUnitTest {
         when(site.getPropertyValue("defaultCatalog")).thenReturn(null);
         server.search(query, site);
     }
-
+    
+    @Test
+    public void testRulesOnCategoryPages() {    	
+        verifyNoMoreInteractions(rulesServerEn);
+    }
+    
     @Test
     public void testIndexRulesNoRules() throws Exception {
         ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
