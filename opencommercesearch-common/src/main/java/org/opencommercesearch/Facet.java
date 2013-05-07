@@ -200,6 +200,21 @@ public class Facet {
         public boolean isSelected() {
             return isSelected;
         }
+
+        void setSelected(FilterQuery[] filterQueries) {
+            setSelected(getName(), filterQueries);
+        }
+
+        void setSelected(String expression, FilterQuery[] filterQueries) {
+            if (filterQueries != null) {
+                for (FilterQuery query : filterQueries) {
+                    if (query.getUnescapeExpression().equals(expression)) {
+                        setSelected(true);
+                        break;
+                    }
+                }
+            }
+        }
         
         @Override
         public String toString() {

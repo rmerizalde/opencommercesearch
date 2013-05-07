@@ -158,14 +158,7 @@ public class SearchResponse {
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());
-                if (filterQueries != null) {
-                    for (FilterQuery query : filterQueries) {
-                        if (query.getUnescapeExpression().equals(filter.getName())) {
-                            filter.setSelected(true);
-                            break;
-                        }
-                    }
-                }
+                filter.setSelected(filterQueries);
                 filters.add(filter);
             }
             facet.setFilter(filters);
@@ -328,6 +321,7 @@ public class SearchResponse {
 
                 filters = new ArrayList<Filter>();
                 facet.setName(manager.getFacetName(fieldName));
+                facet.setMultiSelect(manager.isMultiSelectFacet(fieldName));
                 facet.setFilter(filters);
                 facetMap.put(fieldName, facet);
             }
@@ -335,6 +329,7 @@ public class SearchResponse {
             filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
             filter.setPath(manager.getCountPath(query, fieldName, fieldName + ':' + expression, filterQueries));
             filter.setCount(count);
+            filter.setSelected(expression, filterQueries);
             filters.add(filter);
         }
     }
