@@ -508,8 +508,8 @@ public class SearchServerManager {
         }
 
         @Override
-        public Facet getFacet(Site site, Locale locale, String fieldFacet)  throws SearchServerException {
-            return server.getFacet(site, locale, fieldFacet);
+        public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit)  throws SearchServerException {
+            return server.getFacet(site, locale, fieldFacet, facetLimit);
         }
         
     }
