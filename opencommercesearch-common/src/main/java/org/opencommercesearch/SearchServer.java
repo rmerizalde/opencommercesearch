@@ -65,6 +65,8 @@ public interface SearchServer {
     SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
              throws SearchServerException;
 
+    Facet getFacet(Site site, Locale locale, String fieldFacet) throws SearchServerException;
+    
     UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException;
     UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException;
 

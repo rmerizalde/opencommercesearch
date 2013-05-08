@@ -331,6 +331,21 @@ public class AbstractSearchServerIntegrationTest {
 
     }
     
+    @SearchTest
+    public void testGetFacet(SearchServer server) throws SearchServerException {
+        Facet facet = server.getFacet(site, Locale.ENGLISH, "brandId");
+        assertNotNull(facet);
+        assertEquals(1, facet.getFilters().size());
+        assertEquals("88", facet.getFilters().get(0).getName());   
+        
+        RepositoryItem catalogZ = mock(RepositoryItem.class);
+        Site siteZ = mock(Site.class);
+        when(siteZ.getPropertyValue("defaultCatalog")).thenReturn(catalogZ);
+        when(catalogZ.getRepositoryId()).thenReturn("Zcatalog");
+        facet = server.getFacet(siteZ, Locale.ENGLISH, "brandId");
+        assertNull(facet);
+    }
+    
     protected void validateFilterByTopLevelCat(SearchResponse response, boolean hasProducts) {
         if (hasProducts) {
             assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());

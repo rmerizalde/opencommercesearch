@@ -506,6 +506,11 @@ public class SearchServerManager {
         public SearchResponse browse(BrowseOptions options, SolrQuery query, Site site, Locale locale, FilterQuery... filterQueries) throws SearchServerException {
             return server.browse(options, query, site, locale, filterQueries);
         }
+
+        @Override
+        public Facet getFacet(Site site, Locale locale, String fieldFacet)  throws SearchServerException {
+            return server.getFacet(site, locale, fieldFacet);
+        }
         
     }
 }
