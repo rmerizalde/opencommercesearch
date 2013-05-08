@@ -338,13 +338,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
     
     @Override
-    public Facet getFacet(Site site, Locale locale, String fieldFacet) throws SearchServerException {
+    public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit) throws SearchServerException {
         try { 
             SolrQuery query = new SolrQuery();
             query.setRows(0);
             query.setQuery("*:*");
             query.addFacetField(fieldFacet);
-            query.setFacetLimit(2000);
+            query.setFacetLimit(facetLimit);
             query.setFacetMinCount(1);
             
             RepositoryItem catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
