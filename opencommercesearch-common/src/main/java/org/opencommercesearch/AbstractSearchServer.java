@@ -70,6 +70,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private String rulesCollection;
     private String catalogConfig;
     private String rulesConfig;
+    private String minimumMatch;
     private Repository searchRepository;
     private RqlStatement synonymListRql;
     private RqlStatement ruleCountRql;
@@ -128,6 +129,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return rulesCollection + "_" + locale.getLanguage();
     }
 
+    public String getMinimumMatch() {
+        return minimumMatch;
+    }
+
+    public void setMinimumMatch(String minimumMatch) {
+        this.minimumMatch = minimumMatch;
+    }
+
     public String getCatalogConfig() {
         return catalogConfig;
     }
@@ -135,7 +144,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void setCatalogConfig(String catalogConfig) {
         this.catalogConfig = catalogConfig;
     }
-
+    
     public String getRulesConfig() {
         return rulesConfig;
     }
@@ -457,7 +466,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             //and use q="corrected phrase" to see if we can get results
             if("OR".equals(queryOp)){
                 query.setParam("q.op", "OR");
-                //query.setParam("mm", "2<-1 5<80%");
+                query.setParam("mm", getMinimumMatch());
             }
             query.setQuery(tentativeCorrectedTerm);
             queryResponse = catalogSolrServer.query(query);
@@ -469,7 +478,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         } else if("OR".equals(queryOp)) {
             //for the match any terms scenario with no corrected terms do another query
             query.setParam("q.op", "OR");
-            //query.setParam("mm", "2<-1 5<80%");
+            query.setParam("mm", getMinimumMatch());
             queryResponse = catalogSolrServer.query(query);
             return isEmptySearch(queryResponse.getGroupResponse()) ? null : queryResponse;
         } else {
