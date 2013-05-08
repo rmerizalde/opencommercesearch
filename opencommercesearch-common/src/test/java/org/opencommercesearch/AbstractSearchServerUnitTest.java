@@ -251,8 +251,12 @@ public class AbstractSearchServerUnitTest {
     }
     
     @Test
-    public void testRulesOnCategoryPages() {    	
-        verifyNoMoreInteractions(rulesServerEn);
+    public void testRulesOnCategoryPages() throws SearchServerException { 
+    	when(query.getRows()).thenReturn(0);
+    	SearchResponse searchRespone = server.browse(browseOptions, query, site, getEnglishLocale());
+    	assertEquals(catalogQueryResponse, searchRespone.getQueryResponse());
+    	verifyNoMoreInteractions(rulesServerEn);
+    	verifyNoMoreInteractions(rulesServerFr);
     }
     
     @Test

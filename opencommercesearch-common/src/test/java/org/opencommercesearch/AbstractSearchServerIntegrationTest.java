@@ -169,6 +169,42 @@ public class AbstractSearchServerIntegrationTest {
 
     }
 
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testMinimumTerms(SearchServer server) throws SearchServerException {
+    	
+    	AbstractSearchServer abstractServer=  (AbstractSearchServer) server;
+    	abstractServer.setMinimumMatch("2<-1 3<-2 5<80%");
+    	SolrQuery query = new SolrQuery("Camp Sandal");
+        query.setRows(ROWS);
+        
+        SearchResponse res = abstractServer.search(query, site);
+        QueryResponse queryResponse = res.getQueryResponse();
+        assertTrue(new Integer(1) <= queryResponse.getGroupResponse().getValues().get(0).getMatches());
+    	
+        //for 2 terms both should match
+        query = new SolrQuery("Camp asdhja");
+        query.setRows(ROWS);
+        
+        res = abstractServer.search(query, site);
+        queryResponse = res.getQueryResponse();
+        assertTrue(new Integer(0) == queryResponse.getGroupResponse().getValues().get(0).getMatches());
+        
+        //for 3 terms, atleast 2 should match
+        query = new SolrQuery("Camp Sandal asdhja");
+        query.setRows(ROWS);
+        
+        res = abstractServer.search(query, site);
+        queryResponse = res.getQueryResponse();
+        assertTrue(new Integer(1) <= queryResponse.getGroupResponse().getValues().get(0).getMatches());
+        
+        query = new SolrQuery("Camp asdhja sdjfhksd");
+        query.setRows(ROWS);
+        
+        res = abstractServer.search(query, site);
+        queryResponse = res.getQueryResponse();
+        assertTrue(new Integer(0) == queryResponse.getGroupResponse().getValues().get(0).getMatches());
+        
+    }
     
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testOnSale(SearchServer server) throws SearchServerException {
