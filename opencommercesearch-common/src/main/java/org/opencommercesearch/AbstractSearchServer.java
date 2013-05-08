@@ -35,6 +35,8 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
 import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
 import org.apache.solr.client.solrj.request.UpdateRequest;
+import org.apache.solr.client.solrj.response.FacetField;
+import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
 import org.apache.solr.client.solrj.response.QueryResponse;
@@ -334,7 +336,50 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             throws SearchServerException {
         return doSearch(query, site, catalog, locale, true, filterQueries);
     }
+    
+    @Override
+    public Facet getFacet(Site site, Locale locale, String fieldFacet) throws SearchServerException {
+        try { 
+            SolrQuery query = new SolrQuery();
+            query.setRows(0);
+            query.setQuery("*:*");
+            query.addFacetField(fieldFacet);
+            query.setFacetLimit(2000);
+            query.setFacetMinCount(1);
             
+            RepositoryItem catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
+            query.setFilterQueries(CATEGORY_PATH + ":" + catalog.getRepositoryId());
+            
+            QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
+            Facet facet = null;
+            if(queryResponse != null && queryResponse.getFacetFields() != null) {
+                FacetField facetField = queryResponse.getFacetField(fieldFacet);                 
+                if(facetField != null) {
+                    List<Count> values = facetField.getValues();
+                    if(values != null && !values.isEmpty()) {
+                        facet = new Facet();
+                        facet.setName(StringUtils.capitalize(fieldFacet));
+                        List<Filter> filters = new ArrayList<Facet.Filter>();
+                        for(Count count : values) {
+                            Filter filter = new Filter();
+                            filter.setName(count.getName());
+                            filter.setCount(count.getCount());
+                            filter.setFilterQuery(count.getAsFilterQuery());
+                            filter.setPath(count.getAsFilterQuery());
+                            filters.add(filter);
+                        }
+                        facet.setFilter(filters);
+                    }
+                }
+            }
+            return facet;
+        } catch (SolrServerException ex) {
+            throw create(SEARCH_EXCEPTION, ex);
+        } catch (SolrException ex) {
+             throw create(SEARCH_EXCEPTION, ex);
+        }
+    }
+    
     private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch, FilterQuery... filterQueries)
             throws SearchServerException {
         if (site == null) {
