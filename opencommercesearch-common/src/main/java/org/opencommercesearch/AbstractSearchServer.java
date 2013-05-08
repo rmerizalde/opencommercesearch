@@ -72,6 +72,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private String rulesCollection;
     private String catalogConfig;
     private String rulesConfig;
+    private String minimumMatch;
     private Repository searchRepository;
     private RqlStatement synonymListRql;
     private RqlStatement ruleCountRql;
@@ -130,6 +131,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return rulesCollection + "_" + locale.getLanguage();
     }
 
+    public String getMinimumMatch() {
+        return minimumMatch;
+    }
+
+    public void setMinimumMatch(String minimumMatch) {
+        this.minimumMatch = minimumMatch;
+    }
+
     public String getCatalogConfig() {
         return catalogConfig;
     }
@@ -137,7 +146,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void setCatalogConfig(String catalogConfig) {
         this.catalogConfig = catalogConfig;
     }
-
+    
     public String getRulesConfig() {
         return rulesConfig;
     }
@@ -392,42 +401,40 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         
         query.addFacetField("category");
         query.set("facet.mincount", 1);
-
+        
+        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
         if (query.getRows() != null && query.getRows() > 0) {
             setGroupParams(query);
-        }
-        setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
-
-        RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
-        try {
-            ruleManager.setRuleParams(filterQueries, catalog, query, isSearch);
-            
-            if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
-                Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
-                List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
-                if(redirects != null){
-                    RepositoryItem redirect = redirects.get(0);
-                    return new SearchResponse(query, null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL), null, true);
+            setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
+            try {
+                ruleManager.setRuleParams(filterQueries, catalog, query, isSearch);
+                
+                if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
+                    Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
+                    List<RepositoryItem> redirects = rules.get(SearchRepositoryItemDescriptor.REDIRECT_RULE);
+                    if(redirects != null){
+                        RepositoryItem redirect = redirects.get(0);
+                        return new SearchResponse(query, null, null, null, (String) redirect.getPropertyValue(RedirectRuleProperty.URL), null, true);
+                    }
                 }
+                
+            } catch (RepositoryException ex) {
+               if (isLoggingError()) {
+                    logError("Unable to load search rules: " + ex.getMessage());
+               }
+               throw create(SEARCH_EXCEPTION, ex);
+            } catch (SolrServerException ex) {
+               if (isLoggingError()) {
+                   logError("Unable to load search rules: " + ex.getMessage());
+               }
+               throw create(SEARCH_EXCEPTION, ex);
+            } catch (SolrException ex) {
+                if (isLoggingError()) {
+                   logError("Unable to load search rules: " + ex.getMessage());
+                }
+                throw create(SEARCH_EXCEPTION, ex);
             }
-            
-        } catch (RepositoryException ex) {
-            if (isLoggingError()) {
-                logError("Unable to load search rules: " + ex.getMessage());
-            }
-            throw create(SEARCH_EXCEPTION, ex);
-        } catch (SolrServerException ex) {
-            if (isLoggingError()) {
-                logError("Unable to load search rules: " + ex.getMessage());
-            }
-            throw create(SEARCH_EXCEPTION, ex);
-        } catch (SolrException ex) {
-            if (isLoggingError()) {
-                logError("Unable to load search rules: " + ex.getMessage());
-            }
-            throw create(SEARCH_EXCEPTION, ex);
         }
-
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
 
@@ -504,6 +511,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             //and use q="corrected phrase" to see if we can get results
             if("OR".equals(queryOp)){
                 query.setParam("q.op", "OR");
+                query.setParam("mm", getMinimumMatch());
             }
             query.setQuery(tentativeCorrectedTerm);
             queryResponse = catalogSolrServer.query(query);
@@ -515,7 +523,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         } else if("OR".equals(queryOp)) {
             //for the match any terms scenario with no corrected terms do another query
             query.setParam("q.op", "OR");
-            queryResponse = catalogSolrServer.query(query);            
+            query.setParam("mm", getMinimumMatch());
+            queryResponse = catalogSolrServer.query(query);
             return isEmptySearch(queryResponse.getGroupResponse()) ? null : queryResponse;
         } else {
             //if we didn't got any corrected terms and are not in the match any term scenario, 
