@@ -403,7 +403,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         query.set("facet.mincount", 1);
         
         RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
-        if (query.getRows() != null && query.getRows() > 0) {
+        if ((query.getRows() != null && query.getRows() > 0) || (query.get("group") != null && query.getBool("group"))) {
             setGroupParams(query);
             setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
             try {
