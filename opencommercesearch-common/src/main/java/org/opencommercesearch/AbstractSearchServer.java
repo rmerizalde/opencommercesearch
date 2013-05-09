@@ -908,7 +908,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 categoryFacetBuilder.addPath(filter);
             }
 
-            if (categoryId == null) {
+            if (StringUtils.isBlank(categoryId)) {
                 // no category filtering scenario. Return top level list
                 categoryGraphList = categoryFacetBuilder.getCategoryGraphList();
             } else {
