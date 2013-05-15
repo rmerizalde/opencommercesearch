@@ -258,8 +258,8 @@ public class RulesBuilderTest {
          mockBaseRule(productCatalog, cat2ExpresionList, child2Category, "childCat2", false);
          
          String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
-         
-         assertEquals("(ancestorCategoryId:ruleCategory) OR ((ancestorCategoryId:childCat1) OR (discountPercentUS:[15 TO 100])) OR ((ancestorCategoryId:childCat2) OR (brandId:88))", builder);
+
+         assertEquals("(ancestorCategoryId:ruleCategory)",builder);
      }    
 
 }
