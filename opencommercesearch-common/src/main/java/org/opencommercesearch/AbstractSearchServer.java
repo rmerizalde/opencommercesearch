@@ -398,7 +398,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             throw new IllegalArgumentException("Missing catalog");
         }
         long startTime = System.currentTimeMillis();
-        
+
         query.addFacetField("category");
         query.set("facet.mincount", 1);
         
@@ -491,8 +491,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         String listPrice = "listPrice" + country;
         String salePrice =  "salePrice" + country;
         String dicountPercent = "discountPercent" + country;
-        query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
-            "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image");
+        if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")){
+        	query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+                    "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
+        }
+        else{
+            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+               "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image");
+        }
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + dicountPercent);
 

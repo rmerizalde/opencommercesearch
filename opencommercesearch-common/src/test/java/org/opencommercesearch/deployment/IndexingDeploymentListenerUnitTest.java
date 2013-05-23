@@ -29,11 +29,13 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.opencommercesearch.EvaluationServerConfig;
+import org.opencommercesearch.EvaluationService;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.SearchServerException.Code;
+import org.opencommercesearch.service.SSHFileUploader;
 
 import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
@@ -50,10 +52,22 @@ public class IndexingDeploymentListenerUnitTest {
     @Mock
     SearchServer searchServer;
     
+    @Mock
+    EvaluationService evaluationService;
+    
+    @Mock
+    SSHFileUploader sshFileUploader;
+    
+    @Mock
+    EvaluationServerConfig evaluationServerConfig;
+    
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         indexingDeploymentListener.setSearchServer(searchServer);
+        indexingDeploymentListener.setEvaluationService(evaluationService);
+        indexingDeploymentListener.setSshFileUploader(sshFileUploader);
+        indexingDeploymentListener.setEvaluationServerConfig(evaluationServerConfig);
         indexingDeploymentListener.setTriggerStatus(Status.stateToString(1));
         indexingDeploymentListener.setTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor1", "searchRepo:triggerItemDescriptor2"));
         indexingDeploymentListener.setLoggingDebug(false);

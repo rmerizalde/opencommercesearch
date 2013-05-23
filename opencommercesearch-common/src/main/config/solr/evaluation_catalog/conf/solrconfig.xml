@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!--
+     For more details about configurations options that may appear in
+     this file, see http://wiki.apache.org/solr/SolrConfigXml.
+-->
+<config>
+  <luceneMatchVersion>LUCENE_42</luceneMatchVersion>
+
+  <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
+  <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-clustering-\d.*\.jar" />
+  <lib dir="../../contrib/clustering/lib/" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-langid-\d.*\.jar" />
+  <lib dir="../../contrib/langid/lib/" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-velocity-\d.*\.jar" />
+  <lib dir="../../contrib/velocity/lib" regex=".*\.jar" />
+
+  <lib dir="/total/crap/dir/ignored" />
+
+  <dataDir>${solr.data.dir:}</dataDir>
+
+  <directoryFactory name="DirectoryFactory"
+                    class="${solr.directoryFactory:solr.StandardDirectoryFactory}"/>
+
+
+  <indexConfig>
+    <lockType>${solr.lockFactory:native}</lockType>
+  </indexConfig>
+
+  <xi:include href="xinclude/jmx.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+  <xi:include href="xinclude/update-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+  <xi:include href="xinclude/query.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+    <requestDispatcher handleSelect="false" >
+
+    <requestParsers enableRemoteStreaming="true"
+                    multipartUploadLimitInKB="2048000" />
+
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
+
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">none</str>
+      <int name="rows">20</int>
+      <str name="defType">synonym_edismax</str>
+      <str name="synonyms">true</str>
+      <str name="synonyms.originalBoost">1.0</str>
+      <str name="synonyms.synonymBoost">1.2</str>
+      <str name="synonyms.disablePhraseQueries">true</str>
+      <str name="synonyms.constructPhrases">false</str>
+      <str name="qf">text^3 brandText^2 highest^3.5 high^2.5 medium^1.6 low^1.3 lowest^0.5</str>
+      <!-- df is used in subqueries in boost functions -->
+      <str name="df">text</str>
+      <str name="spellcheck">true</str>
+      <str name="spellcheck.count">10</str>
+      <str name="spellcheck.dictionary">textSpellCheck</str>
+      <str name="spellcheck.collate">true</str>
+      <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image,score,isToos</str>
+      <str name="groupcollapse">true</str>
+      <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS</str>
+    </lst>
+    <arr name="last-components">
+      <str>spellcheck</str>
+      <str>groupCollapse</str>
+    </arr>
+  </requestHandler>
+
+  <requestHandler name="/update" class="solr.UpdateRequestHandler">
+  </requestHandler>
+
+  <!-- ping/healthcheck -->
+  <requestHandler name="/admin/ping" class="solr.PingRequestHandler">
+    <lst name="invariants">
+      <str name="q">solrpingquery</str>
+    </lst>
+    <lst name="defaults">
+      <str name="echoParams">all</str>
+    </lst>
+  </requestHandler>
+
+  <searchComponent name="groupCollapse" class="solr.GroupCollapseComponent" />
+
+  <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
+
+    <str name="queryAnalyzerFieldType">textSpell</str>
+
+    <!-- a spellchecker built from a field of the main index -->
+    <lst name="spellchecker">
+      <str name="name">textSpellCheck</str>
+      <str name="field">textSpellCheck</str>
+      <str name="classname">solr.DirectSolrSpellChecker</str>
+      <!-- the spellcheck distance measure used, the default is the internal levenshtein -->
+      <str name="distanceMeasure">internal</str>
+      <!-- minimum accuracy needed to be considered a valid spellcheck suggestion -->
+      <float name="accuracy">0.5</float>
+      <!-- the maximum #edits we consider when enumerating terms: can be 1 or 2 -->
+      <int name="maxEdits">2</int>
+      <!-- the minimum shared prefix when enumerating terms -->
+      <int name="minPrefix">1</int>
+      <!-- maximum number of inspections per result. -->
+      <int name="maxInspections">5</int>
+      <!-- minimum length of a query term to be considered for correction -->
+      <int name="minQueryLength">4</int>
+      <!-- maximum threshold of documents a query term can appear to be considered for correction -->
+      <float name="maxQueryFrequency">0.01</float>
+      <!-- uncomment this to require suggestions to occur in 1% of the documents
+        <float name="thresholdTokenFrequency">.01</float>
+      -->
+    </lst>
+    
+    <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
+    <lst name="spellchecker">
+      <str name="name">wordbreak</str>
+      <str name="classname">solr.WordBreakSolrSpellChecker</str>
+      <str name="field">textSpellCheck</str>
+      <str name="combineWords">true</str>
+      <str name="breakWords">true</str>
+      <int name="maxChanges">10</int>
+    </lst>
+  </searchComponent>
+
+  <valueSourceParser name="fixedBoost"
+    class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
+
+
+  <xi:include href="xinclude/admin-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+  <requestHandler name="/analysis/field"
+    startup="lazy"
+    class="solr.FieldAnalysisRequestHandler" />
+
+  <requestHandler name="/analysis/document"
+                  class="solr.DocumentAnalysisRequestHandler"
+                  startup="lazy" />
+
+  <searchComponent name="terms" class="solr.TermsComponent"/>
+
+  <requestHandler name="/terms" class="solr.SearchHandler" startup="lazy">
+     <lst name="defaults">
+      <bool name="terms">true</bool>
+      <str name="shards.qt">/terms</str>
+    </lst>
+    <arr name="components">
+      <str>terms</str>
+    </arr>
+  </requestHandler>
+
+  <searchComponent name="tvComponent" class="solr.TermVectorComponent"/>
+  <requestHandler name="/tvrh" class="solr.SearchHandler" startup="lazy">
+    <lst name="defaults">
+      <str name="df">text</str>
+      <bool name="tv">true</bool>
+      <bool name="tv.all">true</bool>
+    </lst>
+    <arr name="last-components">
+      <str>tvComponent</str>
+    </arr>
+  </requestHandler>
+
+  <queryParser name="synonym_edismax" class="solr.SynonymExpandingExtendedDismaxQParserPlugin">
+    <str name="luceneMatchVersion">LUCENE_42</str>
+    <lst name="synonymAnalyzers">
+      <lst name="default">
+        <lst name="tokenizer">
+          <str name="class">solr.StandardTokenizerFactory</str>
+        </lst>
+        <lst name="filter">
+          <str name="class">solr.ShingleFilterFactory</str>
+          <str name="outputUnigramsIfNoShingles">true</str>
+          <str name="outputUnigrams">true</str>
+          <str name="minShingleSize">2</str>
+          <str name="maxShingleSize">4</str>
+        </lst>
+        <lst name="filter">
+          <str name="class">solr.SynonymFilterFactory</str>
+          <str name="synonyms">synonyms-${solr.env.dir:preview}/query_parser_synonyms.txt</str>
+          <str name="tokenizerFactory">solr.KeywordTokenizerFactory</str>
+          <str name="expand">true</str>
+          <str name="ignoreCase">true</str>
+        </lst>
+      </lst>
+    </lst>
+  </queryParser>
+  
+</config>

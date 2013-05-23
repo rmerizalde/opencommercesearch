@@ -162,7 +162,12 @@
       	<version>1.2.17</version>
       	<scope>test</scope>
       </dependency>
-      
+
+      <dependency>
+      	<groupId>sshtools</groupId>
+      	<artifactId>j2ssh-core</artifactId>
+      	<version>0.2.9</version>
+      </dependency>
     </dependencies>
 
     <build>
@@ -311,5 +316,4 @@
             </plugin>
         </plugins>
     </build>
-    
 </project>
