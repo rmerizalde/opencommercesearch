@@ -52,22 +52,10 @@ public class IndexingDeploymentListenerUnitTest {
     @Mock
     SearchServer searchServer;
     
-    @Mock
-    EvaluationService evaluationService;
-    
-    @Mock
-    SSHFileUploader sshFileUploader;
-    
-    @Mock
-    EvaluationServerConfig evaluationServerConfig;
-    
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         indexingDeploymentListener.setSearchServer(searchServer);
-        indexingDeploymentListener.setEvaluationService(evaluationService);
-        indexingDeploymentListener.setSshFileUploader(sshFileUploader);
-        indexingDeploymentListener.setEvaluationServerConfig(evaluationServerConfig);
         indexingDeploymentListener.setTriggerStatus(Status.stateToString(1));
         indexingDeploymentListener.setTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor1", "searchRepo:triggerItemDescriptor2"));
         indexingDeploymentListener.setLoggingDebug(false);
