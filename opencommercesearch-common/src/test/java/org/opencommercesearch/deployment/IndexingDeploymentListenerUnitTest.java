@@ -30,12 +30,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.opencommercesearch.EvaluationServerConfig;
-import org.opencommercesearch.EvaluationService;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.SearchServerException.Code;
-import org.opencommercesearch.service.SSHFileUploader;
 
 import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
