@@ -6,7 +6,7 @@
                 /org/opencommercesearch/deployment/EvaluationServiceSender
             </nucleus-name>
             <output-port>
-                <port-name>EvaluationPort</port-name>
+                <port-name>DEFAULT</port-name>
                 <output-destination>
                     <provider-name>sqldms</provider-name>
                     <destination-name>patchbay:/Search/Evaluation</destination-name>

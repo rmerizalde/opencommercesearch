@@ -19,6 +19,8 @@ package org.opencommercesearch.deployment;
 * under the License.
 */
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -100,7 +102,10 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 	
 	@Override
     public void deploymentEvent(DeploymentEvent event) {
-        boolean hasAffectedSearch = false;		
+        boolean hasAffectedSearch = false;
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        String date = formatter.format(new Date());
+        
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
             Map<String, Set<String>> affectedItemTypes = event.getAffectedItemTypes();
             if (isLoggingInfo()) {
@@ -116,8 +121,11 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                         }
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
                             if(isEnableEvaluation() && !hasAffectedSearch) {
-                                getEvaluationServiceSender().sendMessage("previous");
-                                hasAffectedSearch = true;
+                                getEvaluationServiceSender().sendMessage("previous:"+date);
+                                if(isLoggingInfo()) {
+                                    logInfo("Sending Message for Evaluation Engine BaseLine");
+                                }
+                                hasAffectedSearch = true; 
                             }
                             notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
@@ -128,7 +136,10 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         }
         
         if(isEnableEvaluation() && hasAffectedSearch) {
-            getEvaluationServiceSender().sendMessage("after");
+            getEvaluationServiceSender().sendMessage("after:"+date);
+            if(isLoggingInfo()) {               
+                logInfo("Sending Message for Evaluation Engine After changes");
+            }
         }
     }
 
