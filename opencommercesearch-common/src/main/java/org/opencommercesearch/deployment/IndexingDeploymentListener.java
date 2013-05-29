@@ -19,6 +19,8 @@ package org.opencommercesearch.deployment;
 * under the License.
 */
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -45,6 +47,7 @@ import atg.repository.RepositoryException;
  * Also, the component can be configured to be triggered for certain item
  * types... TBD
  * 
+ * @author nkumar
  * @author rmerizalde
  * 
  */
@@ -53,15 +56,16 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private SearchServer searchServer;
     private String triggerStatus;
     private List<String> triggerItemDescriptorNames;
-
+    private boolean enableEvaluation;
+    private EvaluationServiceSender evaluationServiceSender;
     public SearchServer getSearchServer() {
         return searchServer;
     }
-
+    
     public void setSearchServer(SearchServer searchServer) {
         this.searchServer = searchServer;
     }
-
+    
     public String getTriggerStatus() {
         return triggerStatus;
     }
@@ -77,9 +81,31 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public void setTriggerItemDescriptorNames(List<String> triggerItemDescriptorNames) {
         this.triggerItemDescriptorNames = triggerItemDescriptorNames;
     }
+    
+    public EvaluationServiceSender getEvaluationServiceSender() {
+		return evaluationServiceSender;
+	}
 
-    @Override
+	public void setEvaluationServiceSender(
+			EvaluationServiceSender evaluationServiceSender) {
+		this.evaluationServiceSender = evaluationServiceSender;
+	}
+  
+     
+    public boolean isEnableEvaluation() {
+        return enableEvaluation;
+    }
+
+    public void setEnableEvaluation(boolean enableEvaluation) {
+        this.enableEvaluation = enableEvaluation;
+    }
+	
+	@Override
     public void deploymentEvent(DeploymentEvent event) {
+        boolean hasAffectedSearch = false;
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        String date = formatter.format(new Date());
+        
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
             Map<String, Set<String>> affectedItemTypes = event.getAffectedItemTypes();
             if (isLoggingInfo()) {
@@ -94,11 +120,25 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                             logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
+                            if(isEnableEvaluation() && !hasAffectedSearch) {
+                                getEvaluationServiceSender().sendMessage("previous:"+date);
+                                if(isLoggingInfo()) {
+                                    logInfo("Sending Message for Evaluation Engine BaseLine");
+                                }
+                                hasAffectedSearch = true; 
+                            }
                             notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
                         }
                     }
                 }
+            }
+        }
+        
+        if(isEnableEvaluation() && hasAffectedSearch) {
+            getEvaluationServiceSender().sendMessage("after:"+date);
+            if(isLoggingInfo()) {               
+                logInfo("Sending Message for Evaluation Engine After changes");
             }
         }
     }

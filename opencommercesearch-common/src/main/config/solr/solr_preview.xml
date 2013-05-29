@@ -33,6 +33,8 @@
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="catalogPreview_en" instanceDir="product_catalog" dataDir="${data.dir:}product_catalog/preview_data_en"
       schema="schema_en.xml" />
+    <core name="catalogEvaluation_en" instanceDir="evaluation_catalog" dataDir="${data.dir:}evaluation_catalog/evaluation_data_en"
+      schema="schema_en.xml" />
     <core name="catalogPreview_fr" instanceDir="product_catalog" dataDir="${data.dir:}product_catalog/preview_data_fr"
       schema="schema_fr.xml" />
   </cores>

@@ -1,0 +1,80 @@
+<!--
+ Licensed to OpenCommerceSearch under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. OpenCommerceSearch licenses this
+ file to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+-->
+
+<fields>
+  <field name="_version_"          type="long"              indexed="true"  stored="true"                   multiValued="false" omitNorms="true" />
+  <field name="id"                 type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="productId"          type="string"            indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="title"              type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="category"           type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="categoryPath"       type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="ancestorCategoryId" type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
+  <field name="image"              type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="brandId"            type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="gender"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <!-- boosting fields -->
+  <field name="year"               type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
+  <field name="season"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
+  <field name="listRank"           type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <!-- making the categoryNodes not required for scenarios where the sku is assigned to the first level category
+    IE. assigned to "1.catalog.firstCategory" Here, the categoryLeaves would be firstCategory and nodes would be empty
+  -->
+  <field name="categoryNodes"      type="string"            indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <field name="categoryLeaves"     type="string"            indexed="true"  stored="false" required="true"  multiValued="true"  omitNorms="true" />
+  <!-- facet fields -->
+  <field name="brand"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="pBrand"             type="phonetic"                                         required="false" multiValued="false" omitNorms="true" />
+  <field name="scale"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="size"               type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="colorFamily"        type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
+  <field name="country"            type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
+  <field name="isRetail"           type="boolean"           indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" default="true" />
+  <field name="isCloseout"         type="boolean"           indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" default="false" />
+  <field name="indexStamp"         type="long"              indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
+
+  <!-- catchall text field that indexes tokens both normally and in reverse for efficient
+      leading wildcard queries. -->
+  <!--<field name="text_rev" type="text_general_rev" indexed="true" stored="false" multiValued="true"/>-->
+
+  <field name="timestamp" type="tdate" indexed="true" stored="true" default="NOW" multiValued="false"/>
+
+  <!-- dynamic facet fields -->
+  <dynamicField name="stockLevel*"            type="int"     indexed="true" stored="true"  required="fasle"   multiValued="false" omitNorms="true" />
+  <dynamicField name="onsale*"                type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
+  <dynamicField name="reviewAverage*"         type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
+  <dynamicField name="bayesianReviewAverage*" type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
+  <dynamicField name="reviews*"               type="int"     indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
+  <dynamicField name="freeGift*"              type="boolean" indexed="true"  stored="true"  required="fasle"  multiValued="false" omitNorms="false" />
+  <dynamicField name="seoUrl*"                type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
+  <dynamicField name="url*"                   type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
+  <dynamicField name="ha_*"                   type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <dynamicField name="attr_*"                 type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
+  <dynamicField name="feature_*"              type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
+
+
+  <!-- other sorting/facet fields -->
+  <dynamicField name="listPrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <dynamicField name="salePrice*"        type="tfloat"  indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <dynamicField name="discountPercent*"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
+  <field name="isToos"                   type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
+  <field name="isPastSeason"             type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
+
+  <!-- catch all ignore -->
+  <dynamicField name="*" type="ignored" multiValued="true" />
+</fields>

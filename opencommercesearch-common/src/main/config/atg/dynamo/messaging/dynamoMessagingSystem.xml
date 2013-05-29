@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<dynamo-message-system>
+    <patchbay>
+        <message-source xml-combine="append">
+            <nucleus-name>
+                /org/opencommercesearch/deployment/EvaluationServiceSender
+            </nucleus-name>
+            <output-port>
+                <port-name>DEFAULT</port-name>
+                <output-destination>
+                    <provider-name>sqldms</provider-name>
+                    <destination-name>patchbay:/Search/Evaluation</destination-name>
+                    <destination-type>Queue</destination-type>
+                </output-destination>
+            </output-port>
+        </message-source>
+    </patchbay>
+</dynamo-message-system>

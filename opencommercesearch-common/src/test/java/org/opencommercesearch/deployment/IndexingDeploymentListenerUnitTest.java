@@ -29,7 +29,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
