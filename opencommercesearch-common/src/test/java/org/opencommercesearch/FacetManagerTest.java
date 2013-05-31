@@ -259,6 +259,21 @@ public class FacetManagerTest {
 		//manager.addFacet(query, dateFacet);
 	}
 
+	@Test
+    public void testIsMultiSelectFacet() {
+        addFacets();
+        when(fieldFacet.getPropertyValue(FacetProperty.IS_MULTI_SELECT)).thenReturn(false);
+        assertFalse((Boolean)manager.isMultiSelectFacet(new FacetField("fieldName")));
+        
+        when(fieldFacet.getPropertyValue(FacetProperty.IS_MULTI_SELECT)).thenReturn(true);
+        assertTrue((Boolean)manager.isMultiSelectFacet(new FacetField("fieldName")));
+        
+        assertFalse((Boolean)manager.isMultiSelectFacet(new FacetField("sdfjk")));
+        
+        FacetField facetField = null;
+        assertFalse((Boolean)manager.isMultiSelectFacet(facetField));
+    }
+
 
     @Test
     public void testFacetFieldNames() {
