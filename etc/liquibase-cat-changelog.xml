@@ -427,7 +427,7 @@
   
  <changeSet author="commercesearch" id="19">
     <preConditions onFail="MARK_RAN">
-	  <not><columnExists tableName="cs_rule" columnName="target"/></not>
+      <not><columnExists tableName="cs_rule" columnName="target"/></not>
     </preConditions>
 
     <addColumn tableName="cs_rule">
@@ -749,13 +749,94 @@
       <column name="fileName" type="VARCHAR2(256)"/>
     </addColumn>
                                                                                                                                               
-   <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
-   <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
-   <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
-   <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
+    <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
+    <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
+    <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
+    <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
                                                                                                                                                                   
-   <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
+    <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
   </changeSet>
+
+  <!-- Start of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
+  <!-- New control/review fields for all base search assets on the BCC-->
+  <changeSet author="commercesearch" id="44">
+    <preConditions onFail="MARK_RAN">    
+      <tableExists tableName="cs_facet"/>
+      <not><columnExists tableName="cs_facet" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_facet" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_facet" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_facet" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_facet" columnName="rationale"/></not>
+
+      <tableExists tableName="cs_rule"/>
+      <not><columnExists tableName="cs_rule" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_rule" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_rule" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_rule" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_rule" columnName="rationale"/></not>
+      
+      <tableExists tableName="cs_synonym"/>
+      <not><columnExists tableName="cs_synonym" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="rationale"/></not>
+
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_synonym_list" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="rationale"/></not>
+      
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+     <addColumn tableName="cs_rule">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym_list">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
+    <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym_list" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym" columnName="rationale" />
+    
+    <!--  Update default values - Matches what was specified in the search repository descriptor (4 for 'Legacy rule, need to revisit')-->
+    <sql>update cs_facet set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_rule set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_synonym_list set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_synonym set rationale = 4' WHERE rationale IS NULL</sql>
+
+  </changeSet>
+  <!-- End of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
+
 </databaseChangeLog>
 
 
