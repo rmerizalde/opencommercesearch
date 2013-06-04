@@ -197,8 +197,6 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    protected abstract void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete);
-
     protected abstract void onFeedStarted(long indexStamp);
 
     protected abstract void onDocumentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
