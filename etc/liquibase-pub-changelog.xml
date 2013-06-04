@@ -1147,12 +1147,12 @@
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM vmap_fh
-        WHERE id='EsFhAssetTarget'
+        WHERE id='EsFhSearchAssetTarget'
       </sqlCheck>
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM vmap_fh
-        WHERE id='EsFhSynonymTarget'
+        WHERE id='EsFhSynonymMappingsTarget'
       </sqlCheck>
     </preConditions>
 

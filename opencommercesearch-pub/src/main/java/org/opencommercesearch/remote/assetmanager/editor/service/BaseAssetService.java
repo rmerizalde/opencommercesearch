@@ -64,7 +64,6 @@ public class BaseAssetService extends RepositoryAssetServiceImpl {
             currentItem = (MutableRepositoryItem) theAsset;
         }
 
-        logError(currentItem == null? "null" : currentItem.getClass().toString());
         currentItem.setPropertyValue(BaseAssetProperty.LAST_MODIFIED_DATE, new Timestamp(System.currentTimeMillis()));
         currentItem.setPropertyValue(BaseAssetProperty.LAST_MODIFIED_BY, getUserProfile().getRepositoryId());
     }
