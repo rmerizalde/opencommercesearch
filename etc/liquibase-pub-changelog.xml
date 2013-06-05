@@ -737,20 +737,20 @@
   <changeSet author="commercesearch" id="23">
     <preConditions onFail="MARK_RAN">
       <not><sqlCheck expectedResult="0">
-          SELECT count(*)
-           FROM   user_tab_columns  utc
-                  LEFT OUTER JOIN
-                  user_cons_columns ucc
-                 ON (    utc.table_name  = ucc.table_name
-                     AND utc.column_name = ucc.column_name)
-                 LEFT OUTER JOIN
-                 user_constraints  uc
-                 ON (ucc.constraint_name = uc.constraint_name)
-          WHERE  utc.table_name = 'CS_RULE'
-          AND     (   uc.constraint_type = 'C'
-                 OR uc.constraint_type IS NULL) 
-          AND    utc.column_name = 'QUERY'
-          AND    uc.search_condition is not null;
+        SELECT count(*)
+         FROM   user_tab_columns  utc
+                LEFT OUTER JOIN
+                user_cons_columns ucc
+               ON (    utc.table_name  = ucc.table_name
+                   AND utc.column_name = ucc.column_name)
+               LEFT OUTER JOIN
+               user_constraints  uc
+               ON (ucc.constraint_name = uc.constraint_name)
+        WHERE  utc.table_name = 'CS_RULE'
+        AND     (   uc.constraint_type = 'C'
+               OR uc.constraint_type IS NULL) 
+        AND    utc.column_name = 'QUERY'
+        AND    uc.search_condition is not null;
       </sqlCheck></not>
     </preConditions>
     <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
@@ -1113,16 +1113,16 @@
       <column name="rationale" type="VARCHAR2(256)"/>
     </addColumn>
 
-    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
-    <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
-    <addNotNullConstraint tableName="cs_synonym_list" columnName="rationale" />
-    <addNotNullConstraint tableName="cs_synonym" columnName="rationale" />
-    
     <!--  Update default values - Matches what was specified in the search repository descriptor (4 for 'Legacy rule, need to revisit')-->
     <sql>update cs_facet set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_rule set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_synonym_list set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_synonym set rationale = 4' WHERE rationale IS NULL</sql>
+    
+    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
+    <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym_list" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym" columnName="rationale" />
 
   </changeSet>
 
@@ -1224,6 +1224,6 @@
         <column name="description" value="AssetManager SynonymMappingsTarget itemViewMapping" />
     </insert>
   </changeSet>  
-    
+
   <!-- End of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
 </databaseChangeLog>
