@@ -1117,7 +1117,7 @@
     <sql>update cs_facet set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_rule set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_synonym_list set rationale = '4' WHERE rationale IS NULL</sql>
-    <sql>update cs_synonym set rationale = 4' WHERE rationale IS NULL</sql>
+    <sql>update cs_synonym set rationale = '4' WHERE rationale IS NULL</sql>
     
     <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
     <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
