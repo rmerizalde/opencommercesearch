@@ -1,8 +1,6 @@
 package org.opencommercesearch.remote.assetmanager.editor.service;
 
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;

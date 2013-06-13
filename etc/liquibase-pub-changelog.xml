@@ -737,20 +737,20 @@
   <changeSet author="commercesearch" id="23">
     <preConditions onFail="MARK_RAN">
       <not><sqlCheck expectedResult="0">
-	      SELECT count(*)
-	       FROM   user_tab_columns  utc
-	              LEFT OUTER JOIN
-	              user_cons_columns ucc
-	             ON (    utc.table_name  = ucc.table_name
-	                 AND utc.column_name = ucc.column_name)
-	             LEFT OUTER JOIN
-	             user_constraints  uc
-	             ON (ucc.constraint_name = uc.constraint_name)
-	      WHERE  utc.table_name = 'CS_RULE'
-	      AND     (   uc.constraint_type = 'C'
-	             OR uc.constraint_type IS NULL) 
-	      AND    utc.column_name = 'QUERY'
-	      AND    uc.search_condition is not null;
+        SELECT count(*)
+         FROM   user_tab_columns  utc
+                LEFT OUTER JOIN
+                user_cons_columns ucc
+               ON (    utc.table_name  = ucc.table_name
+                   AND utc.column_name = ucc.column_name)
+               LEFT OUTER JOIN
+               user_constraints  uc
+               ON (ucc.constraint_name = uc.constraint_name)
+        WHERE  utc.table_name = 'CS_RULE'
+        AND     (   uc.constraint_type = 'C'
+               OR uc.constraint_type IS NULL) 
+        AND    utc.column_name = 'QUERY'
+        AND    uc.search_condition is not null;
       </sqlCheck></not>
     </preConditions>
     <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
@@ -1047,4 +1047,183 @@
     <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
    </changeSet>          
   
+  <!-- Start of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
+  <!-- New control/review fields for all base search assets on the BCC-->
+  <changeSet author="commercesearch" id="44">
+    <preConditions onFail="MARK_RAN">    
+      <tableExists tableName="cs_facet"/>
+      <not><columnExists tableName="cs_facet" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_facet" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_facet" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_facet" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_facet" columnName="rationale"/></not>
+
+      <tableExists tableName="cs_rule"/>
+      <not><columnExists tableName="cs_rule" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_rule" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_rule" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_rule" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_rule" columnName="rationale"/></not>
+      
+      <tableExists tableName="cs_synonym"/>
+      <not><columnExists tableName="cs_synonym" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_synonym" columnName="rationale"/></not>
+
+      <tableExists tableName="cs_synonym_list"/>
+      <not><columnExists tableName="cs_synonym_list" columnName="creationDate"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="lastModifiedDate"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="createdBy"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="lastModifiedBy"/></not>
+      <not><columnExists tableName="cs_synonym_list" columnName="rationale"/></not>
+      
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+     <addColumn tableName="cs_rule">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym_list">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <addColumn tableName="cs_synonym">
+      <column name="creationDate" type="Date"/>
+      <column name="lastModifiedDate" type="Date"/>
+      <column name="createdBy" type="VARCHAR2(256)"/>
+      <column name="lastModifiedBy" type="VARCHAR2(256)"/>
+      <column name="rationale" type="VARCHAR2(256)"/>
+    </addColumn>
+
+    <!--  Update default values - Matches what was specified in the search repository descriptor (4 for 'Legacy rule, need to revisit')-->
+    <sql>update cs_facet set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_rule set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_synonym_list set rationale = '4' WHERE rationale IS NULL</sql>
+    <sql>update cs_synonym set rationale = 4' WHERE rationale IS NULL</sql>
+    
+    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
+    <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym_list" columnName="rationale" />
+    <addNotNullConstraint tableName="cs_synonym" columnName="rationale" />
+
+  </changeSet>
+
+  <!-- Cleanup form handler for synonym mappings (registering a new one) -->
+  <!-- By the time this change was done, the synonym mapping service wasn't being called at all on the BCC, so these changes are to ensure it works as (presumably) it did. -->
+  <changeSet author="commercesearch" id="45">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="1"> 
+        SELECT COUNT(*)
+        FROM vmap_im
+        WHERE id='EsImSynonymMapping'
+      </sqlCheck>
+    </preConditions>
+
+    <sql>delete from vmap_im WHERE id='EsImSynonymMapping'</sql>
+
+  </changeSet>
+  
+  <!-- Register necessary form handlers for each asset -->
+  <changeSet author="commercesearch" id="46">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+        FROM vmap_fh
+        WHERE id='EsFhSearchAssetTarget'
+      </sqlCheck>
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+        FROM vmap_fh
+        WHERE id='EsFhSynonymMappingsTarget'
+      </sqlCheck>
+    </preConditions>
+
+    <!-- Register base form handler for search assets -->
+    <insert tableName="vmap_fh">
+        <column name="id" value="EsFhSearchAssetTarget" />
+        <column name="name" value="OpenCommerceSearch SearchAsset formHandler" />
+        <column name="component_path" value="/org/opencommercesearch/remote/assetmanager/editor/service/BaseAssetService" />
+        <column name="description" value="A base search asset form handler. Fills in control/review  columns for new/updated assets."/>
+    </insert>
+    <insert tableName="vmap_im">
+        <column name="id" value="EsImSearchAssetTarget" />
+        <column name="name" value="AssetManager" />
+        <column name="description" value="SearchAsset Target item mapping" />
+        <column name="item_path" value="/org/opencommercesearch/repository/SearchRepository" />
+        <column name="item_name" value="*" /> <!-- Matchs all components in the search repository-->
+        <column name="form_handler" value="EsFhSearchAssetTarget" />
+        <column name="mode_id" value="AmMmDef" />
+    </insert>
+    <insert tableName="vmap_attrval_rel">
+        <column name="attribute_id" value="AmAvDefBnd" />
+        <column name="mapper_id" value="EsIvmSearchAssetTarget" />
+        <column name="name" value="resourceBundle"/>
+    </insert>
+    <insert tableName="vmap_im2ivm_rel">
+        <column name="item_id" value="EsImSearchAssetTarget" />
+        <column name="view_id" value="AmIvmDef" />
+        <column name="sequence_num" value="0" />
+    </insert>
+    <insert tableName="vmap_ivm">
+        <column name="id" value="EsIvmSearchAssetTarget" />
+        <column name="display_name" value="AssetManager SearchAssetTarget itemViewMapping" />
+        <column name="view_id" value="AmIvDef" />
+        <column name="name" value="AssetManager SearchAssetTarget itemViewMapping" />
+        <column name="description" value="AssetManager SearchAssetTarget itemViewMapping" />
+    </insert>
+
+    <!-- Register custom form handler for synonym mappings-->
+    <insert tableName="vmap_fh">
+        <column name="id" value="EsFhSynonymMappingsTarget" />
+        <column name="name" value="OpenCommerceSynonymMappingsAsset formHandler" />
+        <column name="component_path" value="/org/opencommercesearch/remote/assetmanager/editor/service/SynonymMappingAssetService" />
+        <column name="description" value="Synonym mappings form handler. Performs required specific validation on updated fields."/>
+    </insert>
+    <insert tableName="vmap_im">
+        <column name="id" value="EsImSynonymMappingsTarget" />
+        <column name="name" value="AssetManager" />
+        <column name="description" value="SynonymMappings Target item mapping" />
+        <column name="item_path" value="/org/opencommercesearch/repository/SearchRepository" />
+        <column name="item_name" value="synonym" /> <!-- Overrides the * in the above form handler declaration-->
+        <column name="form_handler" value="EsFhSynonymMappingsTarget" />
+        <column name="mode_id" value="AmMmDef" />
+    </insert>
+    <insert tableName="vmap_attrval_rel">
+        <column name="attribute_id" value="AmAvDefBnd" />
+        <column name="mapper_id" value="EsIvmSynonymMappingsTarget" />
+        <column name="name" value="resourceBundle"/>
+    </insert>
+    <insert tableName="vmap_im2ivm_rel">
+        <column name="item_id" value="EsImSynonymMappingsTarget" />
+        <column name="view_id" value="AmIvmDef" />
+        <column name="sequence_num" value="0" />
+    </insert>
+    <insert tableName="vmap_ivm">
+        <column name="id" value="EsIvmSynonymMappingsTarget" />
+        <column name="display_name" value="AssetManager SynonymMappingsTarget itemViewMapping" />
+        <column name="view_id" value="AmIvDef" />
+        <column name="name" value="AssetManager SynonymMappingsTarget itemViewMapping" />
+        <column name="description" value="AssetManager SynonymMappingsTarget itemViewMapping" />
+    </insert>
+  </changeSet>  
+
+  <!-- End of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
 </databaseChangeLog>

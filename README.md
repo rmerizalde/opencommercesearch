@@ -3,8 +3,32 @@ commercesearch
 
 Installation
 
-* Copy jar to lib
-* Add jar to lib & config path in META-INF
+* Copy the opencommercesearch-solr jar to the lib directory under the lib directory in Sorl home directory.
+
+By default, the configurtion files use the Synonym Expanding Query Parser. Hence you need to deploy the jar hon-lucene-synonyms-1.2.2-solr-4.1.0.jar in the same lib directory
+
+* Add opencommercesearch-pub jar under the lib in the Publishing module and update the config path in META-INF. For example:
+
+ATG-Class-Path: lib/classes lib/classes.jar lib/opencommercesearch-pub-0.2-SNAPSHOT.jar
+ATG-Config-Path: config lib/opencommercesearch-pub-0.2-SNAPSHOT.jar
+
+* Add opencommercesearch-common jar under the lib in the Store module and update the config path in META-INF. For example:
+
+ATG-Class-Path: lib/hotfix/p13311143_1001_v1_lib.jar
+  lib/classes lib/classes.jar lib/resources.jar
+  ...
+  lib/opencommercesearch/opencommercesearch-common-0.2-SNAPSHOT.jar lib/opencommercesearch/opencommercesearch-solr-0.2-SNAPSHOT.jar
+  lib/solr/solr-solrj-4.2.1.jar lib/solr/solr-core-4.2.1.jar lib/solr/zookeeper-3.4.5.jar lib/solr/spatial4j-0.3.jar
+  lib/lucene/lucene-core-4.2.1.jar lib/lucene/lucene-analyzers-common-4.2.1.jar
+  lib/lucene/lucene-queries-4.2.1.jar lib/lucene/lucene-queryparser-4.2.1.jar lib/lucene/lucene-grouping-4.2.1.jar
+  lib/lucene/lucene-suggest-4.2.1.jar lib/lucene/lucene-highlighter-4.2.1.jar lib/lucene/lucene-memory-4.2.1.jar
+  lib/lucene/lucene-misc-4.2.1.jar lib/lucene/lucene-analyzers-phonetic-4.2.1.jar
+  lib/lucene/hon-lucene-synonyms-1.2.2-solr-4.1.0.jar 
+  ...
+ATG-Config-Path: lib/opencommercesearch/opencommercesearch-common-0.2-SNAPSHOT.jar config
+
+NOTE: you may need to add more dependencies to the class path.
+
 * Map the repositories for in the topology files
 
     <repository-mapping>
@@ -17,89 +41,24 @@ Installation
       <destination-repository>/org/commercesearch/repository/SearchRepository_production</destination-repository>
     </repository-mapping>
 
-* Add preview and producton repos to atg/dynamo/service/AssetResolver.properties
-
-      /org/commercesearch/repository/SearchRepository_preview,\
-      /org/commercesearch/repository/SearchRepository_production
-
 * Add this atg/dynamo/service/idspaces.xml
   <id-space name="synonym" prefix="syn" seed="1" batch-size="1000"/>
   <id-space name="synonymList" prefix="synList" seed="1" batch-size="1000"/>
   <id-space name="rule" prefix="rule" seed="1" batch-size="1000"/>
-* Add this to atg/remote/commerce/browse/MerchandisingBrowseHierarchy.xml
 
-Add this to home at beggining <browse-item reference-id="search"/>
+* By default, OpenCommerceSearch configures the deployment agents atg/epub/DeploymentAgent.properties to add the IndexingDeploymentListener on all instances where opencommercesearch-common is deployed. If you have multiple instances for a given environment you may want to disable on some of them. Otherwise, the search server will re-index rules on all instances.
 
-  <browse-item id="search" label="Search" is-root="true">
-    <list-definition show-count-on-header="false" id="searchFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/commercesearch/repository/SearchRepository:synonymList">
-      <retriever-parameter name="query" value="ALL"/>
-    </list-definition>
-  </browse-item>
+* Deploy a SearchServer configuration files to use different collection/server. Typical ATG deployments have two environments: preview & public. By default, the SearchServer.properties file included in the common jar points to the preview instance:
 
-* Add this to atg/remote/commerce/toolbar/MerchandisingToolbar.xml
+catalogCollection=catalogPreview
+rulesCollection=rulePreview
 
-  <operation-menu id="browseSearchOperationMenu">
-    <toolbar-scope pane-id="browse" asset-area="searchTool"/>
-    <operation-menu-item id="edit" divider="false" submenu="false"/>
-    <operation-menu-item id="duplicate" divider="false" submenu="false"/>
-    <operation-menu-item id="delete" divider="false" submenu="false"/>
-    <operation-menu-item divider="true" submenu="false"/>
-    <operation-menu-item id="addToProject" divider="false" submenu="false"/>
-    <operation-menu-item id="export" divider="false" submenu="false"/>
-  </operation-menu> 
+For public facing instance, you need to create a SearchServer.properties to point the server to the public collections:
 
-* Add this to the versionedRepositories property in atg/epub/version/VersionManagerService.properties
-
- SearchRepository=/org/commercesearch/repository/SearchRepository
-
-* Add the repository to the initialRepositories in atg/registry/ContentRepositories.properties
-
- /org/commercesearch/repository/SearchRepository
-
-* Configure the deployment agents atg/epub/DeploymentAgent.properties to add the IndexingDeploymentListener
-
-deploymentEventListeners+=/org/commercesearch/deployment/IndexingDeploymentListener
-
-
-Create the /org/commercesearch/repository/SearchRepository.properties under Publishing with this content
-
-    $class=atg.adapter.version.VersionRepository
-
-    versionManager=/atg/epub/version/VersionManagerService
-    versionItemsByDefault=true
-    dataSource=/atg/dynamo/service/jdbc/JTDataSource
-
-* Deploy SearchServer configuration files to use different collection/server    
+catalogCollection=catalogPublic
+rulesCollection=rulePublic    
 
 NOTE:
 
 After starting the bcc BCC, map the SearchRepository to each target SearchRepository. Make changss live!!
-
-
-* SOLR
-
-Workaround for reloading all cores
-
-    <Get id="oldhandler" name="handler"/>
-    <Set name="handler">
-        <New id="Rewrite" class="org.eclipse.jetty.rewrite.handler.RewriteHandler">
-          <Set name="handler">
-            <Ref id="oldhandler"/>
-          </Set>
-          <Set name="rewriteRequestURI">true</Set>
-          <Set name="rewritePathInfo">true</Set>
-          <Set name="originalPathAttribute">requestedPath</Set>
-
-          <Call name="addRule">
-            <Arg>
-              <New class="org.eclipse.jetty.rewrite.handler.RewriteRegexRule">
-                <Set name="regex">/solr/.+?/admin/cores</Set>
-                <Set name="replacement">/solr/admin/cores</Set>
-              </New>
-            </Arg>
-          </Call>
-        </New>
-    </Set>
-
-Add the jetty rewrite lib and include the options to start it.    
 

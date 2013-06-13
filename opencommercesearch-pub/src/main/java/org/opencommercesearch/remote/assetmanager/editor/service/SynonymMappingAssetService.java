@@ -19,12 +19,13 @@ package org.opencommercesearch.remote.assetmanager.editor.service;
 * under the License.
 */
 
+import java.util.Collection;
+
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.SynonymProperty;
 
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
-import atg.remote.assetmanager.editor.service.RepositoryAssetPropertyServiceImpl;
 
 /**
  * This class is used to validate the synonym mappings created in the BCC. Solr
@@ -36,13 +37,13 @@ import atg.remote.assetmanager.editor.service.RepositoryAssetPropertyServiceImpl
  * 
  * ipod, i-pod, i pod => ipod, i-pod, i pod
  * 
- * Equivalent synanyms are simple lists of token sequences separated by a comma.
+ * Equivalent synonyms are simple lists of token sequences separated by a comma.
  * For example:
  * 
  * ipod, i-pod, i pod
  * 
  * How this interpreted depends on the expand parameter. If the expand parameter
- * is set to true, the the previous examples is tha same as:
+ * is set to true, the the previous examples is the same as:
  * 
  * ipod, i-pod, i pod => ipod, i-pod, i pod
  * 
@@ -61,7 +62,7 @@ import atg.remote.assetmanager.editor.service.RepositoryAssetPropertyServiceImpl
  * @author rmerizalde
  * 
  */
-public class SynonymMappingAssetService extends RepositoryAssetPropertyServiceImpl {
+public class SynonymMappingAssetService extends BaseAssetService {
     //@TODO use locale for messages
     public  static final String ERROR_INVALID_SYNONYM_MAPPING = "Must a be a comma-separated list";
     public  static final String ERROR_INVALID_EXPLICIT_SYNONYM_MAPPING = "Must have a expression on each side of the arrow";
@@ -69,17 +70,33 @@ public class SynonymMappingAssetService extends RepositoryAssetPropertyServiceIm
     private static final char SEPARATOR = ',';
     private static final String ARROW = "=>";
 
-    public void validatePropertyUpdate(AssetEditorInfo editorInfo, PropertyUpdate update) {
-        super.validatePropertyUpdate(editorInfo, update);
-        if (isLoggingInfo()) {
-            logDebug("validatePropertyUpdate: " + editorInfo + " : " + update + " NAME : "
-                    + update.getPropertyName() + " VALUE = " + update.getPropertyValue());
-        }
-        if (SynonymProperty.MAPPING.equals(update.getPropertyName())) {
-            doValidatePropertyUpdate(editorInfo, update);
+    /**
+     * Do the mapping validation on new synonym mappings.
+     */
+    @Override
+    public void validateNewAsset(AssetEditorInfo pEditorInfo, Collection pUpdates) {
+        super.validateNewAsset(pEditorInfo, pUpdates);
+        PropertyUpdate mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
+        if(mappingPropUpdate != null) {
+            doValidatePropertyUpdate(pEditorInfo, mappingPropUpdate);
         }
     }
 
+    /**
+     * Do the mapping validation on updated synonym mappings.
+     */
+    @Override
+    public void validateUpdateAsset(AssetEditorInfo pEditorInfo, Collection pUpdates) {
+        super.validateUpdateAsset(pEditorInfo, pUpdates);
+        PropertyUpdate mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
+        if(mappingPropUpdate != null) {
+            doValidatePropertyUpdate(pEditorInfo, mappingPropUpdate);
+        }
+    }
+
+    /**
+     * Does the actual synonym mapping property validation.
+     */
     protected void doValidatePropertyUpdate(AssetEditorInfo editorInfo, PropertyUpdate update) {
         String value = (String) update.getPropertyValue();
 

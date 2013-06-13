@@ -18,6 +18,36 @@
                            column-name="fileName" required="true">
                           <attribute name="propertySortPriority" value="2" />
                  </property>
+
+                 <!-- Review fields -->
+                 <property name="creationDate" data-type="timestamp" display-name="Creation Date" 
+                          column-name="creationDate" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="3" />
+                 </property>
+
+                 <property name="lastModifiedDate" data-type="timestamp" display-name="Last Modified Date" 
+                          column-name="lastModifiedDate" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="4" />
+                 </property>
+
+                 <property name="createdby" data-type="string" display-name="Created By"
+                          column-name="createdBy" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="5" />
+                 </property>
+
+                 <property name="lastModifiedBy" data-type="string" display-name="Last Modified By"
+                          column-name="lastModifiedBy" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="6" />
+                 </property>
+
+                 <property name="rationale" data-type="enumerated" display-name="Rationale"
+                          column-name="rationale" required="true">
+                          <attribute name="propertySortPriority" value="7" />
+                          <option value="Calendar event (i.e. promotion)" code="1"/>
+                          <option value="Broken results" code="2"/>
+                          <option value="Poor performing search/browse PLP at the time of publishing" code="3"/>
+                          <option value="Legacy rule - Need to revisit" code="4"/>
+                 </property>
          </table>
     </item-descriptor>
 
@@ -26,10 +56,40 @@
                 <property name="mappings" data-type="string" display-name="Mapping"
                           column-name="mapping" required="true">
                           <attribute name="propertySortPriority" value="2" />
-                </property>          
+                </property>
                 <property name="synonymList" display-name="Synonym List" column-names="syn_list_id" required="true" item-type="synonymList">
                           <attribute name="propertySortPriority" value="1" />
                 </property>
+
+                 <!-- Review fields -->
+                 <property name="creationDate" data-type="timestamp" display-name="Creation Date" 
+                          column-name="creationDate" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="3" />
+                 </property>
+
+                 <property name="lastModifiedDate" data-type="timestamp" display-name="Last Modified Date" 
+                          column-name="lastModifiedDate" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="4" />
+                 </property>
+
+                 <property name="createdby" data-type="string" display-name="Created By"
+                          column-name="createdBy" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="5" />
+                 </property>
+
+                 <property name="lastModifiedBy" data-type="string" display-name="Last Modified By"
+                          column-name="lastModifiedBy" required="false" hidden="true">
+                          <attribute name="propertySortPriority" value="6" />
+                 </property>
+
+                 <property name="rationale" data-type="enumerated" display-name="Rationale"
+                          column-name="rationale" required="true">
+                          <attribute name="propertySortPriority" value="7" />
+                          <option value="Calendar event (i.e. promotion)" code="1"/>
+                          <option value="Broken results" code="2"/>
+                          <option value="Poor performing search/browse PLP at the time of publishing" code="3"/>
+                          <option value="Legacy rule - Need to revisit" code="4"/>
+                 </property>
           </table>
      </item-descriptor>
 
@@ -84,6 +144,32 @@
         <property name="endDate" data-type="timestamp" display-name="End Date"
             column-name="end_date" required="false" category="Lifetime">
             <attribute name="propertySortPriority" value="10" />
+        </property>
+
+        <!-- Review fields -->
+        <property name="creationDate" data-type="timestamp" display-name="Creation Date" 
+          column-name="creationDate" required="false" hidden="true">
+        </property>
+
+        <property name="lastModifiedDate" data-type="timestamp" display-name="Last Modified Date" 
+          column-name="lastModifiedDate" required="false" hidden="true">
+        </property>
+
+        <property name="createdby" data-type="string" display-name="Created By"
+          column-name="createdBy" required="false" hidden="true">
+        </property>
+
+        <property name="lastModifiedBy" data-type="string" display-name="Last Modified By"
+          column-name="lastModifiedBy" required="false" hidden="true">
+        </property>
+
+        <property name="rationale" data-type="enumerated" display-name="Rationale"
+          column-name="rationale" required="true" category="General">
+          <attribute name="propertySortPriority" value="99" />
+          <option value="Calendar event (i.e. promotion)" code="1"/>
+          <option value="Broken results" code="2"/>
+          <option value="Poor performing search/browse PLP at the time of publishing" code="3"/>
+          <option value="Legacy rule - Need to revisit" code="4"/>
         </property>
       </table>
 
@@ -192,7 +278,6 @@
           <option value="pivotRule"  code="5"/>
         </property>
 
-
         <property name="systemName" data-type="string" display-name="System Name"
                   column-name="system_name" required="true" category="General">
           <attribute name="propertySortPriority" value="1" />
@@ -212,6 +297,32 @@
         <property name="minBuckets" data-type="int" display-name="Min Buckets (default 2)"
                   column-name="min_buckets" required="false" category="Optional">
           <attribute name="propertySortPriority" value="3" />
+        </property>
+        
+        <!-- Review fields -->
+        <property name="creationDate" data-type="timestamp" display-name="Creation Date" 
+          column-name="creationDate" required="false" hidden="true">
+        </property>
+
+        <property name="lastModifiedDate" data-type="timestamp" display-name="Last Modified Date" 
+          column-name="lastModifiedDate" required="false" hidden="true">
+        </property>
+
+        <property name="createdby" data-type="string" display-name="Created By"
+          column-name="createdBy" required="false" hidden="true">
+        </property>
+
+        <property name="lastModifiedBy" data-type="string" display-name="Last Modified By"
+          column-name="lastModifiedBy" required="false" hidden="true">
+        </property>
+
+        <property name="rationale" data-type="enumerated" display-name="Rationale"
+          column-name="rationale" required="true" category="General">
+          <attribute name="propertySortPriority" value="99" />
+          <option value="Calendar event (i.e. promotion)" code="1"/>
+          <option value="Broken results" code="2"/>
+          <option value="Poor performing search/browse PLP at the time of publishing" code="3"/>
+          <option value="Legacy rule - Need to revisit" code="4"/>
         </property>
       </table>
       
@@ -285,7 +396,7 @@
           <attribute name="propertySortPriority" value="3" />
         </property>
         <property name="end" data-type="int" display-name="Range End"
-                  column-name="range_end" required="false" category="General">
+                  column-name="range_end" required="true" category="General">
           <attribute name="propertySortPriority" value="4" />
         </property>
         <property name="gap" data-type="int" display-name="Range Gap"
@@ -394,7 +505,6 @@
         </property>
       </table>
     </item-descriptor>
-
 
 </gsa-template>    
 
