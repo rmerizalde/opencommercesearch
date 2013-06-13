@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import atg.multisite.Site;
@@ -45,9 +46,13 @@ import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.FacetRuleProperty;
 import org.opencommercesearch.repository.FieldFacetProperty;
+import org.opencommercesearch.repository.QueryFacetProperty;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -59,6 +64,9 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @Category(IntegrationSearchTest.class)
 @RunWith(SearchJUnit4ClassRunner.class)
 public class AbstractSearchServerIntegrationTest {
+
+    private static final String FIELD_FACET = "fieldFacet";
+    private static final String QUERY_FACET = "queryFacet";
 
     public static final int ROWS = 20;
 
@@ -298,19 +306,11 @@ public class AbstractSearchServerIntegrationTest {
         // adding a blacklist that should remove the "UK Kids Footwear".
         // For the brand facet, the test data only has one entry: "The North Face" and we defined a 
         // blacklist with "Fake Brand". Because the terms don't match, then we shouldn't filter any entry.
-        
-        AbstractSearchServer baseServer = (AbstractSearchServer) server;
-        baseServer.setSearchRepository(searchRepository);
-        
-        RepositoryItem facetRepoItem = mock(RepositoryItem.class);
-        when(searchRepository.getItem("facetRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(facetRepoItem);
-        when(facetRepoItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("facetRule");
-        when(facetRepoItem.getRepositoryId()).thenReturn("facetRuleId");
-        
+                
         List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
-        facetList.add(mockFacet("scale", "scale", "fieldFacet", "UK Kids Footwear"));
-        facetList.add(mockFacet("brand", "brand", "fieldFacet", "Fake Brand"));
-        when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
+        facetList.add(mockFacet("scale", "scale", FIELD_FACET, "UK Kids Footwear", null, false));
+        facetList.add(mockFacet("brand", "brand", FIELD_FACET, "Fake Brand", null, false));
+        mockFacetRuleResponse("facetRuleId", server, facetList);
         
         
         SolrQuery query = new SolrQuery("shoe");
@@ -330,7 +330,65 @@ public class AbstractSearchServerIntegrationTest {
         }
 
     }
-    
+        
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml", rulesData = "/rules/facetBlacklist.xml")
+    public void testMultiSelectFacet(SearchServer server) throws SearchServerException, RepositoryException {
+        // Scenario to validate multi-select facets filter results correctly
+        
+        // The test creates a global facet rule, in the rules collection, with the price and brand facets.
+        // The brand facet will return one filter : the north face. 
+        // The price facet will return two filters: $10-$20  and $20 And Up
+        
+        // We are going to apply first the brand filter 'the-north-face'
+        // Then we apply the '$10-$20' and the '$20 And Up' filters. For each of them we verify they are selected
+        
+        // Finally we proceed to un-select them. First we remove the '$20 And Up', then the brand 'the-north-face'
+        // and lastly we remove '$10-$20' and check no facet filters are selected.
+                
+        List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
+        facetList.add(mockFacet("price", "salePriceUS", QUERY_FACET, null, Lists.newArrayList("[* TO 10]", "[10 TO 20]", "[20 TO *]"), true));
+        facetList.add(mockFacet("brand", "brand", FIELD_FACET, null, null, true));
+        mockFacetRuleResponse("facetRuleId", server, facetList);
+        
+        
+        SolrQuery query = new SolrQuery("shoe");
+        query.setRows(ROWS);
+        SearchResponse response = server.search(query, site);
+        
+        Map<String, Facet> facetMap = Maps.newHashMap();
+        validateFacets(response, facetMap, null, null);
+        
+        //apply brand filter
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateFacets(response, facetMap, Lists.newArrayList(0), null);
+
+        //add filter by $10-$20
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0));
+        
+        //add filter by $20 and up
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0, 1));
+        
+        //remove filter by $20 and up
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0));
+        
+        //remove brand filter
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateFacets(response, facetMap, null, Lists.newArrayList(0));
+        
+       //remove filter by $10-$20
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateFacets(response, facetMap, null, null);
+    }
+
     @SearchTest
     public void testGetFacet(SearchServer server) throws SearchServerException {
         Facet facet = server.getFacet(site, Locale.ENGLISH, "brandId", 100);
@@ -415,18 +473,68 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals(matchesAll, res.matchesAll());  
     }
     
-    private RepositoryItem mockFacet(String name, String field, String type, String blacklist){
+    private RepositoryItem mockFacet(String name, String field, String type, String blacklist, List<String> queries, Boolean isMultiselect){
         RepositoryItem facet = mock(RepositoryItem.class);
         when(facet.getRepositoryId()).thenReturn(name);
         when(facet.getPropertyValue(FacetProperty.TYPE)).thenReturn(type);
         when(facet.getPropertyValue(FacetProperty.NAME)).thenReturn(name);
+        when(facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT)).thenReturn(isMultiselect);
         when(facet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn(field);
+        
+        if(QUERY_FACET.equals(type)){
+            when(facet.getPropertyValue(QueryFacetProperty.QUERIES)).thenReturn(queries);
+        }
+        
         if(StringUtils.isNotBlank(blacklist)) {
             Set<String> blackListSet = new HashSet<String>();
             blackListSet.add(blacklist);
             when(facet.getPropertyValue(FieldFacetProperty.BLACKLIST)).thenReturn(blackListSet);
         }
         return facet;
+    }
+    
+    private void mockFacetRuleResponse(String facetRuleId, SearchServer server, List<RepositoryItem> facetList) throws RepositoryException{
+        
+        AbstractSearchServer baseServer = (AbstractSearchServer) server;
+        baseServer.setSearchRepository(searchRepository);
+        
+        RepositoryItem facetRepoItem = mock(RepositoryItem.class);
+        when(searchRepository.getItem(facetRuleId, SearchRepositoryItemDescriptor.RULE)).thenReturn(facetRepoItem);
+        when(facetRepoItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("facetRule");
+        when(facetRepoItem.getRepositoryId()).thenReturn(facetRuleId);
+        
+        when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
+    }
+    
+    public void validateFacets(SearchResponse response, Map<String, Facet> facetMap, List<Integer> brandSelectedIndex, List<Integer> priceSelectedIndex) {
+        facetMap.clear();
+        for (Facet facet :response.getFacets()) {
+            if (facet.getName().equals("price")) {
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("$10-$20", facet.getFilters().get(0).getName());
+                assertEquals("$20 And Up", facet.getFilters().get(1).getName());                 
+                validateFacetFilter(priceSelectedIndex, facet);
+                        
+            }
+            else if (facet.getName().equals("brand")) {
+                assertEquals(facet.getFilters().size(), 1);
+                assertEquals(facet.getFilters().get(0).getName(), "The North Face");                
+                validateFacetFilter(brandSelectedIndex, facet);
+            }
+            facetMap.put(facet.getName(), facet);
+        }
+    }
+
+    public void validateFacetFilter(List<Integer> selectedIndex, Facet facet) {
+        if(selectedIndex != null && selectedIndex.size() > 0){
+            for(int index : selectedIndex) {
+                assertTrue(facet.getFilters().get(index).isSelected());
+            }
+        } else {
+            for(Facet.Filter filter : facet.getFilters() ){
+                assertFalse(filter.isSelected());
+            }
+        }
     }
 
 
