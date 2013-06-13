@@ -358,8 +358,6 @@ public class AbstractSearchServerIntegrationTest {
         Map<String, Facet> facetMap = Maps.newHashMap();
         validateFacets(response, facetMap, null, null);
         
-        String path = null;
-        
         //apply brand filter
         FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
         response = server.search(query, site, filterQueries);
@@ -527,9 +525,9 @@ public class AbstractSearchServerIntegrationTest {
         }
     }
 
-    public void validateFacetFilter(List<Integer> priceSelectedIndex, Facet facet) {
-        if(priceSelectedIndex != null && priceSelectedIndex.size() > 0){
-            for(int index : priceSelectedIndex) {
+    public void validateFacetFilter(List<Integer> selectedIndex, Facet facet) {
+        if(selectedIndex != null && selectedIndex.size() > 0){
+            for(int index : selectedIndex) {
                 assertTrue(facet.getFilters().get(index).isSelected());
             }
         } else {
