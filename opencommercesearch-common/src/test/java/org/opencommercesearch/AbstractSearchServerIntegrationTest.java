@@ -324,8 +324,8 @@ public class AbstractSearchServerIntegrationTest {
                 assertEquals(facet.getFilters().get(0).getName(), "US Kids Footwear");
             }
             if(facet.getName().equals("brand")) {
-                assertEquals(facet.getFilters().size(), 1);
-                assertEquals(facet.getFilters().get(0).getName(), "The North Face");
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals(facet.getFilters().get(1).getName(), "The North Face");
             }
         }
 
@@ -404,6 +404,17 @@ public class AbstractSearchServerIntegrationTest {
         assertNull(facet);
     }
     
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testGetMultiFacet(SearchServer server) throws SearchServerException {
+        Facet facet = server.getFacet(site, Locale.ENGLISH, "brandId", 100);
+        facet.setMultiSelect(true);
+        assertNotNull(facet);
+        assertEquals(2, facet.getSelectableFilters().size());
+        facet.getFilters().get(0).setSelected(true);
+        assertEquals(1, facet.getSelectedFilters().size());
+        assertEquals(1, facet.getSelectableFilters().size());
+        
+    }
     protected void validateFilterByTopLevelCat(SearchResponse response, boolean hasProducts) {
         if (hasProducts) {
             assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
