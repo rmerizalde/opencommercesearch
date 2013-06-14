@@ -158,7 +158,7 @@ public class SearchResponse {
                 filter.setCount(count.getCount());
                 filter.setPath(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());
-                filter.setSelected(filterQueries);
+                filter.setSelected(count.getFacetField().getName(), filterName, filterQueries);
                 filters.add(filter);
             }
             facet.setFilter(filters);
@@ -330,7 +330,7 @@ public class SearchResponse {
             String filterQuery = fieldName + ':' + expression;
             filter.setPath(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
             filter.setCount(count);
-            filter.setSelected(expression, filterQueries);
+            filter.setSelected(fieldName, expression, filterQueries);
             filters.add(filter);
         }
     }
