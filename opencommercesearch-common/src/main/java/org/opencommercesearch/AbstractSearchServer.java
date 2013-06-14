@@ -484,7 +484,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         query.set("group.ngroups", true);
         query.set("group.limit", 50);
         query.set("group.field", "productId");
-        query.set("group.facet", true);
+        query.set("group.facet", false);
     }
 
     private void setFieldListParams(SolrQuery query, String country, String catalog) {

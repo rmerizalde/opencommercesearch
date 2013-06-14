@@ -325,7 +325,7 @@ public class AbstractSearchServerIntegrationTest {
             }
             if(facet.getName().equals("brand")) {
                 assertEquals(facet.getFilters().size(), 2);
-                assertEquals(facet.getFilters().get(1).getName(), "The North Face");
+                assertEquals(facet.getFilters().get(1).getName(), "Marmot");
             }
         }
 
