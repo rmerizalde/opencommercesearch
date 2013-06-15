@@ -104,6 +104,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -209,6 +211,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -314,6 +318,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[yes]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -419,6 +425,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -524,6 +532,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -628,5 +638,7 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[yes]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
 </add>
