@@ -327,7 +327,8 @@ public class SearchResponse {
             }
             Filter filter = new Filter();
             filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
-            filter.setPath(manager.getCountPath(query, fieldName, fieldName + ':' + expression, filterQueries));
+            String filterQuery = fieldName + ':' + expression;
+            filter.setPath(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
             filter.setCount(count);
             filter.setSelected(expression, filterQueries);
             filters.add(filter);
