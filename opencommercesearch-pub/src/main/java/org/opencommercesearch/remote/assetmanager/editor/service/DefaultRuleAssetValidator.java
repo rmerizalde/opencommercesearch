@@ -19,14 +19,13 @@ package org.opencommercesearch.remote.assetmanager.editor.service;
 * under the License.
 */
 
+import java.sql.Timestamp;
 import java.util.Collection;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.RuleProperty;
 
 import atg.nucleus.GenericService;
-import atg.remote.assetmanager.editor.model.AssetViewUpdate;
-import atg.remote.assetmanager.editor.model.PropertyEditorAssetViewUpdate;
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.MutableRepository;
@@ -39,21 +38,39 @@ public class DefaultRuleAssetValidator extends GenericService {
     protected static final String CATEGORY_PAGES = "Category Pages";
     protected static final String SEARCH_PAGES = "Search Pages";
     protected static final String ALL_PAGES = "All Pages";
-    
+
     protected static final String ERROR_MSG = "Query can't be empty for search pages. Provide a query or * to match all queries";
-    
+    protected static final String NULL_PROPERTY_ERROR_MSG = "This field can't be empty, please enter a valid value";
+    protected static final String INVALID_END_DATE_ERROR_MSG = "End date must be after start date";
+
+    /**
+     * Called when an asset is created. Ensures that the entered fields are valid.
+     * @param editorInfo The current editor information (such as the asset being updated)
+     * @param updates Collection of updates for the current asset. For example, fields that now have a value.
+     */
     public void validateNewAsset(AssetEditorInfo editorInfo, Collection updates) {
+        doValidation(editorInfo, updates);
+        doDateValidation(editorInfo, updates);
+    }    
 
-        PropertyUpdate targetProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.TARGET, updates);
-        PropertyUpdate queryProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.QUERY, updates);
-        
-        if ( targetProperty != null || queryProperty != null) {
-            validateTargetAndQueryUpdate(editorInfo, targetProperty, queryProperty);
-        }
-    }
-
+    /**
+     * Called when an asset is updated. Ensures that the entered fields are valid.
+     * @param editorInfo The current editor information (such as the asset being updated)
+     * @param updates Collection of updates for the current asset. For example, fields that now have a value.
+     */
     public void validateUpdateAsset(AssetEditorInfo editorInfo, Collection updates) {
-
+        doValidation(editorInfo, updates);
+        doDateValidation(editorInfo, updates);
+    }
+    
+    /**
+     * Performs the actual validation.
+     * <p/>
+     * Subclasses should override this method if more specific validation is required.
+     * @param editorInfo The current editor information (such as the asset being updated)
+     * @param updates Collection of updates for the current asset. For example, fields that now have a value.
+     */
+    public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
         PropertyUpdate targetProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.TARGET, updates);
         PropertyUpdate queryProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.QUERY, updates);
         
@@ -62,6 +79,21 @@ public class DefaultRuleAssetValidator extends GenericService {
         }
     }
     
+    /**
+     * Performs common rule date validation.
+     * <p/>
+     * All rules must have an end and start date. This method ensures that both dates are valid.
+     * @param editorInfo The current editor information (such as the asset being updated)
+     * @param updates Collection of updates for the current asset. For example, fields that now have a value.
+     */
+    public void doDateValidation(AssetEditorInfo editorInfo, Collection updates) {
+        //Validate start and end dates. You shouldn't be able to specify an end date before the given start date.
+        PropertyUpdate startDateProperty = BaseAssetService.findPropertyUpdate(RuleProperty.START_DATE, updates);
+        PropertyUpdate endDateProperty = BaseAssetService.findPropertyUpdate(RuleProperty.END_DATE, updates);
+        
+        validateStartAndEndDateUpdate(editorInfo, startDateProperty, endDateProperty);
+    }
+
     /**
      * Validate that if we select a target = searchPages, then the query parameter should be populated
      * If we selected allPages or categoryPages, then the query will be default to * if the user didn't provided another value
@@ -105,18 +137,60 @@ public class DefaultRuleAssetValidator extends GenericService {
             setDefaultQuery(editorInfo, queryProperty);
         }
     }
-    
+
+    /**
+     * Checks that the start and end date are properly specified.
+     * <p/>
+     * A common error would be to enter an end date which is before the given start date. 
+     */
+    protected void validateStartAndEndDateUpdate(AssetEditorInfo editorInfo, PropertyUpdate startDateProperty, PropertyUpdate endDateProperty) {
+        Timestamp startDate = null;
+        Timestamp endDate = null;
+
+        if(startDateProperty == null) {
+            //This field wasn't updated, so fetch the value from the asset.
+            RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
+            startDate = (Timestamp) currentItem.getPropertyValue(RuleProperty.START_DATE);
+        }
+        else {
+            String startDateValue = (String)startDateProperty.getPropertyValue();
+
+            if(startDateValue != null && !startDateValue.isEmpty()) {
+                startDate = Timestamp.valueOf(startDateValue); //Timestamp.valueOf understands ISO 8601 date format.
+            }
+        }
+
+        if(endDateProperty == null) {
+            //This field wasn't updated, so fetch the value from the asset.
+            RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
+            endDate = (Timestamp) currentItem.getPropertyValue(RuleProperty.END_DATE);
+        }
+        else {
+            String endDateValue = (String)endDateProperty.getPropertyValue();
+            if(endDateValue == null || endDateValue.isEmpty()) {
+                editorInfo.getAssetService().addError(RuleProperty.END_DATE, NULL_PROPERTY_ERROR_MSG);
+                return; //Don't do more validation.
+            }
+            else {
+                endDate = Timestamp.valueOf(endDateValue); //Timestamp.valueOf understands ISO 8601 date format.
+            }
+        }
+
+        if(startDate != null && endDate.before(startDate)) {
+            editorInfo.getAssetService().addError(RuleProperty.END_DATE, INVALID_END_DATE_ERROR_MSG);
+        }
+    }
+
     protected boolean hasQuery(RepositoryItem currentItem) {
         String query = (String) currentItem.getPropertyValue(RuleProperty.QUERY);
         return StringUtils.isNotBlank(query);
     }
 
-    
     protected String getPersistedTarget(AssetEditorInfo editorInfo) {
         RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
         return (String) currentItem.getPropertyValue(RuleProperty.TARGET);
     }
-    
+
     protected void setDefaultQuery(AssetEditorInfo editorInfo, PropertyUpdate queryProperty) {
         RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
         //only set a default query if it didn't had already a query value or if this update

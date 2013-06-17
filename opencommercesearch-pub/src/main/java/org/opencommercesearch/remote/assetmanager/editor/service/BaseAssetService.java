@@ -52,17 +52,7 @@ public class BaseAssetService extends RepositoryAssetServiceImpl {
     public void preUpdateAsset(AssetEditorInfo pEditorInfo, Collection pUpdates) {
         super.preUpdateAsset(pEditorInfo, pUpdates);
 
-        Object theAsset = pEditorInfo.getAssetWrapper().getAsset();
-        MutableRepositoryItem currentItem = null;
-
-        //Depending on the asset type, this could be a MutableRepositoryItem or GenericSecuredRepositoryVersionItem
-        if(theAsset instanceof GenericSecuredRepositoryVersionItem) {
-            GenericSecuredRepositoryVersionItem itemVersion = (GenericSecuredRepositoryVersionItem) theAsset;
-            currentItem = (MutableRepositoryItem) itemVersion.getRepositoryItem();
-        }
-        else {
-            currentItem = (MutableRepositoryItem) theAsset;
-        }
+        MutableRepositoryItem currentItem = getItemForUpdate(pEditorInfo);
 
         currentItem.setPropertyValue(BaseAssetProperty.LAST_MODIFIED_DATE, new Timestamp(System.currentTimeMillis()));
         currentItem.setPropertyValue(BaseAssetProperty.LAST_MODIFIED_BY, getUserProfile().getRepositoryId());
@@ -87,6 +77,29 @@ public class BaseAssetService extends RepositoryAssetServiceImpl {
         currentItem.setPropertyValue(BaseAssetProperty.CREATED_BY, currentUserId);
     }
 
+    /**
+     * Gets a repository item for updates from the given asset editor information.
+     * <p/>
+     * Sometimes, the repository item is embedded into a RepositoryVersionItem instance, so this utility method
+     * is used to fetch a mutable repository item no matter were it comes from.
+     * <p/>
+     * This method may be called from {@link #preUpdateAsset(AssetEditorInfo, Collection) preUpdateAsset}.
+     * @param pEditorInfo The asset editor information.
+     * @return An editable instance of a repository item found in the given asset editor information. 
+     */
+    protected MutableRepositoryItem getItemForUpdate(AssetEditorInfo pEditorInfo) {
+        Object theAsset = pEditorInfo.getAssetWrapper().getAsset();
+
+        //Depending on the asset type, this could be a MutableRepositoryItem or GenericSecuredRepositoryVersionItem
+        if(theAsset instanceof GenericSecuredRepositoryVersionItem) {
+            GenericSecuredRepositoryVersionItem itemVersion = (GenericSecuredRepositoryVersionItem) theAsset;
+            return (MutableRepositoryItem) itemVersion.getRepositoryItem();
+        }
+        else {
+            return (MutableRepositoryItem) theAsset;
+        }
+    }
+    
     //Getters and setters, necessary for dynamic repository injection.
 
     public Profile getUserProfile() {

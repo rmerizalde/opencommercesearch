@@ -57,6 +57,8 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_COMBINE_MODE = "combineMode";
     public static final String FIELD_QUERY = "query";
     public static final String FIELD_SCORE = "score";
+    public static final String FIELD_START_DATE = "startDate";
+    public static final String FIELD_END_DATE = "endDate";
 
     private static final String WILDCARD = "__all__";
 
@@ -241,9 +243,16 @@ public class RuleManager<T extends SolrServer> {
         filterQueries.append(") AND ").append("(catalogId:").append(WILDCARD).append(" OR ").append("catalogId:")
         .append(catalog.getRepositoryId()).append(")");
         
+        //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
+        //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
+        //would need a new entry on the filter cache...
+        //Also, notice that NOW/DAY is midnight from last night, and NOW/DAY+1DAY is midnight today.
+        filterQueries.append(" AND ").append("startDate:[* TO NOW/DAY+1DAY]");
+        filterQueries.append(" AND ").append("endDate:[NOW/DAY+1DAY TO *]");
+
         query.addFilterQuery(filterQueries.toString());
         QueryResponse res = server.query(query);
-        
+
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
             rules = Collections.emptyMap();
             return;
@@ -458,6 +467,10 @@ public class RuleManager<T extends SolrServer> {
         doc.setField(FIELD_QUERY, query);
         doc.setField(FIELD_SORT_PRIORITY, rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
         doc.setField(FIELD_COMBINE_MODE, rule.getPropertyValue(RuleProperty.COMBINE_MODE));
+        
+        //Add the start and end dates
+        doc.setField(FIELD_START_DATE, rule.getPropertyValue(RuleProperty.START_DATE));
+        doc.setField(FIELD_END_DATE, rule.getPropertyValue(RuleProperty.END_DATE));
         
         String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
         if(target != null) {

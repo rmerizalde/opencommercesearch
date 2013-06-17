@@ -104,6 +104,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -209,6 +211,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -314,6 +318,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[yes]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -419,6 +425,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -524,6 +532,8 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[no]]></field>
+    <field name="attr_sunblock"><![CDATA[yes]]></field>
   </doc>
   <doc boost="1.0">
     <field name="category"><![CDATA[0.mycatalog]]></field>
@@ -617,8 +627,8 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
-    <field name="brandId"><![CDATA[99]]></field>
-    <field name="brand"><![CDATA[Marmot]]></field>
+    <field name="brandId"><![CDATA[88]]></field>
+    <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
     <field name="size"><![CDATA[6.0]]></field>
     <field name="scale"><![CDATA[US Kids Footwear]]></field>
@@ -628,5 +638,7 @@
     <field name="reviewAveragemycatalog"><![CDATA[0.0]]></field>
     <field name="reviewsmycatalog"><![CDATA[0]]></field>
     <field name="language"><![CDATA[en]]></field>
+    <field name="attr_waterproof"><![CDATA[yes]]></field>
+    <field name="attr_sunblock"><![CDATA[no]]></field>
   </doc>
 </add>

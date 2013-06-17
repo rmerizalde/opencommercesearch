@@ -201,14 +201,10 @@ public class Facet {
             return isSelected;
         }
 
-        void setSelected(FilterQuery[] filterQueries) {
-            setSelected(getName(), filterQueries);
-        }
-
-        void setSelected(String expression, FilterQuery[] filterQueries) {
+        void setSelected(String fieldName, String expression, FilterQuery[] filterQueries) {
             if (filterQueries != null) {
                 for (FilterQuery query : filterQueries) {
-                    if (query.getUnescapeExpression().equals(expression)) {
+                    if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(expression)) {
                         setSelected(true);
                         break;
                     }

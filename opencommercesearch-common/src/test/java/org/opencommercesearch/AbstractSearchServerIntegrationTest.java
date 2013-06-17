@@ -19,10 +19,15 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import atg.multisite.Site;
@@ -32,6 +37,7 @@ import atg.repository.RepositoryItem;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
@@ -45,9 +51,14 @@ import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.FacetRuleProperty;
 import org.opencommercesearch.repository.FieldFacetProperty;
+import org.opencommercesearch.repository.QueryFacetProperty;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -60,7 +71,11 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @RunWith(SearchJUnit4ClassRunner.class)
 public class AbstractSearchServerIntegrationTest {
 
+    private static final String FIELD_FACET = "fieldFacet";
+    private static final String QUERY_FACET = "queryFacet";
+
     public static final int ROWS = 20;
+    public static final SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     @Mock
     private Site site;
@@ -70,6 +85,15 @@ public class AbstractSearchServerIntegrationTest {
 
     @Mock
     private RepositoryItem redirectRule;
+
+    @Mock
+    private RepositoryItem expiredRule;
+
+    @Mock
+    private RepositoryItem futureRule;
+
+    @Mock
+    private RepositoryItem expiredRedirectRule;
     
     @Mock
     private Repository searchRepository;
@@ -83,10 +107,18 @@ public class AbstractSearchServerIntegrationTest {
         when(site.getRepositoryId()).thenReturn("outdoorSite");
         when(site.getPropertyValue("defaultCatalog")).thenReturn(catalog);
         when(catalog.getRepositoryId()).thenReturn("mycatalog");
-        
+
         when(searchRepository.getItem("redirectRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(redirectRule);
         when(redirectRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
         when(redirectRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
+        
+        when(searchRepository.getItem("oldRule", SearchRepositoryItemDescriptor.RULE)).thenReturn(expiredRedirectRule);
+        when(expiredRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
+        when(expiredRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
+        
+        when(searchRepository.getItem("futureRule", SearchRepositoryItemDescriptor.RULE)).thenReturn(futureRule);
+        when(futureRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
+        when(futureRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
     }
 
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
@@ -110,8 +142,22 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("/redirect", res.getRedirectResponse());
     }
 
-    
-    
+    @SearchTest(newInstance = true, rulesData = "/rules/datedRules.xml")
+    public void testRulesLifetime(SearchServer server) throws SearchServerException, SolrServerException, IOException {
+        EmbeddedSearchServer baseServer = (EmbeddedSearchServer) server;
+
+        baseServer.updateCollection(baseServer.getRulesCollection(),  getDocsForRulesLifetimeTest(), new Locale("en"));
+        baseServer.commit();
+
+        baseServer.setSearchRepository(searchRepository);
+
+        SolrQuery query = new SolrQuery("redirect");
+        query.setRows(ROWS);
+        SearchResponse res = server.search(query, site);
+        verify(redirectRule, times(1)).getPropertyValue(RedirectRuleProperty.URL);
+        assertEquals("/redirect", res.getRedirectResponse());
+    }    
+
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseCategory(SearchServer server) throws SearchServerException {
         //scenario where we want to display only the top level categories. no results
@@ -250,7 +296,7 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("TNF3137-FUPINYL-S1", response.getQueryResponse().getGroupResponse().getValues().get(0).getValues().get(0).getResult().get(0).getFieldValue("id"));
 
     }
-
+    
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testCorrectedTermsAllMatches(SearchServer server) throws SearchServerException {   
         //validate term correction from the title
@@ -298,19 +344,11 @@ public class AbstractSearchServerIntegrationTest {
         // adding a blacklist that should remove the "UK Kids Footwear".
         // For the brand facet, the test data only has one entry: "The North Face" and we defined a 
         // blacklist with "Fake Brand". Because the terms don't match, then we shouldn't filter any entry.
-        
-        AbstractSearchServer baseServer = (AbstractSearchServer) server;
-        baseServer.setSearchRepository(searchRepository);
-        
-        RepositoryItem facetRepoItem = mock(RepositoryItem.class);
-        when(searchRepository.getItem("facetRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(facetRepoItem);
-        when(facetRepoItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("facetRule");
-        when(facetRepoItem.getRepositoryId()).thenReturn("facetRuleId");
-        
+                
         List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
-        facetList.add(mockFacet("scale", "scale", "fieldFacet", "UK Kids Footwear"));
-        facetList.add(mockFacet("brand", "brand", "fieldFacet", "Fake Brand"));
-        when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
+        facetList.add(mockFacet("scale", "scale", FIELD_FACET, "UK Kids Footwear", null, false));
+        facetList.add(mockFacet("brand", "brand", FIELD_FACET, "Fake Brand", null, false));
+        mockFacetRuleResponse("facetRuleId", server, facetList);
         
         
         SolrQuery query = new SolrQuery("shoe");
@@ -324,12 +362,116 @@ public class AbstractSearchServerIntegrationTest {
                 assertEquals(facet.getFilters().get(0).getName(), "US Kids Footwear");
             }
             if(facet.getName().equals("brand")) {
-                assertEquals(facet.getFilters().size(), 2);
-                assertEquals(facet.getFilters().get(1).getName(), "Marmot");
+                assertEquals(facet.getFilters().size(), 1);
+                assertEquals(facet.getFilters().get(0).getName(), "The North Face");
             }
         }
 
     }
+        
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml", rulesData = "/rules/facetBlacklist.xml")
+    public void testMultiSelectFacet(SearchServer server) throws SearchServerException, RepositoryException {
+        // Scenario to validate multi-select facets filter results correctly
+        
+        // The test creates a global facet rule, in the rules collection, with the price and brand facets.
+        // The brand facet will return one filter : the north face. 
+        // The price facet will return two filters: $10-$20  and $20 And Up
+        
+        // We are going to apply first the brand filter 'the-north-face'
+        // Then we apply the '$10-$20' and the '$20 And Up' filters. For each of them we verify they are selected
+        
+        // Finally we proceed to un-select them. First we remove the '$20 And Up', then the brand 'the-north-face'
+        // and lastly we remove '$10-$20' and check no facet filters are selected.
+                
+        List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
+        facetList.add(mockFacet("price", "salePriceUS", QUERY_FACET, null, Lists.newArrayList("[* TO 10]", "[10 TO 20]", "[20 TO *]"), true));
+        facetList.add(mockFacet("brand", "brand", FIELD_FACET, null, null, true));
+        mockFacetRuleResponse("facetRuleId", server, facetList);
+        
+        
+        SolrQuery query = new SolrQuery("shoe");
+        query.setRows(ROWS);
+        SearchResponse response = server.search(query, site);
+        
+        Map<String, Facet> facetMap = Maps.newHashMap();
+        validateRegularFacets(response, facetMap, null, null);
+        
+        //apply brand filter
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), null);
+
+        //add filter by $10-$20
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
+        
+        //add filter by $20 and up
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0, 1));
+        
+        //remove filter by $20 and up
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
+        
+        //remove brand filter
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateRegularFacets(response, facetMap, null, Sets.newHashSet(0));
+        
+       //remove filter by $10-$20
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);        
+        validateRegularFacets(response, facetMap, null, null);
+    }
+
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml", rulesData = "/rules/facetBlacklist.xml")
+    public void testMultiSelectFacetRepeatedValues(SearchServer server) throws SearchServerException, RepositoryException {
+        
+        // Scenario to validate that multi select facets that have the same values but different fieldNames work ok
+        
+        // We are creating two facets: waterproof: yes,no and sunblock: yes,no
+        // The test first selects waterproof=no and validates it's selected
+        // Then we select sunblock=yes, do the corresponding validations and then proceed to deselect 
+        // first waterproof and finally sunblock 
+        
+        
+        List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
+        facetList.add(mockFacet("waterproof", "attr_waterproof", FIELD_FACET, null, null, true));
+        facetList.add(mockFacet("sunblock", "attr_sunblock", FIELD_FACET, null, null, true));
+        
+        mockFacetRuleResponse("facetRuleId", server, facetList);
+        
+        SolrQuery query = new SolrQuery("shoe");
+        query.setRows(ROWS);
+        SearchResponse response = server.search(query, site);
+        Map<String, Facet> facetMap = Maps.newHashMap();
+        validateLocalFacets(response, facetMap, null, null);
+
+        //add filter by waterproof = no
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, Sets.newHashSet(0), null);
+        
+        //add filter by sunblock = yes
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(1));
+        
+        //remove filter by waterproof = no
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, null, Sets.newHashSet(1));
+        
+        //remove filter by sunblock = yes
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, null, null);
+        
+    }
+    
     
     @SearchTest
     public void testGetFacet(SearchServer server) throws SearchServerException {
@@ -346,17 +488,6 @@ public class AbstractSearchServerIntegrationTest {
         assertNull(facet);
     }
     
-    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
-    public void testGetMultiFacet(SearchServer server) throws SearchServerException {
-        Facet facet = server.getFacet(site, Locale.ENGLISH, "brandId", 100);
-        facet.setMultiSelect(true);
-        assertNotNull(facet);
-        assertEquals(2, facet.getSelectableFilters().size());
-        facet.getFilters().get(0).setSelected(true);
-        assertEquals(1, facet.getSelectedFilters().size());
-        assertEquals(1, facet.getSelectableFilters().size());
-        
-    }
     protected void validateFilterByTopLevelCat(SearchResponse response, boolean hasProducts) {
         if (hasProducts) {
             assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
@@ -381,7 +512,7 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("categoryPath:mycatalog.cat3000003.cat31000077.cat411000196", 
                 response.getCategoryGraph().get(1).getCategoryGraphNodes().get(0).getPath());
     }
-    
+
     protected void validateCategoryPathNotInFacets(SearchResponse response) {
         for(Facet facet :response.getFacets()){
             if(facet.getName().equals("categoryPath")) {
@@ -389,7 +520,7 @@ public class AbstractSearchServerIntegrationTest {
             }
         }
     }
-    
+
     private void testSearchCategoryAux(SearchServer server, String term, String expectedProductId) throws SearchServerException {
         SolrQuery query = new SolrQuery(term);
         query.setRows(ROWS);
@@ -426,12 +557,18 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals(matchesAll, res.matchesAll());  
     }
     
-    private RepositoryItem mockFacet(String name, String field, String type, String blacklist){
+    private RepositoryItem mockFacet(String name, String field, String type, String blacklist, List<String> queries, Boolean isMultiselect){
         RepositoryItem facet = mock(RepositoryItem.class);
         when(facet.getRepositoryId()).thenReturn(name);
         when(facet.getPropertyValue(FacetProperty.TYPE)).thenReturn(type);
         when(facet.getPropertyValue(FacetProperty.NAME)).thenReturn(name);
+        when(facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT)).thenReturn(isMultiselect);
         when(facet.getPropertyValue(FieldFacetProperty.FIELD)).thenReturn(field);
+        
+        if(QUERY_FACET.equals(type)){
+            when(facet.getPropertyValue(QueryFacetProperty.QUERIES)).thenReturn(queries);
+        }
+        
         if(StringUtils.isNotBlank(blacklist)) {
             Set<String> blackListSet = new HashSet<String>();
             blackListSet.add(blacklist);
@@ -439,6 +576,141 @@ public class AbstractSearchServerIntegrationTest {
         }
         return facet;
     }
+    
+    private void mockFacetRuleResponse(String facetRuleId, SearchServer server, List<RepositoryItem> facetList) throws RepositoryException{
+        
+        AbstractSearchServer baseServer = (AbstractSearchServer) server;
+        baseServer.setSearchRepository(searchRepository);
+        
+        RepositoryItem facetRepoItem = mock(RepositoryItem.class);
+        when(searchRepository.getItem(facetRuleId, SearchRepositoryItemDescriptor.RULE)).thenReturn(facetRepoItem);
+        when(facetRepoItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("facetRule");
+        when(facetRepoItem.getRepositoryId()).thenReturn(facetRuleId);
+        
+        when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
+    }
+    
+    public void validateRegularFacets(SearchResponse response, Map<String, Facet> facetMap, Set<Integer> brandSelectedIndex, Set<Integer> priceSelectedIndex) {
+        facetMap.clear();
+        for (Facet facet :response.getFacets()) {
+            if (facet.getName().equals("price")) {
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("$10-$20", facet.getFilters().get(0).getName());
+                assertEquals("$20 And Up", facet.getFilters().get(1).getName());                 
+                validateFacetFilter(priceSelectedIndex, facet);
+                        
+            }
+            else if (facet.getName().equals("brand")) {
+                assertEquals(facet.getFilters().size(), 1);
+                assertEquals(facet.getFilters().get(0).getName(), "The North Face");                
+                validateFacetFilter(brandSelectedIndex, facet);
+            }
+            facetMap.put(facet.getName(), facet);
+        }
+    }
 
+    public void validateLocalFacets(SearchResponse response, Map<String, Facet> facetMap, 
+            Set<Integer> waterproofSelectedIndex, Set<Integer> sunblockSelectedIndex) {
+        facetMap.clear();
+        int facetsProcees = 0;
+        for (Facet facet :response.getFacets()) {
+            
+            if (facet.getName().equals("waterproof")) {
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("no", facet.getFilters().get(0).getName());
+                assertEquals("yes", facet.getFilters().get(1).getName()); 
+                validateFacetFilter(waterproofSelectedIndex, facet);
+                facetsProcees++;
+            }
+            else if (facet.getName().equals("sunblock")) { 
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("no", facet.getFilters().get(0).getName());
+                assertEquals("yes", facet.getFilters().get(1).getName()); 
+                validateFacetFilter(sunblockSelectedIndex, facet);
+                facetsProcees++;
+            }
+            facetMap.put(facet.getName(), facet);
+        }
+        assertEquals(2, facetsProcees);
+    }
+    
+    public void validateFacetFilter(Set<Integer> selectedIndex, Facet facet) {
+        if(selectedIndex == null) {
+            selectedIndex = Sets.newHashSet();
+        }
+        
+        Set<Integer> fullIndex = Sets.newHashSet();
+        for(int i = 0; i < facet.getFilters().size(); i++){
+            fullIndex.add(i);
+        }
+        
+        for(int index : selectedIndex) {
+            assertTrue(facet.getFilters().get(index).isSelected());
+        }
+        
+        Set<Integer> unselectedIndex = Sets.difference(fullIndex, selectedIndex);
+        for(int index : unselectedIndex) {
+            assertFalse(facet.getFilters().get(index).isSelected());
+        }
+    }
 
+    /**
+     * Updates existing rules in the index with dates relative to the current time.
+     * @return update XML message with the date updates.
+     */
+    private String getDocsForRulesLifetimeTest() {
+        StringBuffer update = new StringBuffer();
+        Calendar cal = Calendar.getInstance();
+
+        //Create updated dates for documents in the index (Solr4 rocks!)
+
+        update.append("<add>");
+        //Add an expired rule
+        update.append("<doc>");
+        update.append("<field name=\"id\">oldRule</field>");
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -5);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -3);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+
+        //Add a valid rule now
+        update.append("<doc>");
+        update.append("<field name=\"id\">redirectRuleId</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -1);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 1);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+
+        //One that hast't started yet
+        update.append("<doc>");
+        update.append("<field name=\"id\">futureRule</field>");
+        
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 5);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 6);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+        update.append("</add>");
+        
+        return update.toString();
+    }
+
+    /**
+     * Just format a date to be ISO 8601 compliant so it can be indexed to Solr.
+     */
+    private String getISODate(Date date) {
+        return isoDateFormat.format(date);
+    }
 }
