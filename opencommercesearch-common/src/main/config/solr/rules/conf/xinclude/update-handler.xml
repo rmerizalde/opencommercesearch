@@ -4,4 +4,7 @@
   Production environments should overwrite this file with custom settings
 -->
 <updateHandler class="solr.DirectUpdateHandler2">
+   <updateLog>
+     <str name="dir">/tmp</str>
+   </updateLog>
 </updateHandler>

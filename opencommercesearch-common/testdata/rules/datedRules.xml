@@ -1,0 +1,26 @@
+<add>
+    <doc>
+        <field name="id"><![CDATA[redirectRuleId]]></field>
+        <field name="siteId"><![CDATA[__all__]]></field>
+        <field name="catalogId"><![CDATA[__all__]]></field>
+        <field name="category"><![CDATA[__all__]]></field>
+        <field name="query"><![CDATA[redirect]]></field>
+        <field name="target"><![CDATA[allpages]]></field>
+    </doc>
+    <doc>
+        <field name="id"><![CDATA[oldRule]]></field>
+        <field name="siteId"><![CDATA[__all__]]></field>
+        <field name="catalogId"><![CDATA[__all__]]></field>
+        <field name="category"><![CDATA[__all__]]></field>
+        <field name="query"><![CDATA[redirect]]></field>
+        <field name="target"><![CDATA[allpages]]></field>
+    </doc>
+    <doc>
+        <field name="id"><![CDATA[futureRule]]></field>
+        <field name="siteId"><![CDATA[__all__]]></field>
+        <field name="catalogId"><![CDATA[__all__]]></field>
+        <field name="category"><![CDATA[__all__]]></field>
+        <field name="query"><![CDATA[redirect]]></field>
+        <field name="target"><![CDATA[allpages]]></field>
+    </doc>
+</add>

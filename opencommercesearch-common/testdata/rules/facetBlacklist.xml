@@ -9,5 +9,7 @@
         <field name="combineMode"><![CDATA[Replace]]></field>
         <field name="sortPriority"><![CDATA[0]]></field>
         <field name="facetField"><![CDATA[scale]]></field>
+        <field name="startDate"><![CDATA[2000-05-06T00:00:00Z]]></field>
+        <field name="endDate"><![CDATA[2200-05-28T00:00:00Z]]></field>
     </doc>
 </add>
