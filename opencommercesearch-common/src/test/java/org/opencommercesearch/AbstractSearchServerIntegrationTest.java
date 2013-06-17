@@ -19,7 +19,11 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +36,7 @@ import atg.repository.RepositoryItem;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.Group;
 import org.apache.solr.client.solrj.response.GroupCommand;
 import org.apache.solr.client.solrj.response.GroupResponse;
@@ -61,6 +66,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 public class AbstractSearchServerIntegrationTest {
 
     public static final int ROWS = 20;
+    public static final SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     @Mock
     private Site site;
@@ -70,6 +76,15 @@ public class AbstractSearchServerIntegrationTest {
 
     @Mock
     private RepositoryItem redirectRule;
+
+    @Mock
+    private RepositoryItem expiredRule;
+
+    @Mock
+    private RepositoryItem futureRule;
+
+    @Mock
+    private RepositoryItem expiredRedirectRule;
     
     @Mock
     private Repository searchRepository;
@@ -83,10 +98,18 @@ public class AbstractSearchServerIntegrationTest {
         when(site.getRepositoryId()).thenReturn("outdoorSite");
         when(site.getPropertyValue("defaultCatalog")).thenReturn(catalog);
         when(catalog.getRepositoryId()).thenReturn("mycatalog");
-        
+
         when(searchRepository.getItem("redirectRuleId", SearchRepositoryItemDescriptor.RULE)).thenReturn(redirectRule);
         when(redirectRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
         when(redirectRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
+        
+        when(searchRepository.getItem("oldRule", SearchRepositoryItemDescriptor.RULE)).thenReturn(expiredRedirectRule);
+        when(expiredRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
+        when(expiredRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
+        
+        when(searchRepository.getItem("futureRule", SearchRepositoryItemDescriptor.RULE)).thenReturn(futureRule);
+        when(futureRule.getPropertyValue(RedirectRuleProperty.URL)).thenReturn("/redirect");
+        when(futureRule.getPropertyValue(RedirectRuleProperty.RULE_TYPE)).thenReturn("redirectRule");
     }
 
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
@@ -110,8 +133,22 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("/redirect", res.getRedirectResponse());
     }
 
-    
-    
+    @SearchTest(newInstance = true, rulesData = "/rules/datedRules.xml")
+    public void testRulesLifetime(SearchServer server) throws SearchServerException, SolrServerException, IOException {
+        EmbeddedSearchServer baseServer = (EmbeddedSearchServer) server;
+
+        baseServer.updateCollection(baseServer.getRulesCollection(),  getDocsForRulesLifetimeTest(), new Locale("en"));
+        baseServer.commit();
+
+        baseServer.setSearchRepository(searchRepository);
+
+        SolrQuery query = new SolrQuery("redirect");
+        query.setRows(ROWS);
+        SearchResponse res = server.search(query, site);
+        verify(redirectRule, times(1)).getPropertyValue(RedirectRuleProperty.URL);
+        assertEquals("/redirect", res.getRedirectResponse());
+    }    
+
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseCategory(SearchServer server) throws SearchServerException {
         //scenario where we want to display only the top level categories. no results
@@ -250,7 +287,7 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("TNF3137-FUPINYL-S1", response.getQueryResponse().getGroupResponse().getValues().get(0).getValues().get(0).getResult().get(0).getFieldValue("id"));
 
     }
-
+    
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testCorrectedTermsAllMatches(SearchServer server) throws SearchServerException {   
         //validate term correction from the title
@@ -370,7 +407,7 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("categoryPath:mycatalog.cat3000003.cat31000077.cat411000196", 
                 response.getCategoryGraph().get(1).getCategoryGraphNodes().get(0).getPath());
     }
-    
+
     protected void validateCategoryPathNotInFacets(SearchResponse response) {
         for(Facet facet :response.getFacets()){
             if(facet.getName().equals("categoryPath")) {
@@ -378,7 +415,7 @@ public class AbstractSearchServerIntegrationTest {
             }
         }
     }
-    
+
     private void testSearchCategoryAux(SearchServer server, String term, String expectedProductId) throws SearchServerException {
         SolrQuery query = new SolrQuery(term);
         query.setRows(ROWS);
@@ -429,5 +466,63 @@ public class AbstractSearchServerIntegrationTest {
         return facet;
     }
 
+    /**
+     * Updates existing rules in the index with dates relative to the current time.
+     * @return update XML message with the date updates.
+     */
+    private String getDocsForRulesLifetimeTest() {
+        StringBuffer update = new StringBuffer();
+        Calendar cal = Calendar.getInstance();
 
+        //Create updated dates for documents in the index (Solr4 rocks!)
+
+        update.append("<add>");
+        //Add an expired rule
+        update.append("<doc>");
+        update.append("<field name=\"id\">oldRule</field>");
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -5);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -3);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+
+        //Add a valid rule now
+        update.append("<doc>");
+        update.append("<field name=\"id\">redirectRuleId</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, -1);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 1);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+
+        //One that hast't started yet
+        update.append("<doc>");
+        update.append("<field name=\"id\">futureRule</field>");
+        
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 5);
+        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+
+        cal.setTime(new Date());
+        cal.add(Calendar.DAY_OF_WEEK, 6);
+        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("</doc>");
+        update.append("</add>");
+        
+        return update.toString();
+    }
+
+    /**
+     * Just format a date to be ISO 8601 compliant so it can be indexed to Solr.
+     */
+    private String getISODate(Date date) {
+        return isoDateFormat.format(date);
+    }
 }

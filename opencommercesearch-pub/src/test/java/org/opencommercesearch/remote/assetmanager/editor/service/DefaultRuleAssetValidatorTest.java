@@ -1,15 +1,14 @@
 package org.opencommercesearch.remote.assetmanager.editor.service;
 
-import static org.junit.Assert.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.Mockito.*;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.opencommercesearch.repository.RuleProperty;
 
@@ -58,7 +57,10 @@ public class DefaultRuleAssetValidatorTest {
 		when(itemDescriptor.getItemDescriptorName()).thenReturn("itemDescriptor");
 		when(repoItem.getItemDescriptor()).thenReturn(itemDescriptor );
 		when(mutableRepository.getItemForUpdate(anyString(), anyString())).thenReturn(mutableRepositoryItem);
-				
+
+		when(repoItem.getPropertyValue(RuleProperty.START_DATE)).thenReturn(new Timestamp(2000));
+		when(repoItem.getPropertyValue(RuleProperty.END_DATE)).thenReturn(new Timestamp(2500));
+
 		defaultRuleAssetValidator.setLoggingInfo(false);
 		defaultRuleAssetValidator.setLoggingDebug(false);
 	}
@@ -176,6 +178,26 @@ public class DefaultRuleAssetValidatorTest {
 		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
 		verify(assetService, never()).addError(anyString(), anyString());		
 	}
+	
+    @Test
+    public void testValidateUpdateLifeTimeWithBadDates() {      
+        //scenario where we update the start and end date, but the end date is before start date.
+        //ERROR SHOULDN'T BE ADDED
+        updates.add(mockAssetView("endDate", new Timestamp(25000).toString()));
+        updates.add(mockAssetView("startDate", new Timestamp(20000).toString()));
+        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+        verify(assetService, never()).addError(eq(RuleProperty.END_DATE), anyString());     
+    }
+    
+    @Test
+    public void testValidateUpdateLifeTimeWithGoodDates() {      
+        //scenario where we update the start and end date, but the end date is before start date.
+        //ERROR IS EXPECTED
+        updates.add(mockAssetView("endDate", new Timestamp(20000).toString()));
+        updates.add(mockAssetView("startDate", new Timestamp(25000).toString()));
+        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+        verify(assetService).addError(eq(RuleProperty.END_DATE), anyString());     
+    }
 	
 	private AssetViewUpdate mockAssetView(String propName, String propValue){
 		PropertyEditorAssetViewUpdate assetView = mock(PropertyEditorAssetViewUpdate.class);

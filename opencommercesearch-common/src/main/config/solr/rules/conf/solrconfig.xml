@@ -112,7 +112,7 @@
 
   </requestHandler>
 
-  <requestHandler name="/update" class="solr.UpdateRequestHandler" />
+  <requestHandler name="/update" class="solr.UpdateRequestHandler"/>
 
   <requestHandler name="/admin/ping" class="solr.PingRequestHandler">
     <lst name="invariants">

@@ -142,7 +142,7 @@
             <attribute name="propertySortPriority" value="9" />
         </property>
         <property name="endDate" data-type="timestamp" display-name="End Date"
-            column-name="end_date" required="false" category="Lifetime">
+            column-name="end_date" required="true" category="Lifetime">
             <attribute name="propertySortPriority" value="10" />
         </property>
 

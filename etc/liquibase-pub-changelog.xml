@@ -1226,4 +1226,11 @@
   </changeSet>  
 
   <!-- End of  US6144 (Need add'l publishing safeguards for adding/modyfing Solr assets in the BCC search respository -->
+  
+  <!-- Start of US6608 (Enable the "startDate" and "sites" fields for BCC/Solr commerce rule assets) -->
+  <changeSet author="commercesearch" id="47">
+    <sql>UPDATE cs_rule SET start_date = CURRENT_DATE WHERE start_date = null</sql>
+    <sql>UPDATE cs_rule SET end_date = CURRENT_DATE + 45 WHERE end_date = null</sql>
+  </changeSet>
+  <!-- End of US6608 (Enable the "startDate" and "sites" fields for BCC/Solr commerce rule assets) -->
 </databaseChangeLog>
