@@ -58,6 +58,7 @@ import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -393,39 +394,85 @@ public class AbstractSearchServerIntegrationTest {
         SearchResponse response = server.search(query, site);
         
         Map<String, Facet> facetMap = Maps.newHashMap();
-        validateFacets(response, facetMap, null, null);
+        validateRegularFacets(response, facetMap, null, null);
         
         //apply brand filter
         FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
         response = server.search(query, site, filterQueries);
-        validateFacets(response, facetMap, Lists.newArrayList(0), null);
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), null);
 
         //add filter by $10-$20
         filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
         response = server.search(query, site, filterQueries);        
-        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0));
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
         
         //add filter by $20 and up
         filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
         response = server.search(query, site, filterQueries);        
-        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0, 1));
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0, 1));
         
         //remove filter by $20 and up
         filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
         response = server.search(query, site, filterQueries);        
-        validateFacets(response, facetMap, Lists.newArrayList(0), Lists.newArrayList(0));
+        validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
         
         //remove brand filter
         filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
         response = server.search(query, site, filterQueries);        
-        validateFacets(response, facetMap, null, Lists.newArrayList(0));
+        validateRegularFacets(response, facetMap, null, Sets.newHashSet(0));
         
        //remove filter by $10-$20
         filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
         response = server.search(query, site, filterQueries);        
-        validateFacets(response, facetMap, null, null);
+        validateRegularFacets(response, facetMap, null, null);
     }
 
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml", rulesData = "/rules/facetBlacklist.xml")
+    public void testMultiSelectFacetRepeatedValues(SearchServer server) throws SearchServerException, RepositoryException {
+        
+        // Scenario to validate that multi select facets that have the same values but different fieldNames work ok
+        
+        // We are creating two facets: waterproof: yes,no and sunblock: yes,no
+        // The test first selects waterproof=no and validates it's selected
+        // Then we select sunblock=yes, do the corresponding validations and then proceed to deselect 
+        // first waterproof and finally sunblock 
+        
+        
+        List<RepositoryItem> facetList = new ArrayList<RepositoryItem>();
+        facetList.add(mockFacet("waterproof", "attr_waterproof", FIELD_FACET, null, null, true));
+        facetList.add(mockFacet("sunblock", "attr_sunblock", FIELD_FACET, null, null, true));
+        
+        mockFacetRuleResponse("facetRuleId", server, facetList);
+        
+        SolrQuery query = new SolrQuery("shoe");
+        query.setRows(ROWS);
+        SearchResponse response = server.search(query, site);
+        Map<String, Facet> facetMap = Maps.newHashMap();
+        validateLocalFacets(response, facetMap, null, null);
+
+        //add filter by waterproof = no
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, Sets.newHashSet(0), null);
+        
+        //add filter by sunblock = yes
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(1));
+        
+        //remove filter by waterproof = no
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, null, Sets.newHashSet(1));
+        
+        //remove filter by sunblock = yes
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        response = server.search(query, site, filterQueries);
+        validateLocalFacets(response, facetMap, null, null);
+        
+    }
+    
+    
     @SearchTest
     public void testGetFacet(SearchServer server) throws SearchServerException {
         Facet facet = server.getFacet(site, Locale.ENGLISH, "brandId", 100);
@@ -543,7 +590,7 @@ public class AbstractSearchServerIntegrationTest {
         when(facetRepoItem.getPropertyValue(FacetRuleProperty.FACETS)).thenReturn(facetList);
     }
     
-    public void validateFacets(SearchResponse response, Map<String, Facet> facetMap, List<Integer> brandSelectedIndex, List<Integer> priceSelectedIndex) {
+    public void validateRegularFacets(SearchResponse response, Map<String, Facet> facetMap, Set<Integer> brandSelectedIndex, Set<Integer> priceSelectedIndex) {
         facetMap.clear();
         for (Facet facet :response.getFacets()) {
             if (facet.getName().equals("price")) {
@@ -562,15 +609,48 @@ public class AbstractSearchServerIntegrationTest {
         }
     }
 
-    public void validateFacetFilter(List<Integer> selectedIndex, Facet facet) {
-        if(selectedIndex != null && selectedIndex.size() > 0){
-            for(int index : selectedIndex) {
-                assertTrue(facet.getFilters().get(index).isSelected());
+    public void validateLocalFacets(SearchResponse response, Map<String, Facet> facetMap, 
+            Set<Integer> waterproofSelectedIndex, Set<Integer> sunblockSelectedIndex) {
+        facetMap.clear();
+        int facetsProcees = 0;
+        for (Facet facet :response.getFacets()) {
+            
+            if (facet.getName().equals("waterproof")) {
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("no", facet.getFilters().get(0).getName());
+                assertEquals("yes", facet.getFilters().get(1).getName()); 
+                validateFacetFilter(waterproofSelectedIndex, facet);
+                facetsProcees++;
             }
-        } else {
-            for(Facet.Filter filter : facet.getFilters() ){
-                assertFalse(filter.isSelected());
+            else if (facet.getName().equals("sunblock")) { 
+                assertEquals(facet.getFilters().size(), 2);
+                assertEquals("no", facet.getFilters().get(0).getName());
+                assertEquals("yes", facet.getFilters().get(1).getName()); 
+                validateFacetFilter(sunblockSelectedIndex, facet);
+                facetsProcees++;
             }
+            facetMap.put(facet.getName(), facet);
+        }
+        assertEquals(2, facetsProcees);
+    }
+    
+    public void validateFacetFilter(Set<Integer> selectedIndex, Facet facet) {
+        if(selectedIndex == null) {
+            selectedIndex = Sets.newHashSet();
+        }
+        
+        Set<Integer> fullIndex = Sets.newHashSet();
+        for(int i = 0; i < facet.getFilters().size(); i++){
+            fullIndex.add(i);
+        }
+        
+        for(int index : selectedIndex) {
+            assertTrue(facet.getFilters().get(index).isSelected());
+        }
+        
+        Set<Integer> unselectedIndex = Sets.difference(fullIndex, selectedIndex);
+        for(int index : unselectedIndex) {
+            assertFalse(facet.getFilters().get(index).isSelected());
         }
     }
 
