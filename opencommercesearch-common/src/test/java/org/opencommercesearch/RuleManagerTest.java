@@ -28,6 +28,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 import static org.opencommercesearch.RulesTestUtil.mockRule;
 
+import java.sql.Timestamp;
 import java.util.*;
 
 import org.apache.solr.client.solrj.SolrQuery;
@@ -498,6 +499,23 @@ public class RuleManagerTest {
     }
     
     @Test
+    public void testCreateRuleDocumentWithDates() throws RepositoryException {
+        // if you set NOTHING in the rule
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        when(testRuleItem.getRepositoryId()).thenReturn("superduper");
+        when(testRuleItem.getPropertyValue(RuleProperty.START_DATE)).thenReturn(new Timestamp(20000));
+        when(testRuleItem.getPropertyValue(RuleProperty.END_DATE)).thenReturn(new Timestamp(25000));
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+        assertEquals("superduper", doc.getField("id").getValue());
+        assertEquals(EXPECTED_WILDCARD, doc.getField("query").getValue());
+        assertEquals(EXPECTED_WILDCARD, doc.getField("siteId").getValue());
+        assertEquals(EXPECTED_WILDCARD, doc.getField("catalogId").getValue());
+        assertEquals(EXPECTED_WILDCARD, doc.getField("category").getValue());
+        assertEquals(new Timestamp(20000), doc.getField("startDate").getValue());
+        assertEquals(new Timestamp(25000), doc.getField("endDate").getValue());
+    }
+    
+    @Test
     public void testCreateRuleDocumentStarQueryAll() throws RepositoryException {
         // if you use a * for the rule query & everything else is unset
         RuleManager mgr = new RuleManager(repository, builder, server);
@@ -803,7 +821,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND startDate:[* TO NOW/DAY+1DAY] AND endDate:[NOW/DAY+1DAY TO *]", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
@@ -825,7 +843,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND startDate:[* TO NOW/DAY+1DAY] AND endDate:[NOW/DAY+1DAY TO *]", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
@@ -847,7 +865,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha)", filters.get(0));
+        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND startDate:[* TO NOW/DAY+1DAY] AND endDate:[NOW/DAY+1DAY TO *]", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     

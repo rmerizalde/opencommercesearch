@@ -24,7 +24,6 @@ import java.util.Collection;
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.RuleProperty;
 
-import atg.nucleus.GenericService;
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.RepositoryItem;
@@ -35,12 +34,7 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
     private static final String TARGET_ERROR_MSG = "Redirect rules only support 'search pages' target";
 
     @Override
-    public void validateNewAsset(AssetEditorInfo editorInfo, Collection updates) {
-        validateQuery(editorInfo, updates);
-    }
-    
-    @Override
-    public void validateUpdateAsset(AssetEditorInfo editorInfo, Collection updates) {
+    public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
         validateQuery(editorInfo, updates);
     }
 

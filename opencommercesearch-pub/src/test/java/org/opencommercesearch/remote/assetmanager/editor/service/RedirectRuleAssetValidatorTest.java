@@ -1,13 +1,10 @@
 package org.opencommercesearch.remote.assetmanager.editor.service;
 
-import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -48,7 +45,10 @@ public class RedirectRuleAssetValidatorTest {
 		AssetWrapper assetWrapper = mock(AssetWrapper.class);
 		when(editorInfo.getAssetWrapper()).thenReturn(assetWrapper );
 		when(assetWrapper.getAsset()).thenReturn(repoItem);
-		
+
+		when(repoItem.getPropertyValue(RuleProperty.START_DATE)).thenReturn(new Timestamp(2000));
+        when(repoItem.getPropertyValue(RuleProperty.END_DATE)).thenReturn(new Timestamp(2500));
+
 		redirectRuleAssetValidator.setLoggingInfo(false);
 		redirectRuleAssetValidator.setLoggingDebug(false);
 	}
