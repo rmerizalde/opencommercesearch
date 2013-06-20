@@ -355,9 +355,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             query.addFacetField(fieldFacet);
             query.setFacetLimit(facetLimit);
             query.setFacetMinCount(1);
+            query.addFilterQuery("country:" + locale.getCountry());
             
             RepositoryItem catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
-            query.setFilterQueries(CATEGORY_PATH + ":" + catalog.getRepositoryId());
+            String catalogId = catalog.getRepositoryId();
+            
+            query.setFacetPrefix(CATEGORY_PATH, catalogId);
+            query.setFilterQueries(CATEGORY_PATH + ":" + catalogId);
             
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
             Facet facet = null;
