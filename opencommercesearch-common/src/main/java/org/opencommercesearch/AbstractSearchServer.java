@@ -497,7 +497,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
         else{
             query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
-               "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image");
+               "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
         }
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + dicountPercent);
