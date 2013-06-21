@@ -347,7 +347,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
     
     @Override
-    public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit) throws SearchServerException {
+    public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, FilterQuery... filterQueries) throws SearchServerException {
         try { 
             SolrQuery query = new SolrQuery();
             query.setRows(0);
@@ -359,9 +359,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             
             RepositoryItem catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
             String catalogId = catalog.getRepositoryId();
+            query.setFacetPrefix(CATEGORY_PATH, catalogId + ".");
+            query.addFilterQuery(CATEGORY_PATH + ":" + catalogId);
             
-            query.setFacetPrefix(CATEGORY_PATH, catalogId);
-            query.setFilterQueries(CATEGORY_PATH + ":" + catalogId);
+            if (filterQueries != null) {
+               for(FilterQuery filterQuery: filterQueries) {
+                   query.addFilterQuery(filterQuery.toString());
+               }
+            }
             
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
             Facet facet = null;
