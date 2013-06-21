@@ -83,7 +83,7 @@
       <str name="spellcheck.count">10</str>
       <str name="spellcheck.dictionary">textSpellCheck</str>
       <str name="spellcheck.collate">true</str>
-      <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image</str>
+      <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image,isCloseout</str>
       <str name="groupcollapse">true</str>
       <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS</str>
     </lst>
