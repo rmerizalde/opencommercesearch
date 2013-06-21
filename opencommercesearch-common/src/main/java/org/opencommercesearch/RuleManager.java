@@ -247,8 +247,8 @@ public class RuleManager<T extends SolrServer> {
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
         //would need a new entry on the filter cache...
         //Also, notice that NOW/DAY is midnight from last night, and NOW/DAY+1DAY is midnight today.
-        filterQueries.append(" AND ").append("startDate:[* TO NOW/DAY+1DAY]");
-        filterQueries.append(" AND ").append("endDate:[NOW/DAY+1DAY TO *]");
+        //The below query is intended to match rules with null start or end dates, or start and end dates in the proper range.
+        filterQueries.append(" AND ").append("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))");
 
         query.addFilterQuery(filterQueries.toString());
         QueryResponse res = server.query(query);
