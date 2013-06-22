@@ -134,13 +134,7 @@ public class SearchResponse {
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
             facet.setMultiSelect(manager.isMultiSelectFacet(facetField));
-            
-            String uiType = manager.getFacetUIType(facetField);
-            Map<String, String> metadata = new HashMap<String, String>();
-            if(StringUtils.isNotBlank(uiType)) {            	
-            	metadata.put("uiWidgetType", uiType);
-            }
-            facet.setMetadata(metadata);
+            setMetadata(manager, facetField.getName(), facet);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
             String prefix = query.getFieldParam(facet.getName(), FacetParams.FACET_PREFIX);
@@ -185,7 +179,16 @@ public class SearchResponse {
 
         return sortedFacets;
     }
-    
+
+    private void setMetadata(FacetManager manager, String fieldName, Facet facet) {
+        String uiType = manager.getFacetUIType(fieldName);
+        Map<String, String> metadata = new HashMap<String, String>();
+        if(StringUtils.isNotBlank(uiType)) {
+            metadata.put("uiWidgetType", uiType);
+        }
+        facet.setMetadata(metadata);
+    }
+
     private void getRangeFacets(Map<String, Facet> facetMap) {
         FacetManager manager = getRuleManager().getFacetManager();
 
@@ -196,6 +199,7 @@ public class SearchResponse {
         for (RangeFacet<Integer, Integer> range : getQueryResponse().getFacetRanges()) {
             Facet facet = new Facet();
             facet.setName(manager.getFacetName(range));
+            setMetadata(manager, range.getName(), facet);
             
             List<Filter> filters = new ArrayList<Filter>();
 
@@ -267,7 +271,7 @@ public class SearchResponse {
         Filter filter = new Filter();
         value1 = removeDecimals(value1);
         value2 = removeDecimals(value2);
-        filter.setName(Utils.getRangeName(fieldName, key, value1, value2));
+        filter.setName(Utils.getRangeName(fieldName, key, value1, value2, null));
         filter.setCount(count);
         String filterQuery = fieldName + ":[" + value1 + " TO " + value2 + "]";
         FacetManager manager = getRuleManager().getFacetManager();
@@ -323,6 +327,7 @@ public class SearchResponse {
                 facet.setName(manager.getFacetName(fieldName));
                 facet.setMultiSelect(manager.isMultiSelectFacet(fieldName));
                 facet.setFilter(filters);
+                setMetadata(manager, fieldName, facet);
                 facetMap.put(fieldName, facet);
             }
             Filter filter = new Filter();

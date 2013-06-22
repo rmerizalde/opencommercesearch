@@ -1228,4 +1228,9 @@
     <sql>UPDATE cs_rule SET start_date = CURRENT_DATE WHERE start_date = null</sql>
     <sql>UPDATE cs_rule SET end_date = CURRENT_DATE + 45 WHERE end_date = null</sql>
   </changeSet>
+  
+  <changeSet author="commercesearch" id="48">
+    <sql>UPDATE cs_rule SET start_date = CURRENT_DATE WHERE start_date IS null</sql>
+    <sql>UPDATE cs_rule SET end_date = CURRENT_DATE + 45 WHERE end_date IS null</sql>
+  </changeSet>
 </databaseChangeLog>

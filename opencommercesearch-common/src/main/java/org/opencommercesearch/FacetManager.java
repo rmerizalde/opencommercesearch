@@ -319,22 +319,47 @@ public class FacetManager {
         return getCountPath(count.getName(), count.getFacetField().getName(), count.getAsFilterQuery(), filterQueries);
     }
 
+    /**
+     * Returns the path with all filter queries to select/deselect the given count. If the count filter query is already
+     * in the list of filterQueries then the generated path will be for de-selection. Otherwise, the path is for selected
+     * the facet value. The exception two this rule are overlapping facets. Overlapping facets are typically range filter
+     * queries which are subset of each other. For example, lets take a field discountPercent and the query facet like this:
+     *
+     * <ul>
+     *     <li>[10 TO *]</li>
+     *     <li>[20 TO *]</li>
+     *     <li>[30 TO *]</li>
+     *     <li>[40 TO *]</li>
+     *     <li>[50 TO *]</li>
+     * </ul>
+     *
+     * If you select 10 TO * all other facets are still applicable. The same happens if you select 50 To *. Note that the
+     * filtered results may still be different but all facet apply. This facets should no be configured with the multi-
+     * select option. If that's the case, the path will always generate a selection. However, any previous selection will
+     * be overriden.
+     *
+     * @param name
+     * @param fieldName
+     * @param filterQuery
+     * @param filterQueries
+     * @return
+     */
     public String getCountPath(String name, String fieldName, String filterQuery, FilterQuery[] filterQueries) {
         FilterQuery selectedFilterQuery = null;
+        String replacementFilterQuery = null;
         if (filterQueries != null) {
             for (FilterQuery query : filterQueries) {
-                if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(name)) {
+                if (!isMultiSelectFacet(fieldName) && query.getFieldName().equals(fieldName)) {
                     selectedFilterQuery = query;
-                } else if (fieldName.equals("category")
-                        && query.getFieldName().equals("category")) {
+                    replacementFilterQuery = filterQuery;
+                } else if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(name)) {
                     selectedFilterQuery = query;
                 }
             }
         }
 
-
-        String path = Utils.createPath(filterQueries, selectedFilterQuery);
-        if (selectedFilterQuery != null && !fieldName.equals("category")) {
+        String path = Utils.createPath(filterQueries, selectedFilterQuery, replacementFilterQuery);
+        if (selectedFilterQuery != null) {
             return path;
         } else if (StringUtils.isNotBlank(path)) {
             return path + Utils.PATH_SEPARATOR + filterQuery;
@@ -355,7 +380,7 @@ public class FacetManager {
             } else {
                 BreadCrumb crumb = new BreadCrumb();
                 crumb.setFieldName(filterQuery.getFieldName());
-                crumb.setExpression(filterQuery.getUnescapeExpression());
+                crumb.setExpression(Utils.getRangeBreadCrumb(filterQuery.getFieldName(), filterQuery.getUnescapeExpression(), filterQuery.getUnescapeExpression()));
                 crumb.setPath(Utils.createPath(filterQueries, filterQuery));
                 crumbs.add(crumb);
             }

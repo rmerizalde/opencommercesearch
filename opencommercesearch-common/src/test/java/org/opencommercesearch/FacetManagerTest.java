@@ -24,6 +24,7 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.RangeFacet;
+import org.mockito.Spy;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.FieldFacetProperty;
 import org.opencommercesearch.repository.QueryFacetProperty;
@@ -42,7 +43,8 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 public class FacetManagerTest {
 
-	private FacetManager manager = new FacetManager();
+    @Spy
+    private FacetManager manager = new FacetManager();
 	
 	@Mock
 	RepositoryItem fieldFacet;
@@ -154,48 +156,71 @@ public class FacetManagerTest {
 	    assertEquals("val1", manager.getCountName(count));
 	}
 
+    @Test
+    public void testGetCountPathOverlappingFilterSelected() {
+
+   	    FilterQuery[] filterQueries = {mockFilterQuery("reviewAverage", "[5 TO *]"), mockFilterQuery("otherField", "aValue")};
+
+   	    assertEquals("reviewAverage:[1 TO *]|otherField:aValue", manager.getCountPath("[1 TO *]", "reviewAverage", "reviewAverage:[1 TO *]", filterQueries));
+   	}
+
+    @Test
+   	public void testGetCountPathOverlappingSameFilterSelected() {
+
+   	    FilterQuery[] filterQueries = {mockFilterQuery("reviewAverage", "[1 TO *]"), mockFilterQuery("otherField", "aValue")};
+
+   	    assertEquals("reviewAverage:[1 TO *]|otherField:aValue", manager.getCountPath("[1 TO *]", "reviewAverage", "reviewAverage:[1 TO *]", filterQueries));
+   	}
+
+    @Test
+   	public void testGetCountPathFilterSelected() {
+
+   	    Count count = mockCount(mockFacetField("facetName"), "name");
+   	    FilterQuery[] filterQueries = {mockFilterQuery("facetName2", "name2")};
+
+           when(manager.isMultiSelectFacet("facetName")).thenReturn(true);
+   	    assertEquals("facetName2:name2|facetName:name", manager.getCountPath(count, filterQueries));
+   	}
+
 	@Test
-	public void testGetCountPathFilterSelected() {
+	public void testGetCountPathFilterDeSelected() {
 	    
-	    Count count = mockCount("name");
-	    mockFacetField(count, "facetName");	    
+	    Count count = mockCount(mockFacetField("facetName"), "name");
 	    FilterQuery[] filterQueries = {mockFilterQuery("facetName", "name"), mockFilterQuery("facetName2", "name2")};
-	    
-	    assertEquals("filter_facetName2", manager.getCountPath(count, filterQueries));
+
+        when(manager.isMultiSelectFacet("facetName")).thenReturn(true);
+	    assertEquals("facetName2:name2", manager.getCountPath(count, filterQueries));
 	}
 	
 	@Test
-    public void testGetCountPathFilterSelectedNoExtraFilter() {
+    public void testGetCountPathFilterDeSelectedNoExtraFilter() {
         
-        Count count = mockCount("name");
-        mockFacetField(count, "facetName");     
+        Count count = mockCount(mockFacetField("facetName"), "name");
         FilterQuery[] filterQueries = {mockFilterQuery("facetName", "name")};
-        
+        when(manager.isMultiSelectFacet("facetName")).thenReturn(true);
         assertEquals("", manager.getCountPath(count, filterQueries));
     }
 	
 	@Test
-    public void testGetCountPathCategoryFilterSelected() {        
-        Count count = mockCount("1.catalog.root");
-        mockFacetField(count, "category");     
+    public void testGetCountPathCategoryFilterDeSelected() {
+        Count count = mockCount(mockFacetField("category"), "1.catalog.root");
         FilterQuery[] filterQueries = {mockFilterQuery("category", "1.catalog.root")};
-        assertEquals("queryList", manager.getCountPath(count, filterQueries));
+        assertEquals("category:1.catalog.root", manager.getCountPath(count, filterQueries));
     }
 
 	@Test
-    public void testGetCountPathCategoryFilterSelectedWithPath() {        
-        Count count = mockCount("1.catalog.root");
-        mockFacetField(count, "category");     
+    public void testGetCountPathCategorySameFilterSelectedWithPath() {
+        Count count = mockCount(mockFacetField("category"), "1.catalog.root");
         FilterQuery[] filterQueries = {mockFilterQuery("category", "1.catalog.root"), mockFilterQuery("filter2", "exp2")};
-        assertEquals("filter_filter2|queryList", manager.getCountPath(count, filterQueries));
+        assertEquals("category:1.catalog.root|filter2:exp2", manager.getCountPath(count, filterQueries));
     }
 
-
-	@Test
-	public void testGetCountPathFilterSelected2() {
-	    FilterQuery[] filterQueries = {mockFilterQuery("fieldName", "name")};
-	    assertEquals("", manager.getCountPath("name", "fieldName", "filterQuery", filterQueries));
-	}
+    @Test
+       public void testGetCountPathCategoryFilterSelectedWithPath() {
+           Count count = mockCount(mockFacetField("category"), "1.catalog.root.cat");
+           FilterQuery[] filterQueries = {mockFilterQuery("category", "1.catalog.root"), mockFilterQuery("filter2", "exp2")};
+           assertEquals("category:1.catalog.root.cat|filter2:exp2", manager.getCountPath(count, filterQueries));
+       }
 
 	@Test
 	public void testGetBreadCrumbs() {
@@ -204,22 +229,22 @@ public class FacetManagerTest {
 	    	    
 	    assertEquals("root", crumbs.get(1).getExpression());
         assertEquals("category", crumbs.get(1).getFieldName());
-        assertEquals("|filter_fieldName", crumbs.get(1).getPath());
+        assertEquals("|fieldName:exp", crumbs.get(1).getPath());
         
         assertEquals("exp", crumbs.get(0).getExpression());
 	    assertEquals("fieldName", crumbs.get(0).getFieldName());
-	    assertEquals("filter_category", crumbs.get(0).getPath());
+	    assertEquals("category:1.catalog.root", crumbs.get(0).getPath());
 	}
 
     @Test
     public void testFacetWithDotInName() {
-        Count count = mockCount("0.catalog.Category.X");
+        Count count = mockCount(mockFacetField("category"), "0.catalog.Category.X");
         assertEquals("Category.X", manager.getCountName(count, "0.catalog."));
     }
 
     @Test
     public void testFacetWithDotInNameNoPrefix() {
-        Count count = mockCount("MyBrand.com");
+        Count count = mockCount(mockFacetField("brand"), "MyBrand.com");
         assertEquals("MyBrand.com", manager.getCountName(count));
     }
 	
@@ -229,25 +254,27 @@ public class FacetManagerTest {
 	    assertTrue(crumbs.isEmpty());
 	}
 
-    private FilterQuery mockFilterQuery(String fieldName, String expresion) {
+    private FilterQuery mockFilterQuery(String fieldName, String expression) {
         FilterQuery filterQuery = mock(FilterQuery.class);
         when(filterQuery.getFieldName()).thenReturn(fieldName);
-        when(filterQuery.getExpression()).thenReturn(expresion);
-        when(filterQuery.getUnescapeExpression()).thenReturn(expresion);
-        when(filterQuery.toString()).thenReturn("filter_" + fieldName);
+        when(filterQuery.getExpression()).thenReturn(expression);
+        when(filterQuery.getUnescapeExpression()).thenReturn(expression);
+        when(filterQuery.toString()).thenReturn(fieldName + ":" + expression);
         return filterQuery;
     }
 
-    private void mockFacetField(Count count, String facetName) {
+    private FacetField mockFacetField(String facetName) {
         FacetField facetField = mock(FacetField.class);
         when(facetField.getName()).thenReturn(facetName);
-        when(count.getFacetField()).thenReturn(facetField);
+        return facetField;
     }
 
-    private Count mockCount(String name) {
+    private Count mockCount(FacetField facetField, String name) {
         Count count = mock(Count.class);
+        when(count.getFacetField()).thenReturn(facetField);
         when(count.getName()).thenReturn(name);
-        when(count.getAsFilterQuery()).thenReturn("queryList");
+        String fieldName = facetField.getName();
+        when(count.getAsFilterQuery()).thenReturn(fieldName + ":" + name);
         return count;
     }
 	

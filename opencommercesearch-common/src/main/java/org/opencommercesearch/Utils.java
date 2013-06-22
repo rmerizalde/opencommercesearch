@@ -19,6 +19,7 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 import org.apache.commons.lang.StringUtils;
@@ -29,10 +30,15 @@ public class Utils {
     public static final String RESOURCE_IN_RANGE = "inrange";
     public static final String RESOURCE_BEFORE = "before";
     public static final String RESOURCE_AFTER = "after";
+    public static final String RESOURCE_CRUMB = "crumb";
 
     public static final ResourceBundle resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources");
 
     public static String createPath(FilterQuery[] filterQueries, FilterQuery skipFilter) {
+        return createPath(filterQueries, skipFilter, null);
+    }
+
+    public static String createPath(FilterQuery[] filterQueries, FilterQuery skipFilter, String replacementFilterQuery) {
         if (filterQueries == null) {
             return StringUtils.EMPTY;
         }
@@ -42,6 +48,8 @@ public class Utils {
         for (FilterQuery filterQuery : filterQueries) {
             if (!filterQuery.equals(skipFilter)) {
                 b.append(filterQuery.toString()).append(PATH_SEPARATOR);
+            } else if (replacementFilterQuery != null) {
+                b.append(replacementFilterQuery).append(PATH_SEPARATOR);
             }
         }
         if (b.length() > 0) {
@@ -50,10 +58,31 @@ public class Utils {
         return b.toString();
     }
 
-    public static String getRangeName(String fieldName, String key, String value1, String value2) {
-        String resource = resources.getString("facet.range." + fieldName + "." + key);
+    private static String loadResource(String key) {
+        try {
+            return resources.getString(key);
+        } catch (MissingResourceException ex) {
+            return null;
+        }
+    }
+
+    public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) {
+        String resource = null;
+        String resourceKey = "facet.range." + fieldName + "." + key;
+
+        // First try to find if there's a specific resource for the value
+        resource = loadResource(resourceKey + "." + value1);
+        if (resource == null) {
+            resource = loadResource(resourceKey + "." + value2);
+        }
+        if (resource == null) {
+            resource = loadResource(resourceKey);
+        }
 
         if (resource == null) {
+            if (defaultName != null) {
+                return defaultName;
+            }
             resource = "${v1}-${v2}";
         }
 
@@ -72,7 +101,22 @@ public class Utils {
                 } else if ("*".equals(parts[1])) {
                     key = Utils.RESOURCE_AFTER;
                 }
-                return Utils.getRangeName(fieldName, key, parts[0], parts[1]);
+                return Utils.getRangeName(fieldName, key, parts[0], parts[1], null);
+            }
+        }
+        return expression;
+    }
+
+    public static String getRangeBreadCrumb(String fieldName, String expression)
+    {
+        return getRangeBreadCrumb(fieldName, expression, null);
+    }
+
+    public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) {
+        if (expression.startsWith("[") && expression.endsWith("]")) {
+            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            if (parts.length == 2) {
+                return getRangeName(fieldName, Utils.RESOURCE_CRUMB, parts[0], parts[1], defaultCrumb);
             }
         }
         return expression;

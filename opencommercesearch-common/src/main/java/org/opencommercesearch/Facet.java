@@ -20,6 +20,7 @@ package org.opencommercesearch;
 */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -67,6 +68,10 @@ public class Facet {
      * @return a list of the filters/buckets the user has already selected for this facet
      */
     public List<Filter> getSelectedFilters() {
+        if (!isMultiSelect()) {
+            Collections.emptyList();
+        }
+
         List<Filter> selectedFilter = new ArrayList<Filter>();
         for (Filter filter : filters) {
             if (filter.isSelected()) {
@@ -81,6 +86,10 @@ public class Facet {
      * @return a list of the filters/buckets the user can select for this facet
      */
     public List<Filter> getSelectableFilters() {
+        if (!isMultiSelect()) {
+            return filters;
+        }
+
         List<Filter> selectableFilters = new ArrayList<Filter>();
         for (Filter filter : filters) {
             if (!filter.isSelected()) {
