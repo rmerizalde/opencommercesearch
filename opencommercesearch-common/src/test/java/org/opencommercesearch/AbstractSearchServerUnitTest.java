@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
@@ -134,6 +135,7 @@ public class AbstractSearchServerUnitTest {
     @Mock
     private BrowseOptions browseOptions;
 
+    @Spy
     private AbstractSearchServer server = new AbstractSearchServer() {
 
         @Override
@@ -417,5 +419,79 @@ public class AbstractSearchServerUnitTest {
         server.browse(browseOptions, query, site, getEnglishLocale());
         verify(catalogServerEn, times(2)).query(any(SolrParams.class));
         verify(catalogServerFr, times(0)).query(any(SolrParams.class));
+    }
+
+    @Test
+    public void testGroupSortByScore() {
+        List<SolrQuery.SortClause> clauses = Arrays.asList(new SolrQuery.SortClause("score", "asc"));
+        when(query.getSorts()).thenReturn(clauses);
+        when(server.isGroupSortingEnabled()).thenReturn(true);
+
+        server.setGroupParams(query);
+
+        verify(query).set("group", true);
+        verify(query).set("group.ngroups", true);
+        verify(query).set("group.limit", 50);
+        verify(query).set("group.field", "productId");
+        verify(query).set("group.facet", false);
+        verify(query).getSorts();
+        verify(query).set("group.sort", "score desc, sort asc");
+        verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    public void testGroupSortByNonScore() {
+        List<SolrQuery.SortClause> clauses = Arrays.asList(new SolrQuery.SortClause("reviews", "asc"));
+
+        when(query.getSorts()).thenReturn(clauses);
+        when(server.isGroupSortingEnabled()).thenReturn(true);
+
+        server.setGroupParams(query);
+
+        verify(query).set("group", true);
+        verify(query).set("group.ngroups", true);
+        verify(query).set("group.limit", 50);
+        verify(query).set("group.field", "productId");
+        verify(query).set("group.facet", false);
+        verify(query).getSorts();
+        verifyNoMoreInteractions(query);
+    }
+
+    @Test
+    public void testGroupSortByDefault() {
+        List<SolrQuery.SortClause> clauses = Collections.emptyList();
+
+        when(query.getSorts()).thenReturn(clauses);
+        when(server.isGroupSortingEnabled()).thenReturn(true);
+
+        server.setGroupParams(query);
+
+        verify(query).set("group", true);
+        verify(query).set("group.ngroups", true);
+        verify(query).set("group.limit", 50);
+        verify(query).set("group.field", "productId");
+        verify(query).set("group.facet", false);
+        verify(query).getSorts();
+        verify(query).set("group.sort", "score desc, sort asc");
+        verifyNoMoreInteractions(query);
+
+    }
+
+    @Test
+    public void testGroupSortByDefaultOff() {
+        List<SolrQuery.SortClause> clauses = Collections.emptyList();
+
+        when(query.getSorts()).thenReturn(clauses);
+        when(server.isGroupSortingEnabled()).thenReturn(false);
+
+        server.setGroupParams(query);
+
+        verify(query).set("group", true);
+        verify(query).set("group.ngroups", true);
+        verify(query).set("group.limit", 50);
+        verify(query).set("group.field", "productId");
+        verify(query).set("group.facet", false);
+        verifyNoMoreInteractions(query);
+
     }
 }

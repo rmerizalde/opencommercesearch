@@ -47,6 +47,8 @@
   <field name="isRetail"           type="boolean"           indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" default="true" />
   <field name="isCloseout"         type="boolean"           indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" default="false" />
   <field name="allowBackorder"     type="boolean"           indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" default="false" />
+  <!-- used for group sorting -->
+  <field name="sort"               type="int"               indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
   <field name="indexStamp"         type="long"              indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
 
   <!-- catchall text field that indexes tokens both normally and in reverse for efficient

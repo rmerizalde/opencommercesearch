@@ -64,7 +64,11 @@ import java.util.*;
  * @author gsegura
  * @author rmerizalde
  */
-public abstract class AbstractSearchServer<T extends SolrServer> extends GenericService implements SearchServer {     // Current cloud implementation seem to have a bug. It support the
+public abstract class AbstractSearchServer<T extends SolrServer> extends GenericService implements SearchServer {
+
+    public static final String SCORE = "score";
+
+    // Current cloud implementation seem to have a bug. It support the
     // collection property but once a collection is used it sticks to it
     private Map<String, T> catalogSolrServers = new HashMap<String, T>();
     private Map<String, T> rulesSolrServers = new HashMap<String, T>();
@@ -80,6 +84,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private RqlStatement synonymRql;
     private int ruleBatchSize;
     private RulesBuilder rulesBuilder;
+    private boolean isGroupSortingEnabled;
 
     public void setCatalogSolrServer(T catalogSolrServer, Locale locale) {
         catalogSolrServers.put(locale.getLanguage(), catalogSolrServer);
@@ -215,6 +220,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         this.rulesBuilder = rulesBuilder;
     }
 
+    public boolean isGroupSortingEnabled() {
+        return isGroupSortingEnabled;
+    }
+
+    public void setGroupSortingEnabled(boolean groupSortingEnabled) {
+        isGroupSortingEnabled = groupSortingEnabled;
+    }
 
     private static final String Q_ALT = "q.alt";
     private static final String BRAND_ID = "brandId";
@@ -488,12 +500,32 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     }
 
-    private void setGroupParams(SolrQuery query) {
+    public void setGroupParams(SolrQuery query) {
         query.set("group", true);
         query.set("group.ngroups", true);
         query.set("group.limit", 50);
         query.set("group.field", "productId");
         query.set("group.facet", false);
+
+        if (isGroupSortingEnabled()) {
+            List<SolrQuery.SortClause> clauses = query.getSorts();
+            boolean isSortByScore = false;
+
+            if (clauses.size() > 0) {
+                for (SolrQuery.SortClause clause : clauses) {
+                    if (SCORE.equals(clause.getItem())) {
+                        isSortByScore = true;
+                    }
+                }
+            } else {
+                isSortByScore = true;
+            }
+
+            if (isSortByScore) {
+                // break ties with custom sort field
+                query.set("group.sort", "score desc, sort asc");
+            }
+        }
     }
 
     private void setFieldListParams(SolrQuery query, String country, String catalog) {
