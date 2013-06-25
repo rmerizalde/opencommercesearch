@@ -71,6 +71,12 @@ public class SearchFeedTest {
                 throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }
+        
+        @Override
+        protected void checkPermission() throws SearchServerException {
+            return;
+            
+        }
     };
 
     @Mock

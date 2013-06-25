@@ -19,22 +19,18 @@ package org.opencommercesearch.inventory;
 * under the License.
 */
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import atg.adapter.gsa.GSARepository;
+import org.opencommercesearch.service.SequentialDataLoaderService;
+
 import atg.commerce.inventory.InventoryException;
 import atg.commerce.inventory.InventoryManager;
-import atg.nucleus.GenericService;
 import atg.nucleus.ServiceException;
-import atg.repository.Repository;
-import org.opencommercesearch.service.SequentialDataLoaderService;
 
 /**
  * This class implements a sequential in-memory inventory manager to help speeding up the feed
@@ -53,7 +49,7 @@ import org.opencommercesearch.service.SequentialDataLoaderService;
  *
  * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
  */
-public class SequentialInMemoryInventoryManager extends SequentialDataLoaderService<String, Long> implements InventoryManager {
+public class SequentialInMemoryInventoryManager extends SequentialDataLoaderService<String, InventoryEntry> implements InventoryManager {
 
     public static final String LOCALE_SEPARATOR = ":";
 
@@ -62,10 +58,14 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
-        setRecordProcessor(new RecordProcessor<Long>() {
+        setRecordProcessor(new RecordProcessor<InventoryEntry>() {
             @Override
-            public Long processRecord(ResultSet rs) throws SQLException {
-                return rs.getLong("stock_level");
+            public InventoryEntry processRecord(ResultSet rs) throws SQLException {
+                InventoryEntry entry = new InventoryEntry();
+                entry.setStockLevel(rs.getLong("stock_level"));
+                entry.setBackorderLevel(rs.getLong("backorder_level"));
+                entry.setAvailabilityStatus(rs.getInt("avail_status"));
+                return entry;
             }
         });
     }
@@ -151,12 +151,36 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
 
     @Override
     public int queryAvailabilityStatus(String id) throws InventoryException {
-        throw new UnsupportedOperationException();
+        id = getId(id);
+
+        InventoryEntry entry = getItem(id);
+
+        if (entry == null) {
+            throw new InventoryException("Inventory not found for " + id);
+        }
+
+        if (isLoggingDebug()) {
+            logDebug("Availability Status for " + id + " is " + entry.getAvailabilityStatus());
+        }
+
+        return entry.getAvailabilityStatus();
     }
 
     @Override
     public long queryBackorderLevel(String id) throws InventoryException {
-        throw new UnsupportedOperationException();
+        id = getId(id);
+
+        InventoryEntry entry = getItem(id);
+
+        if (entry == null) {
+            throw new InventoryException("Inventory not found for " + id);
+        }
+
+        if (isLoggingDebug()) {
+            logDebug("Backorder level for " + id + " is " + entry.getBackorderLevel());
+        }
+
+        return entry.getBackorderLevel();
     }
 
     @Override
@@ -176,22 +200,19 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
 
     @Override
     public long queryStockLevel(String id) throws InventoryException {
-        int localeSeparatorIndex = id.lastIndexOf(LOCALE_SEPARATOR);
-        if (localeSeparatorIndex != -1) {
-            id = id.substring(0, localeSeparatorIndex);
-        }
+        id = getId(id);
 
-        Long stockLevel = getItem(id);
+        InventoryEntry entry = getItem(id);
 
-        if (stockLevel == null) {
+        if (entry == null) {
             throw new InventoryException("Inventory not found for " + id);
         }
 
         if (isLoggingDebug()) {
-            logDebug("Stock level for " + id + " is " + stockLevel);
+            logDebug("Stock level for " + id + " is " + entry.getStockLevel());
         }
 
-        return stockLevel;
+        return entry.getStockLevel();
     }
 
     @Override
@@ -243,5 +264,12 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
     public int setStockThreshold(String id, long number) throws InventoryException {
         throw new UnsupportedOperationException();
     }
-
+    
+    private String getId(String id) {
+        int localeSeparatorIndex = id.lastIndexOf(LOCALE_SEPARATOR);
+        if (localeSeparatorIndex != -1) {
+            id = id.substring(0, localeSeparatorIndex);
+        }
+        return id;
+    }
 }

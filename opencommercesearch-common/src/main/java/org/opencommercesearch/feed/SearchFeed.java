@@ -28,8 +28,6 @@ import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
-import com.google.common.collect.Lists;
-
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
@@ -55,7 +53,7 @@ public abstract class SearchFeed extends GenericService {
     private RqlStatement productRql;
     private int productBatchSize;
     private int indexBatchSize;
-
+    
     public SearchServer getSearchServer() {
         return searchServer;
     }
@@ -123,11 +121,13 @@ public abstract class SearchFeed extends GenericService {
     public boolean isCategoryIndexable(RepositoryItem category) {
         return true;
     }
- 
+
     public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
             InventoryException {
         long startTime = System.currentTimeMillis();
-
+        
+        checkPermission();
+        
         RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
         int productCount = productRql.executeCountQuery(productView, null);
 
@@ -197,6 +197,8 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
+    protected abstract void checkPermission() throws SearchServerException;
+    
     protected abstract void onFeedStarted(long indexStamp);
 
     protected abstract void onDocumentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
