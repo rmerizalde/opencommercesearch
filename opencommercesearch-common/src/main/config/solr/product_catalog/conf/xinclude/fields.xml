@@ -59,6 +59,7 @@
 
   <!-- dynamic facet fields -->
   <dynamicField name="stockLevel*"            type="int"     indexed="true" stored="true"   required="false"  multiValued="false" omitNorms="true" />
+  <dynamicField name="allowBackorder*"        type="boolean" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" default="false" />
   <dynamicField name="onsale*"                type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
   <!-- the review average is used for range queries so lets use a float with precisionStep > 0 -->
   <dynamicField name="reviewAverage*"         type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
