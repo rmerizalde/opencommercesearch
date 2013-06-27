@@ -1,6 +1,0 @@
-<!--
-  Disable admin handle to speed up unit and integration tests
-
-  Production environments should overwrite this file with custom settings
--->
-<empty/>
