@@ -209,9 +209,9 @@ public class RuleManager<T extends SolrServer> {
         }
         StringBuilder queryStr = new StringBuilder();
         if (isSearch) {
-            queryStr.append("(target:allpages OR target:searchpages) AND ((query:\"");
+            queryStr.append("(target:allpages OR target:searchpages) AND ((");
             queryStr.append(ClientUtils.escapeQueryChars(q.toLowerCase()));
-            queryStr.append("\")^2 OR query:__all__)");
+            queryStr.append(")^2 OR query:__all__)");
         } else {
             queryStr.append("(target:allpages OR target:categorypages)");
         }
