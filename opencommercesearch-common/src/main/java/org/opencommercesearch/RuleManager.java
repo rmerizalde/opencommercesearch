@@ -28,6 +28,7 @@ import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.SolrInputDocument;
@@ -208,9 +209,9 @@ public class RuleManager<T extends SolrServer> {
         }
         StringBuilder queryStr = new StringBuilder();
         if (isSearch) {
-            queryStr.append("(target:allpages OR target:searchpages) AND ((");
-            queryStr.append(q);
-            queryStr.append(")^2 OR query:__all__)");
+            queryStr.append("(target:allpages OR target:searchpages) AND ((query:\"");
+            queryStr.append(ClientUtils.escapeQueryChars(q.toLowerCase()));
+            queryStr.append("\")^2 OR query:__all__)");
         } else {
             queryStr.append("(target:allpages OR target:categorypages)");
         }

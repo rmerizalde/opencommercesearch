@@ -807,7 +807,8 @@ public class RuleManagerTest {
     public void testLoadRulesVerifyQueryWithCategory() throws RepositoryException, SolrServerException {
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         String category = "My super duper favorite Men's category";
-        String searchQuery = "fantastic jackets";
+        String searchQuery = "fantastic jackets )";
+        String escapedSearchQuery = "fantastic\\ jackets\\ \\)";
         when(queryResponse.getResults()).thenReturn(solrDocumentList);
         when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
         // ----------- set up rule manager -------------
@@ -822,7 +823,7 @@ public class RuleManagerTest {
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
         assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND ((query:\"" + escapedSearchQuery + "\")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
     @Test
@@ -852,6 +853,7 @@ public class RuleManagerTest {
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         String category = "";
         String searchQuery = "fantastic jackets";
+        String escapedSearchQuery = "fantastic\\ jackets";
         when(queryResponse.getResults()).thenReturn(solrDocumentList);
         when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
         // ----------- set up rule manager -------------
@@ -866,7 +868,7 @@ public class RuleManagerTest {
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
         assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:searchpages) AND ((" + searchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND ((query:\"" + escapedSearchQuery + "\")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
     // finished
