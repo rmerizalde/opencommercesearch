@@ -19,10 +19,16 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.opencommercesearch.repository.CategoryProperty;
+
+import atg.repository.RepositoryItem;
 
 public class Utils {
 
@@ -133,5 +139,56 @@ public class Utils {
         
         return filterExpression;
     }
+
+    /**
+     * Builds the taxonomy path for a given category. It drills up to the root category. The output format is:
+     * "catalogId"."catLevel1"."catLevel2"..."catLevelN"
+     * 
+     * @param catalogId The current catalog id 
+     * @param categoryItem The category we want to generate the taxonomy path for.
+     * @return
+     */
+    public static String buildCategoryPrefix(String catalogId, RepositoryItem categoryItem){
+        StringBuilder prefix = new StringBuilder();
+        
+        List<String> path = new ArrayList<String>();
+ 
+        if (categoryItem != null) {
+            path.add(categoryItem.getRepositoryId());
+            buildPath(path, categoryItem);               
+        }
+        
+        if (path.size() > 0) {
+            path.remove(0);
+            
+            prefix.append(catalogId);
+            
+            for (String entry : path) {
+                prefix.append(".");
+                prefix.append(entry);
+            }
+        }
+        return prefix.toString(); 
+        
+    }    
+    
+    /**
+     * Auxiliary recursive method for buildCategoryPrefix.
+     * 
+     * @see buildCategoryPrefix
+     * @param currentPath Placeholder to accumulate the path
+     * @param category The current category we are traversing
+     */
+    private static void buildPath(List<String> currentPath, RepositoryItem category){
+        Set<RepositoryItem> parents = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);        
+        RepositoryItem parent = parents.iterator().next();
+        if(parent != null){
+            currentPath.add(0, parent.getRepositoryId());
+            buildPath(currentPath, parent);
+        }
+
+    }
+    
+    
     
 }

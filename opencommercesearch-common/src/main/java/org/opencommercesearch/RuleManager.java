@@ -201,7 +201,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws SolrServerException
      *             if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryFilterQuery, boolean isSearch, RepositoryItem catalog) throws RepositoryException,
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, RepositoryItem catalog) throws RepositoryException,
             SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query ");
@@ -225,11 +225,26 @@ public class RuleManager<T extends SolrServer> {
         query.addSortField(FIELD_SCORE, ORDER.asc);
         query.addSortField(FIELD_ID, ORDER.asc);
         query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY);
+        
+        
+        if (categoryPath != null) {
+        	// will only load facet rules for categoryFilterQuery (category:categoryFilterQuery)
+        	// load global rules
+        	// load rules for categoryPath (category:categoryPath)
+        	
+        	// Ideal refactor make each operand in the AND operator its own filter query for example
+        	
+        	//fq:(x OR y) AND (w OR z)
+        	
+        	//fq:(x OR y)
+        	//fq:(w OR z)
+        	
+        	//update docs and unit tests
+        }
 
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
             filterQueries.append(" OR ").append("category:" + categoryFilterQuery);
-
         }
                 
         filterQueries.append(") AND ").append("(siteId:").append(WILDCARD);
@@ -324,12 +339,12 @@ public class RuleManager<T extends SolrServer> {
         return query.substring(1, query.length() - 1);
     }
 
-    void setRuleParams(FilterQuery[] filterQueries, RepositoryItem catalog, SolrQuery query, boolean isSearch)
+    void setRuleParams(SolrQuery query, boolean isSearch, String categoryPath, FilterQuery[] filterQueries, RepositoryItem catalog)
             throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryFilterQuery, isSearch, catalog);
+            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, catalog);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
@@ -512,7 +527,19 @@ public class RuleManager<T extends SolrServer> {
             }
 
             for (RepositoryItem category : categories) {
-                setCategorySearchTokens(doc, category, includeSubcategories);
+                if (CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())) {
+                	setCategorySearchTokens(doc, category, includeSubcategories);
+                } else {
+                	 if (catalogs != null && catalogs.size() > 0) {
+                         for (RepositoryItem catalog : catalogs) {
+                        	 setCategorySearchTokens(doc, catalog, category);
+                         }
+                     } else {
+                    	 setCategorySearchTokens(doc, null, category);
+                     }
+                	
+                }
+                
             }
         } else {
             doc.setField(FIELD_CATEGORY, WILDCARD);
@@ -604,7 +631,15 @@ public class RuleManager<T extends SolrServer> {
         strengthMap.put(STRENGTH_STRONG_BOOST, Float.toString(5f));
         strengthMap.put(STRENGTH_MAXIMUM_BOOST, Float.toString(10f));
     }
-
+    
+    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem catalog, RepositoryItem category) {
+    	if (catalog != null) {
+    		doc.addField(FIELD_CATEGORY, Utils.buildCategoryPrefix(catalog.getRepositoryId(), category));
+    	} else {
+    		doc.addField(FIELD_CATEGORY, Utils.buildCategoryPrefix(WILDCARD, category));
+    	}
+    }
+    
     /**
      * Helper method to set the category search token for document
      * 
@@ -616,10 +651,7 @@ public class RuleManager<T extends SolrServer> {
      *             if an exception occurs while retrieving category info
      */
     private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) throws RepositoryException {
-        if (!"category".equals(category.getItemDescriptor().getItemDescriptorName())) {
-            return;
-        }
-        @SuppressWarnings("unchecked")
+    	@SuppressWarnings("unchecked")
         Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
         if (searchTokens != null) {
             for (String searchToken : searchTokens) {
