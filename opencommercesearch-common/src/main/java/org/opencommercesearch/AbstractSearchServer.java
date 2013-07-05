@@ -72,10 +72,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     // collection property but once a collection is used it sticks to it
     private Map<String, T> catalogSolrServers = new HashMap<String, T>();
     private Map<String, T> rulesSolrServers = new HashMap<String, T>();
+    private Map<String, T> autocompleteSolrServers = new HashMap<String, T>();
     private String catalogCollection;
     private String rulesCollection;
+    private String autocompleteCollection;
     private String catalogConfig;
     private String rulesConfig;
+    private String autocompleteConfig;
     private String minimumMatch;
     private Repository searchRepository;
     private RqlStatement synonymListRql;
@@ -102,9 +105,20 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return rulesSolrServers.get(locale.getLanguage());
     }
 
+    public void setAutocompleteSolrServers(T autocompleteSolrServer, Locale locale) {
+        autocompleteSolrServers.put(locale.getLanguage(), autocompleteSolrServer);
+    }
+
+    public T getAutocompleteSolrServers(Locale locale) {
+        return autocompleteSolrServers.get(locale.getLanguage());
+    }
+    
     public T getSolrServer(String collection, Locale locale) {
         if (rulesCollection != null && rulesCollection.equals(collection)) {
             return getRulesSolrServer(locale);
+        } 
+        else if (autocompleteCollection != null && autocompleteCollection.equals(collection)) {
+            return getAutocompleteSolrServers(locale);
         }
         return getCatalogSolrServer(locale);
     }
@@ -112,6 +126,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public String getCollectionName(String collection, Locale locale) {
         if (rulesCollection != null && rulesCollection.equals(collection)) {
             return getRulesCollection(locale);
+        }
+        else if (autocompleteCollection != null && autocompleteCollection.equals(collection)) {
+            return getAutocompleteCollection(locale);
         }
         return getCatalogCollection(locale);
     }
@@ -134,6 +151,17 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     public String getRulesCollection(Locale locale) {
         return rulesCollection + "_" + locale.getLanguage();
+    }
+
+    public String getAutocompleteCollection() {
+        return autocompleteCollection;
+    }
+    
+    
+    public String getAutocompleteCollection(Locale locale) {
+        //TODO gsegura figure out if we want to support autocomplete per language locale
+        //return autocompleteCollection + "_" + locale.getLanguage();
+        return autocompleteCollection;
     }
 
     public String getMinimumMatch() {
@@ -164,6 +192,18 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         this.rulesCollection = ruleCollection;
     }
 
+    public String getAutocompleteConfig() {
+        return autocompleteConfig;
+    }
+    
+    public void setAutocompleteConfig(String autocompleteConfig) {
+        this.autocompleteConfig = autocompleteConfig;
+    }
+   
+    public void setAutocompleteCollection(String autocompleteCollection) {
+        this.autocompleteCollection = autocompleteCollection;
+    }
+    
     public Repository getSearchRepository() {
         return searchRepository;
     }
@@ -592,6 +632,19 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
         return noResults;
     }
+    
+    @Override
+    public QueryResponse query(SolrQuery solrQuery, String collection,  Locale locale) throws SearchServerException {
+        try {
+            T server = getSolrServer(collection, locale);
+            if (server == null) {
+                throw create(SEARCH_EXCEPTION);
+            }
+            return server.query(solrQuery);
+        } catch (SolrServerException ex) {
+            throw create(SEARCH_EXCEPTION, ex);
+        }
+    }
 
     @Override
     public UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException {
@@ -606,7 +659,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public UpdateResponse add(Collection<SolrInputDocument> docs, String collection) throws SearchServerException {
         return add(docs, collection, Locale.ENGLISH);
     }
-
+    
+    @Override
     public UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.add(docs);
@@ -614,6 +668,26 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         try {
             return req.process(getSolrServer(collection, locale));
+        } catch (SolrServerException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(UPDATE_EXCEPTION, ex);
+        }
+    }
+    
+    @Override
+    public UpdateResponse addBeans(Collection beans, String collection) throws SearchServerException {
+        return addBeans(beans, collection, Locale.ENGLISH);
+    }
+    
+    @Override
+    public UpdateResponse addBeans(Collection beans, String collection, Locale locale) throws SearchServerException {
+        try {
+            T server = getSolrServer(collection, locale);
+            if (server == null) {
+                throw create(UPDATE_EXCEPTION);
+            }
+            return server.addBeans(beans);
         } catch (SolrServerException ex) {
             throw create(UPDATE_EXCEPTION, ex);
         } catch (IOException ex) {
@@ -651,6 +725,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return rollback(collection, Locale.ENGLISH);
     }
 
+    @Override
     public UpdateResponse rollback(String collection, Locale locale) throws SearchServerException {
  
         try {
@@ -677,6 +752,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return commit(collection, Locale.ENGLISH);
     }
 
+    @Override
     public UpdateResponse commit(String collection, Locale locale) throws SearchServerException {
  
         try {
@@ -703,6 +779,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         return deleteByQuery(query, collection, Locale.ENGLISH);
     }
 
+    @Override
     public UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException {
         UpdateRequest req = new UpdateRequest();
         req.deleteByQuery(query);
@@ -742,6 +819,23 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public NamedList<Object> analyze(FieldAnalysisRequest request, Locale locale) throws SearchServerException {
         try {
             return getCatalogSolrServer(locale).request(request);
+        } catch (SolrServerException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        } catch (IOException ex) {
+            throw create(ANALYSIS_EXCEPTION, ex);
+        }
+    }
+    
+    @Override
+    public NamedList<Object> analyze(FieldAnalysisRequest request, String collection, Locale locale) throws SearchServerException {
+        try {
+            T solrServer = getSolrServer(collection, locale);
+            
+            if (solrServer == null) {
+                throw create(ANALYSIS_EXCEPTION);
+            }
+            
+            return solrServer.request(request);
         } catch (SolrServerException ex) {
             throw create(ANALYSIS_EXCEPTION, ex);
         } catch (IOException ex) {
@@ -841,6 +935,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         String collectionName = getCatalogCollection(Locale.ENGLISH);
         reloadCollection(collectionName, Locale.ENGLISH);
         collectionName = getRulesCollection(Locale.ENGLISH);
+        reloadCollection(collectionName, Locale.ENGLISH);
+        collectionName = getAutocompleteCollection(Locale.ENGLISH);
         reloadCollection(collectionName, Locale.ENGLISH);
     }
 

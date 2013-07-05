@@ -27,6 +27,7 @@ import java.util.Set;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
 import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
+import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.SolrPingResponse;
 import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
@@ -67,16 +68,25 @@ public interface SearchServer {
 
     Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, FilterQuery... filterQueries) throws SearchServerException;
     
+    QueryResponse query(SolrQuery solrQuery,  String collection, Locale locale) throws SearchServerException;
+    
     UpdateResponse add(Collection<SolrInputDocument> docs) throws SearchServerException;
     UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException;
-
+    UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException;
+    
+    UpdateResponse addBeans(Collection beans, String collection) throws SearchServerException;
+    UpdateResponse addBeans(Collection beans, String collection, Locale locale) throws SearchServerException;
+    
     UpdateResponse rollback() throws SearchServerException;
     UpdateResponse rollback(Locale locale) throws SearchServerException;
+    UpdateResponse rollback(String collection, Locale locale) throws SearchServerException;
     
     UpdateResponse commit() throws SearchServerException;
     UpdateResponse commit(Locale locale) throws SearchServerException;
+    UpdateResponse commit(String collection, Locale locale) throws SearchServerException;
 
     UpdateResponse deleteByQuery(String query) throws SearchServerException;
+    UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException;
     UpdateResponse deleteByQuery(String query, Locale locale) throws SearchServerException;
 
     SolrPingResponse ping() throws SearchServerException;
@@ -84,7 +94,7 @@ public interface SearchServer {
 
     NamedList<Object> analyze(DocumentAnalysisRequest request) throws SearchServerException;
     NamedList<Object> analyze(DocumentAnalysisRequest request, Locale locale) throws SearchServerException;
-
+    
     /**
      * Performs an analysis of a field type or field name for a given value.
      *
@@ -94,7 +104,8 @@ public interface SearchServer {
      */
     NamedList<Object> analyze(FieldAnalysisRequest request) throws SearchServerException;
     NamedList<Object> analyze(FieldAnalysisRequest request, Locale locale) throws SearchServerException;
-
+    NamedList<Object> analyze(FieldAnalysisRequest request, String collection, Locale locale) throws SearchServerException;
+    
     /**
      * Returns the indexed terms for the given list of fields for each document that matches the given query.
      *
