@@ -299,6 +299,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         String categoryPath = null;
         
+        if (hasCategoryPath) {
+            categoryPath = options.getCategoryPath();
+        } else {
+            categoryPath = options.getCatalogId() + ".";
+        }
+        
         if (options.isRuleBasedPage()) {
             //handle rule based pages
             String filter = rulesBuilder.buildRulesFilter(options.getCategoryId(), locale);
@@ -306,13 +312,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             query.setParam("q", "");
             
         } else {
-            //handle brand, category or onsale pages
-            if (hasCategoryPath) {
-                categoryPath = options.getCategoryPath();
-            } else {
-                categoryPath = options.getCatalogId() + ".";
-            }
-    
+            //handle brand, category or onsale pages                
             if (addCategoryGraph) {
                 query.setFacetPrefix(CATEGORY_PATH, categoryPath);
                 query.addFacetField(CATEGORY_PATH);
@@ -350,7 +350,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
         }
         
-        SearchResponse response =  doSearch(query, site, catalog, locale, false, filterQueries);
+        SearchResponse response =  null;
+        
+        if (options.isRuleBasedPage()) {
+        	response = doSearch(query, site, catalog, locale, false, categoryPath, filterQueries);
+        } else {
+        	response = doSearch(query, site, catalog, locale, false, null, filterQueries);
+        }
 
         if (addCategoryGraph) {
             response.setCategoryGraph(createCategoryGraph(response,
@@ -395,7 +401,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     @Override
     public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
             throws SearchServerException {
-        return doSearch(query, site, catalog, locale, true, filterQueries);
+        return doSearch(query, site, catalog, locale, true, null, filterQueries);
     }
     
     @Override
@@ -450,7 +456,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
     
-    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch, FilterQuery... filterQueries)
+    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch, String categoryPath, FilterQuery... filterQueries)
             throws SearchServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");
@@ -468,7 +474,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             setGroupParams(query);
             setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
             try {
-                ruleManager.setRuleParams(filterQueries, catalog, query, isSearch);
+                ruleManager.setRuleParams(query, isSearch, categoryPath, filterQueries, catalog);
                 
                 if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
                     Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
