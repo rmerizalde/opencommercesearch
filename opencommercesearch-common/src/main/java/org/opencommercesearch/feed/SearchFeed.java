@@ -126,8 +126,6 @@ public abstract class SearchFeed extends GenericService {
             InventoryException {
         long startTime = System.currentTimeMillis();
         
-        checkPermission();
-        
         RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
         int productCount = productRql.executeCountQuery(productView, null);
 
@@ -196,8 +194,6 @@ public abstract class SearchFeed extends GenericService {
             }
         }
     }
-
-    protected abstract void checkPermission() throws SearchServerException;
     
     protected abstract void onFeedStarted(long indexStamp);
 
