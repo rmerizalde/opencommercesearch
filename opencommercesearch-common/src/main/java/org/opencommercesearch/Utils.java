@@ -186,8 +186,8 @@ public class Utils {
         StringBuilder prefix = new StringBuilder();
         for (int level = categoryPath.size() - 1 ; level >= 0; level --) {
             //from catagory4->category3->category->2->category1->category0->catalog
-        	//remove category0
-        	if(level != categoryPath.size() - 2) {
+            //remove category0
+            if(level != categoryPath.size() - 2) {
                 prefix.append(categoryPath.get(level));
                 if (level != 0) {
                     prefix.append(".");
@@ -254,7 +254,13 @@ public class Utils {
     private static void buildPath(List<String> currentPath, RepositoryItem category){
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> parents = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);        
-        RepositoryItem parent = parents.iterator().next();
+        
+        RepositoryItem parent = null;
+        
+        if(parents.iterator().hasNext()) {
+            parent = parents.iterator().next();
+        }
+        
         if(parent != null){
             currentPath.add(0, parent.getRepositoryId());
             buildPath(currentPath, parent);
