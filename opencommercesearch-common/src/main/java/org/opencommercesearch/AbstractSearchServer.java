@@ -259,6 +259,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         String categoryPath = null;
         
+        if (hasCategoryPath) {
+            categoryPath = options.getCategoryPath();
+        } else {
+            categoryPath = options.getCatalogId() + ".";
+        }
+        
         if (options.isRuleBasedPage()) {
             //handle rule based pages
             String filter = rulesBuilder.buildRulesFilter(options.getCategoryId(), locale);
@@ -266,13 +272,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             query.setParam("q", "");
             
         } else {
-            //handle brand, category or onsale pages
-            if (hasCategoryPath) {
-                categoryPath = options.getCategoryPath();
-            } else {
-                categoryPath = options.getCatalogId() + ".";
-            }
-    
+            //handle brand, category or onsale pages                
             if (addCategoryGraph) {
                 query.setFacetPrefix(CATEGORY_PATH, categoryPath);
                 query.addFacetField(CATEGORY_PATH);

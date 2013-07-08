@@ -20,6 +20,8 @@ package org.opencommercesearch;
 */
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
@@ -129,15 +131,85 @@ public class Utils {
     }
     
     public static String findFilterExpressionByName(String path, String filterQueryName){
-    	String filterExpression = null;
-    	FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(path);
+        String filterExpression = null;
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(path);
         for(FilterQuery filterQuery :filterQueries) {
             if(filterQueryName.equals(filterQuery.getFieldName())){
-            	filterExpression = filterQuery.getExpression();
+                filterExpression = filterQuery.getExpression();
             }
         }
         
         return filterExpression;
+    }
+    
+    /**
+     * Builds the taxonomy paths for a given category. It drills up to the root category. The output format is:
+     * "catalogId"."catLevel1"."catLevel2"..."catLevelN"
+     * There can be multiple paths from a category to the catalog. All paths are calculated 
+     * @param categoryItem The current category in the ladder up to the catalog
+     * @param categoryPath The current taxonomy path being build 
+     * @param categoryPaths stores the paths once a path reaches to the catalog 
+     * @return
+     */
+    private static void buildAllCategoryPaths(RepositoryItem categoryItem, List<String> categoryPath, Set<String> categoryPaths){
+        //check for parent catalogs
+        Set<RepositoryItem> parentCatalogs = (Set<RepositoryItem>)categoryItem.getPropertyValue(CategoryProperty.PARENT_CATALOGS);
+        if(parentCatalogs != null) {
+            if (parentCatalogs.size() > 0) {
+                for(RepositoryItem parentCatalog : parentCatalogs) {
+                    categoryPath.add(parentCatalog.getRepositoryId());                
+                    categoryPaths.add(buildPath(categoryPath));
+                    categoryPath.remove(categoryPath.size()-1);
+                }
+            }
+        }
+        //check for fixedparent categories
+        Set<RepositoryItem> fixedParentCatagories = (Set<RepositoryItem>)categoryItem.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);
+        if (fixedParentCatagories != null) {
+            for(RepositoryItem catagory : fixedParentCatagories) {
+                if(!categoryPath.contains(catagory.getRepositoryId())) {
+                    categoryPath.add(catagory.getRepositoryId());
+                    buildAllCategoryPaths(catagory, categoryPath, categoryPaths);
+                    categoryPath.remove(categoryPath.size()-1);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Auxiliary recursive method for buildCategoryPrefix.
+     * @see buildCategoryPrefix
+     * @param categoryPath LinkList storing the path
+     * @return
+     */
+    private static String buildPath(List<String> categoryPath){
+        StringBuilder prefix = new StringBuilder();
+        for (int level = categoryPath.size() - 1 ; level >= 0; level --) {
+            //from catagory4->category3->category->2->category1->category0->catalog
+        	//remove category0
+        	if(level != categoryPath.size() - 2) {
+                prefix.append(categoryPath.get(level));
+                if (level != 0) {
+                    prefix.append(".");
+                }
+            }
+        }
+        return prefix.toString();
+    }
+    
+    /**
+     * Builds the taxonomy path for a given category. It drills up to the root category. The output format is:
+     * "catalogId"."catLevel1"."catLevel2"..."catLevelN"
+     * There can be multiple paths from a category to the catalog. All paths are calculated 
+     * @param categoryItem The category we want to generate the taxonomy path for.
+     * @return
+     */
+    public static Set<String> buildCategoryPrefix(RepositoryItem categoryItem){
+        Set<String> categoryPaths = new HashSet<String>();
+        List<String> categoryPath = new LinkedList<String>();
+        categoryPath.add(categoryItem.getRepositoryId());
+        buildAllCategoryPaths(categoryItem, categoryPath, categoryPaths);
+        return categoryPaths;
     }
 
     /**
@@ -151,7 +223,7 @@ public class Utils {
     public static String buildCategoryPrefix(String catalogId, RepositoryItem categoryItem){
         StringBuilder prefix = new StringBuilder();
         
-        List<String> path = new ArrayList<String>();
+        List<String> path = new ArrayList<String>(); 
  
         if (categoryItem != null) {
             path.add(categoryItem.getRepositoryId());
@@ -170,7 +242,7 @@ public class Utils {
         }
         return prefix.toString(); 
         
-    }    
+    }
     
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
@@ -180,6 +252,7 @@ public class Utils {
      * @param category The current category we are traversing
      */
     private static void buildPath(List<String> currentPath, RepositoryItem category){
+        @SuppressWarnings("unchecked")
         Set<RepositoryItem> parents = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);        
         RepositoryItem parent = parents.iterator().next();
         if(parent != null){

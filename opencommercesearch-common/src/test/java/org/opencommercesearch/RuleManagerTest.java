@@ -435,6 +435,28 @@ public class RuleManagerTest {
         verifyNoMoreInteractions(query);
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @Test
+    public void testCateGoryPathForRuleBasedCategory() throws RepositoryException {
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        when(testRuleItem.getRepositoryId()).thenReturn("superduper");
+        when(testRuleItem.getPropertyValue(RuleProperty.CATEGORIES)).thenReturn(new HashSet<RepositoryItem>(Arrays.asList(new RepositoryItem[]{cateCchild3, })));
+        when(cateCchild3.getItemDescriptor().getItemDescriptorName()).thenReturn(null);
+        when(cateCchild3.getRepositoryId()).thenReturn("cateCchild3");        
+        when(cateCchild3.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES)).thenReturn(new HashSet<RepositoryItem>(Arrays.asList(new RepositoryItem[]{cateC, })));
+        when(cateC.getRepositoryId()).thenReturn("cateC");
+        when(cateC.getPropertyValue(CategoryProperty.PARENT_CATALOGS)).thenReturn(new HashSet<RepositoryItem>(Arrays.asList(new RepositoryItem[]{cataC, cataB, })));
+        when(cataC.getRepositoryId()).thenReturn("cataC");
+        when(cataB.getRepositoryId()).thenReturn("cataB");
+        SolrInputDocument doc = mgr.createRuleDocument(testRuleItem);
+        Set<String> paths = new HashSet<String>();
+        paths.add("cataC.cateCchild3");
+        paths.add("cataB.cateCchild3");
+        List<String> calculatedPaths = (List<String>)doc.getField("category").getValue();
+        assertEquals(paths.toArray()[0], calculatedPaths.get(0));
+        assertEquals(paths.toArray()[1], calculatedPaths.get(1));
+    }
+    
     @Test
     public void testSetRuleParamsWithSortAndBoostRule() {
         Map<String, List<RepositoryItem>> typeToRules = new HashMap<String, List<RepositoryItem>>();
@@ -1062,11 +1084,6 @@ public class RuleManagerTest {
                 (String) doc.getFieldValue(RuleManager.FIELD_BOOST_FUNCTION));
     }
     
-    @Test
-    public void testRankingRuleForRuleBasedCategories() {
-
-    }
-
 
     @Test
     public void testDefaultBoostFactors() {
