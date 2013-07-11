@@ -74,6 +74,7 @@ public class RuleManagerTest {
     @Mock private RepositoryItem shoeItem;    
     @Mock private RepositoryItem fruitItem;    
     @Mock private RepositoryItem bottleItem;
+    @Mock private RepositoryItem bagItem;
     @Mock private RepositoryItem testRuleItem;
     
     @Mock private RepositoryItem siteA, siteB, siteC;
@@ -151,14 +152,24 @@ public class RuleManagerTest {
         when(cateCchild3.getItemDescriptor()).thenReturn(faultyDescriptor);
     }
 
-    private void setUpDocAndItem(String description, String id, String ruleType, RepositoryItem item, SolrDocumentList documents) throws RepositoryException {
-        SolrDocument r1 = new SolrDocument();
-        r1.addField("description", description);
-        r1.addField("id", id);
-        documents.add(r1);        
+    private void setUpRuleData(String description, String id, String ruleType, RepositoryItem item, SolrDocumentList documents) throws RepositoryException {
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", description);
+        rule.addField("id", rule);
+        documents.add(rule);        
         when(item.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn(ruleType);
         when(repository.getItem(id, SearchRepositoryItemDescriptor.RULE)).thenReturn(item);           
     }  
+    
+    private void setUpRuleData(List<String> categories, String description, String id, String ruleType, RepositoryItem item, SolrDocumentList documents) throws RepositoryException {
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", description);
+        rule.addField("id", id);
+        rule.addField("category", categories);
+        documents.add(rule);        
+        when(item.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn(ruleType);
+        when(repository.getItem(id, SearchRepositoryItemDescriptor.RULE)).thenReturn(item);
+    }
     
     @Test 
     public void testSetRuleParamsAndSetFilterQueries() throws RepositoryException, SolrServerException {
@@ -174,13 +185,13 @@ public class RuleManagerTest {
         // we need to make sure that we test filterQueries here...
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
-        SolrDocument r1 = new SolrDocument();
-        r1.addField("description", "avacado's grow on trees!");
-        r1.addField("id", "avacado");
-        solrDocumentList.add(r1);    
-        setUpDocAndItem("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", "avacado's grow on trees!");
+        rule.addField("id", "avacado");
+        solrDocumentList.add(rule);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -249,13 +260,13 @@ public class RuleManagerTest {
         // test handling null filterQueries
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
-        SolrDocument r1 = new SolrDocument();
-        r1.addField("description", "avacado's grow on trees!");
-        r1.addField("id", "avacado");
-        solrDocumentList.add(r1);    
-        setUpDocAndItem("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", "avacado's grow on trees!");
+        rule.addField("id", "avacado");
+        solrDocumentList.add(rule);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -458,6 +469,27 @@ public class RuleManagerTest {
     }
     
     @Test
+    public void testRankingRuleForRuleBasedCategories() throws RepositoryException, SolrServerException {
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        SolrDocumentList ruleList = new SolrDocumentList();
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, ruleList);
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", "avacado's grow on trees!");
+        rule.addField("id", "avacado");
+        ruleList.add(rule);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, ruleList);
+        List<String> categories = new ArrayList<String>();
+        categories.add("myCatalog.ruleBasedCategory");
+        setUpRuleData(categories, "bag are nice for carring goods !", "reebok", boostRule, bagItem, ruleList);
+        ruleList.setNumFound(ruleList.size()); 
+        ruleList.setStart(0L);
+        when(queryResponse.getResults()).thenReturn(ruleList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, cataA);
+        assertEquals(mgr.getRules().size(), 2);
+    }
+    
+    @Test
     public void testSetRuleParamsWithSortAndBoostRule() {
         Map<String, List<RepositoryItem>> typeToRules = new HashMap<String, List<RepositoryItem>>();
         List<RepositoryItem> rules = new ArrayList<RepositoryItem>();
@@ -616,13 +648,13 @@ public class RuleManagerTest {
     public void testLoadRulesNullRule() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
-        SolrDocument r1 = new SolrDocument();
-        r1.addField("description", "avacado's grow on trees!");
-        r1.addField("id", "avacado");
-        solrDocumentList.add(r1);    
-        setUpDocAndItem("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        SolrDocument rule = new SolrDocument();
+        rule.addField("description", "avacado's grow on trees!");
+        rule.addField("id", "avacado");
+        solrDocumentList.add(rule);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size());
@@ -662,9 +694,9 @@ public class RuleManagerTest {
     public void testLoadRulesMixedTypes() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
-        setUpDocAndItem("avacado's grow on trees!", "avacado", blockRule, fruitItem, solrDocumentList);    
-        setUpDocAndItem("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData("avacado's grow on trees!", "avacado", blockRule, fruitItem, solrDocumentList);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -720,18 +752,18 @@ public class RuleManagerTest {
          
         
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes",     "supra",    facetRule, shoeItem,  docList1); // SKIPPING due to setStart
-        setUpDocAndItem("avacado's ",       "avacado",  blockRule, fruitItem, docList1);    
-        setUpDocAndItem("water bottles!",   "nalgene",  boostRule, bottleItem,docList1);
-        setUpDocAndItem("biking?  fun!",    "tallboy",  boostRule, bikeItem,  docList1);
-        setUpDocAndItem("sleds are lame",   "suzuki",   facetRule, sledItem,  docList1);
-        setUpDocAndItem("cars are lame",    "vw",       facetRule, carItem,   docList1);
-        setUpDocAndItem("fly in a heli",    "heli",     boostRule, heliItem,  docList2); // SKIPPING due to setStart
-        setUpDocAndItem("snow is fun",      "snow",     boostRule, snowItem,  docList2);
-        setUpDocAndItem("good for food",    "farm",     blockRule, farmItem,  docList2);
-        setUpDocAndItem("cows are food",    "steak",    facetRule, steakItem, docList2);
-        setUpDocAndItem("coatItem",         "patagonia",boostRule, coatItem,  docList2);
-        setUpDocAndItem("sleeping",         "pillow",   boostRule, pillowItem,docList2);
+        setUpRuleData("i wear shoes",     "supra",    facetRule, shoeItem,  docList1); // SKIPPING due to setStart
+        setUpRuleData("avacado's ",       "avacado",  blockRule, fruitItem, docList1);    
+        setUpRuleData("water bottles!",   "nalgene",  boostRule, bottleItem,docList1);
+        setUpRuleData("biking?  fun!",    "tallboy",  boostRule, bikeItem,  docList1);
+        setUpRuleData("sleds are lame",   "suzuki",   facetRule, sledItem,  docList1);
+        setUpRuleData("cars are lame",    "vw",       facetRule, carItem,   docList1);
+        setUpRuleData("fly in a heli",    "heli",     boostRule, heliItem,  docList2); // SKIPPING due to setStart
+        setUpRuleData("snow is fun",      "snow",     boostRule, snowItem,  docList2);
+        setUpRuleData("good for food",    "farm",     blockRule, farmItem,  docList2);
+        setUpRuleData("cows are food",    "steak",    facetRule, steakItem, docList2);
+        setUpRuleData("coatItem",         "patagonia",boostRule, coatItem,  docList2);
+        setUpRuleData("sleeping",         "pillow",   boostRule, pillowItem,docList2);
                        
         // ----------- set up doclist attributes ----------
         docList1.setNumFound(docList1.size() + docList2.size()); // set numfound to be both pagefuls...
@@ -792,9 +824,9 @@ public class RuleManagerTest {
     public void testLoadRulesFacets() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpDocAndItem("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
-        setUpDocAndItem("avacado's grow on trees!", "avacado", facetRule, fruitItem, solrDocumentList);    
-        setUpDocAndItem("water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, solrDocumentList);
+        setUpRuleData("i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData("avacado's grow on trees!", "avacado", facetRule, fruitItem, solrDocumentList);    
+        setUpRuleData("water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size());
