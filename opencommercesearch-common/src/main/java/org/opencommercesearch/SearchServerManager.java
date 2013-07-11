@@ -19,11 +19,15 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import atg.multisite.Site;
-import atg.nucleus.ServiceException;
-import atg.repository.Repository;
-import atg.repository.RepositoryException;
-import atg.repository.RepositoryItem;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Set;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -36,14 +40,11 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.util.NamedList;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Set;
-import java.util.logging.LogManager;
-import java.util.logging.Logger;
+import atg.multisite.Site;
+import atg.nucleus.ServiceException;
+import atg.repository.Repository;
+import atg.repository.RepositoryException;
+import atg.repository.RepositoryItem;
 
 
 /**
@@ -410,16 +411,6 @@ public class SearchServerManager {
         
         public UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException{
             throw new UnsupportedOperationException("Can't add a document to read only search server");
-        }
-
-        @Override
-        public UpdateResponse addBeans(Collection beans, String collection) throws SearchServerException {
-            throw new UnsupportedOperationException("Can't add beans to read only search server");
-        }
-        
-        @Override
-        public UpdateResponse addBeans(Collection beans, String collection, Locale locale) throws SearchServerException {
-            throw new UnsupportedOperationException("Can't add beans to read only search server");
         }
         
         @Override

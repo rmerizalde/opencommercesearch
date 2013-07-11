@@ -680,26 +680,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             throw create(UPDATE_EXCEPTION, ex);
         }
     }
-    
-    @Override
-    public UpdateResponse addBeans(Collection beans, String collection) throws SearchServerException {
-        return addBeans(beans, collection, Locale.ENGLISH);
-    }
-    
-    @Override
-    public UpdateResponse addBeans(Collection beans, String collection, Locale locale) throws SearchServerException {
-        try {
-            T server = getSolrServer(collection, locale);
-            if (server == null) {
-                throw create(UPDATE_EXCEPTION);
-            }
-            return server.addBeans(beans);
-        } catch (SolrServerException ex) {
-            throw create(UPDATE_EXCEPTION, ex);
-        } catch (IOException ex) {
-            throw create(UPDATE_EXCEPTION, ex);
-        }
-    }
 
     @Override
     public SolrPingResponse ping() throws SearchServerException {
