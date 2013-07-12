@@ -70,16 +70,19 @@
    <field name="id"             type="int"             indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="userQuery"      type="edgengram"       indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="userQuerySpell" type="normalizedQuery" indexed="true"  stored="false" required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="siteId"         type="string"          indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true"  termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />   
+
    <!-- todo, count doesn't need to be stored -->
    <field name="count"          type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="revenue"        type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="orders"         type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="instances"      type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="visits"         type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="units"          type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="carts"          type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="checkout"       type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="extendedDataTimestamp" type="string"          indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />   
+   <field name="revenue"        type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="orders"         type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="instances"      type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="visits"         type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="units"          type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="carts"          type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="checkout"       type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="extendedDataTimestamp" type="string"   indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />   
+   
    <field name="lastResults"    type="int"             indexed="false" stored="true" required="false" multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="lastUpdated"    type="tdate"           indexed="true" stored="true" required="true"   multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
  </fields>
