@@ -74,9 +74,6 @@ public interface SearchServer {
     UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException;
     UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException;
     
-    UpdateResponse addBeans(Collection beans, String collection) throws SearchServerException;
-    UpdateResponse addBeans(Collection beans, String collection, Locale locale) throws SearchServerException;
-    
     UpdateResponse rollback() throws SearchServerException;
     UpdateResponse rollback(Locale locale) throws SearchServerException;
     UpdateResponse rollback(String collection, Locale locale) throws SearchServerException;
@@ -86,9 +83,9 @@ public interface SearchServer {
     UpdateResponse commit(String collection, Locale locale) throws SearchServerException;
 
     UpdateResponse deleteByQuery(String query) throws SearchServerException;
-    UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException;
     UpdateResponse deleteByQuery(String query, Locale locale) throws SearchServerException;
-
+    UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException;
+    
     SolrPingResponse ping() throws SearchServerException;
     SolrPingResponse ping(Locale locale) throws SearchServerException;
 
