@@ -19,22 +19,6 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import atg.multisite.Site;
-import atg.nucleus.ServiceException;
-import atg.repository.Repository;
-import atg.repository.RepositoryException;
-import atg.repository.RepositoryItem;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
-import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
-import org.apache.solr.client.solrj.response.SolrPingResponse;
-import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.common.SolrInputDocument;
-import org.apache.solr.common.util.NamedList;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -43,6 +27,24 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.request.DocumentAnalysisRequest;
+import org.apache.solr.client.solrj.request.FieldAnalysisRequest;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.client.solrj.response.SolrPingResponse;
+import org.apache.solr.client.solrj.response.UpdateResponse;
+import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.util.NamedList;
+
+import atg.multisite.Site;
+import atg.nucleus.ServiceException;
+import atg.repository.Repository;
+import atg.repository.RepositoryException;
+import atg.repository.RepositoryItem;
 
 
 /**
@@ -406,7 +408,11 @@ public class SearchServerManager {
         public UpdateResponse add(Collection<SolrInputDocument> docs, Locale locale) throws SearchServerException {
             throw new UnsupportedOperationException("Can't add a document to read only search server");
         }
-
+        
+        public UpdateResponse add(Collection<SolrInputDocument> docs, String collection, Locale locale) throws SearchServerException{
+            throw new UnsupportedOperationException("Can't add a document to read only search server");
+        }
+        
         @Override
         public UpdateResponse commit() throws SearchServerException {
             throw new UnsupportedOperationException("Can't coommit on a read only search server");
@@ -418,12 +424,22 @@ public class SearchServerManager {
         }
         
         @Override
+        public UpdateResponse commit(String collection, Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't coommit on a read only search server");
+        }
+        
+        @Override
         public UpdateResponse rollback() throws SearchServerException {
             throw new UnsupportedOperationException("Can't rollback on a read only search server");
         }
 
         @Override
         public UpdateResponse rollback(Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't rollback on a read only search server");
+        }
+        
+        @Override
+        public UpdateResponse rollback(String collection, Locale locale) throws SearchServerException {
             throw new UnsupportedOperationException("Can't rollback on a read only search server");
         }
 
@@ -437,6 +453,11 @@ public class SearchServerManager {
             throw new UnsupportedOperationException("Can't delete documents in a read only search server");
         }
 
+        @Override
+        public UpdateResponse deleteByQuery(String query, String collection, Locale locale) throws SearchServerException {
+            throw new UnsupportedOperationException("Can't delete documents in a read only search server");
+        }
+        
         @Override
         public SolrPingResponse ping() throws SearchServerException {
             return server.ping();
@@ -467,6 +488,11 @@ public class SearchServerManager {
             return server.analyze(request, locale);
         }
 
+        @Override
+        public NamedList<Object> analyze(FieldAnalysisRequest request, String collection, Locale locale) throws SearchServerException {
+            return server.analyze(request, locale);
+        }
+        
         @Override
         public SearchResponse termVector(String query, String... fields) throws SearchServerException {
             return server.termVector(query, fields);
@@ -510,6 +536,11 @@ public class SearchServerManager {
         @Override
         public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, FilterQuery... filterQueries)  throws SearchServerException {
             return server.getFacet(site, locale, fieldFacet, facetLimit, filterQueries);
+        }
+        
+        @Override
+        public QueryResponse query(SolrQuery solrQuery, String collection, Locale locale) throws SearchServerException {
+            return server.query(solrQuery, collection, locale);
         }
         
     }
