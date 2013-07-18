@@ -157,6 +157,13 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                 rulesSolrServer.shutdown();
             }
             setRulesSolrServer(null, locale);
+            
+            CloudSolrServer autocompleteSolrServer = getSolrServer(getAutocompleteCollection(), locale);
+
+            if (autocompleteSolrServer != null) {
+                autocompleteSolrServer.shutdown();
+            }
+            setAutocompleteSolrServers(null, locale);
         }
     }
 
@@ -180,6 +187,16 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             rulesSolrServer = new CloudSolrServer(getHost());
             rulesSolrServer.setDefaultCollection(getRulesCollection() + languagePrefix);
             setRulesSolrServer(rulesSolrServer, locale);
+            
+            CloudSolrServer autocompleteSolrServer = getSolrServer(getAutocompleteCollection(), locale);
+            
+            if (autocompleteSolrServer != null) {
+                autocompleteSolrServer.shutdown();
+            }
+            autocompleteSolrServer = new CloudSolrServer(getHost());
+            //TODO gsegura: we may need to add the language prefix here
+            autocompleteSolrServer.setDefaultCollection(getAutocompleteCollection());
+            setAutocompleteSolrServers(autocompleteSolrServer, locale);
         }
     }
 

@@ -187,7 +187,15 @@ public class RuleManager<T extends SolrServer> {
         return rules;
     }
 
-
+    private void buildRuleLists (String ruleType, RepositoryItem rule, SolrDocument doc) {
+        List<RepositoryItem> ruleList = (List<RepositoryItem>) rules.get(ruleType);
+        if (ruleList == null) {
+            ruleList = new ArrayList<RepositoryItem>();
+            rules.put(ruleType, ruleList);
+        }
+        ruleList.add(rule);
+        ruleDocs.put(rule.getRepositoryId(), doc);
+    }
     /**
      * Loads the rules that matches the given query
      * 
@@ -225,7 +233,7 @@ public class RuleManager<T extends SolrServer> {
         query.addSortField(FIELD_SORT_PRIORITY, ORDER.asc);
         query.addSortField(FIELD_SCORE, ORDER.asc);
         query.addSortField(FIELD_ID, ORDER.asc);
-        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY);
+        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
         
         StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
@@ -279,15 +287,25 @@ public class RuleManager<T extends SolrServer> {
 
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
                         SearchRepositoryItemDescriptor.RULE);
+                
+                //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
                     String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
-                    List<RepositoryItem> ruleList = (List<RepositoryItem>) rules.get(ruleType);
-                    if (ruleList == null) {
-                        ruleList = new ArrayList<RepositoryItem>();
-                        rules.put(ruleType, ruleList);
+                    if(ruleType.equals(RuleProperty.TYPE_FACET_RULE)) {
+                        buildRuleLists(ruleType, rule, doc);
                     }
-                    ruleList.add(rule);
-                    ruleDocs.put(rule.getRepositoryId(), doc);
+                    else {
+                        if (categoryPath != null) {
+                            List<String> ruleCategories = (List<String>) doc.getFieldValue(FIELD_CATEGORY);
+                            if(ruleCategories != null) {
+                                if(ruleCategories.contains(categoryPath)) {
+                                    buildRuleLists(ruleType, rule, doc);
+                                }
+                            }
+                        } else {
+                            buildRuleLists(ruleType, rule, doc);
+                        }
+                   }
                 } else {
                     //TODO gsegura: add logging that we couldn't find the rule item in the DB
                 }
