@@ -129,9 +129,12 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         }
         
         if(isEnableEvaluation() && doEvaluation) {
+        	if(isLoggingInfo()) {               
+                logInfo("Sending Message for Evaluation Engine");
+            }
             getEvaluationServiceSender().sendMessage("evaluate:"+date);
             if(isLoggingInfo()) {               
-                logInfo("Sending Message for Evaluation Engine");
+                logInfo("Message Sent forEvaluation Engine");
             }
         }
     }
