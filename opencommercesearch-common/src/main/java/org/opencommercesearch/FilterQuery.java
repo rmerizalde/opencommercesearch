@@ -31,6 +31,7 @@ import org.apache.commons.lang.StringUtils;
 
 public class FilterQuery {
     public static final String SEPARATOR = ":";
+    public static final int FILTER_QUERY_PARTS = 2;
 
     private String fieldName;
     private String expression;
@@ -56,9 +57,9 @@ public class FilterQuery {
     }
 
     public FilterQuery(String filterQuery) {
-        String[] parts = StringUtils.split(filterQuery, SEPARATOR);
-        if (parts.length != 2) {
-            throw new IllegalArgumentException("Invalid filter query " + filterQuery);
+        String[] parts = StringUtils.split(filterQuery, SEPARATOR, FILTER_QUERY_PARTS);
+        if (parts.length != FILTER_QUERY_PARTS) {
+            throw new IllegalArgumentException("Invalid filter query: " + filterQuery);
         }
         setFieldName(parts[0]);
         setExpression(parts[1]);
