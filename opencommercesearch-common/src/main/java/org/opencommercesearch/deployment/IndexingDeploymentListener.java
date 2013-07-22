@@ -83,13 +83,13 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     }
     
     public EvaluationServiceSender getEvaluationServiceSender() {
-		return evaluationServiceSender;
-	}
+        return evaluationServiceSender;
+    }
 
-	public void setEvaluationServiceSender(
-			EvaluationServiceSender evaluationServiceSender) {
-		this.evaluationServiceSender = evaluationServiceSender;
-	}
+    public void setEvaluationServiceSender(
+            EvaluationServiceSender evaluationServiceSender) {
+        this.evaluationServiceSender = evaluationServiceSender;
+    }
   
      
     public boolean isEnableEvaluation() {
@@ -99,13 +99,12 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public void setEnableEvaluation(boolean enableEvaluation) {
         this.enableEvaluation = enableEvaluation;
     }
-	
-	@Override
+    
+    @Override
     public void deploymentEvent(DeploymentEvent event) {
-        boolean hasAffectedSearch = false;
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         String date = formatter.format(new Date());
-        
+        boolean doEvaluation = false;
         if (getTriggerStatus().equals(Status.stateToString(event.getNewState()))) {
             Map<String, Set<String>> affectedItemTypes = event.getAffectedItemTypes();
             if (isLoggingInfo()) {
@@ -120,13 +119,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                             logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
                         if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
-                            if(isEnableEvaluation() && !hasAffectedSearch) {
-                                getEvaluationServiceSender().sendMessage("previous:"+date);
-                                if(isLoggingInfo()) {
-                                    logInfo("Sending Message for Evaluation Engine BaseLine");
-                                }
-                                hasAffectedSearch = true; 
-                            }
+                            doEvaluation = true;
                             notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
                         }
@@ -135,10 +128,13 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
             }
         }
         
-        if(isEnableEvaluation() && hasAffectedSearch) {
-            getEvaluationServiceSender().sendMessage("after:"+date);
+        if(isEnableEvaluation() && doEvaluation) {
+        	if(isLoggingInfo()) {               
+                logInfo("Sending Message for Evaluation Engine");
+            }
+            getEvaluationServiceSender().sendMessage("evaluate:"+date);
             if(isLoggingInfo()) {               
-                logInfo("Sending Message for Evaluation Engine After changes");
+                logInfo("Message Sent forEvaluation Engine");
             }
         }
     }
