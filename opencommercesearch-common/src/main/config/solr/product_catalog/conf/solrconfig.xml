@@ -93,6 +93,12 @@
     </arr>
   </requestHandler>
 
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+    </lst>
+  </requestHandler>
+
   <requestHandler name="/update" class="solr.UpdateRequestHandler">
   </requestHandler>
 
