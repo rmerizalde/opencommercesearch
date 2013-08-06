@@ -340,7 +340,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
     
             if (queryAltParams.size() > 0) {
-            	
+                
                 query.set(Q_ALT, "(" + StringUtils.join(queryAltParams, " AND ") + ")");
             }
         }
@@ -351,13 +351,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
         
         SearchResponse response =  null;
-        
         if (options.isRuleBasedPage()) {
-        	response = doSearch(query, site, catalog, locale, false, categoryPath, filterQueries);
+            response = doSearch(query, site, catalog, locale, false, true, categoryPath, filterQueries);
+        } else if(hasCategoryPath){
+            response = doSearch(query, site, catalog, locale, false, false, categoryPath, filterQueries);
         } else {
-        	response = doSearch(query, site, catalog, locale, false, null, filterQueries);
+            response = doSearch(query, site, catalog, locale, false, false, null, filterQueries);
         }
-
+        
         if (addCategoryGraph) {
             response.setCategoryGraph(createCategoryGraph(response,
                     options.getCategoryPath(), options.getCatalogId(),
@@ -401,7 +402,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     @Override
     public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
             throws SearchServerException {
-        return doSearch(query, site, catalog, locale, true, null, filterQueries);
+        return doSearch(query, site, catalog, locale, true, false, null, filterQueries);
     }
     
     @Override
@@ -456,7 +457,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
     
-    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch, String categoryPath, FilterQuery... filterQueries)
+    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch,  boolean isRuleBasedPage, String categoryPath, FilterQuery... filterQueries)
             throws SearchServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");
@@ -474,7 +475,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             setGroupParams(query);
             setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
             try {
-                ruleManager.setRuleParams(query, isSearch, categoryPath, filterQueries, catalog);
+                ruleManager.setRuleParams(query, isSearch, isRuleBasedPage, categoryPath, filterQueries, catalog);
                 
                 if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
                     Map<String, List<RepositoryItem>> rules = ruleManager.getRules();
@@ -579,7 +580,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         String salePrice =  "salePrice" + country;
         String dicountPercent = "discountPercent" + country;
         if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")){
-        	query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
                     "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
         }
         else{

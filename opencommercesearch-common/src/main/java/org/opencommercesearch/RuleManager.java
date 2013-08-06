@@ -210,7 +210,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws SolrServerException
      *             if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, RepositoryItem catalog) throws RepositoryException,
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog) throws RepositoryException,
             SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query ");
@@ -295,7 +295,7 @@ public class RuleManager<T extends SolrServer> {
                         buildRuleLists(ruleType, rule, doc);
                     }
                     else {
-                        if (categoryPath != null) {
+                        if (categoryPath != null && isRuleBasedPage) {
                             List<String> ruleCategories = (List<String>) doc.getFieldValue(FIELD_CATEGORY);
                             if(ruleCategories != null) {
                                 if(ruleCategories.contains(categoryPath)) {
@@ -346,12 +346,12 @@ public class RuleManager<T extends SolrServer> {
         return query.substring(1, query.length() - 1);
     }
 
-    void setRuleParams(SolrQuery query, boolean isSearch, String categoryPath, FilterQuery[] filterQueries, RepositoryItem catalog)
+    void setRuleParams(SolrQuery query, boolean isSearch, boolean isRuleBasedPage, String categoryPath, FilterQuery[] filterQueries, RepositoryItem catalog)
             throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, catalog);
+            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
@@ -536,11 +536,17 @@ public class RuleManager<T extends SolrServer> {
             for (RepositoryItem category : categories) {
                 if (CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())) {
                     setCategorySearchTokens(doc, category, includeSubcategories);
+                    setCategoryCategoryPaths(doc, category, includeSubcategories);
                 } else {
-                    setCategorySearchTokens(doc, category);
+                    setCategoryCategoryPaths(doc, category, false);
                 }
                 
             }
+            
+            if (doc.getFieldValue(FIELD_CATEGORY) == null) {
+                doc.setField(FIELD_CATEGORY, "null");
+            }
+            
         } else {
             doc.setField(FIELD_CATEGORY, WILDCARD);
         }
@@ -631,15 +637,23 @@ public class RuleManager<T extends SolrServer> {
         strengthMap.put(STRENGTH_MAXIMUM_BOOST, Float.toString(10f));
     }
     
-    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category) {
+    private void setCategoryCategoryPaths(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) {
         Set<String> categoryPaths = Utils.buildCategoryPrefix(category);
-        if (categoryPaths.size() == 0){
-            doc.addField(FIELD_CATEGORY, "null");
-            return;
-        }
+                
         for (String categoryPath : categoryPaths) {
             doc.addField(FIELD_CATEGORY, categoryPath);
         }
+        
+        if (includeSubcategories) {
+            @SuppressWarnings("unchecked")
+            List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
+            if (childCategories != null) {
+                for (RepositoryItem childCategory : childCategories) {
+                    setCategoryCategoryPaths(doc, childCategory, includeSubcategories);
+                }
+            }
+        }
+        
     }
     
     /**
