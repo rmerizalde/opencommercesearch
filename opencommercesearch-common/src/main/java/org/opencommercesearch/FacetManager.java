@@ -243,7 +243,7 @@ public class FacetManager {
         }
         return facetName;
     }
-    
+
     public Integer getFacetMinBuckets(String fieldName) {
         Integer minBuckets = 2;
         RepositoryItem facetItem = getFacetItem(fieldName);
@@ -293,6 +293,35 @@ public class FacetManager {
     public String getFacetUIType(FacetField facetField) {
         if (facetField != null) {
             return getFacetUIType(facetField.getName());
+        } else {
+            return null;
+        }
+    }
+
+    /**
+     * Get the sort type for a given facet.
+     * @param fieldName The name of the facet whose sort type is looked for.
+     * @return Sort type for the given facet name, or null if the given facet name does not match an existing facet.
+     */
+    public String getFacetSort(String fieldName) {
+        String sort = null;
+        RepositoryItem facetItem = getFacetItem(fieldName);
+
+        if (facetItem != null) {
+            sort = (String) facetItem.getPropertyValue(FacetProperty.SORT);
+        }
+
+        return sort;
+    }
+
+    /**
+     * Get the sort type for a given facet field.
+     * @param facetField The facet field whose sort type is looked for.
+     * @return Sort type for the given facet field, or null if the given facet does not match an existing facet field.
+     */
+    public String getFacetSort(FacetField facetField) {
+        if (facetField != null) {
+            return getFacetSort(facetField.getName());
         } else {
             return null;
         }
