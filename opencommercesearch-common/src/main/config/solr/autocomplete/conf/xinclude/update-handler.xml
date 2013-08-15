@@ -1,7 +1,1 @@
-<!--
-  Disable auto commits and soft commits
-
-  Production environments should overwrite this file with custom settings
--->
-<updateHandler class="solr.DirectUpdateHandler2">
-</updateHandler>
+../../../product_catalog/conf/xinclude/update-handler.xml

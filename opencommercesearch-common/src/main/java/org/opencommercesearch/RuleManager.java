@@ -401,7 +401,7 @@ public class RuleManager<T extends SolrServer> {
         query.addSortField("score", ORDER.desc);
     }
 
-    private void setFilterQueries(FilterQuery[] filterQueries, String catalogId, SolrQuery query) {
+    void setFilterQueries(FilterQuery[] filterQueries, String catalogId, SolrQuery query) {
         query.setFacetPrefix("category", "1." + catalogId + ".");
         query.addFilterQuery("category:" + "0." + catalogId);
 
