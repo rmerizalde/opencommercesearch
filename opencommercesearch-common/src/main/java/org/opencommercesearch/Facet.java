@@ -33,11 +33,6 @@ public class Facet {
     public static final Integer DEFAULT_MIN_BUCKETS = 2;
 
     private String name;
-
-    /**
-     * Sort type applied or to apply for this facet (i.e. 'index', 'count', 'name').
-     */
-    private String sort;
     private List<Filter> filters;
     private Map<String,String> metadata;
     private Integer minBuckets = DEFAULT_MIN_BUCKETS;
@@ -52,31 +47,12 @@ public class Facet {
     }
 
     /**
-     * Set the name for this facet
+     * Set the name for this face
      *
      * @param name
      */
     public void setName(String name) {
         this.name = name;
-    }
-
-    /**
-     * Gets the sort preference applied or to apply for this facet.
-     * <p/>
-     * Facet sorting refers to the order in which facet values should be displayed. Sorting could be done on the backend
-     * (i.e. by a search engine) or on the front end (Javascript).
-     * @return the sort preference for this facet
-     */
-    public String getSort() {
-        return sort;
-    }
-
-    /**
-     * Set the sort preference for this facet
-     * @param sort Valid sort value (i.e. index, name or
-     */
-    public void setSort(String sort) {
-        this.sort = sort;
     }
 
     /**

@@ -134,7 +134,6 @@ public class SearchResponse {
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
             facet.setMultiSelect(manager.isMultiSelectFacet(facetField));
-            facet.setSort(manager.getFacetSort(facetField));
             setMetadata(manager, facetField.getName(), facet);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());

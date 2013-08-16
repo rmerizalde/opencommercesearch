@@ -350,7 +350,6 @@
           <attribute name="useCodeForValue" value="false"/>
           <option value="count" code="0" />
           <option value="index" code="1"/>
-            <option value="name" code="2"/>
           <attribute name="propertySortPriority" value="2" />
         </property>
         <property name="limit" data-type="int" display-name="Max Buckets (default 100)"
