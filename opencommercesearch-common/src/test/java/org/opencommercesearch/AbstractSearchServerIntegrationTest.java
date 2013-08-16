@@ -142,13 +142,11 @@ public class AbstractSearchServerIntegrationTest {
         assertEquals("/redirect", res.getRedirectResponse());
     }
 
-    @SearchTest(newInstance = true, rulesData = "/rules/datedRules.xml")
+    @SearchTest(newInstance = true)
     public void testRulesLifetime(SearchServer server) throws SearchServerException, SolrServerException, IOException {
         EmbeddedSearchServer baseServer = (EmbeddedSearchServer) server;
 
-        baseServer.updateCollection(baseServer.getRulesCollection(),  getDocsForRulesLifetimeTest(), new Locale("en"));
-        baseServer.commit();
-
+        baseServer.updateCollection(baseServer.getRulesCollection(),  generateDatedRulesXml(), new Locale("en"));
         baseServer.setSearchRepository(searchRepository);
 
         SolrQuery query = new SolrQuery("redirect");
@@ -658,7 +656,7 @@ public class AbstractSearchServerIntegrationTest {
      * Updates existing rules in the index with dates relative to the current time.
      * @return update XML message with the date updates.
      */
-    private String getDocsForRulesLifetimeTest() {
+    private String generateDatedRulesXml() {
         StringBuffer update = new StringBuffer();
         Calendar cal = Calendar.getInstance();
 
@@ -668,13 +666,15 @@ public class AbstractSearchServerIntegrationTest {
         //Add an expired rule
         update.append("<doc>");
         update.append("<field name=\"id\">oldRule</field>");
+
         cal.setTime(new Date());
         cal.add(Calendar.DAY_OF_WEEK, -5);
-        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("<field name=\"startDate\">" + getISODate(cal.getTime()) + "</field>");
 
         cal.setTime(new Date());
         cal.add(Calendar.DAY_OF_WEEK, -3);
-        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("<field name=\"endDate\">" + getISODate(cal.getTime()) + "</field>");
+        appendBoilerPlateFields(update);
         update.append("</doc>");
 
         //Add a valid rule now
@@ -682,12 +682,13 @@ public class AbstractSearchServerIntegrationTest {
         update.append("<field name=\"id\">redirectRuleId</field>");
 
         cal.setTime(new Date());
-        cal.add(Calendar.DAY_OF_WEEK, -1);
-        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        cal.add(Calendar.DAY_OF_WEEK, -2);
+        update.append("<field name=\"startDate\">" + getISODate(cal.getTime()) + "</field>");
 
         cal.setTime(new Date());
-        cal.add(Calendar.DAY_OF_WEEK, 1);
-        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        cal.add(Calendar.DAY_OF_WEEK, 2);
+        update.append("<field name=\"endDate\">" + getISODate(cal.getTime()) + "</field>");
+        appendBoilerPlateFields(update);
         update.append("</doc>");
 
         //One that hast't started yet
@@ -696,15 +697,24 @@ public class AbstractSearchServerIntegrationTest {
         
         cal.setTime(new Date());
         cal.add(Calendar.DAY_OF_WEEK, 5);
-        update.append("<field name=\"startDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("<field name=\"startDate\">" + getISODate(cal.getTime()) + "</field>");
 
         cal.setTime(new Date());
         cal.add(Calendar.DAY_OF_WEEK, 6);
-        update.append("<field name=\"endDate\" update=\"set\">" + getISODate(cal.getTime()) + "</field>");
+        update.append("<field name=\"endDate\">" + getISODate(cal.getTime()) + "</field>");
+        appendBoilerPlateFields(update);
         update.append("</doc>");
         update.append("</add>");
-        
+
         return update.toString();
+    }
+
+    private void appendBoilerPlateFields(StringBuffer update) {
+        update.append("<field name=\"siteId\">__all__</field>");
+        update.append("<field name=\"catalogId\">__all__</field>");
+        update.append("<field name=\"category\">__all__</field>");
+        update.append("<field name=\"target\">allpages</field>");
+        update.append("<field name=\"query\">redirect</field>");
     }
 
     /**

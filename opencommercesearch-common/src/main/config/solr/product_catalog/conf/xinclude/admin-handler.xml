@@ -3,4 +3,5 @@
 
   Production environments should overwrite this file with custom settings
 -->
-<empty/>
+<!--<empty/>-->
+<requestHandler name="/admin/" class="solr.admin.AdminHandlers" />
