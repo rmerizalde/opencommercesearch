@@ -243,7 +243,7 @@ public class FacetManager {
         }
         return facetName;
     }
-    
+
     public Integer getFacetMinBuckets(String fieldName) {
         Integer minBuckets = 2;
         RepositoryItem facetItem = getFacetItem(fieldName);
@@ -276,6 +276,37 @@ public class FacetManager {
     public boolean isMultiSelectFacet(FacetField facetField) {
         if (facetField != null) {
             return isMultiSelectFacet(facetField.getName());
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Get whether or not the given facet field name supports mixed sorting.
+     * <p/>
+     * See {@link Facet#isMixedSorting} for details.
+     * @param fieldName Facet field name to look for.
+     * @return Whether or not the given facet field name supports mixed sorting.
+     */
+    public boolean isMixedSorting(String fieldName) {
+        RepositoryItem facetItem = getFacetItem(fieldName);
+        if (facetItem == null) {
+            return false;
+        }
+        Boolean isMixedSorting = (Boolean) facetItem.getPropertyValue(FacetProperty.IS_MIXED_SORTING);
+        return isMixedSorting != null && isMixedSorting;
+    }
+
+    /**
+     * Get whether or not the given facet field supports mixed sorting.
+     * <p/>
+     * See {@link Facet#isMixedSorting} for details.
+     * @param facetField Facet field to look for.
+     * @return Whether or not the given facet field supports mixed sorting.
+     */
+    public boolean isMixedSorting(FacetField facetField) {
+        if (facetField != null) {
+            return isMixedSorting(facetField.getName());
         } else {
             return false;
         }
