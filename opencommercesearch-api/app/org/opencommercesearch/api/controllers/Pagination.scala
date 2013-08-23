@@ -16,7 +16,7 @@ trait Pagination {
       try {
         query.setStart(offset.get.toInt)
       } catch {
-        case e => // do nothing
+        case e: Throwable => // do nothing
       }
     }
 
@@ -25,7 +25,7 @@ trait Pagination {
         val l = limit.get.toInt
         query.setRows(Math.min(MaxPaginationLimit, l))
       } catch {
-        case e => // do nothing
+        case e: Throwable => // do nothing
       }
     }
 
