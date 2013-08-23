@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="http://www.opencommercesearch.org/stylesheets/styles.css">
     <link rel="stylesheet" href="http://www.opencommercesearch.org/stylesheets/pygment_trac.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="javascripts/main.js"></script>
+    <script src="http://www.opencommercesearch.org/javascripts/main.js"></script>
     <!--[if lt IE 9]>
       <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
@@ -36,10 +36,183 @@
 
     <div class="wrapper">
       <nav>
-        <ul>Brands</ul>
+        <ul>
+            <li><a href="http://www.opencommercesearch.org/docs/index.html">API</a></li>
+            <li><a href="http://www.opencommercesearch.org/docs/brands.html">Brands</a></li>
+            <li>---------</li>
+        </ul>
       </nav>
       <section>
-        <p>API Endpoints</p>
+        <h2>Create Brand</h2>
+        
+        <p>Example request</p>
+        
+        <ul>
+            <li><b>POST</b> https://api.yourdomain.com/v1/brands/88</li>
+            <li><b>Accept:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>
+        <code>
+            {
+                "name" : "The North Face",
+                "logo" : "/images/logo88.jgp"
+            }
+        </code>
+        </p>        
+        
+        <p>Example response</p>
+        
+        <ul>
+            <li><b>201</b> Created</li>
+            <li><b>Content-Type:</b>application/json; charset=UTF-8</li>
+            <li><b>Location:</b>https://api.yourdomain.com/v1/brands/88</li>
+        </ul>
+        
+        <p>Errors</p>
+        
+        <ul>
+            <li><b>400 Bad Request</b> <i>Missing required fields</i>: if the name or logo is missing</li>
+        </ul>        
+        
+        <h2>Bulk Create</strong></h2>
+        
+        <p>Example request</p>
+        
+        <ul>
+            <li><b>POST</b> https://api.yourdomain.com/v1/brands</li>
+            <li><b>Accept:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>
+        <code>
+            { 
+                "brands" : [
+                    {
+                        "id" : 88
+                        "name" : "The North Face",
+                        "logo" : "/images/logo88.jgp"
+                    },
+                    {
+                        "id" : 89
+                        "name" : "Arc'teryx",
+                        "logo" : "/images/logo89.jgp"
+                    }
+                ]
+            }       
+        </code>
+        </p>        
+        
+        <p>Example response</p>
+        
+        <ul>
+            <li><b>201</b> Created</li>
+            <li><b>Content-Type:</b>application/json; charset=UTF-8</li>
+        </ul>  
+        
+        <p>
+        <code>
+            { 
+                "locations" : [
+                    "https://api.yourdomain.com/v1/brands/88",
+                    "https://api.yourdomain.com/v1/brands/89"
+                ]
+            }       
+        </code>
+        </p>   
+        
+        <p>Errors</p>
+        
+        <ul>
+            <li><b>400 Bad Request</b> <i>Missing required fields</i>: if the id, name or logo is missing from any of the brands</li>
+            <li><b>400 Bad Request</b> <i>Exceeded number of brands. Maximum is &ltmax&gt</i>: a buld upload has a limit of the number of brands 
+            the can be created in one request. The default is 100</li>
+        </ul>        
+                                    
+        
+        <h2>Get Brand</h2>
+        
+        <p>Example request</p>
+        
+        <ul>
+            <li><b>GET</b> https://api.yourdomain.com/v1/brands/88</li>
+            <li><b>Accept:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>Example response</p>
+        
+        <ul>
+            <li><b>200</b> OK</li>
+            <li><b>Content-Type:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>
+        <code>
+            {
+                "brand" : {
+                    "id" : "88",
+                    "name" : "The North Face",
+                    "logo" : "/images/logo88.jgp"
+                }
+            }
+        </code>
+        </p>
+        
+        <p>Optional parameters</p>
+        
+        <ul>
+            <li><b>fields</b> a comma separated list of field names to return</li>
+        </ul>
+
+        <p>Errors</p>
+        
+        <ul>
+            <li><b>404 Not Found</b> if the brand with the given id was not found</li>
+        </ul> 
+        
+        <h2>Suggest Completion</h2>
+        
+        <p>Example request</p>
+        
+        <ul>
+            <li><b>GET</b> https://api.yourdomain.com/v1/brands/suggestcompletion/north</li>
+            <li><b>Accept:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>Example response</p>
+        
+        <ul>
+            <li><b>200</b> OK</li>
+            <li><b>Content-Type:</b>application/json; charset=UTF-8</li>
+        </ul>
+        
+        <p>
+        <code>
+            {
+
+                "metadata": {
+                    "found": 5
+                },
+                "suggestions": [
+                    "32North",
+                    "66 North Iceland",
+                    "Northwave",
+                    "The North Face",
+                    "Northwave Snow"
+                ]
+
+            }
+        </code>
+        </p>
+        
+        <p>Optional parameters</p>
+        
+        <ul>
+            <li><b>offset</b> the offset for the suggestions. Default is 0. Use this parameter to paginate</li>
+            <li><b>limit</b> the number of suggestions to return. The default value is 10. The API has a configurable hard limit. 
+            The default hard limit is 20.</li>
+        </ul>
+        
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/rmerizalde">rmerizalde</a></p>
