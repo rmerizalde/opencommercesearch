@@ -275,12 +275,12 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         adminRequest.setCoreName(collectionName);
         adminRequest.setAction(CoreAdminAction.RELOAD);
 
-        CloudSolrServer collection = getSolrServer(collectionName, locale);
-        ZkStateReader zkStateReader = collection.getZkStateReader();
+        CloudSolrServer server = getSolrServer(collectionName, locale);
+        ZkStateReader zkStateReader = server.getZkStateReader();
         if (zkStateReader == null) {
             //if the zkStateReader is null it means we haven't connect to this collection
-            collection.connect();
-            zkStateReader = collection.getZkStateReader();
+            server.connect();
+            zkStateReader = server.getZkStateReader();
         }
         
         ClusterState clusterState = zkStateReader.getClusterState();
@@ -315,7 +315,7 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                 if (isLoggingInfo()) {
                     logInfo("Reloading core " + collectionName + " on " + node);
                 }
-                HttpClient httpClient = collection.getLbServer().getHttpClient();
+                HttpClient httpClient = server.getLbServer().getHttpClient();
                 HttpSolrServer nodeServer = new HttpSolrServer(coreNodeProps.getBaseUrl(), httpClient, getResponseParser());
                 try {
                     CoreAdminResponse adminResponse = adminRequest.process(nodeServer);
