@@ -1,0 +1,12 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# brand routes
+GET        /v1/brands/:id                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
+PUT        /v1/brands/:id                             org.opencommercesearch.api.controllers.BrandController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
+PUT        /v1/brands                                 org.opencommercesearch.api.controllers.BrandController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
+
+# suggest completion
+GET        /v1/brands/suggestcompletion/:query        org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, query: String, preview: Boolean ?= false)
+

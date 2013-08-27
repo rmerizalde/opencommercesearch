@@ -1,0 +1,63 @@
+This is your new Play 2.1 application
+=====================================
+
+This file will be packaged with your application, when using `play dist`.
+
+
+Installing Graphite
+===================
+
+Execute the following commands
+
+* sudo pip install carbon
+* sudo pip install whisper
+* sudo pip install graphite-web
+* sudo pip install django
+* sudo pip install django-tagging
+
+Setup local settings:
+
+* cd /opt/graphite/webapp/graphite
+* cp local_settings.py.example local_settings.py
+* Setup the database settings
+
+Initialize the database:
+
+* Set up a SECRET_KEY in vi /opt/graphite/webapp/graphite/app_settings.py
+* cd /opt/graphite/webapp/graphite
+* sudo python manage.py syncdb
+* You'll be ask to create a superuser for Django's auth system
+* sudo chown nobody:nobody /opt/graphite/storage/graphite.db
+
+Start Carbon (the data aggregator)
+
+* cd /opt/graphite/conf
+* sudo cp carbon.conf.example carbon.conf
+* sudo cp storage-schemas.conf.example storage-schemas.conf
+* cd /opt/graphite/
+* ./bin/carbon-cache.py start
+
+
+Run the development server
+
+* /opt/graphite/bin/run-graphite-devel-server.py /opt/graphite
+
+See http://graphite.wikidot.com/installation
+
+* git clone git://git.cairographics.org/git/py2cairo
+# Open wscript and below `env = ctx.env` add `env.append_unique('CFLAGS', ['-arch', 'x86_64'])`
+* export ARCHFLAGS='-arch x86_64'
+
+If you using port you need to use port's python in the following file (or replace the system python or some other trick)
+
+* /opt/graphite/bin/run-graphite-devel-server.py
+* /usr/local/bin/django-admin.py
+
+Installing statsd (https://gist.github.com/mat/1142828)
+
+* sudo port install nodejs
+* node stats.js config.js
+
+
+
+

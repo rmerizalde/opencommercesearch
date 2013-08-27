@@ -502,7 +502,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                 }
                 throw create(SEARCH_EXCEPTION, ex);
             }
+        } else {
+            ruleManager.setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
         }
+
         try {
             QueryResponse queryResponse = getCatalogSolrServer(locale).query(query);
 
