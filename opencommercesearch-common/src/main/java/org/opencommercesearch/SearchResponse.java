@@ -109,7 +109,7 @@ public class SearchResponse {
             }
         }
     }
-    
+
     private Set<String> getFacetBlacklist (String facetName) {
         HashSet<String> blackList = new HashSet<String>();
 
@@ -134,6 +134,7 @@ public class SearchResponse {
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
             facet.setMultiSelect(manager.isMultiSelectFacet(facetField));
+            facet.setMixedSorting(manager.isMixedSorting(facetField));
             setMetadata(manager, facetField.getName(), facet);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());

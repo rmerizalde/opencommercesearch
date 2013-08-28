@@ -378,6 +378,10 @@
                   column-name="min_df" required="false" category="Advanced">
           <attribute name="propertySortPriority" value="3" />
         </property>
+        <property name="isMixedSorting" data-type="boolean" display-name="Use mixed sorting (default false)"
+                  column-name="is_mixed_sorting" required="false" category="Optional">
+          <attribute name="propertySortPriority" value="6" />
+        </property>
       </table>
     </item-descriptor>
 
