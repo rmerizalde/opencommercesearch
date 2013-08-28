@@ -573,7 +573,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
             if (isSortByScore) {
                 // break ties with custom sort field
-                query.set("group.sort", "score desc, sort asc");
+                query.set("group.sort", "isCloseout asc, score desc, sort asc");
             }
         }
     }
@@ -581,18 +581,18 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private void setFieldListParams(SolrQuery query, String country, String catalog) {
         String listPrice = "listPrice" + country;
         String salePrice =  "salePrice" + country;
-        String dicountPercent = "discountPercent" + country;
+        String discountPercent = "discountPercent" + country;
         if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")){
-            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
                     "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
         }
         else{
-            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, dicountPercent, "url" + country,
+            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
                "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
         }
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
-        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + dicountPercent);
-
+        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
+        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FF, "isCloseout");
     }
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
