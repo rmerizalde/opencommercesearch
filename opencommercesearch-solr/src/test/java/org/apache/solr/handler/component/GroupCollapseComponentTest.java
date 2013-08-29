@@ -58,6 +58,7 @@ public class GroupCollapseComponentTest {
 
     private static final String FIELD_PRICE = "price";
     private static final String FIELD_DISCOUNT = "discount";
+    private static final String FIELD_CLOSEOUT = "isCloseout";
 
     @Mock
     private ResponseBuilder rb;
@@ -83,6 +84,9 @@ public class GroupCollapseComponentTest {
     private FieldType discountType;
 
     @Mock
+    private FieldType booleanType;
+
+    @Mock
     private GroupingSpecification groupSpec;
 
     private org.apache.lucene.document.FieldType.NumericType numericType;
@@ -103,9 +107,13 @@ public class GroupCollapseComponentTest {
         mockResponse();
         when(schema.getFieldType(FIELD_PRICE)).thenReturn(priceType);
         when(schema.getFieldType(FIELD_DISCOUNT)).thenReturn(discountType);
+        when(schema.getFieldType(FIELD_CLOSEOUT)).thenReturn(booleanType);
         numericType = PowerMockito.mock(org.apache.lucene.document.FieldType.NumericType.class);
         when(priceType.getNumericType()).thenReturn(numericType);
+        when(priceType.getTypeName()).thenReturn("tfloat");
         when(discountType.getNumericType()).thenReturn(numericType);
+        when(discountType.getTypeName()).thenReturn("tint");
+        when(booleanType.getTypeName()).thenReturn("boolean");
         when(groupSpec.getFields()).thenReturn(new String[] { "productId" } );
     }
 
@@ -144,12 +152,66 @@ public class GroupCollapseComponentTest {
     public void testGroupCollapse() throws IOException {
         when(rb.grouping()).thenReturn(true);
         when(params.getBool(GroupCollapseParams.GROUP_COLLAPSE, false)).thenReturn(true);
-        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FL)).thenReturn("price,discount");
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FL)).thenReturn("price,discount,isCloseout");
         component.process(rb);
         verify(rb).grouping();
         verify(rb).getGroupingSpec();
         verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
+        verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+        verifyNoMoreInteractions(rb);
+        verifyNoMoreInteractions(params);
+
+        ArgumentCaptor<NamedList> namedListArgument = ArgumentCaptor.forClass(NamedList.class);
+        verify(rsp).add(eq("groups_summary"), namedListArgument.capture());
+
+        NamedList groupsSummary = namedListArgument.getValue();
+        NamedList productId = (NamedList) groupsSummary.get("productId");
+        assertNotNull(productId);
+
+        verifyProductSummary((NamedList) productId.get("product1"), 80.0f, 100.0f, 0.0f, 20.0f);
+        verifyProductSummary((NamedList) productId.get("product2"), 60.0f, 80.0f, 20.0f, 40.0f);
+    }
+
+    @Test
+    public void testGroupCollapseFilterField() throws IOException {
+        when(rb.grouping()).thenReturn(true);
+        when(params.getBool(GroupCollapseParams.GROUP_COLLAPSE, false)).thenReturn(true);
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FL)).thenReturn("price,discount,isCloseout");
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FF)).thenReturn(FIELD_CLOSEOUT);
+        component.process(rb);
+        verify(rb).grouping();
+        verify(rb).getGroupingSpec();
+        verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
+        verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
+        verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+        verifyNoMoreInteractions(rb);
+        verifyNoMoreInteractions(params);
+
+        ArgumentCaptor<NamedList> namedListArgument = ArgumentCaptor.forClass(NamedList.class);
+        verify(rsp).add(eq("groups_summary"), namedListArgument.capture());
+
+        NamedList groupsSummary = namedListArgument.getValue();
+        NamedList productId = (NamedList) groupsSummary.get("productId");
+        assertNotNull(productId);
+
+        verifyProductSummary((NamedList) productId.get("product1"), 100.0f, 100.0f, 0.0f, 0.0f);
+        verifyProductSummary((NamedList) productId.get("product2"), 60.0f, 60.0f, 40.0f, 40.0f);
+    }
+
+    @Test
+    public void testGroupCollapseFilterFieldAllFiltered() throws IOException {
+        mockResponse(true);
+        when(rb.grouping()).thenReturn(true);
+        when(params.getBool(GroupCollapseParams.GROUP_COLLAPSE, false)).thenReturn(true);
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FL)).thenReturn("price,discount,isCloseout");
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FF)).thenReturn(FIELD_CLOSEOUT);
+        component.process(rb);
+        verify(rb).grouping();
+        verify(rb).getGroupingSpec();
+        verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
+        verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
+        verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
         verifyNoMoreInteractions(rb);
         verifyNoMoreInteractions(params);
 
@@ -166,11 +228,11 @@ public class GroupCollapseComponentTest {
 
     private void verifyProductSummary(NamedList productSummary, Float expectedMinPrice, Float expectedMaxPrice, Float expectedMinDiscount, Float expectedMaxDiscount) {
         assertNotNull(productSummary);
-        verifyField((NamedList) productSummary.get(FIELD_PRICE), expectedMinPrice, expectedMaxPrice);
-        verifyField((NamedList) productSummary.get(FIELD_DISCOUNT), expectedMinDiscount, expectedMaxDiscount);
+        verifyFloatField((NamedList) productSummary.get(FIELD_PRICE), expectedMinPrice, expectedMaxPrice);
+        verifyFloatField((NamedList) productSummary.get(FIELD_DISCOUNT), expectedMinDiscount, expectedMaxDiscount);
     }
 
-    private void verifyField(NamedList field, Float expectedMin, Float expectedMax) {
+    private void verifyFloatField(NamedList field, Float expectedMin, Float expectedMax) {
         Float min = (Float) field.get("min");
         assertEquals(expectedMin, min);
 
@@ -179,6 +241,10 @@ public class GroupCollapseComponentTest {
     }
 
     private void mockResponse() throws IOException {
+        mockResponse(false);
+    }
+
+    private void mockResponse(boolean allDocsCloseout) throws IOException {
         NamedList values = mock(NamedList.class);
         NamedList grouped = mock(NamedList.class);
         NamedList productId = mock(NamedList.class);
@@ -200,10 +266,18 @@ public class GroupCollapseComponentTest {
         NamedList secondProduct = mock(NamedList.class);
         DocSlice secondDocList = new DocSlice(2, 2, docIds, scores, 2, 1.0f);
 
-        mockDocument(1, 100.0, 0.0);
-        mockDocument(2, 80.0, 20.0);
-        mockDocument(3, 80.0, 20.0);
-        mockDocument(4, 60.0, 40.0);
+        if(allDocsCloseout) {
+            mockDocument(1, 100.0, 0.0, true);
+            mockDocument(2, 80.0, 20.0, true);
+            mockDocument(3, 80.0, 20.0, true);
+            mockDocument(4, 60.0, 40.0, true);
+        }
+        else {
+            mockDocument(1, 100.0, 0.0, false);
+            mockDocument(2, 80.0, 20.0, true);
+            mockDocument(3, 80.0, 20.0, true);
+            mockDocument(4, 60.0, 40.0, false);
+        }
 
         groups.add(firstProduct);
         groups.add(secondProduct);
@@ -216,8 +290,13 @@ public class GroupCollapseComponentTest {
     }
 
     private void mockDocument(int docId, double price, double discount) throws IOException {
+        mockDocument(docId, price, discount, false);
+    }
+
+    private void mockDocument(int docId, double price, double discount, boolean isCloseout) throws IOException {
         Document doc = PowerMockito.mock(Document.class);
         when(searcher.doc(eq(docId), any(Set.class))).thenReturn(doc);
+        when(searcher.getSchema()).thenReturn(schema);
 
         IndexableField priceField = mock(IndexableField.class);
         when(doc.getField(FIELD_PRICE)).thenReturn(priceField);
@@ -226,9 +305,9 @@ public class GroupCollapseComponentTest {
         IndexableField discountField = mock(IndexableField.class);
         when(doc.getField(FIELD_DISCOUNT)).thenReturn(discountField);
         when(discountField.numericValue()).thenReturn(new Double(discount));
+
+        IndexableField closeoutField = mock(IndexableField.class);
+        when(doc.getField(FIELD_CLOSEOUT)).thenReturn(closeoutField);
+        when(closeoutField.stringValue()).thenReturn(isCloseout? "T" : "F");
     }
-
-
-
-
 }

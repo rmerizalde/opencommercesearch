@@ -301,6 +301,21 @@ public class FacetManagerTest {
         assertFalse((Boolean)manager.isMultiSelectFacet(facetField));
     }
 
+    @Test
+    public void testIsMixedSortingFacet() {
+        addFacets();
+        when(fieldFacet.getPropertyValue(FacetProperty.IS_MIXED_SORTING)).thenReturn(false);
+        assertFalse((Boolean)manager.isMixedSorting(new FacetField("fieldName")));
+
+        when(fieldFacet.getPropertyValue(FacetProperty.IS_MIXED_SORTING)).thenReturn(true);
+        assertTrue((Boolean)manager.isMixedSorting(new FacetField("fieldName")));
+
+        assertFalse((Boolean)manager.isMixedSorting(new FacetField("sdfjk")));
+
+        FacetField facetField = null;
+        assertFalse((Boolean)manager.isMixedSorting(facetField));
+    }
+
 
     @Test
     public void testFacetFieldNames() {

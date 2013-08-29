@@ -25,7 +25,6 @@ import org.apache.solr.common.params.GroupCollapseParams;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.response.SolrQueryResponse;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.IndexSchema;
 import org.apache.solr.search.DocIterator;
@@ -99,6 +98,20 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             if (fieldType.getNumericType() != null) {
                 fieldNames.add(wantedField);
             }
+            else {
+                log.warn("Unsupported field summary type: " + fieldType.getTypeName());
+            }
+        }
+
+        String filterField = params.get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+
+        if(filterField != null) {
+            FieldType fieldType = schema.getFieldType(filterField);
+
+            if(!fieldType.getTypeName().equals("boolean")) {
+              log.warn("Group collapse filter field is not boolean, no filtering will be done. Check if the param GROUP_COLLAPSE_EF is correct.");
+              filterField = null;
+            }
         }
 
         if (fieldNames.size() == 0) {
@@ -111,7 +124,6 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             return;
         }
 
-        SolrQueryResponse rsp = rb.rsp;
         NamedList namedList = rb.rsp.getValues();
 
         if (namedList == null) {
@@ -124,12 +136,12 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
         NamedList groupSummaryRsp = new NamedList();
 
         for (String field : rb.getGroupingSpec().getFields()) {
-            GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames);
+            GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
 
             NamedList groupField = (NamedList) namedList.get(field);
 
             if (groupField != null) {
-                groupFieldSummary.processGroupField(field, groupField);
+                groupFieldSummary.processGroupField(groupField);
                 groupFieldSummary.addValues(groupSummaryRsp);
             }
         }
@@ -142,19 +154,26 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
         private SolrIndexSearcher searcher;
         private Set<String> fieldNames;
         private Map<String, Map<String, GroupFieldSummary>> groupFieldSummaries;
+        private String filterField;
 
-        GroupCollapseSummary(String groupField, SolrIndexSearcher searcher, Set<String> fieldNames) {
+        /**
+         * Default constructor. Creates a new group collapse summary.
+         * @param groupField Field used to create the group.
+         * @param searcher Valid Solr index search instance.
+         * @param fieldNames List of fields that will be "summarized" by this class.
+         * @param filterField Field that is used to filter docs in the group summary calculation. See {@link GroupCollapseParams#GROUP_COLLAPSE_FF} for details.
+         */
+        GroupCollapseSummary(String groupField, SolrIndexSearcher searcher, Set<String> fieldNames, String filterField) {
             this.groupField = groupField;
             this.searcher = searcher;
             this.fieldNames = fieldNames;
             groupFieldSummaries = new HashMap<String, Map<String, GroupFieldSummary>>();
+            this.filterField = filterField;
         }
 
-        private void processGroupField(String field, NamedList groupField) throws IOException {
+        private void processGroupField(NamedList groupField) throws IOException {
             log.debug("Processing group field: " + groupField);
             List<NamedList> groups = (List<NamedList>) groupField.get("groups");
-
-            NamedList groupSummary = new NamedList();
 
             if (groups == null) {
                 log.debug("No groups found for: " + groupField);
@@ -165,18 +184,11 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
                 if (group != null) {
                     String groupValue = (String) group.get("groupValue");
                     DocSlice docSlice = (DocSlice) group.get("doclist");
+                    boolean shouldReprocess = processDocs(groupValue, docSlice, true);
 
-                    for (DocIterator it = docSlice.iterator(); it.hasNext();) {
-                        Document doc = searcher.doc(it.nextDoc(), fieldNames);
-
-                        for (String fieldName : fieldNames) {
-                            GroupFieldSummary summary = getSummary(groupValue, fieldName);
-                            IndexableField indexableField = doc.getField(fieldName);
-
-                            if (indexableField != null) {
-                                summary.processFieldValue(indexableField.numericValue().floatValue());
-                            }
-                        }
+                    //If all docs in the group were filtered, then reprocess without applying any filtering.
+                    if(shouldReprocess) {
+                        processDocs(groupValue, docSlice, false);
                     }
 
                     group.remove("doclist");
@@ -185,6 +197,38 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             }
         }
 
+        /**
+         * Process docs within the group. All wanted fields for this each doc will be summarized into a single group value.
+         * <p/>
+         * If a filter field was specified and filter docs is true, then docs with filter field set to "true" will be excluded from the process. See {@link GroupCollapseParams#GROUP_COLLAPSE_FF} for details.
+         * @param groupValue The current group field value.
+         * @param docSlice Docs within the current group field value.
+         * @param filterDocs Whether or not do filtering of docs based on filterField.
+         * @return True if all documents in the given docSlice were filtered. False if at least one document was processed.
+         * @throws IOException If doc fields can't be retrieved from the index.
+         */
+        private boolean processDocs(String groupValue, DocSlice docSlice, boolean filterDocs) throws IOException {
+            boolean allFiltered = true;
+
+            for (DocIterator it = docSlice.iterator(); it.hasNext();) {
+                Document doc = searcher.doc(it.nextDoc(), fieldNames);
+                IndexableField filterField = doc.getField(this.filterField);
+
+                for (String fieldName : fieldNames) {
+                    GroupFieldSummary summary = getSummary(groupValue, fieldName);
+                    IndexableField indexableField = doc.getField(fieldName);
+
+                    if(!filterDocs || filterField == null || filterField.stringValue().equals("F")) {
+                        allFiltered = false;
+                        if (indexableField != null) {
+                            summary.processFieldValue(indexableField.numericValue().floatValue());
+                        }
+                    }
+                }
+            }
+
+            return allFiltered;
+        }
 
         private GroupFieldSummary getSummary(String groupValue, String fieldName) {
             Map<String, GroupFieldSummary> groupValueSummaries = groupFieldSummaries.get(groupValue);
@@ -217,7 +261,6 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             }
             rsp.add(groupField, groupFieldRsp);
         }
-
     }
 
     // TODO support types other than double
