@@ -39,6 +39,11 @@ public class Facet {
     private boolean isMultiSelect;
 
     /**
+     * Indicates whether or not, this facet should display top values (ordered by count) first, and when expanded, show original sorting value (by name).
+     */
+    private boolean isMixedSorting;
+
+    /**
      *
      * @return the name of the facet
      */
@@ -47,7 +52,7 @@ public class Facet {
     }
 
     /**
-     * Set the name for this face
+     * Set the name for this facet
      *
      * @param name
      */
@@ -148,6 +153,27 @@ public class Facet {
      */
     public void setMultiSelect(boolean isMultiSelect) {
         this.isMultiSelect = isMultiSelect;
+    }
+
+    /**
+     * Indicates whether or not this facet filters should use mixed sorting approach.
+     * <p/>
+     * Mixed sorting is used for facets that have many filters. Initially facets could display the filters sorted by
+     * count, and when expanded (so all values are displayed) sort by index.
+     * <p/>
+     * Specifics on how this field should work, are left for the front end.
+     * @return Whether or not this facet values should use mixed sorting approach.
+     */
+    public boolean isMixedSorting() {
+        return isMixedSorting;
+    }
+
+    /**
+     * Specify whether or not this facet supports mixed sorting.
+     * @param mixedSorting Whether or not this facet supports mixed sorting. See method {@link #isMixedSorting()} for details.
+     */
+    public void setMixedSorting(boolean mixedSorting) {
+        isMixedSorting = mixedSorting;
     }
 
     @Override

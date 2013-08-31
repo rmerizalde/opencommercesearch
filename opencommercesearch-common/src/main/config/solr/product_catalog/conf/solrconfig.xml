@@ -86,6 +86,7 @@
       <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,bayesianReviewAverage,reviews,isPastSeason,freeGiftbcs,image,isCloseout</str>
       <str name="groupcollapse">true</str>
       <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS</str>
+      <str name="groupcollapse.ff">isCloseout</str>
     </lst>
     <arr name="last-components">
       <str>spellcheck</str>
