@@ -4,9 +4,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsArray, Json}
-import play.api.libs.json.Json.JsValueWrapper
 
-import scala.collection.mutable.Seq
 import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
@@ -19,7 +17,7 @@ import org.apache.solr.client.solrj.SolrQuery
 import scala.collection.convert.Wrappers.JIterableWrapper
 
 // @todo add support for other content types and default to json
-object BrandController extends Controller with ContentPreview with FieldList with Pagination {
+object BrandController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
     val query = withBrandCollection(withFields(new SolrQuery()), preview)
@@ -27,12 +25,15 @@ object BrandController extends Controller with ContentPreview with FieldList wit
     query.setRequestHandler(RealTimeRequestHandler)
     query.add("id", id)
 
+    Logger.debug("Query brand " + id)
     val future = solrServer.query(query).map( response => {
       val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
       if (doc != null) {
+        Logger.debug("Found brand " + id)
         Ok(Json.obj(
           "brand" -> Json.toJson(Brand.fromDocument(doc))))
       } else {
+        Logger.debug("Brand " + id + " not found")
         NotFound(Json.obj(
           "message" -> s"Cannot find brand with id [$id]"
         ))
@@ -135,14 +136,5 @@ object BrandController extends Controller with ContentPreview with FieldList wit
         brand.logo.isEmpty
     }
     missingFields
-  }
-
-  def withErrorHandling(f: Future[Result], message: String) : Future[Result]  = {
-    f.recover { case t: Throwable =>
-      Logger.error(message, t)
-      InternalServerError(Json.obj(
-        // @Todo refine developer messages ??
-        "message" -> message))
-    }
   }
 }
