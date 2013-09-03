@@ -10,7 +10,7 @@ import org.apache.solr.common.SolrInputDocument
 
 
 /**
- * Represents a single brand
+ * A brand model
  *
  * @param id is the system id of the brand
  * @param name is the display name of the brand

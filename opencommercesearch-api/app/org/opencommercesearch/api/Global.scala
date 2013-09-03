@@ -13,6 +13,8 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val MaxUpdateBatchSize = getConfigInt("maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
+  lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")
+  lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
@@ -40,7 +42,7 @@ object Global extends WithFilters(new StatsdFilter()) {
     ex.getCause match {
    	  case e:IllegalArgumentException => BadRequest(e.getMessage)
    	  case other => {
-        other.printStackTrace()
+        Logger.error("Unexpected error",  other)
         InternalServerError(other.getMessage)
       }
    	}

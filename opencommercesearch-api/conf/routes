@@ -10,3 +10,8 @@ PUT        /v1/brands                                 org.opencommercesearch.api
 # suggest completion
 GET        /v1/brands/suggestcompletion/:query        org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, query: String, preview: Boolean ?= false)
 
+# product routes
+GET        /v1/products                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, preview: Boolean ?= false)
+
+
+
