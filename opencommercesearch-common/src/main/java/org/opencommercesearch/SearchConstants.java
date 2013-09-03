@@ -21,7 +21,8 @@ package org.opencommercesearch;
 
 public class SearchConstants {
     public static final String CATEGORY_SEPARATOR = ".";
-
+    public static final String OUTLET = "outlet";
+    
     private SearchConstants() {
 
     }
