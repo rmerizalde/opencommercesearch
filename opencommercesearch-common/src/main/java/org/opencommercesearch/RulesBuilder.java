@@ -88,6 +88,11 @@ public class RulesBuilder extends GenericService {
                 return new StringBuilder().append("isPastSeason:").append(ruleValue).toString();
             }
         },
+        OUTLET {
+            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
+                return new StringBuilder().append("isCloseout:").append(ruleValue).toString();
+            }
+        },
         PRICE {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
                 String[] parts = ruleValue.split(" ");
