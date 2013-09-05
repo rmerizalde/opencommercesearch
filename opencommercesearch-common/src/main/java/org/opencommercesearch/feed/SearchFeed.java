@@ -26,6 +26,8 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrInputDocument;
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
+import org.opencommercesearch.model.Product;
+import org.opencommercesearch.model.Sku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
 
@@ -140,21 +142,21 @@ public abstract class SearchFeed extends GenericService {
         onFeedStarted(indexStamp);
 
         Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
-        RepositoryItem[] products = productRql.executeQueryUncached(productView, rqlArgs);
-        Map<Locale, List<SolrInputDocument>> documents = new HashMap<Locale, List<SolrInputDocument>>();
+        RepositoryItem[] productItems = productRql.executeQueryUncached(productView, rqlArgs);
+        Map<Locale, List<Product>> products = new HashMap<Locale, List<Product>>();
 
-        while (products != null) {
-            for (RepositoryItem product : products) {
+        while (productItems != null) {
+            for (RepositoryItem product : productItems) {
                 if (isProductIndexable(product)) {
-                    processProduct(product, documents);
+                    processProduct(product, products);
                     indexedProductCount++;
-                    sendDocuments(documents, indexStamp, getIndexBatchSize());
+                    sendProducts(products, indexStamp, getIndexBatchSize());
                 }
                 processedProductCount++;
             }
 
             rqlArgs[0] += getProductBatchSize();
-            products = productRql.executeQueryUncached(productView, rqlArgs);
+            productItems = productRql.executeQueryUncached(productView, rqlArgs);
 
             if (isLoggingInfo()) {
                 logInfo("Processed " + processedProductCount  + " out of " + productCount);
@@ -162,7 +164,7 @@ public abstract class SearchFeed extends GenericService {
             }
         }
 
-        sendDocuments(documents, indexStamp, 0);
+        sendProducts(products, indexStamp, 0);
         onFeedFinished(indexStamp);
 
         if (isLoggingInfo()) {
@@ -172,17 +174,20 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    protected void sendDocuments(Map<Locale, List<SolrInputDocument>> documents, long indexStamp, int min) {
-        for (Map.Entry<Locale, List<SolrInputDocument>> entry : documents.entrySet()) {
-            List<SolrInputDocument> documentList = entry.getValue();
+    public void sendProducts(Map<Locale, List<Product>> products, long indexStamp, int min) {
+        for (Map.Entry<Locale, List<Product>> entry : products.entrySet()) {
+            List<Product> productList = entry.getValue();
 
-            if (documentList.size() > min) {
-                for (SolrInputDocument doc : documentList) {
-                    doc.setField("indexStamp", indexStamp);
-                }
+            if (productList.size() > min) {
+                // @todo(api) handle version
+                // @todo(api) call the api to send the Json
 
-                try {
-                    UpdateResponse response = getSearchServer().add(documentList, entry.getKey());
+                //for (SolrInputDocument doc : documentList) {
+                //    doc.setField("indexStamp", indexStamp);
+                //}
+
+                /*try {
+                    UpdateResponse response = getSearchServer().add(products, entry.getKey());
                     onDocumentsSent(response, documentList);
                     documentList.clear();
                 } catch (SearchServerException ex) {
@@ -190,20 +195,20 @@ public abstract class SearchFeed extends GenericService {
                         logError(ex);
                     }
                     onDocumentsSentError(documentList);
-                }
+                } */
             }
         }
     }
     
     protected abstract void onFeedStarted(long indexStamp);
 
-    protected abstract void onDocumentsSent(UpdateResponse response, List<SolrInputDocument> documentList);
+    protected abstract void onProductsSent(UpdateResponse response, List<Product> productList);
 
-    protected abstract void onDocumentsSentError(List<SolrInputDocument> documentList);
+    protected abstract void onProductsSentError(List<Product> productList);
 
     protected abstract void onFeedFinished(long indexStamp);
 
-    protected abstract void processProduct(RepositoryItem product, Map<Locale, List<SolrInputDocument>> documents)
+    protected abstract void processProduct(RepositoryItem product, Map<Locale, List<Product>> products)
             throws RepositoryException, InventoryException;
 
     /**
@@ -213,16 +218,16 @@ public abstract class SearchFeed extends GenericService {
      * a common separator (depth/first level category name/second level
      * category name/etc)
      * 
-     * @param document
+     * @param sku
      *            The document to set the attributes to.
      * @param product
      *            The RepositoryItem for the product item descriptor
-     * @param catalogAssignments
+     * @param skuCatalogAssignments
      *            If the product is belongs to a category in any of those
      *            catalogs then that category is part of the returned value.
      */
-    protected void loadCategoryPaths(SolrInputDocument document, RepositoryItem product,
-            Set<RepositoryItem> catalogAssignments, Set<RepositoryItem> categoryCatalogs) {
+    protected void loadCategoryPaths(Sku sku, RepositoryItem product,
+            Set<RepositoryItem> skuCatalogAssignments, Set<RepositoryItem> categoryCatalogs) {
         if (product != null) {
             try {
                 @SuppressWarnings("unchecked")
@@ -230,34 +235,34 @@ public abstract class SearchFeed extends GenericService {
                         .getPropertyValue("parentCategories");
                 Set<String> tokenCache = new HashSet<String>();
                 Set<String> ancestorCache = new HashSet<String>();
-                Set<String> leaveCache = new HashSet<String>();
+                Set<String> leafCache = new HashSet<String>();
                 
                 if (productCategories != null) {
                     List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
-                        if (isCategoryInCatalogs(productCategory, catalogAssignments)) {
+                        if (isCategoryInCatalogs(productCategory, skuCatalogAssignments)) {
                             if (isRulesCategory(productCategory)) {
-                                document.addField("ancestorCategoryId", productCategory.getRepositoryId());
+                                sku.addAncestorCategory(productCategory.getRepositoryId());
                             } else if (isCategoryIndexable(productCategory)) {
-                                loadCategoryPathsAndAncestorIds(document, productCategory, categoryIds, catalogAssignments, tokenCache, ancestorCache);
+                                loadCategoryPathsAndAncestorIds(sku, productCategory, categoryIds, skuCatalogAssignments, tokenCache, ancestorCache);
                             }
 
                             if (categoryCatalogs != null) {
                                 Set<RepositoryItem> catalogs = (Set<RepositoryItem>) productCategory.getPropertyValue("catalogs");
                                 for(RepositoryItem catalog : catalogs){
-                                    if(catalogAssignments.contains(catalog)){
+                                    if(skuCatalogAssignments.contains(catalog)){
                                         categoryCatalogs.add(catalog);
                                     }
                                 }
                             }
                             if(!isRulesCategory(productCategory)) {
-                                leaveCache.add(productCategory.getItemDisplayName());
+                                leafCache.add(productCategory.getItemDisplayName());
                             }
                         }
                     }
-                    if(leaveCache.size() > 0) {
-                        for(String leave : leaveCache) {
-                            document.addField("categoryLeaves", leave);
+                    if(leafCache.size() > 0) {
+                        for(String leaf : leafCache) {
+                            sku.addCategoryLeaf(leaf);
                         }
                     }
                     
@@ -275,9 +280,9 @@ public abstract class SearchFeed extends GenericService {
                     }
                     
                     if(nodeCache.size() > 0) {
-                        nodeCache.removeAll(leaveCache);
+                        nodeCache.removeAll(leafCache);
                         for(String node : nodeCache) {
-                            document.addField("categoryNodes",  node);
+                            sku.addCategoryNode(node);
                         }
                     }
                 }
@@ -331,8 +336,8 @@ public abstract class SearchFeed extends GenericService {
      * Helper method to generate the category tokens recursively
      * 
      * 
-     * @param document
-     *            The document to set the attributes to.
+     * @param sku
+     *            The product to set the attributes to.
      * @param category
      *            The repositoryItem of the current level
      * @param hierarchyCategories
@@ -340,7 +345,7 @@ public abstract class SearchFeed extends GenericService {
      * @param catalogAssignments
      *            The list of catalogs to restrict the category token generation
      */
-    private void loadCategoryPathsAndAncestorIds(SolrInputDocument document, RepositoryItem category,
+    private void loadCategoryPathsAndAncestorIds(Sku sku, RepositoryItem category,
             List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments, Set<String> tokenCache,
             Set<String> ancestorCache) {
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
@@ -348,19 +353,19 @@ public abstract class SearchFeed extends GenericService {
         if (parentCategories != null && parentCategories.size() > 0) {
             hierarchyCategories.add(0, category);
             for (RepositoryItem parentCategory : parentCategories) {
-                loadCategoryPathsAndAncestorIds(document, parentCategory, hierarchyCategories, catalogAssignments, tokenCache, ancestorCache);
+                loadCategoryPathsAndAncestorIds(sku, parentCategory, hierarchyCategories, catalogAssignments, tokenCache, ancestorCache);
             }
             hierarchyCategories.remove(0);
         } else {
             Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
             for(RepositoryItem catalog : catalogs){
                 if(catalogAssignments.contains(catalog)){
-                    generateCategoryTokens(document, hierarchyCategories, catalog.getRepositoryId(), tokenCache);
+                    generateCategoryTokens(sku, hierarchyCategories, catalog.getRepositoryId(), tokenCache);
                 }
             }
         }
         if (!ancestorCache.contains(category.getRepositoryId())) {
-            document.addField("ancestorCategoryId", category.getRepositoryId());
+            sku.addAncestorCategory(category.getRepositoryId());
             ancestorCache.add(category.getRepositoryId());
         }
     }
@@ -373,14 +378,14 @@ public abstract class SearchFeed extends GenericService {
      * 0/bcs 1/bcs/Men's Clothing 2/bcs/Men's Clothing/Men's Jackets 3/bcs/Men's
      * Clothing/Men's Jackets/Men's Casual Jacekt's
      * 
-     * @param document
+     * @param sku
      *            The document to set the attributes to.
      * @param hierarchyCategories
      *
      * @param catalog
      *            
      */
-    private void generateCategoryTokens(SolrInputDocument document, List<RepositoryItem> hierarchyCategories,
+    private void generateCategoryTokens(Sku sku, List<RepositoryItem> hierarchyCategories,
             String catalog, Set<String> tokenCache) {
         if (hierarchyCategories == null) {
             return;
@@ -400,8 +405,8 @@ public abstract class SearchFeed extends GenericService {
 
             String token = builder.toString();
             if (!tokenCache.contains(token)) {
-                document.addField("category", builder.toString());
-                document.addField("categoryPath", builderIds.toString());
+                sku.addCategoryToken(builder.toString());
+                sku.addCategoryPath(builderIds.toString());
                 tokenCache.add(token);
             }
             builder.setLength(0);

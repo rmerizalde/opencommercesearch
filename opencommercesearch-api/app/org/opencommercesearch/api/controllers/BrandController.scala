@@ -6,6 +6,7 @@ import play.api.Logger
 import play.api.libs.json.{JsArray, Json}
 
 import scala.concurrent.Future
+import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
@@ -14,7 +15,7 @@ import org.opencommercesearch.api.models.BrandList
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
-import scala.collection.convert.Wrappers.JIterableWrapper
+
 
 // @todo add support for other content types and default to json
 object BrandController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {

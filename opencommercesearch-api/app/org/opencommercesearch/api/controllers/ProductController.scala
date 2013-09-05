@@ -61,7 +61,6 @@ object ProductController extends Controller with ContentPreview with FieldList w
                   allProducts.add(new Product(Some(group.getGroupValue), title, Some(productBeanSeq)))
                 }
               }
-
               Ok(Json.obj(
                 "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
                 "products" -> Json.arr(
@@ -92,26 +91,6 @@ object ProductController extends Controller with ContentPreview with FieldList w
         ))
       }
     })
-
-      //val products = JListWrapper(response.getBeans(classOf[Product]))
-
-
-      /*if (docs != null && docs.getNumFound > 0) {
-        Logger.debug("Found " + docs.getNumFound + " document for query " + q)
-        Ok(Json.obj(
-          "metadata" -> Json.obj("found" -> docs.getNumFound),
-          "products" -> JsArray(
-            // @todo figure out how to implements Writes[Product] using jackson annotations
-            // writing a json string to parse it back to json is not the long term solution
-            products map (p => Json.parse(mapper.writeValueAsString(p))))
-        ))
-      } else {
-        Logger.debug("No results found for query  " + q)
-        Ok(Json.obj(
-          "metadata" -> Json.obj("found" -> docs.getNumFound)
-        ))
-      }
-    })*/
 
     Async {
       withErrorHandling(future, s"Cannot search for [$q]")
