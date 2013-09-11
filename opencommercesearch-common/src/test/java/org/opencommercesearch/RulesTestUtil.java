@@ -39,7 +39,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class RulesTestUtil {
-    static RepositoryItem mockRule(String type, int group, String value, String operator) {
+    public static RepositoryItem mockRule(String type, int group, String value, String operator) {
         RepositoryItem repoExpression = mock(RepositoryItem.class);
         when(repoExpression.getPropertyValue(RuleExpressionProperty.NESTED_LEVEL)).thenReturn(group);
         when(repoExpression.getPropertyValue(RuleExpressionProperty.TYPE)).thenReturn(type);

@@ -19,22 +19,28 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Controller, Result}
-import play.api.Logger
-import play.api.libs.json.Json
+import org.specs2.mutable._
 
-import scala.concurrent.Future
+import play.api.test._
+import play.api.test.Helpers._
 
-trait ErrorHandling {
-  self: Controller =>
+/**
+ * An integration test will fire up a whole play application in a real (or headless) browser
+ */
+class RuleControllerIntegrationSpec extends Specification {
+  
+  "Rule Controller" should {
+    
+    "send 404 on a get /rules" in {
+      running(TestServer(3333), HTMLUNIT) { browser =>
 
-  def withErrorHandling(f: Future[Result], message: String) : Future[Result]  = {
-    f.recover { case t: Throwable =>
-      Logger.error(message, t)
-      InternalServerError(Json.obj(
-        // @Todo refine developer messages ??
-        "message" -> message))
+        val page = browser.goTo("http://localhost:3333/rules")
+
+        page.pageSource must contain("Resource not found")
+       
+      }
     }
+    
   }
+  
 }

@@ -1,5 +1,24 @@
 package org.opencommercesearch.api
 
+/*
+* Licensed to OpenCommerceSearch under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. OpenCommerceSearch licenses this
+* file to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 import play.api.{Play, GlobalSettings, Logger, Application}
 import play.api.libs.json.Json
 
@@ -16,6 +35,16 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")
   lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
+
+  /**
+   * Rule preview collection from configuration.
+   */
+  lazy val RulePreviewCollection = getConfigString("preview.ruleCollection", "rulePreview")
+
+  /**
+   * * Rule public collection from configuration.
+   */
+  lazy val RulePublicCollection = getConfigString("public.ruleCollection", "rulePublic")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncCloudSolrServer = null

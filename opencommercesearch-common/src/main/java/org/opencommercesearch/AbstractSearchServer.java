@@ -89,6 +89,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private RulesBuilder rulesBuilder;
     private boolean isGroupSortingEnabled;
 
+    private static final String Q_ALT = "q.alt";
+    private static final String BRAND_ID = "brandId";
+    private static final String CATEGORY_PATH = "categoryPath";
+
     public void setCatalogSolrServer(T catalogSolrServer, Locale locale) {
         catalogSolrServers.put(locale.getLanguage(), catalogSolrServer);
     }
@@ -268,11 +272,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         isGroupSortingEnabled = groupSortingEnabled;
     }
 
-    private static final String Q_ALT = "q.alt";
-    private static final String BRAND_ID = "brandId";
-    private static final String CATEGORY_PATH = "categoryPath";
-    
-
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
         return browse(options, query, SiteContextManager.getCurrentSite(), Locale.US, filterQueries);
@@ -367,7 +366,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         return response;
     }
-    
     
     @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
@@ -537,9 +535,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
 
             long searchTime = System.currentTimeMillis() - startTime;
-         // @TODO change ths to debug mode
-            if (isLoggingInfo()) {
-                logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
+            if (isLoggingDebug()) {
+                logDebug("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
             return new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
         } catch (SolrServerException ex) {
@@ -859,7 +856,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
             if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM)
                     || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST)) {
-                // TODO: support locaclized synonyms
+                // TODO: support localized synonyms
                 exportSynonyms(Locale.ENGLISH);
                 reloadCollections();
             }
@@ -908,7 +905,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
         } else {
             if (isLoggingInfo()) {
-                logInfo("No synomym lists were exported to ZooKeeper");
+                logInfo("No synonym lists were exported to ZooKeeper");
             }
         }
     }
@@ -939,7 +936,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
      * @throws SearchServerException if an error occurs while reloading the core
      * 
      */
-     public abstract void reloadCollection(String collectionName, Locale locale) throws SearchServerException;
+    public abstract void reloadCollection(String collectionName, Locale locale) throws SearchServerException;
 
     /**
      * Indexes all repository rules in the search index
@@ -1009,7 +1006,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                     + processed + " rules were indexed");
         }
     }
-    
     
     private List<CategoryGraph> createCategoryGraph(SearchResponse searchResponse, String path, String catalogId,
             String categoryId) {
