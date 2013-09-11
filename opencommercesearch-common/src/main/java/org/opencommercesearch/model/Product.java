@@ -22,7 +22,9 @@ package org.opencommercesearch.model;
 import java.util.*;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Product {
     @JsonProperty
     private String id;
@@ -72,9 +74,6 @@ public class Product {
 
     @JsonProperty
     private boolean isOutOfStock;
-
-    @JsonProperty
-    private String language;
 
     @JsonProperty
     private List<Sku> skus;

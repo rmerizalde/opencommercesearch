@@ -2,21 +2,21 @@ package org.opencommercesearch.api.controllers
 
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.mvc.Controller
 import play.api.Logger
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.Json
 
 import scala.collection.JavaConversions.asScalaBuffer
-import scala.collection.convert.Wrappers.{JListWrapper, JIterableWrapper}
 
 import java.util
 
-import org.opencommercesearch.api.models.{Product, Sku}
+import org.opencommercesearch.api.models._
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.codehaus.jackson.map.ObjectMapper
 
 import org.opencommercesearch.api.Global._
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.convert.Wrappers.JListWrapper
 
 
 object ProductController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
@@ -49,16 +49,20 @@ object ProductController extends Controller with ContentPreview with FieldList w
             if (command.getNGroups > 0) {
               val allProducts = new util.ArrayList[Product]
               for (group <- JIterableWrapper(command.getValues)) {
-                val productBeans = solrServer.binder.getBeans(classOf[Sku], group.getResult)
+                val productBeans = solrServer.binder.getBeans(classOf[SolrSku], group.getResult)
                 if (productBeans.size() > 0) {
-                  var title:Option[String] = None
+                  var title:String = null
 
                   if (productBeans.get(0).title.isDefined) {
-                    title = productBeans.get(0).title
+                    title = productBeans.get(0).title.get
                   }
 
                   val productBeanSeq = asScalaBuffer(productBeans).map(b => {b.title = None; b})
-                  allProducts.add(new Product(Some(group.getGroupValue), title, Some(productBeanSeq)))
+                  val p = new Product()
+                  p.setId(group.getGroupValue)
+                  p.setTitle(title)
+                  p.setSkus(productBeanSeq)
+                  allProducts.add(p)
                 }
               }
               Ok(Json.obj(
@@ -95,5 +99,9 @@ object ProductController extends Controller with ContentPreview with FieldList w
     Async {
       withErrorHandling(future, s"Cannot search for [$q]")
     }
+  }
+
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { request =>
+    Created
   }
 }

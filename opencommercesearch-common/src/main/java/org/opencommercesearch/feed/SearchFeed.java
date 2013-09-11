@@ -19,25 +19,38 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
-import java.sql.SQLException;
-import java.util.*;
-
-import org.apache.solr.client.solrj.response.UpdateResponse;
-import org.apache.solr.common.SolrInputDocument;
-import org.opencommercesearch.SearchServer;
-import org.opencommercesearch.SearchServerException;
-import org.opencommercesearch.model.Product;
-import org.opencommercesearch.model.Sku;
-import org.opencommercesearch.repository.RuleBasedCategoryProperty;
-
-
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.GenericService;
+import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.StopWatch;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.opencommercesearch.SearchServer;
+import org.opencommercesearch.SearchServerException;
+import org.opencommercesearch.api.Settings;
+import org.opencommercesearch.model.Product;
+import org.opencommercesearch.model.ProductList;
+import org.opencommercesearch.model.Sku;
+import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+import org.restlet.Client;
+import org.restlet.Request;
+import org.restlet.Response;
+import org.restlet.data.*;
+import org.restlet.engine.application.EncodeRepresentation;
+import org.restlet.representation.StringRepresentation;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.opencommercesearch.Utils.errorMessage;
 
 /**
  * This class provides a basic functionality to generate a search feed. This includes:
@@ -47,6 +60,7 @@ import atg.repository.rql.RqlStatement;
  * @TODO implement default feed functionality
  */
 public abstract class SearchFeed extends GenericService {
+    private List<Product> POISON_PILL = Collections.EMPTY_LIST;
 
     private SearchServer searchServer;
     private Repository productRepository;
@@ -55,7 +69,20 @@ public abstract class SearchFeed extends GenericService {
     private RqlStatement productRql;
     private int productBatchSize;
     private int indexBatchSize;
-    
+    private Settings apiSettings;
+    private ObjectMapper mapper;
+    private Client client;
+    private String endpointUrl;
+    private int workerCount;
+    private ExecutorService productTaskExecutor;
+    private AtomicInteger processedProductCount;
+    private AtomicInteger indexedProductCount;
+    private ExecutorService sendTaskExecutor;
+    private BlockingDeque<List<Product>> sendQueue;
+
+    private boolean running;
+    private Map<Thread, Map<String,StopWatch>> timersByThread;
+
     public SearchServer getSearchServer() {
         return searchServer;
     }
@@ -124,91 +151,373 @@ public abstract class SearchFeed extends GenericService {
         return true;
     }
 
-    public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
-            InventoryException {
-        long startTime = System.currentTimeMillis();
-        
-        RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
-        int productCount = productRql.executeCountQuery(productView, null);
+    public Settings getApiSettings() {
+        return apiSettings;
+    }
 
-        if (isLoggingInfo()) {
-            logInfo("Started full feed for " + productCount + " products");
+    public void setApiSettings(Settings apiSettings) {
+        this.apiSettings = apiSettings;
+    }
+
+    public int getWorkerCount() {
+        return workerCount;
+    }
+
+    public void setWorkerCount(int workerCount) {
+        this.workerCount = workerCount;
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return mapper;
+    }
+
+    public Map<Thread, Map<String,StopWatch>> getTimers() {
+         return timersByThread;
+    }
+
+    // Returns the timers for the current threads
+    private Map<String, StopWatch> getCurrentTimers() {
+        if (timersByThread == null) {
+            timersByThread = new ConcurrentHashMap<Thread, Map<String, StopWatch>>(getWorkerCount());
         }
 
-        long indexStamp = System.currentTimeMillis();
-        int processedProductCount = 0;
-        int indexedProductCount = 0;
+        Map<String, StopWatch> timers = timersByThread.get(Thread.currentThread());
 
-        onFeedStarted(indexStamp);
-
-        Integer[] rqlArgs = new Integer[] { 0, getProductBatchSize() };
-        RepositoryItem[] productItems = productRql.executeQueryUncached(productView, rqlArgs);
-        Map<Locale, List<Product>> products = new HashMap<Locale, List<Product>>();
-
-        while (productItems != null) {
-            for (RepositoryItem product : productItems) {
-                if (isProductIndexable(product)) {
-                    processProduct(product, products);
-                    indexedProductCount++;
-                    sendProducts(products, indexStamp, getIndexBatchSize());
-                }
-                processedProductCount++;
-            }
-
-            rqlArgs[0] += getProductBatchSize();
-            productItems = productRql.executeQueryUncached(productView, rqlArgs);
-
-            if (isLoggingInfo()) {
-                logInfo("Processed " + processedProductCount  + " out of " + productCount);
-                logInfo("Indexable products "+ indexedProductCount);
-            }
+        if (timers == null) {
+            timers = new LinkedHashMap<String, StopWatch>();
+            timersByThread.put(Thread.currentThread(), timers);
         }
+        return timers;
+    }
 
-        sendProducts(products, indexStamp, 0);
-        onFeedFinished(indexStamp);
-
-        if (isLoggingInfo()) {
-            logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                    + indexedProductCount + " products were indexable from  " + processedProductCount
-                    + " processed products");
+    public void startTimer(String key) {
+        Map<String, StopWatch> timers = getCurrentTimers();
+        StopWatch timer = timers.get(key);
+        if (timer == null) {
+            timer = new StopWatch();
+            timer.start();
+            timers.put(key, timer);
+        } else {
+            timer.resume();
         }
     }
 
-    public void sendProducts(Map<Locale, List<Product>> products, long indexStamp, int min) {
-        for (Map.Entry<Locale, List<Product>> entry : products.entrySet()) {
-            List<Product> productList = entry.getValue();
+    public void stopTimer(String key) {
+        Map<String, StopWatch> timers = getCurrentTimers();
+        timers.get(key).suspend();
+    }
 
-            if (productList.size() > min) {
-                // @todo(api) handle version
-                // @todo(api) call the api to send the Json
-
-                //for (SolrInputDocument doc : documentList) {
-                //    doc.setField("indexStamp", indexStamp);
-                //}
-
-                /*try {
-                    UpdateResponse response = getSearchServer().add(products, entry.getKey());
-                    onDocumentsSent(response, documentList);
-                    documentList.clear();
-                } catch (SearchServerException ex) {
-                    if (isLoggingError()) {
-                        logError(ex);
-                    }
-                    onDocumentsSentError(documentList);
-                } */
+    public void stopAllTimers() {
+        for (Map.Entry<Thread, Map<String, StopWatch>> entry : timersByThread.entrySet()) {
+            for (StopWatch timer : entry.getValue().values()) {
+                timer.stop();
             }
         }
+    }
+
+    @Override
+    public void doStartService() throws ServiceException {
+        super.doStartService();
+        client = new Client(Protocol.HTTP);
+        endpointUrl = getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint());
+        mapper = new ObjectMapper();
+        if (getWorkerCount() <= 0) {
+            if (isLoggingInfo()) {
+                logInfo("At least one worker is required to process the feed, setting number of workers to 1");
+                setWorkerCount(1);
+            }
+        }
+        productTaskExecutor = Executors.newFixedThreadPool(getWorkerCount());
+        processedProductCount = new AtomicInteger(0);
+        indexedProductCount = new AtomicInteger(0);
+        timersByThread = new ConcurrentHashMap<Thread, Map<String, StopWatch>>(getWorkerCount());
+        sendTaskExecutor = Executors.newSingleThreadExecutor();
+        sendQueue = new LinkedBlockingDeque<List<Product>>();
+    }
+
+    @Override
+    public void doStopService() throws ServiceException {
+        terminate();
+        productTaskExecutor.shutdown();
+        sendTaskExecutor.shutdown();
+    }
+
+    public void terminate() {
+        running = false;
+    }
+
+    /**
+     * A task to process the products in a product catalog partition.
+     */
+    private class ProductPartitionTask implements Runnable {
+        private CountDownLatch endGate;
+        private int offset;
+        private int limit;
+        private String name;
+
+        ProductPartitionTask(int offset, int limit, CountDownLatch endGate) {
+            this.offset = offset;
+            this.limit = limit;
+            this.endGate = endGate;
+            this.name = offset + " - " + (offset + limit);
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void run() {
+            try {
+                if (isLoggingInfo()) {
+                    logInfo(Thread.currentThread() + " - Started processing partition " + getName());
+                }
+
+                Integer[] rqlArgs = new Integer[] { offset, getProductBatchSize() };
+                RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
+                RepositoryItem[] productItems = productRql.executeQueryUncached(productView, rqlArgs);
+                SearchFeedProducts products = new SearchFeedProducts();
+                int productCount = limit;
+                int localProductProcessedCount = 0;
+                boolean done = false;
+
+                while (running && !done && productItems != null) {
+                    for (RepositoryItem product : productItems) {
+                        if (isProductIndexable(product)) {
+                            try {
+                                startTimer("processProduct");
+                                processProduct(product, products);
+                            } finally {
+                                stopTimer("processProduct");
+                            }
+                            indexedProductCount.incrementAndGet();
+                            sendProducts(products, 0, getIndexBatchSize());
+                        }
+                        processedProductCount.incrementAndGet();
+                        localProductProcessedCount++;
+
+                        done = localProductProcessedCount >= limit;
+                        if (done) break;
+                    }
+
+                    if (!done) {
+                        rqlArgs[0] += getProductBatchSize();
+                        productItems = productRql.executeQueryUncached(productView, rqlArgs);
+                    }
+
+                    if (isLoggingInfo()) {
+                        logInfo(Thread.currentThread() + " - Processed " + processedProductCount.get()  + " out of " + productCount + " by partition " + getName());
+                        logInfo(Thread.currentThread() + " - Indexable products "+ indexedProductCount.get());
+                    }
+
+                    //if (processedProductCount.get() >= 15000) {
+                    //    break;
+                    //}
+                }
+
+                sendProducts(products, 0, 0);
+            } catch (RepositoryException ex) {
+                if (isLoggingError()) {
+                    logError("Exception processing catalog partition: " + getName(), ex);
+                }
+            } catch (InventoryException ex) {
+                if (isLoggingError()) {
+                    logError("Exception processing catalog partition: " + getName(), ex);
+                }
+            } finally {
+                if (isLoggingInfo()) {
+                    logInfo(Thread.currentThread() + " - Finished processing partition " + getName());
+                }
+                endGate.countDown();
+            }
+        }
+    }
+
+    private class SendTask implements Runnable {
+        private CountDownLatch endGate;
+
+        public SendTask(CountDownLatch endGate) {
+            this.endGate = endGate;
+        }
+
+        public void run() {
+            try {
+                if (isLoggingInfo()) {
+                    logInfo(Thread.currentThread() + " - Started send task");
+                }
+
+                while (running) {
+                    List<Product> productList = sendQueue.take();
+
+                    if (POISON_PILL == productList) {
+                        break;
+                    }
+
+                    startTimer("sendProducts");
+                    try {
+                        String json = null;
+                        try {
+                            startTimer("sendProducts.generateJson");
+                            json = getObjectMapper().writeValueAsString(new ProductList(productList));
+                        } catch (IOException ex) {
+                            if (isLoggingDebug()) {
+                                logDebug("Unable to convert product list to JSON");
+                            }
+                        } finally {
+                            stopTimer("sendProducts.generateJson");
+                        }
+
+                        final StringRepresentation jsonRepresentation = new StringRepresentation(json, MediaType.APPLICATION_JSON);
+                        final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, jsonRepresentation));
+                        startTimer("sendProducts.sendJson");
+                        final Response response = client.handle(request);
+
+                        if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
+                            if (isLoggingInfo()) {
+                                logInfo("Sending products [" + productsId(productList) + "] fail with status: " + response.getStatus() + " ["
+                                        + errorMessage(response.getEntity()) + "]");
+                            }
+                            onProductsSent(response, productList);
+                        } else {
+                            onProductsSentError(productList);
+                        }
+                    } catch (Exception ex) {
+                        if (isLoggingInfo()) {
+                            logInfo("Sending products [" + productsId(productList) + "] fail with unexpected exception", ex);
+                        }
+                        onProductsSentError(productList);
+                    } finally {
+                        stopTimer("sendProducts.sendJson");
+                        stopTimer("sendProducts");
+                        productList.clear();
+                    }
+                }
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            } finally {
+                if (isLoggingInfo()) {
+                    logInfo(Thread.currentThread() + " - Finished send task");
+                }
+                endGate.countDown();
+            }
+        }
+    }
+
+    public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
+            InventoryException, InterruptedException {
+        if (running){
+            if (isLoggingInfo()) {
+                logInfo("The feed is currently running, aborting...");
+            }
+            return;
+        }
+
+        try {
+            timersByThread.clear();
+            startTimer("startFullFeed");
+            running = true;
+            final long startTime = System.currentTimeMillis();
+
+            RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
+            int productCount = productRql.executeCountQuery(productView, null);
+
+            if (isLoggingInfo()) {
+                logInfo("Started full feed for " + productCount + " products");
+            }
+
+            final long indexStamp = System.currentTimeMillis();
+
+            onFeedStarted(indexStamp);
+            processedProductCount.set(0);
+            indexedProductCount.set(0);
+
+            // create send worker
+            final CountDownLatch sendEndGate = new CountDownLatch(1);
+            sendTaskExecutor.execute(new SendTask(sendEndGate));
+            // create a partition for each worker
+            final CountDownLatch endGate = new CountDownLatch(workerCount);
+            int partitionSize = productCount / getWorkerCount();
+            for (int i = 0; i < getWorkerCount(); i++) {
+                int offset = i * partitionSize;
+                int limit = partitionSize;
+
+                if (productCount - limit < partitionSize) {
+                    limit += productCount - limit;
+                }
+
+                productTaskExecutor.execute(new ProductPartitionTask(offset, limit, endGate));
+                if (isLoggingInfo()) {
+                    logInfo("Catalog partition created: " + offset + " - " + limit);
+                }
+            }
+
+            if (isLoggingInfo()) {
+                logInfo("Waiting for workers to finish...");
+            }
+            endGate.await();
+            if (isLoggingInfo()) {
+                logInfo("Waiting for send worker to finish...");
+            }
+            sendQueue.offer(POISON_PILL);
+            sendEndGate.await();
+            if (running) {
+                onFeedFinished(indexStamp);
+                stopTimer("startFullFeed");
+                stopAllTimers();
+
+                if (isLoggingInfo()) {
+                    logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
+                            + indexedProductCount.get() + " products were indexable from  " + processedProductCount.get()
+                            + " processed products");
+                }
+            } else {
+                if (isLoggingInfo()) {
+                    logInfo("Full feed was terminated");
+                }
+            }
+        } finally {
+            running = false;
+        }
+    }
+
+    public void sendProducts(SearchFeedProducts products, long indexStamp, int min) {
+        startTimer("queueProducts");
+        for (Locale locale : products.getLocales()) {
+            if (products.getSkuCount(locale) > min) {
+                List<Product> productList = products.getProducts(locale);
+                try {
+                    List<Product> clone = new ArrayList<Product>(productList.size());
+                    clone.addAll(productList);
+                    sendQueue.offer(clone);
+                } finally {
+                    productList.clear();
+                }
+            }
+        }
+        stopTimer("queueProducts");
+    }
+
+    private String productsId(List<Product> products) {
+        if (products == null && products.size() == 0) {
+            return StringUtils.EMPTY;
+        }
+        StringBuilder buffer = new StringBuilder();
+
+        for (Product product : products) {
+            buffer.append(product.getId()).append(", ");
+        }
+        buffer.setLength(buffer.length() - 2);
+        return buffer.toString();
     }
     
     protected abstract void onFeedStarted(long indexStamp);
 
-    protected abstract void onProductsSent(UpdateResponse response, List<Product> productList);
+    protected abstract void onProductsSent(Response response, List<Product> productList);
 
     protected abstract void onProductsSentError(List<Product> productList);
 
     protected abstract void onFeedFinished(long indexStamp);
 
-    protected abstract void processProduct(RepositoryItem product, Map<Locale, List<Product>> products)
+    protected abstract void processProduct(RepositoryItem product, SearchFeedProducts products)
             throws RepositoryException, InventoryException;
 
     /**
@@ -228,6 +537,7 @@ public abstract class SearchFeed extends GenericService {
      */
     protected void loadCategoryPaths(Sku sku, RepositoryItem product,
             Set<RepositoryItem> skuCatalogAssignments, Set<RepositoryItem> categoryCatalogs) {
+        startTimer("processProduct.sku.loadCategoryPaths");
         if (product != null) {
             try {
                 @SuppressWarnings("unchecked")
@@ -292,6 +602,7 @@ public abstract class SearchFeed extends GenericService {
                 }
             }
         }
+        stopTimer("processProduct.sku.loadCategoryPaths");
     }
 
     private boolean isRulesCategory(RepositoryItem category) throws RepositoryException {
@@ -413,5 +724,4 @@ public abstract class SearchFeed extends GenericService {
             builderIds.setLength(0);
         }
     }
-    
 }

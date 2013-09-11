@@ -1,4 +1,6 @@
-package org.opencommercesearch.model;
+package org.opencommercesearch.api.models
+
+import play.api.libs.json.Json
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -18,38 +20,9 @@ package org.opencommercesearch.model;
 * specific language governing permissions and limitations
 * under the License.
 */
+case class Size(var name: String, var scale: String) {}
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Size {
-
-    @JsonProperty
-    private String name;
-
-    @JsonProperty
-    private String scale;
-
-    public Size(String name, String size) {
-        this.name = name;
-        this.scale = size;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getScale() {
-        return scale;
-    }
-
-    public void setScale(String scale) {
-        this.scale = scale;
-    }
-
+object Size {
+  implicit val readsSize = Json.reads[Size]
+  implicit val writesSize = Json.writes[Size]
 }

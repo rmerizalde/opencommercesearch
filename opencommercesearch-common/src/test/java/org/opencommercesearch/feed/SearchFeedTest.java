@@ -24,7 +24,6 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
 
-import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,6 +33,7 @@ import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.model.Product;
 import org.opencommercesearch.model.Sku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+import org.restlet.Response;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -57,7 +57,7 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
 
-        protected void onProductsSent(UpdateResponse response, List<Product> productList) {
+        protected void onProductsSent(Response response, List<Product> productList) {
             throw new UnsupportedOperationException();
         }
 
@@ -65,7 +65,7 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
 
-        protected void processProduct(RepositoryItem productItem, Map<Locale, List<Product>> products)
+        protected void processProduct(RepositoryItem productItem, SearchFeedProducts products)
                 throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }

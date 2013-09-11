@@ -31,23 +31,26 @@ import java.util.Locale;
  * Overrides ATG's local service to allow jobs running out of servlet request and without a user profile change the
  * current locale.
  *
- * This class is not thread safe and each feed should have its own instance.
- *
  * @rmerizalde
  */
 public class FeedLocaleService extends LocaleService {
 
-    private LinkedList<Locale> stack = new LinkedList<Locale>();
+    private static ThreadLocal<LinkedList<Locale>> stack = new ThreadLocal<LinkedList<Locale>>() {
+        public LinkedList<Locale> initialValue() {
+            return new LinkedList<Locale>();
+        }
+    };
+
     private List<String> supportedLocaleKeys;
     private List<Locale> supportedLocales;
     private Locale[] NO_LOCALES = new Locale[]{};
 
-    public String[] getSupportedLocaleKeys() {
+    public synchronized String[] getSupportedLocaleKeys() {
         String[] supportedLocaleKeysArray = new String[supportedLocaleKeys.size()];
         return supportedLocaleKeys.toArray(supportedLocaleKeysArray);
     }
 
-    public void setSupportedLocaleKeys(String[] supportedLocaleKeys) {
+    public synchronized void setSupportedLocaleKeys(String[] supportedLocaleKeys) {
         this.supportedLocaleKeys = new ArrayList<String>(supportedLocaleKeys.length);
         for (String localeKey : supportedLocaleKeys) {
             this.supportedLocaleKeys.add(localeKey);
@@ -56,22 +59,22 @@ public class FeedLocaleService extends LocaleService {
     }
 
     public void pushLocale(Locale locale) {
-        stack.addFirst(locale);
+        stack.get().addFirst(locale);
     }
 
     public Locale popLocale() {
-        if (stack.size() == 0) {
+        if (stack.get().size() == 0) {
             return null;
         }
-        return stack.removeFirst();
+        return stack.get().removeFirst();
     }
 
     @Override
     public Locale getLocale() {
-        if (stack.size() == 0) {
+        if (stack.get().size() == 0) {
             return Locale.US;
         }
-        return stack.getFirst();
+        return stack.get().getFirst();
     }
 
     public Locale[] getSupportedLocales() {

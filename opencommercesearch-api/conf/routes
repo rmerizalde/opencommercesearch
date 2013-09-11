@@ -12,6 +12,7 @@ GET        /v1/brands/suggestcompletion/:query        org.opencommercesearch.api
 
 # product routes
 GET        /v1/products                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, preview: Boolean ?= false)
+PUT        /v1/products                               org.opencommercesearch.api.controllers.ProductController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
 
 
 

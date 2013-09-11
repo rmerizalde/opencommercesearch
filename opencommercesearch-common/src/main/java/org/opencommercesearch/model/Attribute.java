@@ -1,6 +1,7 @@
 package org.opencommercesearch.model;
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -20,6 +21,8 @@ import org.codehaus.jackson.annotate.JsonProperty;
 * specific language governing permissions and limitations
 * under the License.
 */
+
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Attribute {
     @JsonProperty
     private String name;

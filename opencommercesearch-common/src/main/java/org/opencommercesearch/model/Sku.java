@@ -20,10 +20,13 @@ package org.opencommercesearch.model;
 */
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Sku {
 
     @JsonProperty
@@ -56,19 +59,19 @@ public class Sku {
     @JsonProperty
     private Size size;
 
-    @JsonProperty
+    @JsonIgnore
     private Set<String> categories;
 
-    @JsonProperty
+    @JsonIgnore
     private Set<String> categoryNodes;
 
-    @JsonProperty
+    @JsonIgnore
     private Set<String> categoryLeaves;
 
-    @JsonProperty
+    @JsonIgnore
     private Set<String> ancestorCategories;
 
-    @JsonProperty
+    @JsonIgnore
     private Set<String> categoryTokens;
 
     @JsonProperty
@@ -174,6 +177,7 @@ public class Sku {
         return null;
     }
 
+    @JsonIgnore
     public Set<String> getCategories() {
         return categories;
     }
@@ -185,6 +189,7 @@ public class Sku {
         ancestorCategories.add(category);
     }
 
+    @JsonIgnore
     public Set<String> getCategoryNodes() {
         return categoryNodes;
     }
@@ -196,6 +201,7 @@ public class Sku {
         categoryNodes.add(category);
     }
 
+    @JsonIgnore
     public Set<String> getCategoryLeaves() {
         return categoryLeaves;
     }
@@ -207,6 +213,7 @@ public class Sku {
         categoryLeaves.add(category);
     }
 
+    @JsonIgnore
     public Set<String> getAncestorCategories() {
         return ancestorCategories;
     }
@@ -218,6 +225,7 @@ public class Sku {
         ancestorCategories.add(category);
     }
 
+    @JsonIgnore
     public Set<String> getCategoryTokens() {
         return categoryTokens;
     }

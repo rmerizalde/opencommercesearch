@@ -1,4 +1,6 @@
-package org.opencommercesearch.model;
+package org.opencommercesearch.api.models
+
+import play.api.libs.json.Json
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,37 +21,16 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+case class Country(
+  var code: Option[String],
+  var listPrice: Option[Double],
+  var salePrice: Option[Double],
+  var discountPercent: Option[Int],
+  var url: Option[String],
+  var allowBackorder: Option[Boolean]) {}
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Size {
 
-    @JsonProperty
-    private String name;
-
-    @JsonProperty
-    private String scale;
-
-    public Size(String name, String size) {
-        this.name = name;
-        this.scale = size;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getScale() {
-        return scale;
-    }
-
-    public void setScale(String scale) {
-        this.scale = scale;
-    }
-
+object Country {
+  implicit val readsCountry = Json.reads[Country]
+  implicit val writesCountry = Json.writes[Country]
 }

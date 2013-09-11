@@ -20,36 +20,18 @@ package org.opencommercesearch.model;
 */
 
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Size {
+import java.util.List;
 
+public class ProductList {
     @JsonProperty
-    private String name;
+    private List products;
 
-    @JsonProperty
-    private String scale;
-
-    public Size(String name, String size) {
-        this.name = name;
-        this.scale = size;
+    public ProductList(List<Product> products) {
+        this.products = products;
     }
 
-    public String getName() {
-        return name;
+    public List<Product> getProducts() {
+        return products;
     }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getScale() {
-        return scale;
-    }
-
-    public void setScale(String scale) {
-        this.scale = scale;
-    }
-
 }

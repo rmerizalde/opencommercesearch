@@ -20,7 +20,9 @@ package org.opencommercesearch.model;
 */
 
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Image {
     @JsonProperty
     private String title;

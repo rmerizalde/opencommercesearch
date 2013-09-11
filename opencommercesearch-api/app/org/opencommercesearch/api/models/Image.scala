@@ -1,4 +1,4 @@
-package org.opencommercesearch.model;
+package org.opencommercesearch.api.models
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,37 +19,11 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import play.api.libs.json.Json
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Size {
+case class Image(var title: Option[String], var url: Option[String]) {}
 
-    @JsonProperty
-    private String name;
-
-    @JsonProperty
-    private String scale;
-
-    public Size(String name, String size) {
-        this.name = name;
-        this.scale = size;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getScale() {
-        return scale;
-    }
-
-    public void setScale(String scale) {
-        this.scale = scale;
-    }
-
+object Image {
+  implicit val readsImage = Json.reads[Image]
+  implicit val writesImage = Json.writes[Image]
 }
