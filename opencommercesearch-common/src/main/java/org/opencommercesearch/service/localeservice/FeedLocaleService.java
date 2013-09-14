@@ -31,7 +31,7 @@ import java.util.Locale;
  * Overrides ATG's local service to allow jobs running out of servlet request and without a user profile change the
  * current locale.
  *
- * @rmerizalde
+ * @author rmerizalde
  */
 public class FeedLocaleService extends LocaleService {
 

@@ -39,7 +39,10 @@ public class Product {
     private String shortDescription;
 
     @JsonProperty
-    private String brand;
+    private Brand brand;
+
+    @JsonProperty
+    private String gender;
 
     @JsonProperty
     private String sizingChart;
@@ -111,12 +114,20 @@ public class Product {
         this.shortDescription = shortDescription;
     }
 
-    public String getBrand() {
+    public Brand getBrand() {
         return brand;
     }
 
-    public void setBrand(String brand) {
+    public void setBrand(Brand brand) {
         this.brand = brand;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
     }
 
     public String getSizingChart() {

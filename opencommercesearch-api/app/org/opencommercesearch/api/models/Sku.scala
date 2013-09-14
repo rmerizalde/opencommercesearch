@@ -22,22 +22,22 @@ package org.opencommercesearch.api.models
 import play.api.libs.json.Json
 
 case class Sku(
-  var id: String,
-  var season: String,
-  var year: String,
-  var image: Image,
-  var countries: Set[Country],
-  var isPastSeason: Boolean,
-  var colorFamily: String,
-  var isRetail: Boolean,
-  var isCloseout: Boolean,
-  var size: Size,
-  var categories: Set[String],
-  var categoryNodes: Set[String],
-  var categoryLeaves: Set[String],
-  var ancestorCategories: Set[String],
-  var categoryTokens: Set[String],
-  var customSort: Int) {
+  var id: Option[String],
+  var season: Option[String],
+  var year: Option[String],
+  var image: Option[Image],
+  var countries: Option[Set[Country]],
+  var isPastSeason: Option[Boolean],
+  var colorFamily: Option[String],
+  var isRetail: Option[Boolean],
+  var isCloseout: Option[Boolean],
+  var size: Option[Size],
+  var categories: Option[Set[String]],
+  var categoryNodes: Option[Set[String]],
+  var categoryLeaves: Option[Set[String]],
+  var ancestorCategories: Option[Set[String]],
+  var categoryTokens: Option[Set[String]],
+  var customSort: Option[Int]) {
 
 }
 

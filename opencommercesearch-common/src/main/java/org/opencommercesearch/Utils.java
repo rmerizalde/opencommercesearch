@@ -183,7 +183,6 @@ public class Utils {
     
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
-     * @see buildCategoryPrefix
      * @param categoryPath LinkList storing the path
      * @return
      */
@@ -252,7 +251,6 @@ public class Utils {
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
      * 
-     * @see buildCategoryPrefix
      * @param currentPath Placeholder to accumulate the path
      * @param category The current category we are traversing
      */
@@ -287,7 +285,12 @@ public class Utils {
     }
 
     public static String errorMessage(Representation representation) {
+        if (representation == null) {
+            return StringUtils.EMPTY;
+        }
+
         String message = "unknown exception";
+
         try {
             JSONObject obj = new JSONObject(representation.getText());
             message = obj.getString("message");

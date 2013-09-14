@@ -3,7 +3,7 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, JsError, Json}
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -17,6 +17,8 @@ import org.codehaus.jackson.map.ObjectMapper
 import org.opencommercesearch.api.Global._
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.convert.Wrappers.JListWrapper
+import scala.concurrent.Future
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 
 
 object ProductController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
@@ -61,7 +63,7 @@ object ProductController extends Controller with ContentPreview with FieldList w
                   val p = new Product()
                   p.setId(group.getGroupValue)
                   p.setTitle(title)
-                  p.setSkus(productBeanSeq)
+                  //p.setSkus(productBeanSeq)
                   allProducts.add(p)
                 }
               }
@@ -101,7 +103,41 @@ object ProductController extends Controller with ContentPreview with FieldList w
     }
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { request =>
-    Created
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+    Json.fromJson[ProductList](request.body).map { productList =>
+      val products = productList.products
+      if (products.size > MaxUpdateProductBatchSize) {
+        BadRequest(Json.obj(
+          "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize"))
+      } else {
+        try {
+          val update = withProductCollection(new AsyncUpdateRequest(), preview)
+          val docs = productList.toDocuments
+          update.add(docs)
+
+          val future: Future[Result] = update.process(solrServer).map( response => {
+            Created
+          })
+
+          Async {
+            withErrorHandling(future, s"Cannot store brands with ids [${products map (_.id.get) mkString ","}]")
+          }
+        } catch {
+          case e: IllegalArgumentException => {
+            Logger.error(e.getMessage)
+            BadRequest(Json.obj(
+              "message" -> e.getMessage
+            ))
+          }
+        }
+      }
+    }.recoverTotal {
+      case e: JsError => {
+        BadRequest(Json.obj(
+          // @TODO figure out how to pull missing field from JsError
+          "message" -> "Missing required fields"))
+      }
+
+    }
   }
 }

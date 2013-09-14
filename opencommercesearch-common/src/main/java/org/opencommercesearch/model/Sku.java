@@ -113,6 +113,7 @@ public class Sku {
         this.countries = countries;
     }
 
+    @JsonIgnore
     public boolean isPastSeason() {
         return isPastSeason;
     }
@@ -129,6 +130,7 @@ public class Sku {
         this.colorFamily = colorFamily;
     }
 
+    @JsonIgnore
     public boolean isRetail() {
         return isRetail;
     }
@@ -137,6 +139,7 @@ public class Sku {
         isRetail = isRetail;
     }
 
+    @JsonIgnore
     public boolean isCloseout() {
         return isCloseout;
     }

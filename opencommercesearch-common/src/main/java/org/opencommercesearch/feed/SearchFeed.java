@@ -60,7 +60,7 @@ import static org.opencommercesearch.Utils.errorMessage;
  * @TODO implement default feed functionality
  */
 public abstract class SearchFeed extends GenericService {
-    private List<Product> POISON_PILL = Collections.EMPTY_LIST;
+    private static SendQueueItem POISON_PILL = new SendQueueItem();
 
     private SearchServer searchServer;
     private Repository productRepository;
@@ -78,9 +78,9 @@ public abstract class SearchFeed extends GenericService {
     private AtomicInteger processedProductCount;
     private AtomicInteger indexedProductCount;
     private ExecutorService sendTaskExecutor;
-    private BlockingDeque<List<Product>> sendQueue;
+    private BlockingDeque<SendQueueItem> sendQueue;
 
-    private boolean running;
+    private volatile boolean running;
     private Map<Thread, Map<String,StopWatch>> timersByThread;
 
     public SearchServer getSearchServer() {
@@ -175,6 +175,18 @@ public abstract class SearchFeed extends GenericService {
          return timersByThread;
     }
 
+    public int getCurrentProcessedProductCount() {
+        return processedProductCount.get();
+    }
+
+    public int getCurrentIndexedProductCount() {
+        return indexedProductCount.get();
+    }
+
+    public int getCurrentSendQueueSize() {
+        return sendQueue.size();
+    }
+
     // Returns the timers for the current threads
     private Map<String, StopWatch> getCurrentTimers() {
         if (timersByThread == null) {
@@ -232,7 +244,7 @@ public abstract class SearchFeed extends GenericService {
         indexedProductCount = new AtomicInteger(0);
         timersByThread = new ConcurrentHashMap<Thread, Map<String, StopWatch>>(getWorkerCount());
         sendTaskExecutor = Executors.newSingleThreadExecutor();
-        sendQueue = new LinkedBlockingDeque<List<Product>>();
+        sendQueue = new LinkedBlockingDeque<SendQueueItem>();
     }
 
     @Override
@@ -290,7 +302,7 @@ public abstract class SearchFeed extends GenericService {
                                 stopTimer("processProduct");
                             }
                             indexedProductCount.incrementAndGet();
-                            sendProducts(products, 0, getIndexBatchSize());
+                            sendProducts(products, 0, getIndexBatchSize(), true);
                         }
                         processedProductCount.incrementAndGet();
                         localProductProcessedCount++;
@@ -308,13 +320,9 @@ public abstract class SearchFeed extends GenericService {
                         logInfo(Thread.currentThread() + " - Processed " + processedProductCount.get()  + " out of " + productCount + " by partition " + getName());
                         logInfo(Thread.currentThread() + " - Indexable products "+ indexedProductCount.get());
                     }
-
-                    //if (processedProductCount.get() >= 15000) {
-                    //    break;
-                    //}
                 }
 
-                sendProducts(products, 0, 0);
+                sendProducts(products, 0, 0, true);
             } catch (RepositoryException ex) {
                 if (isLoggingError()) {
                     logError("Exception processing catalog partition: " + getName(), ex);
@@ -332,6 +340,18 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
+    private static class SendQueueItem {
+        Locale locale;
+        List<Product> productList;
+
+        SendQueueItem() {}
+
+        SendQueueItem(Locale locale, List<Product> productList) {
+            this.locale = locale;
+            this.productList = productList;
+        }
+    }
+
     private class SendTask implements Runnable {
         private CountDownLatch endGate;
 
@@ -346,50 +366,13 @@ public abstract class SearchFeed extends GenericService {
                 }
 
                 while (running) {
-                    List<Product> productList = sendQueue.take();
+                    SendQueueItem item = sendQueue.take();
 
-                    if (POISON_PILL == productList) {
+                    if (POISON_PILL == item) {
                         break;
                     }
 
-                    startTimer("sendProducts");
-                    try {
-                        String json = null;
-                        try {
-                            startTimer("sendProducts.generateJson");
-                            json = getObjectMapper().writeValueAsString(new ProductList(productList));
-                        } catch (IOException ex) {
-                            if (isLoggingDebug()) {
-                                logDebug("Unable to convert product list to JSON");
-                            }
-                        } finally {
-                            stopTimer("sendProducts.generateJson");
-                        }
-
-                        final StringRepresentation jsonRepresentation = new StringRepresentation(json, MediaType.APPLICATION_JSON);
-                        final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, jsonRepresentation));
-                        startTimer("sendProducts.sendJson");
-                        final Response response = client.handle(request);
-
-                        if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
-                            if (isLoggingInfo()) {
-                                logInfo("Sending products [" + productsId(productList) + "] fail with status: " + response.getStatus() + " ["
-                                        + errorMessage(response.getEntity()) + "]");
-                            }
-                            onProductsSent(response, productList);
-                        } else {
-                            onProductsSentError(productList);
-                        }
-                    } catch (Exception ex) {
-                        if (isLoggingInfo()) {
-                            logInfo("Sending products [" + productsId(productList) + "] fail with unexpected exception", ex);
-                        }
-                        onProductsSentError(productList);
-                    } finally {
-                        stopTimer("sendProducts.sendJson");
-                        stopTimer("sendProducts");
-                        productList.clear();
-                    }
+                    sendProducts(item.locale.getLanguage(), item.productList);
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -399,6 +382,80 @@ public abstract class SearchFeed extends GenericService {
                 }
                 endGate.countDown();
             }
+        }
+    }
+
+    /**
+     * Sends the products for indexing
+     *
+     * @param products the lists of products be indexed
+     * @param indexStamp TBD
+     * @param min the minimum size of of a product list. If the size is not met then the products are not sent
+     *            for indexing
+     * @param async determines if the products should be send right away or asynchronously.
+     */
+    public void sendProducts(SearchFeedProducts products, long indexStamp, int min, boolean async) {
+        startTimer("sendProducts");
+        for (Locale locale : products.getLocales()) {
+            if (products.getSkuCount(locale) > min) {
+                List<Product> productList = products.getProducts(locale);
+                try {
+                    if (async) {
+                        List<Product> clone = new ArrayList<Product>(productList.size());
+                        clone.addAll(productList);
+                        sendQueue.offer(new SendQueueItem(locale, clone));
+                    } {
+                        sendProducts(locale.getLanguage(), productList);
+                    }
+                } finally {
+                    productList.clear();
+                }
+            }
+        }
+        stopTimer("sendProducts");
+    }
+
+    // helper method that actually sends the products for indexing
+    private void sendProducts(String language, List<Product> productList) {
+        startTimer("sendProductsToApi");
+        try {
+            String json = null;
+            try {
+                startTimer("sendProductsToApi.generateJson");
+                json = getObjectMapper().writeValueAsString(new ProductList(productList));
+            } catch (IOException ex) {
+                if (isLoggingDebug()) {
+                    logDebug("Unable to convert product list to JSON");
+                }
+            } finally {
+                stopTimer("sendProductsToApi.generateJson");
+            }
+
+            final StringRepresentation jsonRepresentation = new StringRepresentation(json, MediaType.APPLICATION_JSON);
+            final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, jsonRepresentation));
+            final ClientInfo clientInfo = request.getClientInfo();
+            clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(language))));
+            startTimer("sendProductsToApi.sendJson");
+            final Response response = client.handle(request);
+
+            if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
+                if (isLoggingInfo()) {
+                    logInfo("Sending products [" + productsId(productList) + "] fail with status: " + response.getStatus() + " ["
+                            + errorMessage(response.getEntity()) + "]");
+                }
+                onProductsSent(response, productList);
+            } else {
+                onProductsSentError(productList);
+            }
+        } catch (Exception ex) {
+            if (isLoggingInfo()) {
+                logInfo("Sending products [" + productsId(productList) + "] fail with unexpected exception", ex);
+            }
+            onProductsSentError(productList);
+        } finally {
+            stopTimer("sendProductsToApi.sendJson");
+            stopTimer("sendProductsToApi");
+            productList.clear();
         }
     }
 
@@ -477,23 +534,6 @@ public abstract class SearchFeed extends GenericService {
         } finally {
             running = false;
         }
-    }
-
-    public void sendProducts(SearchFeedProducts products, long indexStamp, int min) {
-        startTimer("queueProducts");
-        for (Locale locale : products.getLocales()) {
-            if (products.getSkuCount(locale) > min) {
-                List<Product> productList = products.getProducts(locale);
-                try {
-                    List<Product> clone = new ArrayList<Product>(productList.size());
-                    clone.addAll(productList);
-                    sendQueue.offer(clone);
-                } finally {
-                    productList.clear();
-                }
-            }
-        }
-        stopTimer("queueProducts");
     }
 
     private String productsId(List<Product> products) {

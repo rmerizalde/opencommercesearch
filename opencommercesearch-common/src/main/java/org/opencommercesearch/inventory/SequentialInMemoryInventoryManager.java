@@ -53,9 +53,11 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
 
     public static final String LOCALE_SEPARATOR = ":";
 
-    private static final ThreadLocal<String> minId = new ThreadLocal<String>();
-    private static final ThreadLocal<String> maxId = new ThreadLocal<String>();
-    private static final ThreadLocal<Map<String, InventoryEntry>> cache = new ThreadLocal<Map<String, InventoryEntry>>();
+    // Thread local are usually static variable. However, there could be multiple instances of this
+    // class. For example, an inventory manager per locale.
+    private final ThreadLocal<String> minId = new ThreadLocal<String>();
+    private final ThreadLocal<String> maxId = new ThreadLocal<String>();
+    private final ThreadLocal<Map<String, InventoryEntry>> cache = new ThreadLocal<Map<String, InventoryEntry>>();
 
     private String inventoryName = "In Memory Inventory";
 

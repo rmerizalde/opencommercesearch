@@ -20,7 +20,7 @@ import play.api.libs.json.Json
 * specific language governing permissions and limitations
 * under the License.
 */
-case class Size(var name: String, var scale: String) {}
+case class Size(var name: Option[String], var scale: Option[String]) {}
 
 object Size {
   implicit val readsSize = Json.reads[Size]

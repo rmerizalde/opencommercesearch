@@ -1,11 +1,13 @@
 package org.opencommercesearch.api.controllers
 
 import play.api.mvc.{AnyContent, Request, Controller}
+import play.api.i18n.Lang
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
+import play.api.libs.json.JsValue
 
 
 trait ContentPreview {
@@ -29,15 +31,15 @@ trait ContentPreview {
   }
 
   def withProductCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
-    query.setParam("collection", getProductCollection(preview))
+    query.setParam("collection", getProductCollection(preview, req.acceptLanguages))
   }
 
-  def withProductCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean)(implicit req: Request[AnyContent]) : T = {
-    request.setParam("collection", getProductCollection(preview))
+  def withProductCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean)(implicit req: Request[JsValue]) : T = {
+    request.setParam("collection", getProductCollection(preview, req.acceptLanguages))
     request
   }
 
-  private def getProductCollection(preview: Boolean)(implicit req: Request[AnyContent]) : String = {
+  private def getProductCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
     var collection = ProductPublicCollection
     if (preview) {
       collection = ProductPreviewCollection
@@ -45,7 +47,7 @@ trait ContentPreview {
 
     var language: String = "en"
 
-    req.acceptLanguages.map(lang => language = lang.language)
+    acceptLanguages.map(lang => language = lang.language)
     collection + "_" + language
   }
 
