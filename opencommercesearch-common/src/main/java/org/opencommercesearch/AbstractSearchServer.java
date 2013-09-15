@@ -573,7 +573,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
             if (isSortByScore) {
                 // break ties with custom sort field
-                query.set("group.sort", "isCloseout asc, score desc, sort asc");
+                query.set("group.sort", "isCloseout asc, sort asc, score desc");
             }
         }
     }

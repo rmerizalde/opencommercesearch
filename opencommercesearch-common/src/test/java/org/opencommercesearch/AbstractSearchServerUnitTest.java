@@ -435,7 +435,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "isCloseout asc, score desc, sort asc");
+        verify(query).set("group.sort", "isCloseout asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
     }
 
@@ -472,7 +472,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "isCloseout asc, score desc, sort asc");
+        verify(query).set("group.sort", "isCloseout asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
 
     }
