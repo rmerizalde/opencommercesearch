@@ -34,7 +34,7 @@ trait ContentPreview {
     query.setParam("collection", getProductCollection(preview, req.acceptLanguages))
   }
 
-  def withProductCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean)(implicit req: Request[JsValue]) : T = {
+  def withProductCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean)(implicit req: Request[R]) : T = {
     request.setParam("collection", getProductCollection(preview, req.acceptLanguages))
     request
   }

@@ -67,7 +67,7 @@ object Product {
   implicit val writesProduct = Json.writes[Product]
 }
 
-case class ProductList(products: Seq[Product]) {
+case class ProductList(products: Seq[Product], indexTimestamp: Long) {
   def toDocuments() : util.List[SolrInputDocument] = {
     val documents = new util.ArrayList[SolrInputDocument](products.size * 3)
     var expectedDocCount = 0
@@ -133,6 +133,7 @@ case class ProductList(products: Seq[Product]) {
             doc.setField("category", "categoryTBD")
             doc.setField("categoryNodes", "categoryNodesTBD")
             doc.setField("categoryLeaves", "categoryLeavesTBD")
+            doc.setField("indexStamp", indexTimestamp)
             documents.add(doc)
             currentDocCount += 1
           }

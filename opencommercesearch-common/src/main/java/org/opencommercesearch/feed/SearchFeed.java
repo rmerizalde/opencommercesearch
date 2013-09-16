@@ -37,6 +37,7 @@ import org.opencommercesearch.model.Product;
 import org.opencommercesearch.model.ProductList;
 import org.opencommercesearch.model.Sku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+import org.opencommercesearch.service.localeservice.FeedLocaleService;
 import org.restlet.Client;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -62,7 +63,6 @@ import static org.opencommercesearch.Utils.errorMessage;
 public abstract class SearchFeed extends GenericService {
     private static SendQueueItem POISON_PILL = new SendQueueItem();
 
-    private SearchServer searchServer;
     private Repository productRepository;
     private String productItemDescriptorName;
     private RqlStatement productCountRql;
@@ -79,17 +79,9 @@ public abstract class SearchFeed extends GenericService {
     private AtomicInteger indexedProductCount;
     private ExecutorService sendTaskExecutor;
     private BlockingDeque<SendQueueItem> sendQueue;
-
     private volatile boolean running;
     private Map<Thread, Map<String,StopWatch>> timersByThread;
-
-    public SearchServer getSearchServer() {
-        return searchServer;
-    }
-
-    public void setSearchServer(SearchServer searchServer) {
-        this.searchServer = searchServer;
-    }
+    private FeedLocaleService localeService;
 
     public Repository getProductRepository() {
         return productRepository;
@@ -187,6 +179,14 @@ public abstract class SearchFeed extends GenericService {
         return sendQueue.size();
     }
 
+    public FeedLocaleService getLocaleService() {
+        return localeService;
+    }
+
+    public void setLocaleService(FeedLocaleService localeService) {
+        this.localeService = localeService;
+    }
+
     // Returns the timers for the current threads
     private Map<String, StopWatch> getCurrentTimers() {
         if (timersByThread == null) {
@@ -265,11 +265,13 @@ public abstract class SearchFeed extends GenericService {
         private CountDownLatch endGate;
         private int offset;
         private int limit;
+        private long indexTimestamp;
         private String name;
 
-        ProductPartitionTask(int offset, int limit, CountDownLatch endGate) {
+        ProductPartitionTask(int offset, int limit, long indexTimestamp, CountDownLatch endGate) {
             this.offset = offset;
             this.limit = limit;
+            this.indexTimestamp = indexTimestamp;
             this.endGate = endGate;
             this.name = offset + " - " + (offset + limit);
         }
@@ -302,7 +304,7 @@ public abstract class SearchFeed extends GenericService {
                                 stopTimer("processProduct");
                             }
                             indexedProductCount.incrementAndGet();
-                            sendProducts(products, 0, getIndexBatchSize(), true);
+                            sendProducts(products, indexTimestamp, getIndexBatchSize(), true);
                         }
                         processedProductCount.incrementAndGet();
                         localProductProcessedCount++;
@@ -322,7 +324,7 @@ public abstract class SearchFeed extends GenericService {
                     }
                 }
 
-                sendProducts(products, 0, 0, true);
+                sendProducts(products, indexTimestamp, 0, true);
             } catch (RepositoryException ex) {
                 if (isLoggingError()) {
                     logError("Exception processing catalog partition: " + getName(), ex);
@@ -342,11 +344,11 @@ public abstract class SearchFeed extends GenericService {
 
     private static class SendQueueItem {
         Locale locale;
-        List<Product> productList;
+        ProductList productList;
 
         SendQueueItem() {}
 
-        SendQueueItem(Locale locale, List<Product> productList) {
+        SendQueueItem(Locale locale, ProductList productList) {
             this.locale = locale;
             this.productList = productList;
         }
@@ -389,12 +391,12 @@ public abstract class SearchFeed extends GenericService {
      * Sends the products for indexing
      *
      * @param products the lists of products be indexed
-     * @param indexStamp TBD
+     * @param indexTimestamp
      * @param min the minimum size of of a product list. If the size is not met then the products are not sent
      *            for indexing
      * @param async determines if the products should be send right away or asynchronously.
      */
-    public void sendProducts(SearchFeedProducts products, long indexStamp, int min, boolean async) {
+    public void sendProducts(SearchFeedProducts products, long indexTimestamp, int min, boolean async) {
         startTimer("sendProducts");
         for (Locale locale : products.getLocales()) {
             if (products.getSkuCount(locale) > min) {
@@ -403,9 +405,9 @@ public abstract class SearchFeed extends GenericService {
                     if (async) {
                         List<Product> clone = new ArrayList<Product>(productList.size());
                         clone.addAll(productList);
-                        sendQueue.offer(new SendQueueItem(locale, clone));
-                    } {
-                        sendProducts(locale.getLanguage(), productList);
+                        sendQueue.offer(new SendQueueItem(locale, new ProductList(clone, indexTimestamp)));
+                    } else {
+                        sendProducts(locale.getLanguage(), new ProductList(productList, indexTimestamp));
                     }
                 } finally {
                     productList.clear();
@@ -416,13 +418,13 @@ public abstract class SearchFeed extends GenericService {
     }
 
     // helper method that actually sends the products for indexing
-    private void sendProducts(String language, List<Product> productList) {
+    private void sendProducts(String language, ProductList productList) {
         startTimer("sendProductsToApi");
         try {
             String json = null;
             try {
                 startTimer("sendProductsToApi.generateJson");
-                json = getObjectMapper().writeValueAsString(new ProductList(productList));
+                json = getObjectMapper().writeValueAsString(productList);
             } catch (IOException ex) {
                 if (isLoggingDebug()) {
                     logDebug("Unable to convert product list to JSON");
@@ -440,22 +442,90 @@ public abstract class SearchFeed extends GenericService {
 
             if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
                 if (isLoggingInfo()) {
-                    logInfo("Sending products [" + productsId(productList) + "] fail with status: " + response.getStatus() + " ["
+                    logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
                             + errorMessage(response.getEntity()) + "]");
                 }
-                onProductsSent(response, productList);
+                onProductsSent(response, productList.getProducts());
             } else {
-                onProductsSentError(productList);
+                onProductsSentError(productList.getProducts());
             }
         } catch (Exception ex) {
             if (isLoggingInfo()) {
-                logInfo("Sending products [" + productsId(productList) + "] fail with unexpected exception", ex);
+                logInfo("Sending products [" + productsId(productList.getProducts()) + "] failed with unexpected exception", ex);
             }
-            onProductsSentError(productList);
+            onProductsSentError(productList.getProducts());
         } finally {
             stopTimer("sendProductsToApi.sendJson");
             stopTimer("sendProductsToApi");
-            productList.clear();
+            productList.getProducts().clear();
+        }
+    }
+
+    /**
+     * Deletes the product with the given id from index
+     *
+     * @param id is the id of the product to be deleted
+     */
+    public void delete(String id) {
+        Set<String> languages = new HashSet<String>();
+         for (Locale locale : localeService.getSupportedLocales()) {
+             if (!languages.contains(locale.getLanguage())) {
+                try {
+                    final Request request = new Request(Method.DELETE, getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint(), id));
+                    final ClientInfo clientInfo = request.getClientInfo();
+                    clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
+                    final Response response = client.handle(request);
+
+                    if (isLoggingInfo()) {
+                        if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                            logInfo("Successfully deleted product " + id + " for " + locale.getLanguage());
+                        } else {
+                            logInfo("Deleting product " + id + " for " + locale.getLanguage() + " failed with status: " + response.getStatus());
+                        }
+                    }
+                    languages.add(locale.getLanguage());
+                } catch (Exception ex) {
+                    if (isLoggingError()) {
+                        logError("Deleting product " + id + " failed", ex);
+                    }
+                }
+             }
+         }
+    }
+
+    public void delete(long indexTimestamp) {
+        Set<String> languages = new HashSet<String>();
+        for (Locale locale : localeService.getSupportedLocales()) {
+            if (!languages.contains(locale.getLanguage())) {
+                try {
+                    String endpointUrl = getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint());
+
+                    if (endpointUrl.indexOf("?") != -1) {
+                        endpointUrl += "&";
+                    }
+                    endpointUrl += "indexTimestamp=" + indexTimestamp;
+                    final Request request = new Request(Method.DELETE, endpointUrl);
+                    final ClientInfo clientInfo = request.getClientInfo();
+                    clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
+                    final Response response = client.handle(request);
+
+                    if (isLoggingInfo()) {
+                        if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                            logInfo("Successfully deleted products for " + locale.getLanguage() + " with index timestamp before to "
+                                    + indexTimestamp);
+                        } else {
+                            logInfo("Deleting products for " + locale.getLanguage() + " with index timestamp before to "
+                                    + indexTimestamp + " failed with status: " + response.getStatus());
+                        }
+                    }
+                    languages.add(locale.getLanguage());
+                } catch (Exception ex) {
+                    if (isLoggingError()) {
+                        logError("Deleting products for " + locale.getLanguage() + " with index timestamp before to "
+                                + indexTimestamp + " failed", ex);
+                    }
+                }
+            }
         }
     }
 
@@ -481,9 +551,9 @@ public abstract class SearchFeed extends GenericService {
                 logInfo("Started full feed for " + productCount + " products");
             }
 
-            final long indexStamp = System.currentTimeMillis();
+            final long indexTimestamp = System.currentTimeMillis();
 
-            onFeedStarted(indexStamp);
+            onFeedStarted(indexTimestamp);
             processedProductCount.set(0);
             indexedProductCount.set(0);
 
@@ -501,7 +571,7 @@ public abstract class SearchFeed extends GenericService {
                     limit += productCount - limit;
                 }
 
-                productTaskExecutor.execute(new ProductPartitionTask(offset, limit, endGate));
+                productTaskExecutor.execute(new ProductPartitionTask(offset, limit, indexTimestamp, endGate));
                 if (isLoggingInfo()) {
                     logInfo("Catalog partition created: " + offset + " - " + limit);
                 }
@@ -517,7 +587,8 @@ public abstract class SearchFeed extends GenericService {
             sendQueue.offer(POISON_PILL);
             sendEndGate.await();
             if (running) {
-                onFeedFinished(indexStamp);
+                delete(indexTimestamp);
+                onFeedFinished(indexTimestamp);
                 stopTimer("startFullFeed");
                 stopAllTimers();
 

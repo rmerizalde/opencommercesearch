@@ -67,7 +67,17 @@ public class Settings {
     }
 
     public String getUrl4Endpoint(String endpoint) {
-        return host + endpoint + (getPreview()? "?preview=true": "");
+        return getUrl4Endpoint(endpoint, null);
+    }
+
+    public String getUrl4Endpoint(String endpoint, String id) {
+        String endpointUrl = host + endpoint;
+
+        if (id != null) {
+            endpointUrl += "/" + id;
+        }
+        endpointUrl += (getPreview()? "?preview=true": "");
+        return endpointUrl;
     }
 
 }

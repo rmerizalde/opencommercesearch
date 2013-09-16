@@ -140,4 +140,30 @@ object ProductController extends Controller with ContentPreview with FieldList w
 
     }
   }
+
+  def deleteByTimestamp(version: Int = 1, indexTimestamp: Long, preview: Boolean) = Action { implicit request =>
+    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    update.deleteByQuery("-indexStamp:" + indexTimestamp)
+
+    val future: Future[Result] = update.process(solrServer).map( response => {
+      NoContent
+    })
+
+    Async {
+      withErrorHandling(future, s"Cannot delete product before index timestamp [$indexTimestamp]")
+    }
+  }
+
+  def deleteById(version: Int = 1, id: String, preview: Boolean) = Action { implicit request =>
+    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    update.deleteByQuery("productId:" + id)
+
+    val future: Future[Result] = update.process(solrServer).map( response => {
+      NoContent
+    })
+
+    Async {
+      withErrorHandling(future, s"Cannot delete product [$id  ]")
+    }
+  }
 }
