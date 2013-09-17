@@ -3,7 +3,7 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
-import play.api.libs.json.{JsArray, JsError, Json}
+import play.api.libs.json.{JsError, Json}
 
 import scala.collection.JavaConversions.asScalaBuffer
 
@@ -11,7 +11,6 @@ import java.util
 
 import org.opencommercesearch.api.models._
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.codehaus.jackson.map.ObjectMapper
 
 import org.opencommercesearch.api.Global._
@@ -120,7 +119,7 @@ object ProductController extends Controller with ContentPreview with FieldList w
           })
 
           Async {
-            withErrorHandling(future, s"Cannot store brands with ids [${products map (_.id.get) mkString ","}]")
+            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
           }
         } catch {
           case e: IllegalArgumentException => {
@@ -141,16 +140,16 @@ object ProductController extends Controller with ContentPreview with FieldList w
     }
   }
 
-  def deleteByTimestamp(version: Int = 1, indexTimestamp: Long, preview: Boolean) = Action { implicit request =>
+  def deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean) = Action { implicit request =>
     val update = withProductCollection(new AsyncUpdateRequest(), preview)
-    update.deleteByQuery("-indexStamp:" + indexTimestamp)
+    update.deleteByQuery("-indexStamp:" + feedTimestamp)
 
     val future: Future[Result] = update.process(solrServer).map( response => {
       NoContent
     })
 
     Async {
-      withErrorHandling(future, s"Cannot delete product before index timestamp [$indexTimestamp]")
+      withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
     }
   }
 

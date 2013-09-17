@@ -13,7 +13,7 @@ GET           /v1/brands/suggestcompletion/:query        org.opencommercesearch.
 # product routes
 GET           /v1/products                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, preview: Boolean ?= false)
 PUT           /v1/products                               org.opencommercesearch.api.controllers.ProductController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
-DELETE        /v1/products                               org.opencommercesearch.api.controllers.ProductController.deleteByTimestamp(version: Int = 1, indexTimestamp: Long, preview: Boolean ?= false)
+DELETE        /v1/products                               org.opencommercesearch.api.controllers.ProductController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean ?= false)
 DELETE        /v1/products/:id                           org.opencommercesearch.api.controllers.ProductController.deleteById(version: Int = 1, id: String, preview: Boolean ?= false)
 
 

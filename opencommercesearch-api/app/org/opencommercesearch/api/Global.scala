@@ -3,10 +3,12 @@ package org.opencommercesearch.api
 import play.api.{Play, GlobalSettings, Logger, Application}
 import play.api.libs.json.Json
 
+import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
 import play.api.mvc.{Result, WithFilters, RequestHeader}
 import play.api.mvc.Results._
 import play.modules.statsd.api.StatsdFilter
+
 
 object Global extends WithFilters(new StatsdFilter()) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
@@ -19,7 +21,7 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
-  private var _solrServer: AsyncCloudSolrServer = null
+  private var _solrServer: AsyncSolrServer = null
 
   def solrServer = {
     if (_solrServer == null) {
@@ -28,8 +30,7 @@ object Global extends WithFilters(new StatsdFilter()) {
     _solrServer
   }
 
-  def solrServer_=(server: AsyncCloudSolrServer) = { _solrServer = server }
-
+  def solrServer_=(server: AsyncSolrServer) = { _solrServer = server }
 
   override def onStart(app: Application) {
     Logger.info("OpenCommerceSearch API has started")

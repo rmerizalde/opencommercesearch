@@ -28,18 +28,18 @@ public class ProductList {
     private List products;
 
     @JsonProperty
-    private long indexTimestamp;
+    private long feedTimestamp;
 
-    public ProductList(List<Product> products, long indexTimestamp) {
+    public ProductList(List<Product> products, long feedTimestamp) {
         this.products = products;
-        this.indexTimestamp = indexTimestamp;
+        this.feedTimestamp = feedTimestamp;
     }
 
     public List<Product> getProducts() {
         return products;
     }
 
-    public long getIndexTimestamp() {
-        return indexTimestamp;
+    public long getfeedTimestamp() {
+        return feedTimestamp;
     }
 }
