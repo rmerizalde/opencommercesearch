@@ -80,7 +80,7 @@ public class SearchServerManager {
 
     private SearchServerManager() {}
 
-    public static SearchServerManager getInstance() {
+    public static synchronized SearchServerManager getInstance() {
         if (searchServerManager == null) {
             searchServerManager = new SearchServerManager();
         }
