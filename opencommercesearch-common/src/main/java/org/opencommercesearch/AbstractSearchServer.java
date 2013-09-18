@@ -592,7 +592,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
-        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FF, "isCloseout");
+		
+		if(catalog.equals("bcs")) {
+		    query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FF, "isCloseout");
+		}
     }
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
