@@ -22,32 +22,37 @@ package org.opencommercesearch.model;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.util.ArrayList;
+import java.util.List;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Attribute {
+public class Category {
+
     @JsonProperty
-    private String name;
+    private List<String> catalogs;
+
     @JsonProperty
-    private String value;
+    private List<String> parentCategories;
 
-    public Attribute(String name, String value) {
-        this.name = name;
-        this.value = value;
+    public List<String> getCatalogs() {
+        return catalogs;
     }
 
-    public String getName() {
-        return name;
+    private List<String> getParentCategories() {
+        return parentCategories;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void addCatalog(String catalog) {
+        if (catalogs == null) {
+            catalogs = new ArrayList<String>(4);
+        }
+        catalogs.add(catalog);
     }
 
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
+    public void addParentCategory(String parentCategory) {
+        if (parentCategories == null) {
+            parentCategories = new ArrayList<String>();
+        }
+        parentCategories.add(parentCategory);
     }
 }

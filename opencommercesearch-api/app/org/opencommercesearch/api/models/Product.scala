@@ -141,8 +141,6 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
       }
 
       if (expectedDocCount != currentDocCount) {
-        println(expectedDocCount + " != " + currentDocCount)
-
         throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
       }
     }

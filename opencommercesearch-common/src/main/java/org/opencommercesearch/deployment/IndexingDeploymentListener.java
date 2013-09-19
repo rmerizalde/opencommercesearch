@@ -34,6 +34,7 @@ import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
 import atg.repository.RepositoryException;
+import org.opencommercesearch.feed.CategoryFeed;
 
 /**
  * This class implements DeploymentEventListener and should be added to the
@@ -58,6 +59,8 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private List<String> triggerItemDescriptorNames;
     private boolean enableEvaluation;
     private EvaluationServiceSender evaluationServiceSender;
+    private CategoryFeed categoryFeed;
+
     public SearchServer getSearchServer() {
         return searchServer;
     }
@@ -99,6 +102,14 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public void setEnableEvaluation(boolean enableEvaluation) {
         this.enableEvaluation = enableEvaluation;
     }
+
+    public void setCategoryFeed(CategoryFeed categoryFeed) {
+        this.categoryFeed = categoryFeed;
+    }
+
+    public CategoryFeed getCategoryFeed() {
+        return categoryFeed;
+    }
     
     @Override
     public void deploymentEvent(DeploymentEvent event) {
@@ -118,7 +129,17 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                         if (isLoggingInfo()) {
                             logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
-                        if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
+
+                        if ((itemDescriptorName.equals("category") || itemDescriptorName.equals("ruleBasedCategory"))
+                                && repositoryName.equals("/atg/commerce/catalog/ProductCatalog")) {
+                            try {
+                                categoryFeed.startFeed();
+                            } catch (Exception ex) {
+                                if (isLoggingError()) {
+                                    logError("Category feed failed", ex);
+                                }
+                            }
+                        } else if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
                             doEvaluation = true;
                             notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
@@ -144,6 +165,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
             logInfo("Notifying search server of changes in repository " + repositoryName + " for item descriptors "
                     + itemDescriptorNames);
         }
+
         try {
             getSearchServer().onRepositoryItemChanged(repositoryName, itemDescriptorNames);
         } catch (RepositoryException ex) {

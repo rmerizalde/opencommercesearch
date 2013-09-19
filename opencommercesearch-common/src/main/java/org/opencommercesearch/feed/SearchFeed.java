@@ -30,27 +30,28 @@ import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
-import org.opencommercesearch.api.Settings;
+import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.model.Product;
 import org.opencommercesearch.model.ProductList;
 import org.opencommercesearch.model.Sku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.opencommercesearch.service.localeservice.FeedLocaleService;
-import org.restlet.Client;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.*;
 import org.restlet.engine.application.EncodeRepresentation;
-import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.StreamRepresentation;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.opencommercesearch.api.ProductService.Endpoint;
 import static org.opencommercesearch.Utils.errorMessage;
 
 /**
@@ -69,9 +70,8 @@ public abstract class SearchFeed extends GenericService {
     private RqlStatement productRql;
     private int productBatchSize;
     private int indexBatchSize;
-    private Settings apiSettings;
+    private ProductService productService;
     private ObjectMapper mapper;
-    private Client client;
     private String endpointUrl;
     private int workerCount;
     private ExecutorService productTaskExecutor;
@@ -143,12 +143,12 @@ public abstract class SearchFeed extends GenericService {
         return true;
     }
 
-    public Settings getApiSettings() {
-        return apiSettings;
+    public ProductService getProductService() {
+        return productService;
     }
 
-    public void setApiSettings(Settings apiSettings) {
-        this.apiSettings = apiSettings;
+    public void setProductService(ProductService productService) {
+        this.productService = productService;
     }
 
     public int getWorkerCount() {
@@ -230,8 +230,7 @@ public abstract class SearchFeed extends GenericService {
     @Override
     public void doStartService() throws ServiceException {
         super.doStartService();
-        client = new Client(Protocol.HTTP);
-        endpointUrl = getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint());
+        endpointUrl = getProductService().getUrl4Endpoint(Endpoint.PRODUCTS);
         mapper = new ObjectMapper();
         if (getWorkerCount() <= 0) {
             if (isLoggingInfo()) {
@@ -391,7 +390,7 @@ public abstract class SearchFeed extends GenericService {
      * Sends the products for indexing
      *
      * @param products the lists of products be indexed
-     * @param feedTimestamp
+     * @param feedTimestamp the feed timestamp
      * @param min the minimum size of of a product list. If the size is not met then the products are not sent
      *            for indexing
      * @param async determines if the products should be send right away or asynchronously.
@@ -418,27 +417,33 @@ public abstract class SearchFeed extends GenericService {
     }
 
     // helper method that actually sends the products for indexing
-    private void sendProducts(String language, ProductList productList) {
+    private void sendProducts(final String language, final ProductList productList) {
         startTimer("sendProductsToApi");
         try {
-            String json = null;
-            try {
-                startTimer("sendProductsToApi.generateJson");
-                json = getObjectMapper().writeValueAsString(productList);
-            } catch (IOException ex) {
-                if (isLoggingDebug()) {
-                    logDebug("Unable to convert product list to JSON");
+            final StreamRepresentation representation = new StreamRepresentation(MediaType.APPLICATION_JSON) {
+                @Override
+                public InputStream getStream() throws IOException {
+                    throw new UnsupportedOperationException();
                 }
-            } finally {
-                stopTimer("sendProductsToApi.generateJson");
-            }
 
-            final StringRepresentation jsonRepresentation = new StringRepresentation(json, MediaType.APPLICATION_JSON);
-            final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, jsonRepresentation));
+                @Override
+                public void write(OutputStream outputStream) throws IOException {
+                    try {
+                        startTimer("sendProductsToApi.generateJson");
+                        getObjectMapper().writeValue(outputStream, productList);
+                    } catch (IOException ex) {
+                        if (isLoggingDebug()) {
+                            logDebug("Unable to convert product list to JSON");
+                        }
+                    } finally {
+                        stopTimer("sendProductsToApi.generateJson");
+                    }                }
+            };
+            final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
             final ClientInfo clientInfo = request.getClientInfo();
             clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(language))));
             startTimer("sendProductsToApi.sendJson");
-            final Response response = client.handle(request);
+            final Response response = getProductService().handle(request);
 
             if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
                 if (isLoggingInfo()) {
@@ -471,10 +476,10 @@ public abstract class SearchFeed extends GenericService {
          for (Locale locale : localeService.getSupportedLocales()) {
              if (!languages.contains(locale.getLanguage())) {
                 try {
-                    final Request request = new Request(Method.DELETE, getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint(), id));
+                    final Request request = new Request(Method.DELETE, getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id));
                     final ClientInfo clientInfo = request.getClientInfo();
                     clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
-                    final Response response = client.handle(request);
+                    final Response response = getProductService().handle(request);
 
                     if (isLoggingInfo()) {
                         if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
@@ -495,10 +500,11 @@ public abstract class SearchFeed extends GenericService {
 
     public void delete(long feedTimestamp) {
         Set<String> languages = new HashSet<String>();
+        String endpointUrl = getProductService().getUrl4Endpoint(Endpoint.PRODUCTS);
+
         for (Locale locale : localeService.getSupportedLocales()) {
             if (!languages.contains(locale.getLanguage())) {
                 try {
-                    String endpointUrl = getApiSettings().getUrl4Endpoint(getApiSettings().getProductsEndpoint());
 
                     if (endpointUrl.indexOf("?") != -1) {
                         endpointUrl += "&";
@@ -507,21 +513,21 @@ public abstract class SearchFeed extends GenericService {
                     final Request request = new Request(Method.DELETE, endpointUrl);
                     final ClientInfo clientInfo = request.getClientInfo();
                     clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
-                    final Response response = client.handle(request);
+                    final Response response = getProductService().handle(request);
 
                     if (isLoggingInfo()) {
                         if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                            logInfo("Successfully deleted products for " + locale.getLanguage() + " with index timestamp before to "
+                            logInfo("Successfully deleted products for " + locale.getLanguage() + " with feed timestamp before to "
                                     + feedTimestamp);
                         } else {
-                            logInfo("Deleting products for " + locale.getLanguage() + " with index timestamp before to "
+                            logInfo("Deleting products for " + locale.getLanguage() + " with feed timestamp before to "
                                     + feedTimestamp + " failed with status: " + response.getStatus());
                         }
                     }
                     languages.add(locale.getLanguage());
                 } catch (Exception ex) {
                     if (isLoggingError()) {
-                        logError("Deleting products for " + locale.getLanguage() + " with index timestamp before to "
+                        logError("Deleting products for " + locale.getLanguage() + " with feed timestamp before to "
                                 + feedTimestamp + " failed", ex);
                     }
                 }

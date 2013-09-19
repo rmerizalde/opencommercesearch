@@ -14,10 +14,13 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
   lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
   lazy val MaxUpdateProductBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
   lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")
   lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
+  lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
+  lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic

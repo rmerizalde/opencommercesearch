@@ -1,11 +1,5 @@
 package org.opencommercesearch.model;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-
-import java.util.Locale;
-import java.util.Map;
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -24,6 +18,12 @@ import java.util.Map;
 * specific language governing permissions and limitations
 * under the License.
 */
+
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+import java.util.Locale;
+import java.util.Map;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Country {
