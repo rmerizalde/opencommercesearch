@@ -1,0 +1,40 @@
+<!--
+Production environments should overwrite this file with custom settings
+-->
+<query>
+  <maxBooleanClauses>1024</maxBooleanClauses>
+
+  <filterCache class="solr.FastLRUCache"
+               size="512"
+               initialSize="512"
+               autowarmCount="0"/>
+
+  <queryResultCache class="solr.LRUCache"
+                    size="512"
+                    initialSize="512"
+                    autowarmCount="0"/>
+
+  <documentCache class="solr.LRUCache"
+                 size="512"
+                 initialSize="512"
+                 autowarmCount="0"/>
+
+
+  <enableLazyFieldLoading>true</enableLazyFieldLoading>
+  <queryResultWindowSize>20</queryResultWindowSize>
+  <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+
+
+  <listener event="newSearcher" class="solr.QuerySenderListener">
+    <arr name="queries">
+    </arr>
+  </listener>
+  <listener event="firstSearcher" class="solr.QuerySenderListener">
+    <arr name="queries">
+    </arr>
+  </listener>
+
+  <useColdSearcher>false</useColdSearcher>
+  <maxWarmingSearchers>2</maxWarmingSearchers>
+
+</query>

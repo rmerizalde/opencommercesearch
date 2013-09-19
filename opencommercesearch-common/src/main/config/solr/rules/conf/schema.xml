@@ -131,6 +131,7 @@
  <fields>
    <field name="_version_"         type="long"   indexed="true"  stored="true"                   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="id"                type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="ruleType"          type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="target"            type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="siteId"            type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="catalogId"         type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
@@ -144,6 +145,7 @@
    <field name="boostFunction"     type="string" indexed="false" stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <!-- facet rule fields -->
    <field name="facetField"        type="string" indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="facetId"           type="string" indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
    <field name="text" type="text_en_splitting" indexed="true" stored="false" multiValued="false"/>
 

@@ -91,6 +91,7 @@
     <arr name="last-components">
       <str>spellcheck</str>
       <str>groupCollapse</str>
+      <str>ruleManager</str>
     </arr>
   </requestHandler>
 
@@ -114,6 +115,9 @@
   </requestHandler>
 
   <searchComponent name="groupCollapse" class="solr.GroupCollapseComponent" />
+
+  <!-- Rule manager component - Filters, boosts or modifies results based on pre-defined business rules -->
+  <searchComponent name="ruleManager" class="solr.RuleManagerComponent"/>
 
   <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 

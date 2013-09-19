@@ -43,5 +43,11 @@
     <core name="rulePublic_fr" instanceDir="rules" dataDir="${data.dir:}rules/public_data_fr">
       <property name="solr.env.dir" value="public" />
     </core>
+    <core name="facetPublic_en" instanceDir="facets" dataDir="${data.dir:}facets/public_data_en">
+      <property name="solr.env.dir" value="public" />
+    </core>
+    <core name="facetPublic_fr" instanceDir="facets" dataDir="${data.dir:}facets/public_data_fr">
+      <property name="solr.env.dir" value="public" />
+    </core>
   </cores>
 </solr>
