@@ -1,16 +1,17 @@
 package org.opencommercesearch;
 
+
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 /**
- * @rmerizalde
+ * @author rmerizalde
  */
 public class FilterQueryTest {
 
     @Test
-   	public void testQueryWithColonInExpression() {
+    public void testQueryWithColonInExpression() {
         FilterQuery query = new FilterQuery("brand:Fi'zi:k");
 
         assertEquals("brand", query.getFieldName());
@@ -18,7 +19,7 @@ public class FilterQueryTest {
     }
 
     @Test
-   	public void testQueryWithoutColonInExpression() {
+    public void testQueryWithoutColonInExpression() {
         FilterQuery query = new FilterQuery("brand:The North Face");
 
         assertEquals("brand", query.getFieldName());
@@ -26,8 +27,7 @@ public class FilterQueryTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-   	public void testInvalidExpression() {
-        FilterQuery query = new FilterQuery("brand The North Face");
-
+    public void testInvalidExpression() {
+        new FilterQuery("brand The North Face");
     }
 }

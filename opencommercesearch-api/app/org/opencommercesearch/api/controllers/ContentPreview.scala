@@ -25,6 +25,8 @@ import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
+import play.api.libs.json.JsValue
+import play.api.i18n.Lang
 
 trait ContentPreview {
   self: Controller =>
@@ -67,20 +69,46 @@ trait ContentPreview {
     collection + "_" + language
   }
 
-  def withRuleCollection(query: SolrQuery, preview: Boolean, language : String) : SolrQuery = {
-    query.setParam("collection", getRuleCollection(preview, language))
+  def withRuleCollection(query: SolrQuery, preview: Boolean, acceptLanguages:Seq[Lang]) : SolrQuery = {
+    query.setParam("collection", getRuleCollection(preview, acceptLanguages))
   }
 
-  def withRuleCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean, language : String) : T = {
-    request.setParam("collection", getRuleCollection(preview, language))
+  def withRuleCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean, acceptLanguages:Seq[Lang]) : T = {
+    request.setParam("collection", getRuleCollection(preview, acceptLanguages))
     request
   }
 
-  private def getRuleCollection(preview: Boolean, language : String = "en") : String = {
+  private def getRuleCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
     var collection = RulePublicCollection
     if (preview) {
       collection = RulePreviewCollection
     }
+
+    var language: String = "en"
+    acceptLanguages.map(lang => language = lang.language)
+
+    collection = collection + "_" + language
+
+    collection
+  }
+
+  def withFacetCollection(query: SolrQuery, preview: Boolean, acceptLanguages:Seq[Lang]) : SolrQuery = {
+    query.setParam("collection", getFacetCollection(preview, acceptLanguages))
+  }
+
+  def withFacetCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean, acceptLanguages:Seq[Lang]) : T = {
+    request.setParam("collection", getFacetCollection(preview, acceptLanguages))
+    request
+  }
+
+  private def getFacetCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
+    var collection = FacetPublicCollection
+    if (preview) {
+      collection = FacetPreviewCollection
+    }
+
+    var language: String = "en"
+    acceptLanguages.map(lang => language = lang.language)
 
     collection = collection + "_" + language
 

@@ -43,6 +43,8 @@
     <core name="rulePublic_fr" instanceDir="rules" dataDir="${data.dir:}rules/public_data_fr">
       <property name="solr.env.dir" value="public" />
     </core>
+  </cores>
+  <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="facetPublic_en" instanceDir="facets" dataDir="${data.dir:}facets/public_data_en">
       <property name="solr.env.dir" value="public" />
     </core>

@@ -41,6 +41,8 @@
   <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="rulePreview_en" instanceDir="rules" dataDir="${data.dir:}rules/preview_data_en"  />
     <core name="rulePreview_fr" instanceDir="rules" dataDir="${data.dir:}rules/preview_data_fr"  />
+  </cores>
+  <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="facetPreview_en" instanceDir="facets" dataDir="${data.dir:}facets/preview_data_en"/>
     <core name="facetPreview_fr" instanceDir="facets" dataDir="${data.dir:}facets/preview_data_fr"/>
   </cores>

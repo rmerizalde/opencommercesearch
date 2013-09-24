@@ -20,14 +20,7 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
-
-import java.util
-
-import org.apache.solr.common.SolrDocument
-import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
-import scala.collection.generic.SeqFactory
 import java.util.Date
 
 /**
@@ -44,8 +37,9 @@ import java.util.Date
  * @param catalogId is a list of catalogId to which the rules will apply to (you may have more than one catalog on per site)
  * @param category is a list of category and tokens to which the rules should apply.
  * @param boostFunction is a boost function to be applied by this rule
- * @param facets list of facets to be created by this rule
- *
+ * @param facetField list of facets to be created by this rule
+ * @param facetId list of facet ids to be created by this rule
+ * @param ruleType type of rule
  */
 case class Rule(
   var id: Option[String],
@@ -59,71 +53,83 @@ case class Rule(
   var catalogId: Option[Array[String]],
   var category: Option[Array[String]],
   var boostFunction: Option[String],
-  var facets: Option[Array[String]]) {
+  var facetField: Option[Array[String]],
+  var facetId: Option[Array[String]],
+  var ruleType: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None)
+  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
-  def getId() : String = { id.get }
+  def getId : String = { id.get }
 
   @Field
   def setId(id: String) : Unit = {
     this.id = Option.apply(id)
   }
 
-  def getQuery() : String = { query.get }
+  def getQuery : String = { query.get }
 
   @Field
   def setQuery(query: String) : Unit = { this.query = Option.apply(query) }
 
-  def getSortPriority() : Int = { sortPriority.get }
+  def getSortPriority : Int = { sortPriority.get }
 
   @Field
   def setSortPriority(sortPriority: Int) : Unit = { this.sortPriority = Option.apply(sortPriority) }
 
-  def getCombineMode() : String = { combineMode.get }
+  def getCombineMode : String = { combineMode.get }
 
   @Field
   def setCombineMode(combineMode: String) : Unit = { this.combineMode = Option.apply(combineMode) }
 
-  def getStartDate() : String = { startDate.get }
+  def getStartDate : String = { startDate.get }
 
   @Field
   def setStartDate(startDate: Date) : Unit = { this.startDate = Option.apply(startDate.toString) }
 
-  def getEndDate() : String = { endDate.get }
+  def getEndDate : String = { endDate.get }
 
   @Field
   def setEndDate(endDate: Date) : Unit = { this.endDate = Option.apply(endDate.toString) }
 
-  def getTarget() : Array[String] = { target.get }
+  def getTarget : Array[String] = { target.get }
 
   @Field
   def setTarget(target: Array[String]) : Unit = { this.target = Option.apply(target) }
 
-  def getSiteId() : Array[String] = { siteId.get }
+  def getSiteId : Array[String] = { siteId.get }
 
   @Field
   def setSiteId(siteId: Array[String]) : Unit = { this.siteId = Option.apply(siteId) }
 
-  def getCatalogId() : Array[String] = { catalogId.get }
+  def getCatalogId : Array[String] = { catalogId.get }
 
   @Field
   def setCatalogId(catalogId: Array[String]) : Unit = { this.catalogId = Option.apply(catalogId) }
 
-  def getCategory() : Array[String] = { category.get }
+  def getCategory : Array[String] = { category.get }
 
   @Field
   def setCategory(category: Array[String]) : Unit = { this.category = Option.apply(category) }
 
-  def getBoostFunction() : String = { boostFunction.getOrElse(null) }
+  def getBoostFunction : String = { boostFunction.getOrElse(null) }
 
   @Field
   def setBoostFunction(boostFunction: String) : Unit = { this.boostFunction = Option.apply(boostFunction) }
 
-  def getFacets() : Array[String] = { facets.getOrElse(null) }
+  def getFacetField : Array[String] = { facetField.getOrElse(null) }
 
-  @Field("facetField")
-  def setFacets(facets: Array[String]) : Unit = { this.facets = Option.apply(facets) }
+  @Field
+  def setFacetField(facetField: Array[String]) : Unit = { this.facetField = Option.apply(facetField) }
+
+  def getFacetId : Array[String] = { facetId.getOrElse(null) }
+
+  @Field
+  def setFacetId(facetId: Array[String]) : Unit = { this.facetId = Option.apply(facetId) }
+
+  def getRuleType : String = { ruleType.getOrElse(null) }
+
+  @Field
+  def setRuleType(ruleType: String) : Unit = { this.ruleType = Option.apply(ruleType) }
 }
 
 object Rule {

@@ -28,100 +28,103 @@ import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
-import org.opencommercesearch.api.models.{Rule, RuleList}
+import org.opencommercesearch.api.models.{Facet, FacetList}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
 
 // @todo add support for other content types and default to json
-object RuleController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+object 
+FacetController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withRuleCollection(withFields(new SolrQuery()), preview, request.acceptLanguages)
+    val query = withFacetCollection(withFields(new SolrQuery()), preview, request.acceptLanguages)
 
     query.add("q", "id:" + id)
     query.add("fl", "*")
 
-    Logger.debug("Query rule " + id)
+    Logger.debug("Query facet " + id)
     val future = solrServer.query(query).map( response => {
       val doc = response.getResults.get(0)
 
       if (doc != null) {
-        Logger.debug("Found rule " + id)
+        Logger.debug("Found facet " + id)
         Ok(Json.obj(
-          "rule" -> solrServer.binder.getBean(classOf[Rule], doc)))
+          "facet" -> solrServer.binder.getBean(classOf[Facet], doc)))
       } else {
-        Logger.debug("Rule " + id + " not found")
+        Logger.debug("Facet " + id + " not found")
         NotFound(Json.obj(
-          "message" -> s"Cannot find rule with id [$id]"
+          "message" -> s"Cannot find facet with id [$id]"
         ))
       }
     })
 
     Async {
-      withErrorHandling(future, s"Cannot retrieve rule with id [$id]")
+      withErrorHandling(future, s"Cannot retrieve facet with id [$id]")
     }
   }
 
   def createOrUpdate(version: Int, id: String, preview: Boolean) = Action (parse.json) { request =>
-    Json.fromJson[Rule](request.body).map { rule =>
+    Json.fromJson[Facet](request.body).map { facet =>
       try {
-        val ruleDoc = solrServer.binder.toSolrInputDocument(rule)
+        val facetDoc = solrServer.binder.toSolrInputDocument(facet)
         val update = new AsyncUpdateRequest()
-        update.add(ruleDoc)
-        withRuleCollection(update, preview, request.acceptLanguages)
+        update.add(facetDoc)
+        withFacetCollection(update, preview, request.acceptLanguages)
 
         val future: Future[Result] = update.process(solrServer).map( response => {
-          Created.withHeaders((LOCATION, absoluteURL(routes.RuleController.findById(id), request)))
+          Created.withHeaders((LOCATION, absoluteURL(routes.FacetController.findById(id), request)))
         })
 
         Async {
-          withErrorHandling(future, s"Cannot store Rule with id [$id]")
+          withErrorHandling(future, s"Cannot store Facet with id [$id]")
         }
       }
       catch {
         case e : BindingException =>
           BadRequest(Json.obj(
-            "message" -> "Illegal Rule fields"))
+            "message" -> "Illegal Facet fields"))
       }
     }.recoverTotal {
       e => BadRequest(Json.obj(
-        // @TODO figure out how to pull missing field from JsError
-        "message" -> "Illegal Rule fields"))
+        "message" -> "Illegal Facet fields"))
     }
   }
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
-    Json.fromJson[RuleList](request.body).map { ruleList =>
-      val rules = ruleList.rules
+    Json.fromJson[FacetList](request.body).map { facetList =>
+      Logger.info(request.body.toString())
+      val facets = facetList.facets
       try {
-        if (rules.length > MaxUpdateBatchSize) {
+        if (facets.length > MaxUpdateBatchSize) {
           BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Rules. Maximum is $MaxUpdateBatchSize"))
+            "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateBatchSize"))
         } else {
-          val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
-          rules map { rule =>
-              update.add(solrServer.binder.toSolrInputDocument(rule))
+          val update = withFacetCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
+          facets map { facet =>
+              update.add(solrServer.binder.toSolrInputDocument(facet))
           }
 
           val future: Future[Result] = update.process(solrServer).map( response => {
             Created(Json.obj(
               "locations" -> JsArray(
-                rules map (b => Json.toJson(routes.RuleController.findById(b.id.get).url))
+                facets map (b => Json.toJson(routes.FacetController.findById(b.id.get).url))
               )))
           })
 
           Async {
-            withErrorHandling(future, s"Cannot store Rules with ids [${rules map (_.id.get) mkString ","}]")
+            withErrorHandling(future, s"Cannot store Facets with ids [${facets map (_.id.get) mkString ","}]")
           }
         }
       }
       catch {
         case e : BindingException =>
+          e.printStackTrace(System.err)
           //Handle bind exceptions
           BadRequest(Json.obj(
-            "message" -> s"Illegal Rule fields [${rules map (_.id.get) mkString ","}]"))
+            "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]"))
+
       }
     }.recoverTotal {
       e => BadRequest(Json.obj(
@@ -131,7 +134,7 @@ object RuleController extends Controller with ContentPreview with FieldList with
   }
 
   /**
-   * Post method for the rules endpoint. Will send commit or rollback to Solr accordingly.
+   * Post method for the facets endpoint. Will send commit or rollback to Solr accordingly.
    * @param commit true if a commit should be done.
    * @param rollback true if a rollbac should be done.
    */
@@ -141,7 +144,8 @@ object RuleController extends Controller with ContentPreview with FieldList with
         "message" -> s"commit and boolean can't have the same value."))
     }
     else {
-      val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
+      val update = new AsyncUpdateRequest()
+      withFacetCollection(update, preview, request.acceptLanguages)
 
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
@@ -151,7 +155,7 @@ object RuleController extends Controller with ContentPreview with FieldList with
         })
 
         Async {
-          withErrorHandling(future, s"Cannot commit rules.")
+          withErrorHandling(future, s"Cannot commit facets.")
         }
       }
       else {
@@ -162,18 +166,19 @@ object RuleController extends Controller with ContentPreview with FieldList with
         })
 
         Async {
-          withErrorHandling(future, s"Cannot rollback rules.")
+          withErrorHandling(future, s"Cannot rollback facets.")
         }
       }
     }
   }
 
   /**
-   * Delete method that remove all rules matching a given query.
-   * @param query is the query used to delete rules, default is *:*
+   * Delete method that remove all facets matching a given query.
+   * @param query is the query used to delete facets, default is *:*
    */
   def deleteByQuery(preview: Boolean, query: String) = Action { request =>
-    val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
+    val update = new AsyncUpdateRequest()
+    withFacetCollection(update, preview, request.acceptLanguages)
 
     update.deleteByQuery(query)
 
@@ -183,7 +188,7 @@ object RuleController extends Controller with ContentPreview with FieldList with
     })
 
     Async {
-      withErrorHandling(future, s"Cannot delete rules.")
+      withErrorHandling(future, s"Cannot delete facets.")
     }
   }
 }

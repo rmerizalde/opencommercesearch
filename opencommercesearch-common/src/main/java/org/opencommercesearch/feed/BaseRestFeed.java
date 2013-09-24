@@ -39,7 +39,6 @@ import org.restlet.data.Method;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
-import org.restlet.representation.StreamRepresentation;
 import org.restlet.representation.StringRepresentation;
 
 import java.io.IOException;
@@ -181,6 +180,10 @@ public abstract class BaseRestFeed extends GenericService {
             sendCommit();
         }
         catch(Exception e) {
+            if(isLoggingError()) {
+                logError("Can't finish feed due: " + e.getMessage(), e);
+            }
+
             sendRollback();
         }
 
@@ -196,7 +199,7 @@ public abstract class BaseRestFeed extends GenericService {
      * @return The total count of items sent.
      * @throws RepositoryException if item data from the list can't be read.
      */
-    private int sendItems(RepositoryItem[] itemList) throws RepositoryException{
+    private int sendItems(RepositoryItem[] itemList) throws RepositoryException {
         int sent = 0;
 
         try {
@@ -256,7 +259,13 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws SearchServerException If the commit fails.
      */
     private void sendCommit() throws SearchServerException {
-        final Request request = new Request(Method.POST, endpointUrl + "?commit=true");
+        String url  = endpointUrl + "?commit=true";
+
+        if (isPreview) {
+            url += "&preview=true";
+        }
+
+        final Request request = new Request(Method.POST, url);
         final Response response = client.handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
@@ -269,11 +278,20 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws SearchServerException If the rollback fails.
      */
     private void sendRollback() throws SearchServerException {
-        final Request request = new Request(Method.POST, endpointUrl + "?rollback=true");
+        String url = endpointUrl + "?rollback=true";
+
+        if (isPreview) {
+            url += "&preview=true";
+        }
+
+        final Request request = new Request(Method.POST, url);
+
         final Response response = client.handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw SearchServerException.create(SearchServerException.Code.COMMIT_EXCEPTION, new Exception("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity())));
+            if(isLoggingError()) {
+                logError("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            }
         }
     }
 
@@ -338,10 +356,14 @@ public abstract class BaseRestFeed extends GenericService {
             }
         }
         catch (JSONException ex) {
-            // do nothing
+            if(isLoggingError()) {
+                logError("Can't parse error response.", ex);
+            }
         }
         catch (IOException ex) {
-            // do nothing
+            if(isLoggingError()) {
+                logError("Can't get error response.", ex);
+            }
         }
 
         return message;

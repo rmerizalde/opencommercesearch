@@ -277,7 +277,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(brandId:88)'})),10.0,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(brandId:88)'})),10.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -293,7 +293,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_DEMOTE);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(discountPercentUS:[15 TO 100])'})),0.1,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(discountPercentUS:[15 TO 100])'})),0.1,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -309,7 +309,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE)).thenReturn("listRank");
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(gender:Boys\\')'})),listRank,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(gender:Boys\\')'})),listRank,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -325,7 +325,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_DEMOTE);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(onsaleUS:false)'})),0.5,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(onsaleUS:false)'})),0.5,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -341,7 +341,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(isPastSeason:false)'})),2.0,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(isPastSeason:false)'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -357,7 +357,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(isPastSeason:false AND brandId:88)'})),2.0,1.0)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='(isPastSeason:false AND brandId:88)'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -375,7 +375,7 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("if(exists(query({!lucene v='(keyword:this\\ is\\ a\\ big\\ weird\\ keyword\\')'})),1.5,1.0)",
-                (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+               doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -389,13 +389,11 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE)).thenReturn("div(1,listRank)");
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("div(1,listRank)", (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("div(1,listRank)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
     public void testRankingRuleComplexRule() throws RepositoryException, JSONException {
-
-        String keyword = "this is a big weird keyword'";
         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
         expresionList.add(mockRule("brand", 1, "88", null));
         expresionList.add(mockRule("brand", 2, "77", "OR"));
@@ -409,7 +407,7 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("if(exists(query({!lucene v='(brandId:88 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))'})),1.5,1.0)",
-                (String) doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+                doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test

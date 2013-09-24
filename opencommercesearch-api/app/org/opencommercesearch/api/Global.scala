@@ -46,6 +46,16 @@ object Global extends WithFilters(new StatsdFilter()) {
    */
   lazy val RulePublicCollection = getConfigString("public.ruleCollection", "rulePublic")
 
+  /**
+   * Facet preview collection from configuration.
+   */
+  lazy val FacetPreviewCollection = getConfigString("preview.ruleCollection", "facetPreview")
+
+  /**
+   * * Facet public collection from configuration.
+   */
+  lazy val FacetPublicCollection = getConfigString("public.ruleCollection", "facetPublic")
+
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncCloudSolrServer = null
 

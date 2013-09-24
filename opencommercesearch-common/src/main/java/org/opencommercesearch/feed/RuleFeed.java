@@ -25,13 +25,10 @@ import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.RuleManager;
+import org.opencommercesearch.RuleConstants;
 import org.opencommercesearch.RulesBuilder;
 import org.opencommercesearch.Utils;
-import org.opencommercesearch.repository.CategoryProperty;
-import org.opencommercesearch.repository.FacetProperty;
-import org.opencommercesearch.repository.FacetRuleProperty;
-import org.opencommercesearch.repository.RuleProperty;
+import org.opencommercesearch.repository.*;
 
 import java.sql.Timestamp;
 import java.util.*;
@@ -56,60 +53,61 @@ public class RuleFeed extends BaseRestFeed {
     protected JSONObject repositoryItemToJson(RepositoryItem rule) throws JSONException, RepositoryException {
         //Convert rule to JSON
         JSONObject ruleJsonObj = new JSONObject();
-        ruleJsonObj.put("id", rule.getRepositoryId());
+        ruleJsonObj.put(RuleConstants.FIELD_ID, rule.getRepositoryId());
 
         String query = (String) rule.getPropertyValue(RuleProperty.QUERY);
         if (query == null || query.equals("*")) {
-            query = RuleManager.WILDCARD;
-        } else {
+            query = RuleConstants.WILDCARD;
+        }
+        else {
             query = query.toLowerCase();
         }
 
-        ruleJsonObj.put(RuleManager.FIELD_QUERY, query);
-        ruleJsonObj.put(RuleManager.FIELD_SORT_PRIORITY, rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
-        ruleJsonObj.put(RuleManager.FIELD_COMBINE_MODE, rule.getPropertyValue(RuleProperty.COMBINE_MODE));
+        ruleJsonObj.put(RuleConstants.FIELD_QUERY, query);
+        ruleJsonObj.put(RuleConstants.FIELD_SORT_PRIORITY, rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
+        ruleJsonObj.put(RuleConstants.FIELD_COMBINE_MODE, rule.getPropertyValue(RuleProperty.COMBINE_MODE));
 
         //Add the start and end dates
         Timestamp startDate = (Timestamp) rule.getPropertyValue(RuleProperty.START_DATE);
         if(startDate != null) {
-            ruleJsonObj.put(RuleManager.FIELD_START_DATE, Utils.getISO8601Date(startDate.getTime()));
+            ruleJsonObj.put(RuleConstants.FIELD_START_DATE, Utils.getISO8601Date(startDate.getTime()));
         }
 
         Timestamp endDate = (Timestamp) rule.getPropertyValue(RuleProperty.END_DATE);
         if(endDate != null) {
-            ruleJsonObj.put(RuleManager.FIELD_END_DATE, Utils.getISO8601Date(endDate.getTime()));
+            ruleJsonObj.put(RuleConstants.FIELD_END_DATE, Utils.getISO8601Date(endDate.getTime()));
         }
 
         String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
         if(target != null) {
             target = StringUtils.replace(target, " ", "");
-            ruleJsonObj.put("target", new JSONArray().put(target.toLowerCase()));
+            ruleJsonObj.put(RuleConstants.FIELD_TARGET, new JSONArray().put(target.toLowerCase()));
         }
 
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
         if (sites != null && sites.size() > 0) {
-            List siteIds = new JSONArray();
+            JSONArray siteIds = new JSONArray();
             for (RepositoryItem site : sites) {
                 siteIds.add(site.getRepositoryId());
             }
 
-            ruleJsonObj.put("siteId", siteIds);
+            ruleJsonObj.put(RuleConstants.FIELD_SITE_ID, siteIds);
         } else {
-            ruleJsonObj.put("siteId", new JSONArray().put(RuleManager.WILDCARD));
+            ruleJsonObj.put(RuleConstants.FIELD_SITE_ID, new JSONArray().put(RuleConstants.WILDCARD));
         }
 
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> catalogs = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATALOGS);
         if (catalogs != null && catalogs.size() > 0) {
-            List catalogIds = new JSONArray();
+            JSONArray catalogIds = new JSONArray();
             for (RepositoryItem catalog : catalogs) {
                 catalogIds.add(catalog.getRepositoryId());
             }
 
-            ruleJsonObj.put("catalogId", catalogIds);
+            ruleJsonObj.put(RuleConstants.FIELD_CATALOG_ID, catalogIds);
         } else {
-            ruleJsonObj.put("catalogId", new JSONArray().put(RuleManager.WILDCARD));
+            ruleJsonObj.put(RuleConstants.FIELD_CATALOG_ID, new JSONArray().put(RuleConstants.WILDCARD));
         }
 
         @SuppressWarnings("unchecked")
@@ -127,7 +125,8 @@ public class RuleFeed extends BaseRestFeed {
                     if (CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())) {
                         setCategorySearchTokens(ruleJsonObj, category, includeSubcategories);
                         setCategoryCategoryPaths(ruleJsonObj, category, includeSubcategories);
-                    } else {
+                    }
+                    else {
                         setCategoryCategoryPaths(ruleJsonObj, category, false);
                     }
                 }
@@ -136,19 +135,49 @@ public class RuleFeed extends BaseRestFeed {
                 //Can't load categories
             }
 
-            if (ruleJsonObj.get(RuleManager.FIELD_CATEGORY) == null) {
-                ruleJsonObj.put(RuleManager.FIELD_CATEGORY, "null");
+            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null) {
+                ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, "null");
             }
-        } else {
-            ruleJsonObj.put(RuleManager.FIELD_CATEGORY, new JSONArray().put(RuleManager.WILDCARD));
+        }
+        else {
+            ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, new JSONArray().put(RuleConstants.WILDCARD));
         }
 
+        //Set additional fields required by different rule types.
         String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
         if (RuleProperty.TYPE_RANKING_RULE.equals(ruleType)) {
             setRankingRuleFields(rule, ruleJsonObj);
-        } else if (RuleProperty.TYPE_FACET_RULE.equals(ruleType)) {
+        }
+        else if(RuleProperty.TYPE_FACET_RULE.equals(ruleType)) {
             setFacetRuleFields(rule, ruleJsonObj);
         }
+        else if(RuleProperty.TYPE_REDIRECT_RULE.equals(ruleType)) {
+            ruleJsonObj.put(RuleConstants.FIELD_REDIRECT_URL, rule.getPropertyValue(RedirectRuleProperty.URL));
+        }
+        else if(RuleProperty.TYPE_BLOCK_RULE.equals(ruleType)) {
+            Set<RepositoryItem> products = (Set<RepositoryItem>) rule.getPropertyValue(BlockRuleProperty.BLOCKED_PRODUCTS);
+            if (products != null && products.size() > 0) {
+                JSONArray blockedProducts = new JSONArray();
+                for (RepositoryItem product : products) {
+                    blockedProducts.add(product.getRepositoryId());
+                }
+
+                ruleJsonObj.put(RuleConstants.FIELD_BLOCKED_PRODUCTS, blockedProducts);
+            }
+        }
+        else if(RuleProperty.TYPE_BOOST_RULE.equals(ruleType)) {
+            List<RepositoryItem> products = (List<RepositoryItem>) rule.getPropertyValue(BoostRuleProperty.BOOSTED_PRODUCTS);
+            if (products != null && products.size() > 0) {
+                JSONArray boostedProducts = new JSONArray();
+                for (RepositoryItem product : products) {
+                    boostedProducts.add(product.getRepositoryId());
+                }
+
+                ruleJsonObj.put(RuleConstants.FIELD_BOOSTED_PRODUCTS, boostedProducts);
+            }
+        }
+
+        ruleJsonObj.put(RuleConstants.FIELD_RULE_TYPE, ruleType);
 
         return ruleJsonObj;
     }
@@ -162,7 +191,6 @@ public class RuleFeed extends BaseRestFeed {
      * Maps the given strength to a boost factor
      *
      * @param strength is the strength name. See RankingRuleProperty
-     * @return
      */
     protected String mapStrength(String strength) {
         if (strengthMap == null) {
@@ -179,10 +207,9 @@ public class RuleFeed extends BaseRestFeed {
 
     /**
      * Initializes the strength map.
-     *
-     * @TODO move this mappings to configuration file
      */
     private void initializeStrengthMap() {
+        //TODO move this mappings to configuration file
         strengthMap = new HashMap<String, String>(STRENGTH_LEVELS);
 
         strengthMap.put(STRENGTH_MAXIMUM_DEMOTE, Float.toString(1/10f));
@@ -204,12 +231,19 @@ public class RuleFeed extends BaseRestFeed {
      */
     private static void setFacetRuleFields(RepositoryItem rule, JSONObject ruleJsonObj) throws JSONException {
         List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
-        List facetFields = new JSONArray();
+        JSONArray facetFields = new JSONArray();
         for (RepositoryItem facet : facets) {
             facetFields.add(facet.getPropertyValue(FacetProperty.FIELD));
         }
 
-        ruleJsonObj.put("facetField", facetFields);
+        ruleJsonObj.put(RuleConstants.FIELD_FACET_FIELD, facetFields);
+
+        JSONArray facetIds = new JSONArray();
+        for (RepositoryItem facet : facets) {
+            facetIds.add(facet.getRepositoryId());
+        }
+
+        ruleJsonObj.put(RuleConstants.FIELD_FACET_ID, facetIds);
     }
 
     /**
@@ -246,7 +280,7 @@ public class RuleFeed extends BaseRestFeed {
             boostFunctionQuery.append(rankAction);
         }
 
-        ruleJsonObj.put(RuleManager.FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
+        ruleJsonObj.put(RuleConstants.FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
     }
 
     /**
@@ -269,7 +303,6 @@ public class RuleFeed extends BaseRestFeed {
                 }
             }
         }
-
     }
 
     /**
@@ -337,13 +370,13 @@ public class RuleFeed extends BaseRestFeed {
         JSONArray categories;
 
         try {
-            categories = (JSONArray) ruleJsonObj.get(RuleManager.FIELD_CATEGORY);
+            categories = (JSONArray) ruleJsonObj.get(RuleConstants.FIELD_CATEGORY);
         }
         catch(JSONException e) {
             categories = new JSONArray();
         }
 
-        ruleJsonObj.put(RuleManager.FIELD_CATEGORY, categories);
+        ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, categories);
         return categories;
     }
 

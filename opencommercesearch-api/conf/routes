@@ -14,6 +14,13 @@ PUT        /v1/rules                                 org.opencommercesearch.api.
 POST       /v1/rules                                 org.opencommercesearch.api.controllers.RuleController.commitOrRollback(preview: Boolean ?= false, commit: Boolean ?= false, rollback: Boolean ?= false)
 DELETE     /v1/rules                                 org.opencommercesearch.api.controllers.RuleController.deleteByQuery(preview: Boolean ?= false, query: String ?= "*:*")
 
+# facet routes
+GET        /v1/facets/:id                             org.opencommercesearch.api.controllers.FacetController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
+PUT        /v1/facets/:id                             org.opencommercesearch.api.controllers.FacetController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
+PUT        /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
+POST       /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.commitOrRollback(preview: Boolean ?= false, commit: Boolean ?= false, rollback: Boolean ?= false)
+DELETE     /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.deleteByQuery(preview: Boolean ?= false, query: String ?= "*:*")
+
 # suggest completion
 GET        /v1/brands/suggestcompletion/:query        org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, query: String, preview: Boolean ?= false)
 

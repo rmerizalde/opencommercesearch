@@ -71,14 +71,14 @@ public class FilterQuery {
     }
 
     public static FilterQuery[] parseFilterQueries(String filterQueries) {
-        String[] array = StringUtils.split(filterQueries, Utils.PATH_SEPARATOR);
+        String[] array = StringUtils.split(filterQueries, RuleUtils.PATH_SEPARATOR);
 
         if (array == null) {
             return null;
         }
 
         FilterQuery[] output = new FilterQuery[array.length];
-        
+
         for (int i = 0; i < array.length; ++i) {
             output[i] = new FilterQuery(array[i]);
         }
