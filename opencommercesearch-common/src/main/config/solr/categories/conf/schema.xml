@@ -45,7 +45,12 @@
    <field name="isRuleBased"      type="boolean" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="catalogs"         type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="parentCategories" type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="childCategories"  type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="nameNGrams"       type="ngram"   indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="isRoot"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="isNode"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="isLeaf"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="isOrphan"         type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="feedTimestamp"    type="long"    indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
  </fields>

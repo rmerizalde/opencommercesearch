@@ -14,7 +14,8 @@ object ApplicationBuild extends Build {
   val appDependencies = Seq(
     "org.opencommercesearch" %% "play-solrj" % "0.2-SNAPSHOT",
     "com.typesafe.play.plugins" %% "play-statsd" % "2.1.1",
-    "org.mockito" % "mockito-all" % "1.9.5" % "test"
+    "org.mockito" % "mockito-all" % "1.9.5" % "test",
+    "org.hamcrest" % "hamcrest-all" % "1.3" % "test"
   )
 
 

@@ -79,6 +79,9 @@ public class Product {
     private boolean isOutOfStock;
 
     @JsonProperty
+    private Set<String> categories;
+
+    @JsonProperty
     private List<Sku> skus;
 
 
@@ -222,6 +225,17 @@ public class Product {
 
     public void setOutOfStock(boolean isOutOfStock) {
         this.isOutOfStock = isOutOfStock;
+    }
+
+    public Set<String> getCategories() {
+        return categories;
+    }
+
+    public void addCategory(String category) {
+        if (categories == null) {
+            categories = new HashSet<String>();
+        }
+        categories.add(category);
     }
 
     public List<Sku> getSkus() {

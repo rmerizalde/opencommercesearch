@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.controllers
+package org.opencommercesearch.api.common
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,17 +19,17 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.{AnyContent, Request, Controller}
+import play.api.mvc.{AnyContent, Request}
 import play.api.i18n.Lang
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
-import play.api.libs.json.JsValue
 
 trait ContentPreview {
-  self: Controller =>
+
+  val SupportedLanguages = Seq("en", "fr")
 
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
     query.setParam("collection", getBrandCollection(preview))
@@ -66,6 +66,10 @@ trait ContentPreview {
     var language: String = "en"
 
     acceptLanguages.map(lang => language = lang.language)
+
+    if (!SupportedLanguages.contains(language)) {
+      language = "en"
+    }
     collection + "_" + language
   }
 

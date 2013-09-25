@@ -25,7 +25,7 @@ import java.util
 
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
-
+import org.opencommercesearch.api.service.CategoryService
 import ProductList._
 
 case class Product (
@@ -47,9 +47,10 @@ case class Product (
   // has free gift by catalog
   var hasFreeGift: Option[Map[String, Boolean]],
   var isOutOfStock: Option[Boolean],
+  var categories: Option[Seq[String]],
   var skus: Option[Seq[Sku]])
 {
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -68,7 +69,7 @@ object Product {
 }
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
-  def toDocuments() : util.List[SolrInputDocument] = {
+  def toDocuments(service: CategoryService, preview: Boolean) : util.List[SolrInputDocument] = {
     val documents = new util.ArrayList[SolrInputDocument](products.size * 3)
     var expectedDocCount = 0
     var currentDocCount = 0
@@ -96,6 +97,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
             for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
+            for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
 
             for (size <- sku.size) {
               for (sizeName <- size.name) { doc.setField("size", sizeName) }
@@ -123,16 +125,16 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
               }
             }
 
+            for (hasFreeGift <- product.hasFreeGift) { 
+                hasFreeGift.foreach { case(catalog, hasGift) => 
+                    if (hasGift) {
+                        doc.setField("freeGift" + catalog, hasGift)
+                    } 
+                } 
+            }
             for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
             for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
             for (sort <- sku.customSort) { doc.setField("sort", sort) }
-
-            doc.setField("category", "categoryTBD")
-            doc.setField("categoryPath", "categoryPathTBD")
-            doc.setField("ancestorCategoryId", "ancestorCategoryIdTBD")
-            doc.setField("category", "categoryTBD")
-            doc.setField("categoryNodes", "categoryNodesTBD")
-            doc.setField("categoryLeaves", "categoryLeavesTBD")
             doc.setField("indexStamp", feedTimestamp)
             documents.add(doc)
             currentDocCount += 1

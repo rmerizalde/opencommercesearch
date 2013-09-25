@@ -36,6 +36,7 @@ import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.restlet.Response;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -128,9 +129,6 @@ public class SearchFeedTest {
          *                 Snowshoe boots
          */
 
-        // document
-        when(sku.getCategoryTokens()).thenReturn(new HashSet<String>());
-
         // catalogs
         when(catalogOutdoor.getRepositoryId()).thenReturn("outdoorCatalog");
         Set<RepositoryItem> categoryCatalogs = newSet(catalogOutdoor);
@@ -175,153 +173,81 @@ public class SearchFeedTest {
 
     @Test
     public void testDuplicateCategories() throws RepositoryException, InventoryException {
-        Set<RepositoryItem> catalogAssignments = null;
-        Set<RepositoryItem> categoryCatalogs = null;
+        final Set<String> categories = new HashSet<String>();
 
-        feed.loadCategoryPaths(sku, prodMensBoot, newSet(catalogOutdoor), newSet(catalogOutdoor));
+        doCallRealMethod().when(sku).setAssigned(anyBoolean());
+        when(sku.isAssigned()).thenCallRealMethod();
 
-        verify(sku, times(1)).addCategoryToken("0.outdoorCatalog");
-        verify(sku, times(1)).addCategoryToken("1.outdoorCatalog.Shoes & Footwear");
-        verify(sku, times(1)).addCategoryToken("2.outdoorCatalog.Shoes & Footwear.Men's Shoes & Boots");
-        verify(sku, times(1)).addCategoryToken("3.outdoorCatalog.Shoes & Footwear.Men's Shoes & Boots.Men's Rain Boots & Shoes");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Shoes & Footwear.Men's Shoes & Boots.Men's Rain Boots & Shoes.Men's Rain Shoes");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Shoes & Footwear.Men's Shoes & Boots.Men's Rain Boots & Shoes.Men's Rain Boots");
-        verify(sku, times(1)).addCategoryToken("1.outdoorCatalog.Men's Clothing");
-        verify(sku, times(1)).addCategoryToken("2.outdoorCatalog.Men's Clothing.Men's Shoes & Footwear");
-        verify(sku, times(1)).addCategoryToken("3.outdoorCatalog.Men's Clothing.Men's Shoes & Footwear.Men's Rain Boots & Shoes");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Men's Clothing.Men's Shoes & Footwear.Men's Rain Boots & Shoes.Men's Rain Shoes");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Men's Clothing.Men's Shoes & Footwear.Men's Rain Boots & Shoes.Men's Rain Boots");
-        verify(sku, times(1)).addCategoryToken("1.outdoorCatalog.Snowshoe");
-        verify(sku, times(1)).addCategoryToken("2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
-        verify(sku, times(1)).addCategoryToken("3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
-        
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat4000003");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat4000003.outdoorCat4100004");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024.outdoorCat41110026");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat4000003.outdoorCat4100004.outdoorCat41100024.outdoorCat41110025");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat100003");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat100003.outdoorCat11000219");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024.outdoorCat41110026");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat100003.outdoorCat11000219.outdoorCat41100024.outdoorCat41110025");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
-        //verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Men's Rain Boots");
+        feed.checkSkuAssigned(sku, prodMensBoot, newSet(catalogOutdoor));
 
-        verify(sku, times(15)).addCategoryToken(anyString());
-
-        // verify leaf category ids
-        verify(sku, times(1)).addAncestorCategory("outdoorCat4000003");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat4100004");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat41100024");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat41110026");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat41110025");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat11000219");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111000028");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111100030");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111110031");
-        verify(sku, times(8)).addCategoryNode(stringCaptor.capture());
-        
-        assertEquals("Men's Clothing", stringCaptor.getAllValues().get(0));
-        assertEquals("Men's Shoes & Boots", stringCaptor.getAllValues().get(1));
-        assertEquals("Snowshoe Footwear", stringCaptor.getAllValues().get(2));
-        assertEquals("Snowshoe Accessories", stringCaptor.getAllValues().get(3));
-        assertEquals("Snowshoe", stringCaptor.getAllValues().get(4));
-        assertEquals("Shoes & Footwear", stringCaptor.getAllValues().get(5));
-        assertEquals("Men's Shoes & Footwear", stringCaptor.getAllValues().get(6));
-        assertEquals("Men's Rain Boots & Shoes", stringCaptor.getAllValues().get(7));
-        
-
-        stringCaptor = ArgumentCaptor.forClass(String.class);
-        verify(sku, times(3)).addCategoryLeaf(stringCaptor.capture());
-        assertEquals("Men's Rain Shoes", stringCaptor.getAllValues().get(0));
-        assertEquals("Snowshoe Boots", stringCaptor.getAllValues().get(1));
-        assertEquals("Men's Rain Boots", stringCaptor.getAllValues().get(2));
+        /*verify(sku, times(1)).addCategory("catRoot");
+        verify(sku, times(1)).addCategory("outdoorCat4000003");
+        verify(sku, times(1)).addCategory("outdoorCat4100004");
+        verify(sku, times(1)).addCategory("outdoorCat41100024");
+        verify(sku, times(1)).addCategory("outdoorCat41110026");
+        verify(sku, times(1)).addCategory("outdoorCat41110025");
+        verify(sku, times(1)).addCategory("outdoorCat100003");
+        verify(sku, times(1)).addCategory("outdoorCat11000219");
+        verify(sku, times(1)).addCategory("outdoorCat11000003");
+        verify(sku, times(1)).addCategory("outdoorCat111000028");
+        verify(sku, times(1)).addCategory("outdoorCat111100030");
+        verify(sku, times(1)).addCategory("outdoorCat111110031");
+        verify(sku, never()).addCategory(anyString()); */
+        verify(sku).setAssigned(true);
     }
 
-    
+
     @Test
     public void testCategoryNotInCurrentCatalog() throws RepositoryException, InventoryException {
-    
-    	RepositoryItem otherCatalog = mock(RepositoryItem.class);   
+
+        // @todo: seems like this test isn't useful anymore
+        doCallRealMethod().when(sku).setAssigned(anyBoolean());
+        when(sku.isAssigned()).thenCallRealMethod();
+
+    	RepositoryItem otherCatalog = mock(RepositoryItem.class);
     	when(otherCatalog.getRepositoryId()).thenReturn("otherCatalog");
     	Set<RepositoryItem> categoryCatalogs = newSet(otherCatalog);
-    	
-    	RepositoryItem rootOtherCategory = mock(RepositoryItem.class);    	
-    	mockCategory(rootOtherCategory, "rootOtherCategory", "Root Other Category", categoryCatalogs, null, "category");
-    	
-    	RepositoryItem otherCategory = mock(RepositoryItem.class);    	
-    	mockCategory(otherCategory, "otherCategory", "Other Category", categoryCatalogs, newSet(rootOtherCategory), "category");
-    	
-    	RepositoryItem product = mock(RepositoryItem.class);    	
-    	when(product.getPropertyValue("parentCategories")).thenReturn(newSet(catSnowshoeBoots, otherCategory));
-    	 
-        feed.loadCategoryPaths(sku, product, newSet(catalogOutdoor), newSet(catalogOutdoor));
-     
-        verify(sku, times(1)).addCategoryToken("0.outdoorCatalog");
-        verify(sku, times(1)).addCategoryToken("1.outdoorCatalog.Snowshoe");
-        verify(sku, times(1)).addCategoryToken("2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
-        verify(sku, times(1)).addCategoryToken("3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
-        verify(sku, never()) .addCategoryToken("0.otherCatalog");
-        verify(sku, never()) .addCategoryToken("1.otherCatalog.Other Category");
-        verify(sku, times(5)).addCategoryToken(anyString());
-        
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
-        verify(sku, times(5)).addCategoryPath(anyString());
 
-        verify(sku, times(1)).addAncestorCategory("outdoorCat11000003");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111000028");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111100030");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111110031");
-        verify(sku, never()).addAncestorCategory("otherCategory");
-        verify(sku, atMost(5)).addAncestorCategory(anyString());
-        
+    	RepositoryItem rootOtherCategory = mock(RepositoryItem.class);
+    	mockCategory(rootOtherCategory, "rootOtherCategory", "Root Other Category", categoryCatalogs, null, "category");
+
+    	RepositoryItem otherCategory = mock(RepositoryItem.class);
+    	mockCategory(otherCategory, "otherCategory", "Other Category", categoryCatalogs, newSet(rootOtherCategory), "category");
+
+    	RepositoryItem product = mock(RepositoryItem.class);
+    	when(product.getPropertyValue("parentCategories")).thenReturn(newSet(catSnowshoeBoots, otherCategory));
+
+        feed.checkSkuAssigned(sku, product, newSet(catalogOutdoor));
+
+        /*verify(sku, times(1)).addCategory("catRoot");
+        verify(sku, times(1)).addCategory("outdoorCat11000003");
+        verify(sku, times(1)).addCategory("outdoorCat111000028");
+        verify(sku, times(1)).addCategory("outdoorCat111100030");
+        verify(sku, times(1)).addCategory("outdoorCat111110031");
+        verify(sku, times(5)).addCategory(anyString()); */
+        verify(sku).setAssigned(true);
     }
-    
+
     @Test
     public void testRulesBasedCategory() throws RepositoryException, InventoryException {
-    
+
+        doCallRealMethod().when(sku).setAssigned(anyBoolean());
+        when(sku.isAssigned()).thenCallRealMethod();
+
     	RepositoryItem product = mock(RepositoryItem.class);
-    	
+
     	when(product.getPropertyValue("parentCategories")).thenReturn(newSet(catSnowshoeBoots, catRulesBased));
-    	 
-        feed.loadCategoryPaths(sku, product, newSet(catalogOutdoor), newSet(catalogOutdoor));
-     
-        verify(sku, times(1)).addCategoryToken("0.outdoorCatalog");
-        verify(sku, times(1)).addCategoryToken("1.outdoorCatalog.Snowshoe");
-        verify(sku, times(1)).addCategoryToken("2.outdoorCatalog.Snowshoe.Snowshoe Accessories");
-        verify(sku, times(1)).addCategoryToken("3.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear");
-        verify(sku, times(1)).addCategoryToken("4.outdoorCatalog.Snowshoe.Snowshoe Accessories.Snowshoe Footwear.Snowshoe Boots");
-        verify(sku, times(5)).addCategoryToken(anyString());
-        
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030");
-        verify(sku, times(1)).addCategoryPath("outdoorCatalog.outdoorCat11000003.outdoorCat111000028.outdoorCat111100030.outdoorCat111110031");
-        verify(sku, times(5)).addCategoryPath(anyString());
 
-        verify(sku, times(1)).addAncestorCategory("outdoorCat11000003");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111000028");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111100030");
-        verify(sku, times(1)).addAncestorCategory("outdoorCat111110031");
+        feed.checkSkuAssigned(sku, product, newSet(catalogOutdoor));
 
-        // for rule based categories we only index the ancestor id. This is to support hand pick rules.
-        verify(sku, never()).addCategoryToken("1.outdoorCatalog.Rules Based");
-        verify(sku, never()).addCategoryPath("outdoorCatalog.catRulesBased");
-        verify(sku, never()).addCategoryLeaf("Rules Based");
-        verify(sku, times(1)).addAncestorCategory("catRulesBased");
-
+        /*verify(sku, times(1)).addCategory("catRoot");
+        verify(sku, times(1)).addCategory("outdoorCat11000003");
+        verify(sku, times(1)).addCategory("outdoorCat111000028");
+        verify(sku, times(1)).addCategory("outdoorCat111100030");
+        verify(sku, times(1)).addCategory("outdoorCat111110031");
+        verify(sku, times(1)).addCategory("catRulesBased");
+        verify(sku, times(6)).addCategory(anyString());*/
+        verify(sku).setAssigned(true);
     }
         
     private void mockCategory(RepositoryItem category, String categoryId, String displayName, Set<RepositoryItem> categoryCatalogs, Set<RepositoryItem>  parentCategories, String itemDescriptorName) throws RepositoryException{

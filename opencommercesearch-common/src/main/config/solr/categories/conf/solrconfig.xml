@@ -77,7 +77,7 @@
   <requestHandler name="/get" class="solr.RealTimeGetHandler">
     <lst name="defaults">
       <str name="omitHeader">true</str>
-      <str name="fl">id,name,isRuleBased,catalogs,parentCategories,url</str>
+      <str name="fl">id,name</str>
     </lst>
   </requestHandler>
 

@@ -25,23 +25,25 @@ import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
 import scala.collection.JavaConversions.asScalaBuffer
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.convert.Wrappers.JListWrapper
+import scala.concurrent.Future
 
 import java.util
 
 import org.opencommercesearch.api.models._
-import org.apache.solr.client.solrj.SolrQuery
-
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.opencommercesearch.api.Global._
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.convert.Wrappers.JListWrapper
-import scala.concurrent.Future
+import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-
+import org.opencommercesearch.api.service.CategoryService
 
 object ProductController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
+  val categoryService = new CategoryService(solrServer)
+
   def search(version: Int, q: String, preview: Boolean) = Action { implicit request =>
-    val query = withProductCollection(withFields(withPagination(new SolrQuery(q))), preview)
+    val query = withProductCollection(withFields(withPagination(new SolrQuery(q)), request.getQueryString("fields")), preview)
 
     query.set("group", true)
     query.set("group.ngroups", true)
@@ -88,9 +90,9 @@ object ProductController extends Controller with ContentPreview with FieldList w
                   JListWrapper(allProducts) map (Json.toJson(_))
                 )))
             } else {
-              Logger.debug("Unexpected response found for query  " + q)
-              InternalServerError(Json.obj(
-                "message" -> "Unable to execute query"
+              Ok(Json.obj(
+                "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
+                "products" -> Json.arr()
               ))
             }
           } else {
@@ -127,7 +129,7 @@ object ProductController extends Controller with ContentPreview with FieldList w
       } else {
         try {
           val update = withProductCollection(new AsyncUpdateRequest(), preview)
-          val docs = productList.toDocuments
+          val docs = productList.toDocuments(categoryService, preview)
           update.add(docs)
 
           val future: Future[Result] = update.process(solrServer).map( response => {

@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.models
+package org.opencommercesearch.cache
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,26 +19,13 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.Json
+/**
+ * An expensive computation which result value can be memoized
+ *
+ * @tparam A is the argument type of a computation
+ * @tparam V is the result value's type of a computation
+ */
 
-case class Sku(
-  var id: Option[String],
-  var season: Option[String],
-  var year: Option[String],
-  var image: Option[Image],
-  var countries: Option[Set[Country]],
-  var isPastSeason: Option[Boolean],
-  var colorFamily: Option[String],
-  var isRetail: Option[Boolean],
-  var isCloseout: Option[Boolean],
-  var size: Option[Size],
-  var catalogs: Option[Seq[String]],
-  var customSort: Option[Int]) {
-
+trait Computable[A, V] {
+  def compute(arg: A) : V
 }
-
-object Sku {
-  implicit val readsSku = Json.reads[Sku]
-  implicit val writesSku = Json.writes[Sku]
-}
-

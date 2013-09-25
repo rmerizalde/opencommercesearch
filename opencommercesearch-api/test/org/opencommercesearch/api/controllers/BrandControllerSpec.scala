@@ -19,19 +19,12 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.Result
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json, JsArray}
 
-import scala.concurrent.Future
-
 import org.specs2.mutable._
-import org.specs2.mock.Mockito
 import org.apache.solr.client.solrj.AsyncSolrServer
-import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
-import org.apache.solr.client.solrj.response.QueryResponse
-import org.apache.solr.common.util.NamedList
 import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Brand
 

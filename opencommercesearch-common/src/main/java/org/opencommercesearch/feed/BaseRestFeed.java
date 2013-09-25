@@ -343,7 +343,7 @@ public abstract class BaseRestFeed extends GenericService {
     protected void sendRollback() throws IOException {
         String rollbackEndpointUrl = endpointUrl;
         rollbackEndpointUrl += (getProductService().getPreview())? "&" : "?";
-        rollbackEndpointUrl += "commit=true";
+        rollbackEndpointUrl += "rollback=true";
 
         final Request request = new Request(Method.POST, rollbackEndpointUrl);
         final Response response = getProductService().handle(request);

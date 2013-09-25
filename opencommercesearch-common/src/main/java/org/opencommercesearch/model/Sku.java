@@ -59,20 +59,11 @@ public class Sku {
     @JsonProperty
     private Size size;
 
-    @JsonIgnore
-    private Set<String> categories;
+    @JsonProperty
+    private Set<String> catalogs;
 
     @JsonIgnore
-    private Set<String> categoryNodes;
-
-    @JsonIgnore
-    private Set<String> categoryLeaves;
-
-    @JsonIgnore
-    private Set<String> ancestorCategories;
-
-    @JsonIgnore
-    private Set<String> categoryTokens;
+    private boolean isAssigned;
 
     @JsonProperty
     private int customSort;
@@ -119,7 +110,7 @@ public class Sku {
     }
 
     public void setPastSeason(boolean isPastSeason) {
-        isPastSeason = isPastSeason;
+        this.isPastSeason = isPastSeason;
     }
 
     public String getColorFamily() {
@@ -136,7 +127,7 @@ public class Sku {
     }
 
     public void setRetail(boolean isRetail) {
-        isRetail = isRetail;
+        this.isRetail = isRetail;
     }
 
     @JsonIgnore
@@ -145,7 +136,7 @@ public class Sku {
     }
 
     public void setCloseout(boolean isCloseout) {
-        isCloseout = isCloseout;
+        this.isCloseout = isCloseout;
     }
 
     public Size getSize() {
@@ -181,67 +172,24 @@ public class Sku {
     }
 
     @JsonIgnore
-    public Set<String> getCategories() {
-        return categories;
+    public Set<String> getCatalogs() {
+        return catalogs;
     }
 
-    public void addCategory(String category) {
-        if (ancestorCategories == null) {
-            ancestorCategories = new HashSet<String>();
+    public void addCatalog(String catalog) {
+        if (catalogs == null) {
+            catalogs = new HashSet<String>();
         }
-        ancestorCategories.add(category);
+        catalogs.add(catalog);
     }
 
     @JsonIgnore
-    public Set<String> getCategoryNodes() {
-        return categoryNodes;
+    public boolean isAssigned() {
+        return isAssigned;
     }
 
-    public void addCategoryNode(String category) {
-        if (categoryNodes == null) {
-            categoryNodes = new HashSet<String>();
-        }
-        categoryNodes.add(category);
-    }
-
-    @JsonIgnore
-    public Set<String> getCategoryLeaves() {
-        return categoryLeaves;
-    }
-
-    public void addCategoryLeaf(String category) {
-        if (categoryLeaves == null) {
-            categoryLeaves = new HashSet<String>();
-        }
-        categoryLeaves.add(category);
-    }
-
-    @JsonIgnore
-    public Set<String> getAncestorCategories() {
-        return ancestorCategories;
-    }
-
-    public void addAncestorCategory(String category) {
-        if (ancestorCategories == null) {
-            ancestorCategories = new HashSet<String>();
-        }
-        ancestorCategories.add(category);
-    }
-
-    @JsonIgnore
-    public Set<String> getCategoryTokens() {
-        return categoryTokens;
-    }
-
-    public void addCategoryToken(String token) {
-        if (categoryTokens == null) {
-            categoryTokens = new HashSet<String>();
-        }
-        categoryTokens.add(token);
-    }
-
-    public void addCategoryPath(String path) {
-        // @todo(api)
+    public void setAssigned(boolean isAssigned) {
+        this.isAssigned = isAssigned;
     }
 
     public int getCustomSort() {

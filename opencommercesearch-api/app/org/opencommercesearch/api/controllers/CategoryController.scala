@@ -1,20 +1,5 @@
 package org.opencommercesearch.api.controllers
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Result, Controller, Action}
-import play.api.libs.json.{JsError, Json}
-import play.api.Logger
-
-import scala.concurrent.Future
-import scala.collection.convert.Wrappers.JIterableWrapper
-
-import org.opencommercesearch.api.models.CategoryList
-import org.opencommercesearch.api.models.Category
-import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.common.SolrDocument
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -34,21 +19,30 @@ import org.apache.solr.common.SolrDocument
 * under the License.
 */
 
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.mvc.{Result, Controller, Action}
+import play.api.libs.json.{JsError, Json}
+import play.api.Logger
+
+import scala.concurrent.Future
+import scala.collection.convert.Wrappers.JIterableWrapper
+
+import org.opencommercesearch.api.models.CategoryList
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
+import org.opencommercesearch.api.Global._
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.apache.solr.client.solrj.SolrQuery
+import org.opencommercesearch.api.service.CategoryService
+
 object CategoryController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
+  val categoryService = new CategoryService(solrServer)
+
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withCategoryCollection(withFields(new SolrQuery()), preview)
-
-    query.setRequestHandler(RealTimeRequestHandler)
-    query.add("id", id)
-
-    Logger.debug("Query category " + id)
-    val future = solrServer.query(query).map( response => {
-      val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
-      if (doc != null) {
-        Logger.debug("Found category " + id)
+    val future = categoryService.findById(id, preview, request.getQueryString("fields")).map(category => {
+      if (category.isDefined) {
         Ok(Json.obj(
-          "category" -> Json.toJson(solrServer.binder.getBean(classOf[Category], doc))))
+          "category" -> Json.toJson(category.get)))
       } else {
         Logger.debug("Category " + id + " not found")
         NotFound(Json.obj(
@@ -56,6 +50,8 @@ object CategoryController extends Controller with ContentPreview with FieldList 
         ))
       }
     })
+
+
 
     Async {
       withErrorHandling(future, s"Cannot retrieve category with id [$id]")
@@ -71,7 +67,7 @@ object CategoryController extends Controller with ContentPreview with FieldList 
       } else {
         try {
           val update = withCategoryCollection(new AsyncUpdateRequest(), preview)
-          val docs = categoryList.toDocuments
+          val docs = categoryList.toDocuments()
           update.add(docs)
 
           val future: Future[Result] = update.process(solrServer).map( response => {
@@ -112,7 +108,7 @@ object CategoryController extends Controller with ContentPreview with FieldList 
   }
 
   def findSuggestions(version: Int, query: String, preview: Boolean) = Action { implicit request =>
-    val solrQuery = withPagination(withCategoryCollection(withFields(new SolrQuery(query)), preview))
+    val solrQuery = withPagination(withCategoryCollection(withFields(new SolrQuery(query), request.getQueryString("fields")), preview))
 
     val future = solrServer.query(solrQuery).map( response => {
       val docs = response.getResults

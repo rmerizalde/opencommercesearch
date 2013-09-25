@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.controllers
+package org.opencommercesearch.api.common
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -23,11 +23,8 @@ import play.api.mvc.{AnyContent, Controller, Request}
 import org.apache.solr.client.solrj.SolrQuery
 
 trait FieldList {
-  this: Controller =>
 
-  def withFields(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
-    val fields = request.getQueryString("fields")
-
+  def withFields(query: SolrQuery, fields: Option[String]) : SolrQuery = {
     if (fields.isDefined) {
       query.setFields(fields.get.split(','): _*)
     }

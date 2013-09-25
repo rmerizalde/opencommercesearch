@@ -21,6 +21,7 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
   lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
   lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
+  lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic

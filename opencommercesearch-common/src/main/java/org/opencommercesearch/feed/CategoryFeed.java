@@ -24,10 +24,11 @@ import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+
+import java.util.Collection;
+
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
-
-import java.util.Set;
 
 /**
  * A feed for categories.
@@ -57,17 +58,24 @@ public class CategoryFeed extends BaseRestFeed {
         category.put("id", item.getRepositoryId());
         category.put("name", item.getItemDisplayName());
         category.put("isRuleBased", RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName()));
-        setIdsProperty(category, "catalogs", (Set<RepositoryItem>) item.getPropertyValue("catalogs"));
-        setIdsProperty(category, "parentCategories", (Set<RepositoryItem>) item.getPropertyValue("fixedParentCategories"));
+        setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
+        setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
+        setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
 
         return category;
     }
 
-    private void setIdsProperty(JSONObject obj, String propertyName, Set<RepositoryItem> items) throws JSONException {
+    private void setIdsProperty(JSONObject obj, String propertyName, Collection<RepositoryItem> items, boolean asObject) throws JSONException {
         if (items != null) {
             JSONArray jsonItems = new JSONArray();
-            for (RepositoryItem catalog : items) {
-                jsonItems.add(catalog.getRepositoryId());
+            for (RepositoryItem item : items) {
+                if (asObject) {
+                    JSONObject itemObj = new JSONObject();
+                    itemObj.put("id", item.getRepositoryId());
+                    jsonItems.add(itemObj);
+                } else {
+                    jsonItems.add(item.getRepositoryId());
+                }
             }
             obj.put(propertyName, jsonItems);
         }

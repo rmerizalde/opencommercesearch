@@ -35,8 +35,10 @@ class CategoryControllerSpec extends BaseSpec {
 
   trait Categories extends Before {
     def before = {
+      // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
+      CategoryController.categoryService.server = solrServer
     }
   }
 
@@ -73,7 +75,7 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None)
+        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None)
 
         namedList.get("doc") returns doc
         solrServer.binder.getBean(classOf[Category], doc) returns category

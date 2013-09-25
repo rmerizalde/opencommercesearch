@@ -638,12 +638,8 @@ public abstract class SearchFeed extends GenericService {
             throws RepositoryException, InventoryException;
 
     /**
-     * Generate the category tokens to create a hierarchical facet in Solr. Each
-     * token is formatted such that encodes the depth information for each node
-     * that appears as part of the path, and include the hierarchy separated by
-     * a common separator (depth/first level category name/second level
-     * category name/etc)
-     * 
+     * Loads the categories the sku is assigned to
+     *
      * @param sku
      *            The document to set the attributes to.
      * @param product
@@ -652,64 +648,22 @@ public abstract class SearchFeed extends GenericService {
      *            If the product is belongs to a category in any of those
      *            catalogs then that category is part of the returned value.
      */
-    protected void loadCategoryPaths(Sku sku, RepositoryItem product,
-            Set<RepositoryItem> skuCatalogAssignments, Set<RepositoryItem> categoryCatalogs) {
-        startTimer("processProduct.sku.loadCategoryPaths");
+    public void checkSkuAssigned(Sku sku, RepositoryItem product,
+                Set<RepositoryItem> skuCatalogAssignments) {
         if (product != null) {
             try {
                 @SuppressWarnings("unchecked")
                 Set<RepositoryItem> productCategories = (Set<RepositoryItem>) product
                         .getPropertyValue("parentCategories");
-                Set<String> tokenCache = new HashSet<String>();
-                Set<String> ancestorCache = new HashSet<String>();
-                Set<String> leafCache = new HashSet<String>();
-                
                 if (productCategories != null) {
-                    List<RepositoryItem> categoryIds = new ArrayList<RepositoryItem>();
                     for (RepositoryItem productCategory : productCategories) {
                         if (isCategoryInCatalogs(productCategory, skuCatalogAssignments)) {
-                            if (isRulesCategory(productCategory)) {
-                                sku.addAncestorCategory(productCategory.getRepositoryId());
-                            } else if (isCategoryIndexable(productCategory)) {
-                                loadCategoryPathsAndAncestorIds(sku, productCategory, categoryIds, skuCatalogAssignments, tokenCache, ancestorCache);
-                            }
-
-                            if (categoryCatalogs != null) {
-                                Set<RepositoryItem> catalogs = (Set<RepositoryItem>) productCategory.getPropertyValue("catalogs");
-                                for(RepositoryItem catalog : catalogs){
-                                    if(skuCatalogAssignments.contains(catalog)){
-                                        categoryCatalogs.add(catalog);
-                                    }
-                                }
-                            }
-                            if(!isRulesCategory(productCategory)) {
-                                leafCache.add(productCategory.getItemDisplayName());
+                            if (isCategoryIndexable(productCategory)) {
+                                checkAssigned(sku, productCategory, skuCatalogAssignments);
                             }
                         }
-                    }
-                    if(leafCache.size() > 0) {
-                        for(String leaf : leafCache) {
-                            sku.addCategoryLeaf(leaf);
-                        }
-                    }
-                    
-                    Set<String> nodeCache = new HashSet<String>();
-                    
-                    for(String token : tokenCache){
-                        String[] splitToken = token.split("\\.");
-                        if(splitToken != null && splitToken.length > 2) {
-                            List<String> tokenList = Arrays.asList(splitToken);
-                            tokenList = tokenList.subList(2, tokenList.size());
-                            if (!tokenList.isEmpty()) {
-                                nodeCache.addAll(tokenList);
-                            }
-                        }
-                    }
-                    
-                    if(nodeCache.size() > 0) {
-                        nodeCache.removeAll(leafCache);
-                        for(String node : nodeCache) {
-                            sku.addCategoryNode(node);
+                        if (sku.isAssigned()) {
+                            break;
                         }
                     }
                 }
@@ -719,8 +673,40 @@ public abstract class SearchFeed extends GenericService {
                 }
             }
         }
-        stopTimer("processProduct.sku.loadCategoryPaths");
     }
+
+    /**
+     * Helper method mark an sku as assigned it as assigned.
+     *
+     * @param sku
+     *            The product to set the attributes to.
+     * @param category
+     *            The repositoryItem of the current level
+     * @param catalogAssignments
+     *            The list of catalogs to restrict the category token generation
+     */
+    private void checkAssigned(Sku sku, RepositoryItem category, Set<RepositoryItem> catalogAssignments) {
+        Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
+
+        if (parentCategories != null && parentCategories.size() > 0) {
+            for (RepositoryItem parentCategory : parentCategories) {
+                if (sku.isAssigned()) {
+                    break;
+                }
+                checkAssigned(sku, parentCategory, catalogAssignments);
+            }
+        } else {
+            Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
+            for(RepositoryItem catalog : catalogs) {
+                if(catalogAssignments.contains(catalog)){
+                    sku.setAssigned(true);
+                    break;
+                }
+            }
+        }
+    }
+
+
 
     private boolean isRulesCategory(RepositoryItem category) throws RepositoryException {
     	if (category == null) {
@@ -730,8 +716,7 @@ public abstract class SearchFeed extends GenericService {
     }
     
     /**
-     * Helper method to test if category is assigned to and of catalogs in the
-     * given set
+     * Helper method to test if category is assigned to any of the given catalogs
      * 
      * @param category
      *            the category to be tested
@@ -758,87 +743,5 @@ public abstract class SearchFeed extends GenericService {
         }
         
         return isAssigned;
-    }
-
-    /**
-     * Helper method to generate the category tokens recursively
-     * 
-     * 
-     * @param sku
-     *            The product to set the attributes to.
-     * @param category
-     *            The repositoryItem of the current level
-     * @param hierarchyCategories
-     *            The list where we store the categories during the recursion
-     * @param catalogAssignments
-     *            The list of catalogs to restrict the category token generation
-     */
-    private void loadCategoryPathsAndAncestorIds(Sku sku, RepositoryItem category,
-            List<RepositoryItem> hierarchyCategories, Set<RepositoryItem> catalogAssignments, Set<String> tokenCache,
-            Set<String> ancestorCache) {
-        Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
-
-        if (parentCategories != null && parentCategories.size() > 0) {
-            hierarchyCategories.add(0, category);
-            for (RepositoryItem parentCategory : parentCategories) {
-                loadCategoryPathsAndAncestorIds(sku, parentCategory, hierarchyCategories, catalogAssignments, tokenCache, ancestorCache);
-            }
-            hierarchyCategories.remove(0);
-        } else {
-            Set<RepositoryItem> catalogs = (Set<RepositoryItem>) category.getPropertyValue("catalogs");
-            for(RepositoryItem catalog : catalogs){
-                if(catalogAssignments.contains(catalog)){
-                    generateCategoryTokens(sku, hierarchyCategories, catalog.getRepositoryId(), tokenCache);
-                }
-            }
-        }
-        if (!ancestorCache.contains(category.getRepositoryId())) {
-            sku.addAncestorCategory(category.getRepositoryId());
-            ancestorCache.add(category.getRepositoryId());
-        }
-    }
-
-    /**
-     * Generates category tokens into a multivalued field called category. Each
-     * token has the format: depth/catalog/category 1/,,,.categirt N, For
-     * example:
-     * 
-     * 0/bcs 1/bcs/Men's Clothing 2/bcs/Men's Clothing/Men's Jackets 3/bcs/Men's
-     * Clothing/Men's Jackets/Men's Casual Jacekt's
-     * 
-     * @param sku
-     *            The document to set the attributes to.
-     * @param hierarchyCategories
-     *
-     * @param catalog
-     *            
-     */
-    private void generateCategoryTokens(Sku sku, List<RepositoryItem> hierarchyCategories,
-            String catalog, Set<String> tokenCache) {
-        if (hierarchyCategories == null) {
-            return;
-        }
-        StringBuilder builder = new StringBuilder();
-        StringBuilder builderIds = new StringBuilder();
-        for (int i = 0; i <= hierarchyCategories.size(); i++) {
-            builder.append(i).append(".").append(catalog).append(".");
-            builderIds.append(catalog).append(".");
-            
-            for (int j = 0; j < i; j++) {
-                builder.append(hierarchyCategories.get(j).getItemDisplayName()).append(".");
-                builderIds.append(hierarchyCategories.get(j).getRepositoryId()).append(".");
-            }
-            builder.setLength(builder.length() - 1);
-            builderIds.setLength(builderIds.length() - 1);
-
-            String token = builder.toString();
-            if (!tokenCache.contains(token)) {
-                sku.addCategoryToken(builder.toString());
-                sku.addCategoryPath(builderIds.toString());
-                tokenCache.add(token);
-            }
-            builder.setLength(0);
-            builderIds.setLength(0);
-        }
     }
 }

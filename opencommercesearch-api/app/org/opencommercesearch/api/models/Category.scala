@@ -1,12 +1,17 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json._
+import play.api.libs.json.util._
+
+import scala.collection.convert.Wrappers.JIterableWrapper
+
 
 import java.util
 
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
-import scala.collection.convert.Wrappers.JIterableWrapper
+import play.api.libs.functional.syntax._
+import scala.Some
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -28,7 +33,7 @@ import scala.collection.convert.Wrappers.JIterableWrapper
 */
 
 /**
- * A category model
+ * A category model.
  *
  * @param id is the category id
  * @param name is the category name
@@ -41,9 +46,19 @@ case class Category(
   var name: Option[String],
   var isRuleBased: Option[Boolean],
   var catalogs: Option[Seq[String]],
-  var parentCategories: Option[Seq[String]]) {
+  var parentCategories: Option[Seq[Category]],
+  var childCategories: Option[Seq[Category]]) {
 
-  def this() = this(None, None, None, None, None)
+  /**
+   * This constructor is for lazy loaded categories
+   * @param id is the id of the category to lazy load
+   */
+  def this(id: Option[String]) = this(id, None, None, None, None, None)
+
+  /**
+   * This constructor is intended document object binder used to load Solr documents
+   */
+  def this() = this(None)
 
   @Field
   def setId(id: String) {
@@ -60,21 +75,40 @@ case class Category(
     this.isRuleBased = Some(isRuleBased)
   }
 
-  @Field
+  @Field("catalogs")
   def setCatalogs(catalogs: util.Collection[String]) {
     this.catalogs = Some(JIterableWrapper(catalogs).toSeq)
   }
 
   @Field
-  def setParentCategories(catalogs: util.Collection[String]) {
-    this.parentCategories = Some(JIterableWrapper(catalogs).toSeq)
+  def setParentCategories(parentCategories: util.Collection[String]) {
+    this.parentCategories = Some(JIterableWrapper(parentCategories).toSeq.map(id => new Category(Some(id))))
   }
 
+  @Field("childCategories")
+  def setChildCategories(childCategories: util.Collection[String]) {
+    this.childCategories = Some(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
+  }
 }
 
 object Category {
-  implicit val readsCategory = Json.reads[Category]
-  implicit val writesCategory = Json.writes[Category]
+  implicit val readsCategory : Reads[Category] = (
+    (__ \ "id").readNullable[String] ~
+    (__ \ "name").readNullable[String] ~
+    (__ \ "isRuleBased").readNullable[Boolean] ~
+    (__ \ "catalogs").readNullable[Seq[String]] ~
+    (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
+    (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
+  ) (Category.apply _)
+
+  implicit val writesCategory : Writes[Category] = (
+    (__ \ "id").writeNullable[String] ~
+    (__ \ "name").writeNullable[String] ~
+    (__ \ "isRuleBased").writeNullable[Boolean] ~
+    (__ \ "catalogs").writeNullable[Seq[String]] ~
+    (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
+    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
+  ) (unlift(Category.unapply))
 }
 
 case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
@@ -87,20 +121,57 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
       expectedDocCount += 1
       for (id <- category.id; name <- category.name; isRuleBased <- category.isRuleBased) {
         val doc = new SolrInputDocument()
+
         doc.setField("id", id)
         doc.setField("name", name)
         doc.setField("isRuleBased", isRuleBased)
         doc.setField("feedTimestamp", feedTimestamp)
+
+        var hasCatalogs = false
         for (catalogs <- category.catalogs) {
+          hasCatalogs = catalogs.size > 0
           for (catalog <- catalogs) {
             doc.addField("catalogs", catalog)
           }
         }
+
+        var hasParents = false
         for (parentCategories <- category.parentCategories) {
+          hasParents = parentCategories.size > 0
           for (parentCategory <- parentCategories) {
-            doc.addField("parentCategories", parentCategory)
+            for (id <- parentCategory.id) {
+              doc.addField("parentCategories", id)
+            }
           }
         }
+
+        var hasChildren = false
+        for (childCategories <- category.childCategories) {
+          hasChildren = childCategories.size > 0
+          for (childCategory <- childCategories) {
+            for (id <- childCategory.id) {
+              doc.addField("childCategories", id)
+            }
+          }
+        }
+
+        // this is just informational info
+        if (hasCatalogs) {
+          if (!hasParents && hasChildren) {
+            doc.setField("isRoot", true)
+          } else if (hasParents && hasChildren) {
+            doc.setField("isNode", true)
+          } else if (hasParents && !hasChildren) {
+            doc.setField("isLeaf", true)
+          } else {
+            // shouldn't happen
+            doc.setField("isOrphan", true)
+          }
+        } else {
+          doc.setField("isOrphan", true)
+        }
+
+
         documents.add(doc)
         currentDocCount += 1
       }
@@ -109,12 +180,10 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
       }
     }
 
-
     return documents
   }
 }
 
 object CategoryList {
   implicit val readsCategoryList = Json.reads[CategoryList]
-  implicit val writesCategoryList = Json.writes[CategoryList]
 }
