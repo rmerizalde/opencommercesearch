@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.controllers
+package org.opencommercesearch.api.common
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,17 +19,17 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.{AnyContent, Request, Controller}
+import play.api.mvc.{AnyContent, Request}
+import play.api.i18n.Lang
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
-import play.api.libs.json.JsValue
-import play.api.i18n.Lang
 
 trait ContentPreview {
-  self: Controller =>
+
+  val SupportedLanguages = Seq("en", "fr")
 
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
     query.setParam("collection", getBrandCollection(preview))
@@ -49,15 +49,15 @@ trait ContentPreview {
   }
 
   def withProductCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
-    query.setParam("collection", getProductCollection(preview))
+    query.setParam("collection", getProductCollection(preview, req.acceptLanguages))
   }
 
-  def withProductCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean)(implicit req: Request[AnyContent]) : T = {
-    request.setParam("collection", getProductCollection(preview))
+  def withProductCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean)(implicit req: Request[R]) : T = {
+    request.setParam("collection", getProductCollection(preview, req.acceptLanguages))
     request
   }
 
-  private def getProductCollection(preview: Boolean)(implicit req: Request[AnyContent]) : String = {
+  private def getProductCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
     var collection = ProductPublicCollection
     if (preview) {
       collection = ProductPreviewCollection
@@ -65,8 +65,29 @@ trait ContentPreview {
 
     var language: String = "en"
 
-    req.acceptLanguages.map(lang => language = lang.language)
+    acceptLanguages.map(lang => language = lang.language)
+
+    if (!SupportedLanguages.contains(language)) {
+      language = "en"
+    }
     collection + "_" + language
+  }
+
+  def withCategoryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
+    query.setParam("collection", getCategoryCollection(preview))
+  }
+
+  def withCategoryCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean) : T = {
+    request.setParam("collection", getCategoryCollection(preview))
+    request
+  }
+
+  private def getCategoryCollection(preview: Boolean) : String = {
+    var collection = CategoryPublicCollection
+    if (preview) {
+      collection = CategoryPreviewCollection
+    }
+    collection
   }
 
   def withRuleCollection(query: SolrQuery, preview: Boolean, acceptLanguages:Seq[Lang]) : SolrQuery = {

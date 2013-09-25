@@ -22,18 +22,25 @@ package org.opencommercesearch.api
 import play.api.{Play, Logger, Application}
 import play.api.libs.json.Json
 
+import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
 import play.api.mvc.{Result, WithFilters, RequestHeader}
 import play.api.mvc.Results._
 import play.modules.statsd.api.StatsdFilter
 
+
 object Global extends WithFilters(new StatsdFilter()) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
-  lazy val MaxUpdateBatchSize = getConfigInt("maxUpdateBatchSize", 100)
+  lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateProductBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
   lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")
   lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
+  lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
+  lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
+  lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
 
   /**
@@ -57,7 +64,7 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetPublic")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
-  private var _solrServer: AsyncCloudSolrServer = null
+  private var _solrServer: AsyncSolrServer = null
 
   def solrServer = {
     if (_solrServer == null) {
@@ -66,8 +73,7 @@ object Global extends WithFilters(new StatsdFilter()) {
     _solrServer
   }
 
-  def solrServer_=(server: AsyncCloudSolrServer) = { _solrServer = server }
-
+  def solrServer_=(server: AsyncSolrServer) = { _solrServer = server }
 
   override def onStart(app: Application) {
     Logger.info("OpenCommerceSearch API has started")

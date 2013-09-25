@@ -25,21 +25,21 @@ import play.api.Logger
 import play.api.libs.json.{JsArray, Json}
 
 import scala.concurrent.Future
+import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
 import org.opencommercesearch.api.models.Brand
 import org.opencommercesearch.api.models.BrandList
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
-import scala.collection.convert.Wrappers.JIterableWrapper
 
-// @todo add support for other content types and default to json
 object BrandController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withBrandCollection(withFields(new SolrQuery()), preview)
+    val query = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
 
     query.setRequestHandler(RealTimeRequestHandler)
     query.add("id", id)
@@ -92,13 +92,13 @@ object BrandController extends Controller with ContentPreview with FieldList wit
     }
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { implicit request =>
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 
-      if (brands.length > MaxUpdateBatchSize) {
+      if (brands.length > MaxUpdateBrandBatchSize) {
         BadRequest(Json.obj(
-          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBatchSize"))
+          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize"))
       } else if (hasMissingFields(brands)) {
         BadRequest(Json.obj(
           "message" -> "Missing required fields"))
@@ -125,7 +125,7 @@ object BrandController extends Controller with ContentPreview with FieldList wit
   }
 
   def findSuggestions(version: Int, query: String, preview: Boolean) = Action { implicit request =>
-    val solrQuery = withPagination(withBrandCollection(withFields(new SolrQuery(query)), preview))
+    val solrQuery = withPagination(withBrandCollection(withFields(new SolrQuery(query), request.getQueryString("fields")), preview))
 
     val future = solrServer.query(solrQuery).map( response => {
       val docs = response.getResults

@@ -30,27 +30,38 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.SearchServerException;
-import org.restlet.Client;
+import org.opencommercesearch.api.ProductService;
 import org.restlet.Request;
 import org.restlet.Response;
+import org.restlet.data.Encoding;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
-import org.restlet.data.Protocol;
 import org.restlet.data.Status;
+import org.restlet.engine.application.EncodeRepresentation;
 import org.restlet.representation.Representation;
-import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.StreamRepresentation;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.Arrays;
 
+import static org.opencommercesearch.api.ProductService.Endpoint;
+
 /**
- * Base feed class that sends repository items to the OCS rest API.
+ * Base feed class that sends repository items to the OCS REST API.
  * <p/>
  * Data is transferred in JSON format and through regular HTTP calls. Child classes should handle
  * repository item to JSON transforms.
  * <p/>
  * Notice that the API must be aware of the repository item being fed (checkout opencommercesearch-api project).
+ * <p/>
+ * A feed can be transactional or not. When using transactions, all items will be cleared first. If an exception happens
+ * all changes will be rolled back. If not, changes are committed. Be aware when using Solr. Solr transactions are not isolated.
+ * Make sure the SolrCore doesn't have auto commits enabled.
+ *
+ * Non transactional feeds will delete all items that were not updated during the feed.
  *
  * @author jmendez
  */
@@ -82,48 +93,96 @@ public abstract class BaseRestFeed extends GenericService {
     private int batchSize;
 
     /**
-     * Restlet client to handle all HTTP communications.
-     */
-    private Client client;
-
-    /**
      * Whether or not this feed is enabled.
      */
     private boolean enabled;
 
     /**
-     * Whether or not the feed should send items to the preview collection (if false, everything is sent to the public collection)
+     * Transactional
      */
-    private boolean isPreview = false;
+    private boolean transactional = true;
 
-    /**
-     * Endpoint URL to post data to.
-     */
-    private String endpointUrl = "http://localhost:9000/v1/items";
+    private ProductService productService;
 
-    @Override
-    public void doStartService() throws ServiceException {
-        super.doStartService();
-        client = new Client(Protocol.HTTP);
+    private String endpointUrl;
+
+    public Repository getRepository() {
+        return repository;
+    }
+
+    public void setRepository(Repository repository) {
+        this.repository = repository;
+    }
+
+    public String getItemDescriptorName() {
+        return itemDescriptorName;
+    }
+
+    public void setItemDescriptorName(String itemDescriptorName) {
+        this.itemDescriptorName = itemDescriptorName;
+    }
+
+    public RqlStatement getCountRql() {
+        return countRql;
+    }
+
+    public void setCountRql(RqlStatement countRql) {
+        this.countRql = countRql;
+    }
+
+    public RqlStatement getRql() {
+        return rql;
+    }
+
+    public void setRql(RqlStatement rql) {
+        this.rql = rql;
+    }
+
+    public int getBatchSize() {
+        return batchSize;
+    }
+
+    public void setBatchSize(int batchSize) {
+        this.batchSize = batchSize;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setTransactional(boolean transactional) {
+        this.transactional = transactional;
+    }
+
+    public boolean isTransactional() {
+        return transactional;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public ProductService getProductService() {
+        return productService;
+    }
+
+    public void setProductService(ProductService productService) {
+        this.productService = productService;
     }
 
     @Override
-    public void doStopService() throws ServiceException {
-        super.doStopService();
-        try {
-            client.stop();
-        } catch (Exception ex) {
-            throw new ServiceException("Error stopping restlet client", ex);
-        } finally {
-            client = null;
+    public void doStartService() throws ServiceException {
+        if (getProductService() == null) {
+            throw new ServiceException("No productService found");
         }
+        endpointUrl = getProductService().getUrl4Endpoint(getEndpoint());
     }
 
     /**
      * Start running this feed.
      * @throws RepositoryException If there are problems reading the repository items from the database.
      */
-    public void startFeed() throws RepositoryException, SearchServerException {
+    public void startFeed() throws RepositoryException, IOException {
         if(!isEnabled()) {
             if (isLoggingInfo()) {
                 logInfo("Did not start feed for " + itemDescriptorName + " since is disabled. Verify your configuration is correct." );
@@ -144,8 +203,10 @@ public abstract class BaseRestFeed extends GenericService {
         }
 
         try {
-
-            sendDeleteByQuery();
+            long feedTimestamp = System.currentTimeMillis();
+            if (isTransactional()) {
+                sendDeleteByQuery();
+            }
 
             if(count > 0) {
                 Integer[] rqlArgs = new Integer[] { 0, getBatchSize() };
@@ -153,7 +214,7 @@ public abstract class BaseRestFeed extends GenericService {
 
                 while (items != null) {
                     try {
-                        int sent = sendItems(items);
+                        int sent = sendItems(items, feedTimestamp);
                         processed += sent;
                         failed += items.length - sent;
                     }
@@ -173,14 +234,16 @@ public abstract class BaseRestFeed extends GenericService {
                 }
             }
 
-            sendCommit();
+            if (isTransactional()) {
+                sendCommit();
+            } else {
+                sendDelete(feedTimestamp);
+            }
         }
         catch(Exception e) {
-            if(isLoggingError()) {
-                logError("Cannot finish feed due: " + e.getMessage(), e);
+            if (isTransactional()) {
+                sendRollback();
             }
-
-            sendRollback();
         }
 
         if (isLoggingInfo()) {
@@ -192,10 +255,11 @@ public abstract class BaseRestFeed extends GenericService {
     /**
      * Convert the given items to a JSON list and post them to the given API endpoint.
      * @param itemList The list of repository items to be sent.
+     * @param feedTimestamp is the feed timestamp
      * @return The total count of items sent.
      * @throws RepositoryException if item data from the list can't be read.
      */
-    private int sendItems(RepositoryItem[] itemList) throws RepositoryException {
+    private int sendItems(RepositoryItem[] itemList, long feedTimestamp) throws RepositoryException{
         int sent = 0;
 
         try {
@@ -217,17 +281,27 @@ public abstract class BaseRestFeed extends GenericService {
             }
 
             final JSONObject obj = new JSONObject();
-            obj.put(getEndPointName(), jsonObjects);
+            obj.put(getEndpoint().getLowerCaseName(), jsonObjects);
+            obj.put("feedTimestamp", feedTimestamp);
+            final StreamRepresentation representation = new StreamRepresentation(MediaType.APPLICATION_JSON) {
+                @Override
+                public InputStream getStream() throws IOException {
+                    throw new UnsupportedOperationException();
+                }
 
-            final StringRepresentation jsonRepresentation = new StringRepresentation(obj.toString(), MediaType.APPLICATION_JSON);
-            String url = endpointUrl;
-
-            if (isPreview) {
-                url += "?preview=true";
-            }
-
-            final Request request = new Request(Method.PUT, url, jsonRepresentation);
-            final Response response = client.handle(request);
+                @Override
+                public void write(OutputStream outputStream) throws IOException {
+                    try {
+                        OutputStreamWriter writer = new OutputStreamWriter(outputStream);
+                        obj.write(writer);
+                        writer.flush();
+                    } catch (JSONException ex) {
+                        throw new IOException("Cannot write JSON", ex);
+                    }
+                }
+            };
+            final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
+            final Response response = getProductService().handle(request);
 
             if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
                 if (isLoggingInfo()) {
@@ -239,8 +313,7 @@ public abstract class BaseRestFeed extends GenericService {
             }
 
             return sent;
-        }
-        catch (JSONException ex) {
+        } catch (JSONException ex) {
             if (isLoggingInfo()) {
                 logInfo("Cannot create JSON representation for " + itemDescriptorName + " info [" + getIdsFromItemsArray(itemList) + "]");
             }
@@ -251,68 +324,69 @@ public abstract class BaseRestFeed extends GenericService {
 
     /**
      * Sends a commit request to the API.
-     * @throws SearchServerException If the commit fails.
+     * @throws IOException if the commit fails.
      */
-    private void sendCommit() throws SearchServerException {
-        String url  = endpointUrl + "/commit";
+    protected void sendCommit() throws IOException {
+        String commitEndpointUrl = endpointUrl;
+        commitEndpointUrl += (getProductService().getPreview())? "&" : "?";
+        commitEndpointUrl += "commit=true";
 
-        if (isPreview) {
-            url += "?preview=true";
-        }
-
-        final Request request = new Request(Method.POST, url);
-        final Response response = client.handle(request);
+        final Request request = new Request(Method.POST, commitEndpointUrl);
+        final Response response = getProductService().handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw SearchServerException.create(SearchServerException.Code.COMMIT_EXCEPTION, new Exception("Failed to send commit with status " + response.getStatus() + errorResponseToString(response.getEntity())));
+            throw new IOException("Failed to send commit with status " + response.getStatus() + errorResponseToString(response.getEntity()));
         }
     }
 
     /**
      * Sends a rollback request to the API.
-     * @throws SearchServerException If the rollback fails.
+     * @throws IOException if the rollback fails.
      */
-    private void sendRollback() throws SearchServerException {
-        String url = endpointUrl + "/rollback";
+    protected void sendRollback() throws IOException {
+        String rollbackEndpointUrl = endpointUrl;
+        rollbackEndpointUrl += (getProductService().getPreview())? "&" : "?";
+        rollbackEndpointUrl += "rollback=true";
 
-        if (isPreview) {
-            url += "?preview=true";
-        }
-
-        final Request request = new Request(Method.POST, url);
-
-        final Response response = client.handle(request);
+        final Request request = new Request(Method.POST, rollbackEndpointUrl);
+        final Response response = getProductService().handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            if(isLoggingError()) {
-                logError("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
-            }
+            throw new IOException("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
         }
     }
 
     /**
      * Sends a delete by query request to the API.
-     * @throws SearchServerException If the delete fails.
+     * @throws IOException if the delete fails.
      */
-    private void sendDeleteByQuery() throws SearchServerException {
-        final Request request = new Request(Method.DELETE, endpointUrl + "?query=*:*");
-        final Response response = client.handle(request);
+    private void sendDeleteByQuery() throws IOException {
+        String deleteEndpointUrl = endpointUrl;
+        deleteEndpointUrl += (getProductService().getPreview())? "&" : "?";
+        deleteEndpointUrl += "query=*:*";
+
+        final Request request = new Request(Method.DELETE, deleteEndpointUrl);
+        final Response response = getProductService().handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw SearchServerException.create(SearchServerException.Code.UPDATE_EXCEPTION, new Exception("Failed to send delete by query with status " + response.getStatus() + errorResponseToString(response.getEntity())));
+            throw new IOException("Failed to send delete by query with status " + response.getStatus() + errorResponseToString(response.getEntity()));
         }
     }
 
-    /**
-     * Gets the name on the endpoint URL. For example, from 'http://localhost:9000/v1/items' it returns 'items'.
-     */
-    private String getEndPointName() {
-        if(endpointUrl.charAt(endpointUrl.length() - 1) == '/') {
-            String noForwardSlash = endpointUrl.substring(0, endpointUrl.length() - 1);
-            return noForwardSlash.substring(noForwardSlash.lastIndexOf('/') + 1);
-        }
-        else {
-            return endpointUrl.substring(endpointUrl.lastIndexOf('/') + 1);
+    public void sendDelete(long feedTimestamp) {
+        String deleteEndpointUrl = endpointUrl;
+        deleteEndpointUrl += (getProductService().getPreview())? "&" : "?";
+        deleteEndpointUrl += "feedTimestamp=" + feedTimestamp;
+
+        final Request request = new Request(Method.DELETE, deleteEndpointUrl);
+        final Response response = getProductService().handle(request);
+
+        if (isLoggingInfo()) {
+            if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                logInfo("Successfully deleted products with feed timestamp before to " + feedTimestamp);
+            } else {
+                logInfo("Deleting products with feed timestamp before to " + feedTimestamp + " failed with status: " + response.getStatus());
+            }
         }
     }
 
@@ -365,6 +439,12 @@ public abstract class BaseRestFeed extends GenericService {
     }
 
     /**
+     * Return the Endpoint for this feed
+     * @return an Endpoint enum representing the endpoint for this feed
+     */
+    public abstract Endpoint getEndpoint();
+
+    /**
      * Convert the given repository item to its corresponding JSON API format.
      * @param item Repository item to convert.
      * @return The JSON representation of the given repository item, or null if there are missing fields.
@@ -380,76 +460,5 @@ public abstract class BaseRestFeed extends GenericService {
      * @return List of required fields when transforming a repository item to JSON, required for logging purposes.
      */
     protected abstract String[] getRequiredItemFields();
-
-    public Repository getRepository() {
-        return repository;
-    }
-
-    public void setRepository(Repository repository) {
-        this.repository = repository;
-    }
-
-    public String getItemDescriptorName() {
-        return itemDescriptorName;
-    }
-
-    public void setItemDescriptorName(String itemDescriptorName) {
-        this.itemDescriptorName = itemDescriptorName;
-    }
-
-    public RqlStatement getCountRql() {
-        return countRql;
-    }
-
-    public void setCountRql(RqlStatement countRql) {
-        this.countRql = countRql;
-    }
-
-    public RqlStatement getRql() {
-        return rql;
-    }
-
-    public void setRql(RqlStatement rql) {
-        this.rql = rql;
-    }
-
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public boolean isPreview() {
-        return isPreview;
-    }
-
-    public void setPreview(boolean isPreview) {
-        this.isPreview = isPreview;
-    }
-
-    public String getEndpointUrl() {
-        return endpointUrl;
-    }
-
-    public void setEndpointUrl(String endpointUrl) {
-        this.endpointUrl = endpointUrl;
-    }
-
-    public Client getClient() {
-        return client;
-    }
-
-    public void setClient(Client client) {
-        this.client = client;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
 }
+

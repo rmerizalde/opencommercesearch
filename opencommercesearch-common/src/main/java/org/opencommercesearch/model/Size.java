@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.controllers
+package org.opencommercesearch.model;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,18 +19,37 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.{AnyContent, Controller, Request}
-import org.apache.solr.client.solrj.SolrQuery
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-trait FieldList {
-  this: Controller =>
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class Size {
 
-  def withFields(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
-    val fields = request.getQueryString("fields")
+    @JsonProperty
+    private String name;
 
-    if (fields.isDefined) {
-      query.setFields(fields.get.split(','): _*)
+    @JsonProperty
+    private String scale;
+
+    public Size(String name, String size) {
+        this.name = name;
+        this.scale = size;
     }
-    query
-  }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getScale() {
+        return scale;
+    }
+
+    public void setScale(String scale) {
+        this.scale = scale;
+    }
+
 }

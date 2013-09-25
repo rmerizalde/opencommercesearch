@@ -21,29 +21,29 @@ package org.opencommercesearch.api.controllers
 
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.mvc.Controller
 import play.api.Logger
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsError, Json}
 
 import scala.collection.JavaConversions.asScalaBuffer
-import scala.collection.convert.Wrappers.{JListWrapper, JIterableWrapper}
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.convert.Wrappers.JListWrapper
+import scala.concurrent.Future
 
 import java.util
 
-import org.opencommercesearch.api.models.{Product, Sku}
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.codehaus.jackson.map.ObjectMapper
-
+import org.opencommercesearch.api.models._
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.opencommercesearch.api.Global._
-
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.opencommercesearch.api.service.CategoryService
 
 object ProductController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
-  val mapper = new ObjectMapper()
+  val categoryService = new CategoryService(solrServer)
 
   def search(version: Int, q: String, preview: Boolean) = Action { implicit request =>
-    val query = withProductCollection(withFields(withPagination(new SolrQuery(q))), preview)
+    val query = withProductCollection(withFields(withPagination(new SolrQuery(q)), request.getQueryString("fields")), preview)
 
     query.set("group", true)
     query.set("group.ngroups", true)
@@ -68,28 +68,31 @@ object ProductController extends Controller with ContentPreview with FieldList w
             if (command.getNGroups > 0) {
               val allProducts = new util.ArrayList[Product]
               for (group <- JIterableWrapper(command.getValues)) {
-                val productBeans = solrServer.binder.getBeans(classOf[Sku], group.getResult)
+                val productBeans = solrServer.binder.getBeans(classOf[SolrSku], group.getResult)
                 if (productBeans.size() > 0) {
-                  var title:Option[String] = None
+                  var title:String = null
 
                   if (productBeans.get(0).title.isDefined) {
-                    title = productBeans.get(0).title
+                    title = productBeans.get(0).title.get
                   }
 
                   val productBeanSeq = asScalaBuffer(productBeans).map(b => {b.title = None; b})
-                  allProducts.add(new Product(Some(group.getGroupValue), title, Some(productBeanSeq)))
+                  val p = new Product()
+                  p.setId(group.getGroupValue)
+                  p.setTitle(title)
+                  //p.setSkus(productBeanSeq)
+                  allProducts.add(p)
                 }
               }
-
               Ok(Json.obj(
                 "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
                 "products" -> Json.arr(
                   JListWrapper(allProducts) map (Json.toJson(_))
                 )))
             } else {
-              Logger.debug("Unexpected response found for query  " + q)
-              InternalServerError(Json.obj(
-                "message" -> "Unable to execute query"
+              Ok(Json.obj(
+                "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
+                "products" -> Json.arr()
               ))
             }
           } else {
@@ -112,28 +115,72 @@ object ProductController extends Controller with ContentPreview with FieldList w
       }
     })
 
-      //val products = JListWrapper(response.getBeans(classOf[Product]))
-
-
-      /*if (docs != null && docs.getNumFound > 0) {
-        Logger.debug("Found " + docs.getNumFound + " document for query " + q)
-        Ok(Json.obj(
-          "metadata" -> Json.obj("found" -> docs.getNumFound),
-          "products" -> JsArray(
-            // @todo figure out how to implements Writes[Product] using jackson annotations
-            // writing a json string to parse it back to json is not the long term solution
-            products map (p => Json.parse(mapper.writeValueAsString(p))))
-        ))
-      } else {
-        Logger.debug("No results found for query  " + q)
-        Ok(Json.obj(
-          "metadata" -> Json.obj("found" -> docs.getNumFound)
-        ))
-      }
-    })*/
-
     Async {
       withErrorHandling(future, s"Cannot search for [$q]")
+    }
+  }
+
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+    Json.fromJson[ProductList](request.body).map { productList =>
+      val products = productList.products
+      if (products.size > MaxUpdateProductBatchSize) {
+        BadRequest(Json.obj(
+          "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize"))
+      } else {
+        try {
+          val update = withProductCollection(new AsyncUpdateRequest(), preview)
+          val docs = productList.toDocuments(categoryService, preview)
+          update.add(docs)
+
+          val future: Future[Result] = update.process(solrServer).map( response => {
+            Created
+          })
+
+          Async {
+            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+          }
+        } catch {
+          case e: IllegalArgumentException => {
+            Logger.error(e.getMessage)
+            BadRequest(Json.obj(
+              "message" -> e.getMessage
+            ))
+          }
+        }
+      }
+    }.recoverTotal {
+      case e: JsError => {
+        BadRequest(Json.obj(
+          // @TODO figure out how to pull missing field from JsError
+          "message" -> "Missing required fields"))
+      }
+
+    }
+  }
+
+  def deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean) = Action { implicit request =>
+    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    update.deleteByQuery("-indexStamp:" + feedTimestamp)
+
+    val future: Future[Result] = update.process(solrServer).map( response => {
+      NoContent
+    })
+
+    Async {
+      withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
+    }
+  }
+
+  def deleteById(version: Int = 1, id: String, preview: Boolean) = Action { implicit request =>
+    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    update.deleteByQuery("productId:" + id)
+
+    val future: Future[Result] = update.process(solrServer).map( response => {
+      NoContent
+    })
+
+    Async {
+      withErrorHandling(future, s"Cannot delete product [$id  ]")
     }
   }
 }

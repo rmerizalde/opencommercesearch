@@ -19,13 +19,18 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import atg.json.JSONException;
+import atg.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.CategoryProperty;
 
 import atg.repository.RepositoryItem;
+import org.restlet.representation.Representation;
 
 public class Utils {
 
@@ -246,7 +251,6 @@ public class Utils {
     
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
-     * 
      * @see Utils#buildCategoryPrefix
      * @param currentPath Placeholder to accumulate the path
      * @param category The current category we are traversing
@@ -274,5 +278,36 @@ public class Utils {
      */
     public static String getISO8601Date(long millis) {
         return iso8601Formatter.format(new Date(millis));
+    }
+    
+    public static String getItemsId(RepositoryItem[] items) {
+        if (items == null && items.length == 0) {
+            return StringUtils.EMPTY;
+        }
+        StringBuilder buffer = new StringBuilder();
+
+        for (RepositoryItem brandInfo : items) {
+            buffer.append(brandInfo.getRepositoryId()).append(", ");
+        }
+        buffer.setLength(buffer.length() - 2);
+        return buffer.toString();
+    }
+
+    public static String errorMessage(Representation representation) {
+        if (representation == null) {
+            return StringUtils.EMPTY;
+        }
+
+        String message = "unknown exception";
+
+        try {
+            JSONObject obj = new JSONObject(representation.getText());
+            message = obj.getString("message");
+        } catch (JSONException ex) {
+            // do nothing
+        } catch (IOException ex) {
+            // do nothing
+        }
+        return message;
     }
 }

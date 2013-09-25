@@ -20,14 +20,37 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 import java.util
 
 import org.apache.solr.client.solrj.beans.Field
+import org.apache.solr.common.SolrInputDocument
+import org.opencommercesearch.api.service.CategoryService
+import ProductList._
 
-case class Product (var id: Option[String], var title: Option[String], var skus: Option[Seq[Sku]]) {
-  def this() = this(null, null, null)
+case class Product (
+  var id: Option[String],
+  var title: Option[String],
+  var description: Option[String],
+  var shortDescription: Option[String],
+  var brand: Option[Brand],
+  var gender: Option[String],
+  var sizingChart: Option[String],
+  var detailImages: Option[Seq[Image]],
+  var bulletPoints: Option[Seq[String]],
+  var attributes: Option[Seq[Attribute]],
+  var features: Option[Seq[Attribute]],
+  var listRank: Option[Int],
+  var reviewCount: Option[Int],
+  var reviewAverage: Option[Float],
+  var bayesianReviewAverage: Option[Float],
+  // has free gift by catalog
+  var hasFreeGift: Option[Map[String, Boolean]],
+  var isOutOfStock: Option[Boolean],
+  var categories: Option[Seq[String]],
+  var skus: Option[Seq[Sku]])
+{
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -43,16 +66,104 @@ object Product {
 
   implicit val readsProduct = Json.reads[Product]
   implicit val writesProduct = Json.writes[Product]
+}
 
-  implicit val objectSeqFormat = new Format[Seq[Sku]] {
-    def writes(seq: Seq[Sku]): JsValue = {
-      Json.arr(
-        seq.map(s => Json.toJson(s))
-      )
+case class ProductList(products: Seq[Product], feedTimestamp: Long) {
+  def toDocuments(service: CategoryService, preview: Boolean) : util.List[SolrInputDocument] = {
+    val documents = new util.ArrayList[SolrInputDocument](products.size * 3)
+    var expectedDocCount = 0
+    var currentDocCount = 0
+
+    for (product: Product <- products) {
+      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
+           skus <- product.skus; listRank <- product.listRank) {
+        expectedDocCount += skus.size
+        for (sku: Sku <- skus) {
+          for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
+               isCloseout <- sku.isCloseout; countries <- sku.countries) {
+            val doc = new SolrInputDocument()
+            doc.setField("id", id)
+            doc.setField("productId", productId)
+            doc.setField("title", title)
+            for (brandId <- brand.id) { doc.setField("brandId", brandId) }
+            for (brandName <- brand.name) { doc.setField("brand", brandName) }
+            for (imageUrl <- image.url) { doc.setField("image", imageUrl) }
+            doc.setField("listRank", listRank)
+            doc.setField("isToos", isOutOfStock)
+            doc.setField("isRetail", isRetail)
+            doc.setField("isCloseout", isCloseout)
+            for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
+            for (gender <- product.gender) { doc.setField("gender", gender) }
+            for (year <- sku.year) { doc.setField("year", year) }
+            for (season <- sku.season) { doc.setField("season", season) }
+            for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
+            for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
+
+            for (size <- sku.size) {
+              for (sizeName <- size.name) { doc.setField("size", sizeName) }
+              for (scale <- size.scale) { doc.setField("scale", scale) }
+            }
+
+            for (reviewAverage <- product.reviewAverage; bayesianReviewAverage <- product.bayesianReviewAverage;
+                 reviews <- product.reviewCount) {
+              doc.setField("reviews", reviews)
+              doc.setField("reviewAverage", reviewAverage)
+              doc.setField("bayesianReviewAverage", bayesianReviewAverage)
+            }
+
+            for (country: Country <- countries) {
+              for (code <- country.code) {
+                doc.addField("country", code)
+
+                for (allowBackorder <- country.allowBackorder) { doc.setField("allowBackorder" + code, allowBackorder) }
+                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
+                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
+                for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
+                for (onSale <- country.onSale) { doc.setField("onSale" + code, onSale) }
+                for (stockLevel <- country.stockLevel)  { doc.setField("stockLevel" + code, stockLevel) }
+                for (url <- country.url) { doc.setField("url" + code, url) }
+              }
+            }
+
+            for (hasFreeGift <- product.hasFreeGift) { 
+                hasFreeGift.foreach { case(catalog, hasGift) => 
+                    if (hasGift) {
+                        doc.setField("freeGift" + catalog, hasGift)
+                    } 
+                } 
+            }
+            for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
+            for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
+            for (sort <- sku.customSort) { doc.setField("sort", sort) }
+            doc.setField("indexStamp", feedTimestamp)
+            documents.add(doc)
+            currentDocCount += 1
+          }
+        }
+      }
+
+      if (expectedDocCount != currentDocCount) {
+        throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
+      }
     }
-
-    def reads(jv: JsValue): JsResult[Seq[Sku]] =
-      JsSuccess(jv.as[JsArray].value.map(_.as[Sku]))
+    documents
   }
 
+  def setAttributes(doc: SolrInputDocument, features: Seq[Attribute], prefix: String) : Unit = {
+    for (feature <- features) {
+      for (name <- feature.name; value <- feature.value) {
+        doc.addField(prefix + name.toLowerCase.replaceAll(AttrNameCleanupPattern, ""), value)
+      }
+    }
+  }
+
+}
+
+object ProductList {
+  val AttrNameCleanupPattern = "[^a-z]"
+  val AttrFieldNamePrefix = "attr_"
+  val FeatureFieldNamePrefix = "feature_"
+
+  implicit val readsProductList = Json.reads[ProductList]
+  implicit val writesProductList = Json.writes[ProductList]
 }

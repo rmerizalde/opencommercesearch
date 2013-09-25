@@ -36,6 +36,7 @@ import atg.nucleus.GenericService;
 import atg.repository.RepositoryException;
 import org.opencommercesearch.feed.FacetFeed;
 import org.opencommercesearch.feed.RuleFeed;
+import org.opencommercesearch.feed.CategoryFeed;
 
 /**
  * This class implements DeploymentEventListener and should be added to the
@@ -72,6 +73,11 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
      * Rules REST feed instance.
      */
     private RuleFeed ruleFeed;
+
+    /**
+     * Category REST feed instance
+     */
+    private CategoryFeed categoryFeed;
 
     public SearchServer getSearchServer() {
         return searchServer;
@@ -146,6 +152,14 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         this.ruleFeed = ruleFeed;
     }
 
+    public void setCategoryFeed(CategoryFeed categoryFeed) {
+        this.categoryFeed = categoryFeed;
+    }
+
+    public CategoryFeed getCategoryFeed() {
+        return categoryFeed;
+    }
+
     @Override
     public void deploymentEvent(DeploymentEvent event) {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
@@ -187,6 +201,16 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                                 }
                             }
                         }
+                        else if ((itemDescriptorName.equals("category") || itemDescriptorName.equals("ruleBasedCategory"))
+                                && repositoryName.equals("/atg/commerce/catalog/ProductCatalog")) {
+                            try {
+                                categoryFeed.startFeed();
+                            } catch (Exception ex) {
+                                if (isLoggingError()) {
+                                    logError("Category feed failed", ex);
+                                }
+                            }
+                        }
                         else if (triggerItemDescriptorNames.contains(descriptorName) || getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
                             doEvaluation = true;
                             notifyItemChange(repositoryName, itemDescriptorNames);
@@ -213,6 +237,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
             logInfo("Notifying search server of changes in repository " + repositoryName + " for item descriptors "
                     + itemDescriptorNames);
         }
+
         try {
             getSearchServer().onRepositoryItemChanged(repositoryName, itemDescriptorNames);
         } catch (RepositoryException ex) {
