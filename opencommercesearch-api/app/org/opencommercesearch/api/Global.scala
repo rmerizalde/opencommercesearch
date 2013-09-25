@@ -19,7 +19,7 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.{Play, GlobalSettings, Logger, Application}
+import play.api.{Play, Logger, Application}
 import play.api.libs.json.Json
 
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
@@ -49,12 +49,12 @@ object Global extends WithFilters(new StatsdFilter()) {
   /**
    * Facet preview collection from configuration.
    */
-  lazy val FacetPreviewCollection = getConfigString("preview.ruleCollection", "facetPreview")
+  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetPreview")
 
   /**
    * * Facet public collection from configuration.
    */
-  lazy val FacetPublicCollection = getConfigString("public.ruleCollection", "facetPublic")
+  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetPublic")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncCloudSolrServer = null

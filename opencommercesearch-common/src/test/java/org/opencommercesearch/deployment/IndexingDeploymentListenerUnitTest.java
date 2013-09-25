@@ -55,6 +55,8 @@ public class IndexingDeploymentListenerUnitTest {
         indexingDeploymentListener.setSearchServer(searchServer);
         indexingDeploymentListener.setTriggerStatus(Status.stateToString(1));
         indexingDeploymentListener.setTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor1", "searchRepo:triggerItemDescriptor2"));
+        indexingDeploymentListener.setFacetsTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor3", "searchRepo:triggerItemDescriptor4"));
+        indexingDeploymentListener.setRulesTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor5", "searchRepo:triggerItemDescriptor6"));
         indexingDeploymentListener.setLoggingDebug(false);
         indexingDeploymentListener.setLoggingError(false);
         indexingDeploymentListener.setLoggingInfo(false);

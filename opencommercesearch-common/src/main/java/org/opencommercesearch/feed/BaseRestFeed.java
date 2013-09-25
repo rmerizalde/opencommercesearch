@@ -91,10 +91,6 @@ public abstract class BaseRestFeed extends GenericService {
      */
     private boolean enabled;
 
-
-    //TODO: Remove this two properties and use Settings.java
-
-
     /**
      * Whether or not the feed should send items to the preview collection (if false, everything is sent to the public collection)
      */
@@ -181,7 +177,7 @@ public abstract class BaseRestFeed extends GenericService {
         }
         catch(Exception e) {
             if(isLoggingError()) {
-                logError("Can't finish feed due: " + e.getMessage(), e);
+                logError("Cannot finish feed due: " + e.getMessage(), e);
             }
 
             sendRollback();
@@ -223,7 +219,6 @@ public abstract class BaseRestFeed extends GenericService {
             final JSONObject obj = new JSONObject();
             obj.put(getEndPointName(), jsonObjects);
 
-            //TODO (Javier Mendez): Use custom StreamRepresentation to write the JSON directly to the HTTP output stream
             final StringRepresentation jsonRepresentation = new StringRepresentation(obj.toString(), MediaType.APPLICATION_JSON);
             String url = endpointUrl;
 
@@ -259,10 +254,10 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws SearchServerException If the commit fails.
      */
     private void sendCommit() throws SearchServerException {
-        String url  = endpointUrl + "?commit=true";
+        String url  = endpointUrl + "/commit";
 
         if (isPreview) {
-            url += "&preview=true";
+            url += "?preview=true";
         }
 
         final Request request = new Request(Method.POST, url);
@@ -278,10 +273,10 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws SearchServerException If the rollback fails.
      */
     private void sendRollback() throws SearchServerException {
-        String url = endpointUrl + "?rollback=true";
+        String url = endpointUrl + "/rollback";
 
         if (isPreview) {
-            url += "&preview=true";
+            url += "?preview=true";
         }
 
         final Request request = new Request(Method.POST, url);

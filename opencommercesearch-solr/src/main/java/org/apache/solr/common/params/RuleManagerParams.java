@@ -25,6 +25,11 @@ package org.apache.solr.common.params;
 public interface RuleManagerParams {
 
     /**
+     * Whether or not the rule component is enabled. A value of rule=false disables the rule manager component for the request.
+     */
+    public static final String RULE = "rule";
+
+    /**
      * Type of page being served (search, category, rule).
      */
     public static final String PAGE_TYPE = "pageType";

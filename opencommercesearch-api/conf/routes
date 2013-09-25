@@ -18,7 +18,8 @@ DELETE     /v1/rules                                 org.opencommercesearch.api.
 GET        /v1/facets/:id                             org.opencommercesearch.api.controllers.FacetController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT        /v1/facets/:id                             org.opencommercesearch.api.controllers.FacetController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT        /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
-POST       /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.commitOrRollback(preview: Boolean ?= false, commit: Boolean ?= false, rollback: Boolean ?= false)
+POST       /v1/facets/commit                          org.opencommercesearch.api.controllers.FacetController.commitOrRollback(preview: Boolean ?= false, commit: Boolean = true, rollback: Boolean = false)
+POST       /v1/facets/rollback                        org.opencommercesearch.api.controllers.FacetController.commitOrRollback(preview: Boolean ?= false, commit: Boolean = false, rollback: Boolean = true)
 DELETE     /v1/facets                                 org.opencommercesearch.api.controllers.FacetController.deleteByQuery(preview: Boolean ?= false, query: String ?= "*:*")
 
 # suggest completion

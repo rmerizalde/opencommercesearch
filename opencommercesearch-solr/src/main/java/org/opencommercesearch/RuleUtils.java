@@ -107,9 +107,7 @@ public class RuleUtils {
         return expression;
     }
 
-
-    public static String getRangeBreadCrumb(String fieldName, String expression)
-    {
+    public static String getRangeBreadCrumb(String fieldName, String expression) {
         return getRangeBreadCrumb(fieldName, expression, null);
     }
 

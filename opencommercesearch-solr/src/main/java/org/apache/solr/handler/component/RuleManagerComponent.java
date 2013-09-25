@@ -134,7 +134,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         facetsCoreName = getCoreName(core, facetsCoreBaseName);
 
         if(rulesCoreName == null || facetsCoreName == null) {
-            logger.error("Running on core " + core.getName() + " that is not 'Preview' or 'Public'. Can't associate appropiate Rules and Facets core due that.");
+            logger.error("Running on core " + core.getName() + " that is not 'Preview' or 'Public'. Cannot associate appropiate Rules and Facets core due that.");
         }
         else {
             logger.debug("Rules core name: " + rulesCoreName);
@@ -154,14 +154,19 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
     @Override
     public void prepare(ResponseBuilder rb) throws IOException {
-        logger.debug("Invoked prepare method");
+        SolrParams requestParams = rb.req.getParams();
+        Boolean rulesEnabled = requestParams.getBool(RuleManagerParams.RULE);
 
-        if(rulesCoreName == null || facetsCoreName == null) {
-            logger.debug("There are initialization errors. Rule manager won't run.");
+        if(rulesEnabled == null || !rulesEnabled) {
+            logger.debug("Rule param is set to false. Doing nothing.");
             return;
         }
 
-        SolrParams requestParams = rb.req.getParams();
+        if(rulesCoreName == null || facetsCoreName == null) {
+            logger.warn("There are initialization errors, bypassing this request.");
+            return;
+        }
+
         PageType pageType = getPageType(requestParams);
 
         if(pageType == null) {
@@ -272,13 +277,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     public SearchHandler getSearchHandler(SolrCore core) throws IOException {
         if(core == null) {
-            throw new IOException("Can't process any requests because a required core was not found. Check that you created a core called " + rulesCoreBaseName + " and also " + facetsCoreBaseName + ".");
+            throw new IOException("Cannot process any requests because a required core was not found. Check that you created a core called " + rulesCoreBaseName + " and also " + facetsCoreBaseName + ".");
         }
 
         SearchHandler searchHandler = (SearchHandler) core.getRequestHandler("/select");
 
         if(searchHandler == null) {
-            throw new IOException("Can't process any requests because the core search handler was not found. Check that " + core.getName() + " has a valid '/select' request handler configured.");
+            throw new IOException("Cannot process any requests because the core search handler was not found. Check that " + core.getName() + " has a valid '/select' request handler configured.");
         }
 
         return searchHandler;
@@ -352,10 +357,8 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                             if (categoryPath != null && PageType.rule == pageType) {
                                 //For rule based pages, include only those rules that match the current category path.
                                 String[] ruleCategories = ruleDoc.getValues(RuleConstants.FIELD_CATEGORY);
-                                if(ruleCategories != null) {
-                                    if(Arrays.asList(ruleCategories).contains(categoryPath)) {
-                                        addRuleToMap(rulesMap, ruleType, ruleDoc);
-                                    }
+                                if(ruleCategories != null && Arrays.asList(ruleCategories).contains(categoryPath)) {
+                                    addRuleToMap(rulesMap, ruleType, ruleDoc);
                                 }
                             } else {
                                 addRuleToMap(rulesMap, ruleType, ruleDoc);
@@ -430,7 +433,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
 
         if(catalogId == null) {
-            //throw new IOException("Can't process search request because the 'catalogId' param is empty.");
             logger.debug("No catalog ID provided, bypassing this request.");
             return null;
         }
@@ -442,7 +444,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             String qParam = requestParams.get(CommonParams.Q);
 
             if(StringUtils.isEmpty(qParam)) {
-                throw new IOException("Can't process search request because the 'q' param is empty.");
+                throw new IOException("Cannot process search request because the 'q' param is empty.");
             }
 
             stringBuilder.append("(target:allpages OR target:searchpages) AND ((");
