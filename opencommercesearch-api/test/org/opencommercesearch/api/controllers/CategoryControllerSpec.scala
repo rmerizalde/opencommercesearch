@@ -52,13 +52,6 @@ class CategoryControllerSpec extends BaseSpec {
       }
     }
 
-    "send 404 on a get to all categories"  in new Categories {
-      running(FakeApplication()) {
-
-        route(FakeRequest(GET, "/v1/categories")) must beNone
-      }
-    }
-
     "send 404 when a category is not found"  in new Categories {
       running(FakeApplication()) {
         val (queryResponse, namedList) = setupQuery

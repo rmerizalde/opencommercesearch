@@ -48,13 +48,6 @@ class BrandControllerSpec extends BaseSpec {
       }
     }
 
-    "send 404 on a get to all brands"  in new Brands {
-      running(FakeApplication()) {
-
-        route(FakeRequest(GET, "/v1/brands")) must beNone
-      }
-    }
-
     "send 404 when a brand is not found"  in new Brands {
       running(FakeApplication()) {
         val (queryResponse, namedList) = setupQuery
