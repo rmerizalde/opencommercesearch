@@ -28,6 +28,7 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.RuleConstants;
 import org.opencommercesearch.RulesBuilder;
 import org.opencommercesearch.Utils;
+import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.repository.*;
 
 import java.sql.Timestamp;
@@ -48,6 +49,14 @@ public class RuleFeed extends BaseRestFeed {
 
     private Map<String, String> strengthMap;
     private RulesBuilder rulesBuilder;
+
+    /**
+     * Return the Endpoint for this feed
+     * @return an Endpoint enum representing the endpoint for this feed
+     */
+    public ProductService.Endpoint getEndpoint() {
+        return ProductService.Endpoint.RULES;
+    }
 
     @Override
     protected JSONObject repositoryItemToJson(RepositoryItem rule) throws JSONException, RepositoryException {

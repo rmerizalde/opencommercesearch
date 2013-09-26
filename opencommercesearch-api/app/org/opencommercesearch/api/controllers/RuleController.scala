@@ -33,21 +33,22 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
+import org.apache.solr.common.SolrDocument
 
 // @todo add support for other content types and default to json
 object RuleController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withRuleCollection(withFields(new SolrQuery()), preview, request.acceptLanguages)
+    val query = withRuleCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
 
     query.add("q", "id:" + id)
     query.add("fl", "*")
 
     Logger.debug("Query rule " + id)
     val future = solrServer.query(query).map( response => {
-      val doc = response.getResults.get(0)
-
-      if (doc != null) {
+      var doc : SolrDocument = null
+      if(response.getResults.getNumFound > 0 && (doc = response.getResults.get(0)) != null) {
         Logger.debug("Found rule " + id)
         Ok(Json.obj(
           "rule" -> solrServer.binder.getBean(classOf[Rule], doc)))
@@ -83,7 +84,8 @@ object RuleController extends Controller with ContentPreview with FieldList with
       catch {
         case e : BindingException =>
           BadRequest(Json.obj(
-            "message" -> "Illegal Rule fields"))
+            "message" -> "Illegal Rule fields",
+            "detail" -> e.getMessage))
       }
     }.recoverTotal {
       e => BadRequest(Json.obj(
@@ -96,9 +98,9 @@ object RuleController extends Controller with ContentPreview with FieldList with
     Json.fromJson[RuleList](request.body).map { ruleList =>
       val rules = ruleList.rules
       try {
-        if (rules.length > MaxUpdateBatchSize) {
+        if (rules.length > MaxUpdateRuleBatchSize) {
           BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Rules. Maximum is $MaxUpdateBatchSize"))
+            "message" -> s"Exceeded number of Rules. Maximum is $MaxUpdateRuleBatchSize"))
         } else {
           val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
           rules map { rule =>
@@ -121,7 +123,8 @@ object RuleController extends Controller with ContentPreview with FieldList with
         case e : BindingException =>
           //Handle bind exceptions
           BadRequest(Json.obj(
-            "message" -> s"Illegal Rule fields [${rules map (_.id.get) mkString ","}]"))
+            "message" -> s"Illegal Rule fields [${rules map (_.id.get) mkString ","}] ",
+            "detail" -> e.getMessage))
       }
     }.recoverTotal {
       e => BadRequest(Json.obj(

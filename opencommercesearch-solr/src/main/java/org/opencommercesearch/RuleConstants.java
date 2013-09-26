@@ -23,6 +23,9 @@ package org.opencommercesearch;
  * Constants used  by the RuleManager component.
  */
 public class RuleConstants {
+
+    private RuleConstants() {}
+
     /**
      * Document identifier field
      */

@@ -23,6 +23,9 @@ package org.opencommercesearch;
  * Constants used by FacetHandler
  */
 public class FacetConstants {
+
+    private FacetConstants() {}
+
     /**
      * ID Field for indexed facets
      */

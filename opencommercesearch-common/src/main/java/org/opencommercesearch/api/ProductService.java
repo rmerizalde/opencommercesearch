@@ -37,7 +37,8 @@ public class ProductService extends GenericService {
         BRANDS,
         RULES,
         PRODUCTS,
-        CATEGORIES;
+        CATEGORIES,
+        FACETS;
 
         private String lowerCaseName;
 

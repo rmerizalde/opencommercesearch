@@ -55,9 +55,11 @@ case class Rule(
   var boostFunction: Option[String],
   var facetField: Option[Array[String]],
   var facetId: Option[Array[String]],
+  var boostedProducts: Option[Array[String]],
+  var blockedProducts: Option[Array[String]],
   var ruleType: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 
@@ -125,6 +127,16 @@ case class Rule(
 
   @Field
   def setFacetId(facetId: Array[String]) : Unit = { this.facetId = Option.apply(facetId) }
+
+  def getBoostedProducts : Array[String] = { boostedProducts.getOrElse(null) }
+
+  @Field
+  def setBoostedProducts(boostedProducts: Array[String]) : Unit = { this.boostedProducts = Option.apply(boostedProducts) }
+
+  def getBlockedProducts : Array[String] = { blockedProducts.getOrElse(null) }
+
+  @Field
+  def setBlockedProducts(blockedProducts: Array[String]) : Unit = { this.blockedProducts = Option.apply(blockedProducts) }
 
   def getRuleType : String = { ruleType.getOrElse(null) }
 

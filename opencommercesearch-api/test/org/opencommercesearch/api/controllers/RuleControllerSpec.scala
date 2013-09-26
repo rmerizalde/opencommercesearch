@@ -150,17 +150,17 @@ class RuleControllerSpec extends Specification with Mockito {
 
     // @todo test bulk update
     "send 400 when exceeding maximum rules an a bulk create" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
-        val (expectedId) = ("1000")
+        val expectedId = "1000"
+        val expectedId2 = "1001"
+        val expectedId3 = "1002"
         val json = Json.obj(
           "rules" -> Json.arr(
-            Json.obj(
-              "id" -> expectedId),
-            Json.obj(
-              "id" -> (expectedId + "1")),
-            Json.obj(
-              "id" -> (expectedId + "2"))))
+            getRuleJson(expectedId),
+            getRuleJson(expectedId2),
+            getRuleJson(expectedId3)))
+
 
         val url = routes.RuleController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
@@ -174,7 +174,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
 
     "send 400 when trying to bulk create rules with missing fields" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId) = ("1000")
         val json = Json.obj(
@@ -252,17 +252,6 @@ class RuleControllerSpec extends Specification with Mockito {
         val response = route(fakeRequest)
         validateUpdate(updateResponse)
         validateUpdateResultWithMessage(response.get, OK, "rollback success")
-      }
-    }
-
-    "send 400 on rules commit and rollback" in new Rules {
-      running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
-        val url = routes.RuleController.commitOrRollback(commit = true, rollback = true).url
-        val fakeRequest = FakeRequest(POST, url)
-
-        val response = route(fakeRequest)
-        validateUpdateResultWithMessage(response.get, BAD_REQUEST, "commit and boolean can't have the same value.")
       }
     }
 

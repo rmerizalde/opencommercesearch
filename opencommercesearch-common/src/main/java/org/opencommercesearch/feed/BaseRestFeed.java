@@ -241,6 +241,10 @@ public abstract class BaseRestFeed extends GenericService {
             }
         }
         catch(Exception e) {
+            if(isLoggingError()) {
+                logError("Error while processing feed.", e);
+            }
+
             if (isTransactional()) {
                 sendRollback();
             }
@@ -327,9 +331,7 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws IOException if the commit fails.
      */
     protected void sendCommit() throws IOException {
-        String commitEndpointUrl = endpointUrl;
-        commitEndpointUrl += (getProductService().getPreview())? "&" : "?";
-        commitEndpointUrl += "commit=true";
+        String commitEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "commit");
 
         final Request request = new Request(Method.POST, commitEndpointUrl);
         final Response response = getProductService().handle(request);
@@ -344,9 +346,7 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws IOException if the rollback fails.
      */
     protected void sendRollback() throws IOException {
-        String rollbackEndpointUrl = endpointUrl;
-        rollbackEndpointUrl += (getProductService().getPreview())? "&" : "?";
-        rollbackEndpointUrl += "rollback=true";
+        String rollbackEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "rollback");
 
         final Request request = new Request(Method.POST, rollbackEndpointUrl);
         final Response response = getProductService().handle(request);

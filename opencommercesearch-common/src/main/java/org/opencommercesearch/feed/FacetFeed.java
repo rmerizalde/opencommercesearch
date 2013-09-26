@@ -25,6 +25,7 @@ import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import org.opencommercesearch.FacetConstants;
+import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.repository.FacetProperty;
 
 import java.util.*;
@@ -38,6 +39,14 @@ import java.util.*;
  * @author Javier Mendez
  */
 public class FacetFeed extends BaseRestFeed {
+
+    /**
+     * Return the Endpoint for this feed
+     * @return an Endpoint enum representing the endpoint for this feed
+     */
+    public ProductService.Endpoint getEndpoint() {
+        return ProductService.Endpoint.FACETS;
+    }
 
     @Override
     protected JSONObject repositoryItemToJson(RepositoryItem facet) throws JSONException, RepositoryException {

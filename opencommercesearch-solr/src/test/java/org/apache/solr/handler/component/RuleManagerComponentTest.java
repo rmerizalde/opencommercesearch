@@ -154,9 +154,7 @@ public class RuleManagerComponentTest {
     @Test
     public void testBoostRules() throws IOException {
         prepareRuleDocs(TestSetType.boostRules);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
 
         //Should set boost for given products
         component.prepare(rb);
@@ -172,9 +170,7 @@ public class RuleManagerComponentTest {
     public void testFacetRules() throws IOException {
         //TODO: make a good test for testFacetRules
         prepareRuleDocs(TestSetType.facetRules);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
 
         //Should set basic facet params
         component.prepare(rb);
@@ -196,9 +192,7 @@ public class RuleManagerComponentTest {
     public void testFacetRulesReplace() throws IOException {
         //TODO: make a good test for testFacetRules
         prepareRuleDocs(TestSetType.facetRulesReplace);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
 
         //Should set basic facet params
         component.prepare(rb);
@@ -216,9 +210,7 @@ public class RuleManagerComponentTest {
     public void testFacetRulesAppend() throws IOException {
         //TODO: make a good test for testFacetRules
         prepareRuleDocs(TestSetType.facetRulesAppend);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
 
         //Should set basic facet params
         component.prepare(rb);
@@ -240,9 +232,7 @@ public class RuleManagerComponentTest {
     @Test
     public void testRulesNoContent() throws IOException {
         prepareRuleDocs(TestSetType.rulesButNoContent);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
 
         //Should re-order sort values and ignore  duplicates
         component.prepare(rb);
@@ -257,11 +247,8 @@ public class RuleManagerComponentTest {
     @Test
     public void testQueryWithSorts() throws IOException {
         prepareRuleDocs(TestSetType.rulesButNoContent);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
+        setBaseParams();
         params.set(CommonParams.SORT, "reviewAverage desc", "reviews asc", "reviews desc", "score asc");
-
-        params.set(CommonParams.Q, "some books");
 
         //Should do nothing (including not failing!)
         component.prepare(rb);
@@ -276,9 +263,7 @@ public class RuleManagerComponentTest {
     @Test
     public void testBoostRulesWithSorts() throws IOException {
         prepareRuleDocs(TestSetType.boostRules);
-        params.set(RuleManagerParams.PAGE_TYPE, "search");
-        params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
-        params.set(CommonParams.Q, "some books");
+        setBaseParams();
         params.set(CommonParams.SORT, "reviewAverage desc", "reviews asc", "reviews desc", "score asc");
 
         //Should ignore boost for given products and prefer the incoming sort options
@@ -292,6 +277,7 @@ public class RuleManagerComponentTest {
     }
 
     private void setBaseParams() {
+        params.set(RuleManagerParams.RULE, "true");
         params.set(RuleManagerParams.PAGE_TYPE, "search");
         params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
         params.set(CommonParams.Q, "some books");

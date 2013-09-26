@@ -32,8 +32,10 @@ import play.modules.statsd.api.StatsdFilter
 object Global extends WithFilters(new StatsdFilter()) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
   lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateProductBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
   lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateRuleBatchSize = getConfigInt("rule.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfigInt("facet.maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
   lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")

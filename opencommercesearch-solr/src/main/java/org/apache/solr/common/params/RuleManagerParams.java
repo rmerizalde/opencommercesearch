@@ -46,11 +46,11 @@ public interface RuleManagerParams {
 
     /**
      * Parameter used to filter rules (rules can target specific categories).
-     */
-    public static final String CATEGORY_FILTER = "categoryFilter";
+    */
+    public static final String CATEGORY_PATH = "categoryPath";
 
     /**
-     * Parameter used to filter rules (rules can target specific categories).
-}    */
-    public static final String CATEGORY_PATH = "categoryPath";
+     * Parameter used to specify the current path when browsing.
+     */
+    public static final String PATH = "path";
 }

@@ -150,17 +150,16 @@ class FacetControllerSpec extends Specification with Mockito {
 
     // @todo test bulk update
     "send 400 when exceeding maximum facets an a bulk create" in new Facets {
-      running(FakeApplication(additionalConfiguration = Map("maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("facet.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
-        val (expectedId) = ("1000")
+        val expectedId = "1000"
+        val expectedId2 = "1001"
+        val expectedId3 = "1003"
         val json = Json.obj(
           "facets" -> Json.arr(
-            Json.obj(
-              "id" -> expectedId),
-            Json.obj(
-              "id" -> (expectedId + "1")),
-            Json.obj(
-              "id" -> (expectedId + "2"))))
+            getFacetJson(expectedId),
+            getFacetJson(expectedId2),
+            getFacetJson(expectedId3)))
 
         val url = routes.FacetController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
@@ -174,7 +173,7 @@ class FacetControllerSpec extends Specification with Mockito {
     }
 
     "send 400 when trying to bulk create facets with missing fields" in new Facets {
-      running(FakeApplication(additionalConfiguration = Map("maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("facet.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId) = ("1000")
         val json = Json.obj(
@@ -252,17 +251,6 @@ class FacetControllerSpec extends Specification with Mockito {
         val response = route(fakeRequest)
         validateUpdate(updateResponse)
         validateUpdateResultWithMessage(response.get, OK, "rollback success")
-      }
-    }
-
-    "send 400 on facets commit and rollback" in new Facets {
-      running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
-        val url = routes.FacetController.commitOrRollback(commit = true, rollback = true).url
-        val fakeRequest = FakeRequest(POST, url)
-
-        val response = route(fakeRequest)
-        validateUpdateResultWithMessage(response.get, BAD_REQUEST, "commit and boolean can't have the same value.")
       }
     }
 

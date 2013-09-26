@@ -411,6 +411,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     private boolean isExactMatch(String query) {
         return query != null && query.startsWith("[") && query.endsWith("]");
+
     }
 
     /**
@@ -467,7 +468,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
         //Filter queries
         StringBuilder filterQueries =  new StringBuilder().append("(category:").append(RuleConstants.WILDCARD);
-        String categoryFilterQuery = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
+        String categoryFilterQuery = getCategoryFilterQueryFromPath(requestParams.get(RuleManagerParams.PATH));
         String categoryPath = requestParams.get(RuleManagerParams.CATEGORY_PATH);
 
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
@@ -511,6 +512,24 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     }
 
     /**
+     * Gets the category filter query out of the current path.
+     * @param path Current browse path.
+     * @return The category filter query if present or null.
+     */
+    private String getCategoryFilterQueryFromPath(String path) {
+        if(path != null) {
+            int startIndex = path.indexOf(RuleConstants.FIELD_CATEGORY);
+            int endIndex = path.indexOf(RuleUtils.PATH_SEPARATOR, startIndex);
+
+            if(startIndex >= 0) {
+                return path.substring(startIndex + RuleConstants.FIELD_CATEGORY.length() + 1, endIndex > 0? endIndex : path.length());
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Helper method that updates a given rule map.
      * @param rulesMap Rule map to update.
      * @param ruleType The type of rule being added.
@@ -534,10 +553,10 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * @param facetHandler Facet handler instance to check if multi select filters should be created. .
      */
     void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams, FacetHandler facetHandler) {
-        String categoryPath = requestParams.get(RuleManagerParams.CATEGORY_PATH);
+        String path = requestParams.get(RuleManagerParams.PATH);
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
 
-        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(categoryPath);
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(path);
 
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);

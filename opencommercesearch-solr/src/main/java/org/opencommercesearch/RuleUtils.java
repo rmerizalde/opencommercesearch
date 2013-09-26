@@ -25,6 +25,8 @@ import java.util.*;
 
 public class RuleUtils {
 
+    private RuleUtils() {}
+
     public static final String PATH_SEPARATOR = "|";
     public static final String RESOURCE_CRUMB = "crumb";
     public static final String RESOURCE_IN_RANGE = "inrange";

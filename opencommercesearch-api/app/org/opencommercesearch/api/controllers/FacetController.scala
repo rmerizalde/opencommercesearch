@@ -33,13 +33,14 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
+import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 
 // @todo add support for other content types and default to json
 object 
 FacetController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withFacetCollection(withFields(new SolrQuery()), preview, request.acceptLanguages)
+    val query = withFacetCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
 
     query.add("q", "id:" + id)
     query.add("fl", "*")
@@ -94,12 +95,11 @@ FacetController extends Controller with ContentPreview with FieldList with Pagin
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
     Json.fromJson[FacetList](request.body).map { facetList =>
-      Logger.info(request.body.toString())
       val facets = facetList.facets
       try {
-        if (facets.length > MaxUpdateBatchSize) {
+        if (facets.length > MaxUpdateFacetBatchSize) {
           BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateBatchSize"))
+            "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateFacetBatchSize"))
         } else {
           val update = withFacetCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
           facets map { facet =>
@@ -120,11 +120,9 @@ FacetController extends Controller with ContentPreview with FieldList with Pagin
       }
       catch {
         case e : BindingException =>
-          e.printStackTrace(System.err)
           //Handle bind exceptions
           BadRequest(Json.obj(
             "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]"))
-
       }
     }.recoverTotal {
       e => BadRequest(Json.obj(
