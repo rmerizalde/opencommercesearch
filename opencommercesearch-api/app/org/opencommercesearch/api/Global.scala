@@ -62,12 +62,12 @@ object Global extends WithFilters(new StatsdFilter()) {
   /**
    * Facet preview collection from configuration.
    */
-  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetPreview")
+  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetsPreview")
 
   /**
    * * Facet public collection from configuration.
    */
-  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetPublic")
+  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetsPublic")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
