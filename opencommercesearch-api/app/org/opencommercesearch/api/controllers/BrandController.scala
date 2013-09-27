@@ -29,14 +29,13 @@ import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
-import org.opencommercesearch.api.models.Brand
-import org.opencommercesearch.api.models.BrandList
+import org.opencommercesearch.api.models.{UserQuery, Brand, BrandList}
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 
-object BrandController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+object BrandController extends BaseController {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
     val query = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
@@ -125,18 +124,10 @@ object BrandController extends Controller with ContentPreview with FieldList wit
   }
 
   def findSuggestions(version: Int, query: String, preview: Boolean) = Action { implicit request =>
-    val solrQuery = withPagination(withBrandCollection(withFields(new SolrQuery(query), request.getQueryString("fields")), preview))
-
-    val future = solrServer.query(solrQuery).map( response => {
-      val docs = response.getResults
-      Ok(Json.obj(
-        "metadata" -> Json.obj("found" -> docs.getNumFound),
-        "suggestions" -> JIterableWrapper(docs).map(doc => doc.get("name").asInstanceOf[String])
-      ))
-    })
+    val solrQuery = withBrandCollection(new SolrQuery(query), preview)
 
     Async {
-      withErrorHandling(future, s"Cannot suggest brands for [$query]")
+      findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
     }
   }
 

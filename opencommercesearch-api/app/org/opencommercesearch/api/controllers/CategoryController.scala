@@ -20,21 +20,20 @@ package org.opencommercesearch.api.controllers
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Result, Controller, Action}
+import play.api.mvc.{Result, Action}
 import play.api.libs.json.{JsError, Json}
 import play.api.Logger
 
 import scala.concurrent.Future
 import scala.collection.convert.Wrappers.JIterableWrapper
 
-import org.opencommercesearch.api.models.CategoryList
-import org.opencommercesearch.api.common.{FieldList, ContentPreview}
+import org.opencommercesearch.api.models.{Category, CategoryList}
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.service.CategoryService
 
-object CategoryController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+object CategoryController extends BaseController {
 
   val categoryService = new CategoryService(solrServer)
 
@@ -50,8 +49,6 @@ object CategoryController extends Controller with ContentPreview with FieldList 
         ))
       }
     })
-
-
 
     Async {
       withErrorHandling(future, s"Cannot retrieve category with id [$id]")
@@ -107,19 +104,11 @@ object CategoryController extends Controller with ContentPreview with FieldList 
     }
   }
 
-  def findSuggestions(version: Int, query: String, preview: Boolean) = Action { implicit request =>
-    val solrQuery = withPagination(withCategoryCollection(withFields(new SolrQuery(query), request.getQueryString("fields")), preview))
-
-    val future = solrServer.query(solrQuery).map( response => {
-      val docs = response.getResults
-      Ok(Json.obj(
-        "metadata" -> Json.obj("found" -> docs.getNumFound),
-        "suggestions" -> JIterableWrapper(docs).map(doc => doc.get("name").asInstanceOf[String])
-      ))
-    })
-
+  def findSuggestions(version: Int, query: String, site: String, preview: Boolean) = Action { implicit request =>
+    val solrQuery = withCategoryCollection(new SolrQuery(query), preview)
+    //@todo: solrQuery.addFilterQuery(s"catalogs:$site")
     Async {
-      withErrorHandling(future, s"Cannot suggest categories for [$query]")
+      findSuggestionsFor(classOf[Category], "categories" , solrQuery)
     }
   }
 }

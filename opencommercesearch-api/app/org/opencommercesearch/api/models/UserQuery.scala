@@ -1,7 +1,5 @@
 package org.opencommercesearch.api.models
 
-import play.api.libs.json.Json
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -21,21 +19,26 @@ import play.api.libs.json.Json
 * under the License.
 */
 
-case class Country(
-  var code: Option[String],
-  var listPrice: Option[Float],
-  var salePrice: Option[Float],
-  var discountPercent: Option[Int],
-  var onSale: Option[Boolean],
-  var stockLevel: Option[Int],
-  var url: Option[String],
-  var allowBackorder: Option[Boolean]) {
+import org.apache.solr.client.solrj.beans.Field
+import play.api.libs.json.Json
 
-  def this(code: String) = this(Option.apply(code), None, None, None, None, None, None, None)
+case class UserQuery (var userQuery: Option[String], var count: Option[Int]) {
+
+  def this() = this(None, None)
+
+  @Field
+  def setUserQuery(userQuery: String) : Unit = {
+    this.userQuery = Option.apply(userQuery)
+  }
+
+  @Field
+  def setCount(count: Int) : Unit = {
+    this.count = Option.apply(count)
+  }
+
 }
 
-
-object Country {
-  implicit val readsCountry = Json.reads[Country]
-  implicit val writesCountry = Json.writes[Country]
+object UserQuery {
+  implicit val readsUserQuery = Json.reads[UserQuery]
+  implicit val writesUserQuery = Json.writes[UserQuery]
 }

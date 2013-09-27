@@ -26,6 +26,7 @@ import java.util
 
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.beans.Field
 
 
 /**
@@ -34,8 +35,27 @@ import org.apache.solr.common.SolrInputDocument
  * @param id is the system id of the brand
  * @param name is the display name of the brand
  * @param logo is the URL for the brand's logo
+ *
+ * @author rmerizalde
  */
-case class Brand(id: Option[String], name: Option[String], logo: Option[String]) {
+case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String]) {
+
+  def this() = this(None, None, None)
+
+  @Field
+  def setId(id: String) : Unit = {
+    this.id = Option.apply(id)
+  }
+
+  @Field
+  def setName(name: String) : Unit = {
+    this.name = Option.apply(name)
+  }
+
+  @Field
+  def setLogo(logo: String) : Unit = {
+    this.logo = Option.apply(logo)
+  }
 
   def toDocument : SolrInputDocument = {
     val doc = new SolrInputDocument()

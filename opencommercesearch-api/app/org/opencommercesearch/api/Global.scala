@@ -17,12 +17,16 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
-  lazy val ProductPreviewCollection = getConfigString("preview.productionCollection", "catalogPreview")
-  lazy val ProductPublicCollection = getConfigString("public.productionCollection", "catalogPublic")
+  lazy val SearchPreviewCollection = getConfigString("preview.searchCollection", "catalogPreview")
+  lazy val SearchPublicCollection = getConfigString("public.searchCollection", "catalogPublic")
+  lazy val ProductPreviewCollection = getConfigString("preview.productCollection", "productsPreview")
+  lazy val ProductPublicCollection = getConfigString("public.productCollection", "productsPublic")
   lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
   lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
+  lazy val QueryCollection = getConfigString("public.queryCollection", "autocomplete")
   lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
-  lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 20)
+  lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
+  lazy val DefaultPaginationLimit = getConfigInt("maxPaginationLimit", 10)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null

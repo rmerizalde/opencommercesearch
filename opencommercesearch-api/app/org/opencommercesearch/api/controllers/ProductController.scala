@@ -24,38 +24,207 @@ import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
-import scala.collection.JavaConversions.asScalaBuffer
+import scala.concurrent.Future
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.convert.Wrappers.JListWrapper
-import scala.concurrent.Future
 
 import java.util
 
 import org.opencommercesearch.api.models._
-import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.opencommercesearch.api.service.CategoryService
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.common.SolrDocument
+import org.apache.commons.lang3.StringUtils
 
-object ProductController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
+object ProductController extends BaseController {
+
+  val Score = "score"
   val categoryService = new CategoryService(solrServer)
 
-  def search(version: Int, q: String, preview: Boolean) = Action { implicit request =>
-    val query = withProductCollection(withFields(withPagination(new SolrQuery(q)), request.getQueryString("fields")), preview)
 
-    query.set("group", true)
-    query.set("group.ngroups", true)
-    query.set("group.limit", 50)
-    query.set("group.field", "productId")
-    query.set("group.facet", false)
-    //query.set("fl", "id,image")
+  def findById(version: Int, id: String, site: String, preview: Boolean) = Action { implicit request =>
+    val startTime = System.currentTimeMillis()
+    val query = withProductCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
+
+    Logger.debug(s"Query product $id")
+
+    query.setRequestHandler(RealTimeRequestHandler)
+    query.set("id", id)
+
+    val productFuture = solrServer.query(query).map( response => {
+      val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
+      if (doc != null) {
+        solrServer.binder.getBean(classOf[Product], doc)
+      } else {
+        null
+      }
+    })
+
+    val productIdQuery = s"productId:$id"
+    val skuQuery = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(productIdQuery)), preview), site, request.getQueryString("*"))
+    skuQuery.set("group", false)
+    skuQuery.setFacet(false)
+    initQueryParams(skuQuery, site, showCloseoutProducts = true)
+    val skuFuture = solrServer.query(skuQuery).map( response => {
+      processSearchResult(productIdQuery, response)
+    })
+
+    val future = productFuture zip skuFuture map { case (product, (found, skus)) =>
+      if (product != null) {
+        product.skus = Option.apply(JIterableWrapper(skus).toSeq)
+        Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "found" -> found,
+            "time" -> (System.currentTimeMillis() - startTime)),
+          "product" -> Json.toJson(product)))
+      } else {
+        Logger.debug("Product " + id + " not found")
+        NotFound(Json.obj(
+          "message" -> s"Cannot find product with id [$id]"
+        ))
+      }
+    }
+
+    Async {
+      withErrorHandling(future, s"Cannot retrieve category with id [$id]")
+    }
+  }
+
+  private def processSearchResult(q: String, response: QueryResponse) : (Int, util.List[Sku]) = {
+    val groupResponse = response.getGroupResponse
+    if (groupResponse != null) {
+      val commands = groupResponse.getValues
+
+      if (commands.size > 0) {
+        val command = groupResponse.getValues.get(0)
+
+        if ("productId".equals(command.getName)) {
+          if (command.getNGroups > 0) {
+            val allSkus = new util.ArrayList[Sku]
+            for (group <- JIterableWrapper(command.getValues)) {
+              val documentList = group.getResult
+              allSkus.addAll(solrServer.binder.getBeans(classOf[Sku], documentList))
+            }
+            (command.getNGroups, allSkus)
+          } else {
+            (0, util.Collections.emptyList())
+          }
+        } else {
+          Logger.debug(s"Unexpected response found for query $q")
+          (0, null)
+        }
+      } else {
+        Logger.debug(s"Unexpected response found for query $q")
+        (0, null)
+      }
+    } else {
+      val documentList = response.getResults
+      (documentList.getNumFound.toInt, solrServer.binder.getBeans(classOf[Sku], documentList))
+    }
+  }
+
+
+  def search(version: Int, q: String, site: String, preview: Boolean) = Action { implicit request =>
+    val startTime = System.currentTimeMillis()
+    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(q)), preview), site, request.getQueryString("fields"))
 
     Logger.debug("Searching for " + q)
+    query.setFacet(true)
+    initQueryParams(query, site, showCloseoutProducts = true)
 
     val future = solrServer.query(query).map( response => {
+      if (query.getRows > 0) {
+        val (found, skus) = processSearchResult(q, response)
+        if (skus != null) {
+          if (skus.size() > 0) {
+            Ok(Json.obj(
+              "metadata" -> Json.obj(
+                "found" -> found,
+                "time" -> (System.currentTimeMillis() - startTime)),
+              "products" -> Json.arr(
+                JListWrapper(skus) map (Json.toJson(_))
+              )))
+          } else {
+            Ok(Json.obj(
+              "metadata" -> Json.obj(
+                "found" -> found,
+                "time" -> (System.currentTimeMillis() - startTime)),
+              "products" -> Json.arr()
+            ))
+          }
+        } else {
+          Logger.debug(s"Unexpected response found for query $q")
+          InternalServerError(Json.obj(
+            "metadata" -> Json.obj(
+              "time" -> (System.currentTimeMillis() - startTime)),
+            "message" -> "Unable to execute query"))
+        }
+      } else {
+        Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "found" -> response.getResults.getNumFound),
+            "time" -> (System.currentTimeMillis() - startTime)))
+      }
+    })
 
+    Async {
+      withErrorHandling(future, s"Cannot search for [$q]")
+    }
+  }
+
+  def browseBrand(version: Int, site: String, brandId: String, preview: Boolean) = Action { implicit request =>
+    Logger.debug(s"Browsing brand $brandId")
+    Async {
+      withErrorHandling(doBrowse(version, null, site, brandId, onSale = false, null, preview), s"Cannot browse brand [$brandId]")
+    }
+  }
+
+  def browseBrandCategory(version: Int, brandId: String, categoryId: String, site: String, preview: Boolean) = Action { implicit request =>
+    Logger.debug(s"Browsing category $categoryId for brand $brandId")
+    Async {
+      withErrorHandling(doBrowse(version, categoryId, site, brandId, onSale = false, null, preview), s"Cannot browse brand category [$brandId - $categoryId]")
+    }
+  }
+
+  def browse(version: Int, categoryId: String, site: String, onSale: Boolean, ruleFilter: String, preview: Boolean) = Action { implicit request =>
+    Logger.debug(s"Browsing $categoryId")
+    Async {
+      withErrorHandling(doBrowse(version, categoryId, site, null, onSale, ruleFilter, preview), s"Cannot browse category [$categoryId]")
+    }
+  }
+
+  private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, onSale: Boolean, ruleFilter: String,
+                       preview: Boolean)(implicit request: Request[AnyContent]) = {
+    val startTime = System.currentTimeMillis()
+    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery("*:*")), preview), site, request.getQueryString("fields"))
+
+    if (ruleFilter != null) {
+      // @todo handle rule based pages
+      query.set("q.alt", ruleFilter)
+      query.setParam("q", "")
+    } else {
+      if (StringUtils.isNotBlank(categoryId)) {
+        query.addFilterQuery(s"ancestorCategoryId:$categoryId")
+      }
+
+      if (StringUtils.isNotBlank(brandId)) {
+        query.addFilterQuery(s"brandId:$brandId")
+      }
+
+      if (onSale) {
+        val country_ = country(request.acceptLanguages)
+        query.addFilterQuery(s"onsale${country_}:true")
+      }
+    }
+
+    query.setFacet(true)
+    initQueryParams(query, site, showCloseoutProducts = false)
+
+    solrServer.query(query).map( response => {
       val groupResponse = response.getGroupResponse
 
       if (groupResponse != null) {
@@ -68,56 +237,50 @@ object ProductController extends Controller with ContentPreview with FieldList w
             if (command.getNGroups > 0) {
               val allProducts = new util.ArrayList[Product]
               for (group <- JIterableWrapper(command.getValues)) {
-                val productBeans = solrServer.binder.getBeans(classOf[SolrSku], group.getResult)
-                if (productBeans.size() > 0) {
-                  var title:String = null
-
-                  if (productBeans.get(0).title.isDefined) {
-                    title = productBeans.get(0).title.get
-                  }
-
-                  val productBeanSeq = asScalaBuffer(productBeans).map(b => {b.title = None; b})
-                  val p = new Product()
-                  p.setId(group.getGroupValue)
-                  p.setTitle(title)
-                  //p.setSkus(productBeanSeq)
-                  allProducts.add(p)
+                val documentList = group.getResult
+                val skus = solrServer.binder.getBeans(classOf[Sku], documentList)
+                if (skus.size() > 0) {
+                  val doc = documentList.get(0)
+                  val product = solrServer.binder.getBean(classOf[Product], doc)
+                  product.setId(doc.getFieldValue("productId").asInstanceOf[String])
+                  product.setSkus(JIterableWrapper(skus).toSeq)
+                  allProducts.add(product)
                 }
               }
               Ok(Json.obj(
-                "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
+                "metadata" -> Json.obj(
+                   "found" -> command.getNGroups.intValue(),
+                   "time" -> (System.currentTimeMillis() - startTime)),
                 "products" -> Json.arr(
                   JListWrapper(allProducts) map (Json.toJson(_))
                 )))
             } else {
               Ok(Json.obj(
-                "metadata" -> Json.obj("found" -> command.getNGroups.intValue()),
+                "metadata" -> Json.obj(
+                  "found" -> command.getNGroups.intValue(),
+                  "time" -> (System.currentTimeMillis() - startTime)),
                 "products" -> Json.arr()
               ))
             }
           } else {
-            Logger.debug("Unexpected response found for query  " + q)
+            Logger.debug(s"Unexpected response found for category $categoryId")
             InternalServerError(Json.obj(
               "message" -> "Unable to execute query"
             ))
           }
         } else {
-          Logger.debug("Unexpected response found for query  " + q)
+          Logger.debug(s"Unexpected response found for category $categoryId")
           InternalServerError(Json.obj(
             "message" -> "Unable to execute query"
           ))
         }
       } else {
-        Logger.debug("Unexpected response found for query  " + q)
+        Logger.debug(s"Unexpected response found for category $categoryId")
         InternalServerError(Json.obj(
           "message" -> "Unable to execute query"
         ))
       }
     })
-
-    Async {
-      withErrorHandling(future, s"Cannot search for [$q]")
-    }
   }
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
@@ -128,13 +291,16 @@ object ProductController extends Controller with ContentPreview with FieldList w
           "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize"))
       } else {
         try {
-          val update = withProductCollection(new AsyncUpdateRequest(), preview)
-          val docs = productList.toDocuments(categoryService, preview)
-          update.add(docs)
-
-          val future: Future[Result] = update.process(solrServer).map( response => {
+          val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
+          val productUpdate = withProductCollection(new AsyncUpdateRequest(), preview)
+          productUpdate.add(productDocs)
+          val productFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
+          val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
+          searchUpdate.add(skuDocs)
+          val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
+          val future: Future[Result] = productFuture zip searchFuture map { case (r1, r2) =>
             Created
-          })
+          }
 
           Async {
             withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
@@ -159,7 +325,7 @@ object ProductController extends Controller with ContentPreview with FieldList w
   }
 
   def deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean) = Action { implicit request =>
-    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    val update = withSearchCollection(new AsyncUpdateRequest(), preview)
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
 
     val future: Future[Result] = update.process(solrServer).map( response => {
@@ -172,7 +338,7 @@ object ProductController extends Controller with ContentPreview with FieldList w
   }
 
   def deleteById(version: Int = 1, id: String, preview: Boolean) = Action { implicit request =>
-    val update = withProductCollection(new AsyncUpdateRequest(), preview)
+    val update = withSearchCollection(new AsyncUpdateRequest(), preview)
     update.deleteByQuery("productId:" + id)
 
     val future: Future[Result] = update.process(solrServer).map( response => {
@@ -181,6 +347,143 @@ object ProductController extends Controller with ContentPreview with FieldList w
 
     Async {
       withErrorHandling(future, s"Cannot delete product [$id  ]")
+    }
+  }
+
+  def findSuggestions(version: Int, q: String, preview: Boolean) = Action { implicit request =>
+    val solrQuery = withProductCollection(new SolrQuery(q), preview)
+
+    Async {
+      findSuggestionsFor(classOf[Product], "products" , solrQuery)
+    }
+  }
+
+  /**
+   * Helper method to initialize common parameters
+   * @param query is the solr query
+   * @param site is the site where we are searching
+   * @param showCloseoutProducts indicates if closeout product should be return or not
+   * @param request is the implicit request
+   * @return the solr query
+   */
+  private def initQueryParams(query: SolrQuery, site: String, showCloseoutProducts: Boolean)(implicit request: Request[AnyContent]) : SolrQuery = {
+    if (query.get("facet") != null && query.getBool("facet")) {
+      query.addFacetField("category")
+      query.set("facet.mincount", 1)
+    }
+
+    // @todo check if javier already did this
+    query.addFilterQuery("category:" + "0." + site)
+
+    if ((query.getRows != null && query.getRows > 0) && (query.get("group") == null && query.getBool("group"))) {
+      initQueryGroupParams(query)
+    } else {
+      query.remove("groupcollapse")
+      query.remove("groupcollapse.ff")
+    }
+
+    val closeout = request.getQueryString("closeout").getOrElse("true")
+    if ("true".equals(closeout)) {
+      query.addFilterQuery("isRetail:true")
+
+      val onSale = request.getQueryString("onSale").getOrElse("false")
+      if ("true".eq(onSale)) {
+        query.addFilterQuery("isCloseout:true")
+      } else if (!showCloseoutProducts) {
+        query.addFilterQuery("isCloseout:" + false)
+      }
+    }
+
+    initQuerySortParams(query)
+    query
+  }
+
+  /**
+   * Helper method to initialize group parameters
+   * @param query is the solr query
+   * @param request is the implicit request
+   * @return
+   */
+  private def initQueryGroupParams(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
+    query.set("group", true)
+      .set("group.ngroups", true)
+      .set("group.limit", 50)
+      .set("group.field", "productId")
+      .set("group.facet", false)
+
+      val clauses: util.List[SolrQuery.SortClause] = query.getSorts
+      var isSortByScore: Boolean = false
+      if (clauses.size > 0) {
+        import scala.collection.JavaConversions._
+        for (clause <- clauses) {
+          if (Score.equals(clause.getItem)) {
+            isSortByScore = true
+          }
+        }
+      }
+      else {
+        isSortByScore = true
+      }
+      if (isSortByScore) {
+        query.set("group.sort", "isCloseout asc, score desc, sort asc")
+      }
+    query
+  }
+
+  /**
+   * Helper method to initialize the sorting specs
+   * @param query is the solr query
+   * @param request is the implicit request
+   * @return
+   */
+  private def initQuerySortParams(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
+    for (sort <- request.getQueryString("sort")) {
+      val sortSpecs = sort.split(",")
+      if (sortSpecs != null && sortSpecs.length > 0) {
+        val country_ = country(request.acceptLanguages)
+        for (sortSpec <- sortSpecs) {
+          val selectedOrder = if (sortSpec.trim.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
+
+          if (sortSpec.indexOf("discountPercent") != -1) {
+            query.addSort(s"discountPercent$country_", selectedOrder)
+          }
+          if (sortSpec.indexOf("reviewAverage") != -1) {
+            query.addSort("bayesianReviewAverage", selectedOrder)
+          }
+          if (sortSpec.indexOf("price") != -1) {
+            query.addSort(s"salePrice$country_", selectedOrder)
+          }
+        }
+      }
+    }
+    query
+  }
+
+  /**
+   * Helper method to set the fields to return for each product
+   *
+   * @param query is the solr query
+   * @param site is the site where we are searching
+   * @param fields is the requested list of fields. If empty, use a default list of fields
+   * @param request is the implicit request
+   * @return
+   */
+  private def withDefaultFields(query: SolrQuery, site: String, fields: Option[String])(implicit request: Request[AnyContent]) : SolrQuery = {
+    val country_ = country(request.acceptLanguages)
+    val listPrice = s"listPrice$country_"
+    val salePrice =  s"salePrice$country_"
+    val discountPercent = s"discountPercent$country_"
+
+    query.addFilterQuery(s"country:$country_")
+    query.setParam("groupcollapse", true)
+    query.setParam("groupcollapse.ff", s"$listPrice,$salePrice,$discountPercent")
+
+    if (fields.isEmpty || fields.get.size <= 0) {
+      query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country_,
+         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout")
+      query
+    } else {
+      withFields(query, fields)
     }
   }
 }

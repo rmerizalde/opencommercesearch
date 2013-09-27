@@ -70,14 +70,14 @@
     <lst name="defaults">
       <str name="echoParams">none</str>
       <int name="rows">10</int>
-      <str name="fl">name</str>
+      <str name="fl">id,title,description,shortDescription,sizingChart,detailImages,bulletPoints,attributes,features,reviews,reviewAverage,isOutOfStock</str>
     </lst>
   </requestHandler>
 
   <requestHandler name="/get" class="solr.RealTimeGetHandler">
     <lst name="defaults">
       <str name="omitHeader">true</str>
-      <str name="fl">id,title,description,shortDescription,sizingChart,detailImages,detailImageTitles,bulletPoints,techSpecs</str>
+      <str name="fl">id,title,description,shortDescription,sizingChart,detailImages,bulletPoints,attributes,features,reviews,reviewAverage,isOutOfStock</str>
     </lst>
   </requestHandler>
 

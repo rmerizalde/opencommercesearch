@@ -21,9 +21,16 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
 
+/**
+ * A image model
+ * @param title is the title for this image
+ * @param url is the url of the image
+ *
+ * @author rmerizalde
+ */
 case class Image(var title: Option[String], var url: Option[String]) {}
 
-object Image {
+object Image {    Tuple2
   implicit val readsImage = Json.reads[Image]
   implicit val writesImage = Json.writes[Image]
 }

@@ -29,7 +29,12 @@ import org.opencommercesearch.api.Global._
 
 trait ContentPreview {
 
+  val SupportedCountries = Seq("US", "CA")
   val SupportedLanguages = Seq("en", "fr")
+
+  def withQueryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
+    query.setParam("collection", QueryCollection)
+  }
 
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
     query.setParam("collection", getBrandCollection(preview))
@@ -62,15 +67,25 @@ trait ContentPreview {
     if (preview) {
       collection = ProductPreviewCollection
     }
+    collection + "_" + language(acceptLanguages)
+  }
 
-    var language: String = "en"
+  def withSearchCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
+    query.setParam("collection", getSearchCollection(preview, req.acceptLanguages))
+  }
 
-    acceptLanguages.map(lang => language = lang.language)
+  def withSearchCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean)(implicit req: Request[R]) : T = {
+    request.setParam("collection", getSearchCollection(preview, req.acceptLanguages))
+    request
+  }
 
-    if (!SupportedLanguages.contains(language)) {
-      language = "en"
+  private def getSearchCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
+    var collection = SearchPublicCollection
+    if (preview) {
+      collection = SearchPreviewCollection
     }
-    collection + "_" + language
+
+    collection + "_" + language(acceptLanguages)
   }
 
   def withCategoryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
@@ -88,6 +103,26 @@ trait ContentPreview {
       collection = CategoryPreviewCollection
     }
     collection
+  }
+
+  def country(acceptLanguages:Seq[Lang]) : String = {
+    var country: String = "US"
+
+    acceptLanguages.map(lang => country = lang.country)
+    if (!SupportedLanguages.contains(country)) {
+      country = "US"
+    }
+    country
+  }
+
+  def language(acceptLanguages:Seq[Lang]) : String = {
+    var language: String = "en"
+
+    acceptLanguages.map(lang => language = lang.language)
+    if (!SupportedLanguages.contains(language)) {
+      language = "en"
+    }
+    language
   }
 
 

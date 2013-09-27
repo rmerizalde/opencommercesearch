@@ -23,6 +23,7 @@ import play.api.mvc.{AnyContent, Request, Controller}
 import org.apache.solr.client.solrj.SolrQuery
 
 import org.opencommercesearch.api.Global.MaxPaginationLimit
+import org.opencommercesearch.api.Global.DefaultPaginationLimit
 
 trait Pagination {
   self: Controller =>
@@ -37,6 +38,8 @@ trait Pagination {
       } catch {
         case e: Throwable => // do nothing
       }
+    } else {
+      query.setStart(0)
     }
 
     if (limit.isDefined) {
@@ -46,6 +49,8 @@ trait Pagination {
       } catch {
         case e: Throwable => // do nothing
       }
+    } else {
+      query.setRows(DefaultPaginationLimit)
     }
 
     query

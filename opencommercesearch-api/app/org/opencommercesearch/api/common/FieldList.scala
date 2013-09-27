@@ -22,11 +22,17 @@ package org.opencommercesearch.api.common
 import play.api.mvc.{AnyContent, Controller, Request}
 import org.apache.solr.client.solrj.SolrQuery
 
+/**
+ * This trait provides subclasses with functionality to parse the list
+ * of fields that should be return in the response
+ *
+ * @author rmerizalde
+ */
 trait FieldList {
 
   def withFields(query: SolrQuery, fields: Option[String]) : SolrQuery = {
-    if (fields.isDefined) {
-      query.setFields(fields.get.split(','): _*)
+    for (f <- fields) {
+      if (f.size > 0) { query.setFields(fields.get.split(','): _*) }
     }
     query
   }

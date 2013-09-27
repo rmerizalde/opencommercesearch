@@ -1,6 +1,4 @@
-package org.opencommercesearch.api.models
-
-import play.api.libs.json.Json
+package org.opencommercesearch.api.controllers
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -21,21 +19,24 @@ import play.api.libs.json.Json
 * under the License.
 */
 
-case class Country(
-  var code: Option[String],
-  var listPrice: Option[Float],
-  var salePrice: Option[Float],
-  var discountPercent: Option[Int],
-  var onSale: Option[Boolean],
-  var stockLevel: Option[Int],
-  var url: Option[String],
-  var allowBackorder: Option[Boolean]) {
+import play.api.mvc._
 
-  def this(code: String) = this(Option.apply(code), None, None, None, None, None, None, None)
-}
+import org.apache.solr.client.solrj.SolrQuery
+import org.opencommercesearch.api.models.UserQuery
 
+/**
+ * The controller for query suggestions
+ *
+ * @author rmerizalde
+ */
+object QueryController extends BaseController {
+  def findSuggestions(version: Int, q: String, site: String, preview: Boolean) = Action { implicit request =>
+    val solrQuery = withQueryCollection(new SolrQuery(q), preview)
+    solrQuery.setFields("userQuery")
+    solrQuery.setFilterQueries(s"siteId:$site")
 
-object Country {
-  implicit val readsCountry = Json.reads[Country]
-  implicit val writesCountry = Json.writes[Country]
+    Async {
+      findSuggestionsFor(classOf[UserQuery], "queries" , solrQuery)
+    }
+  }
 }

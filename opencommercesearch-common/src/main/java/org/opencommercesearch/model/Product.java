@@ -51,7 +51,7 @@ public class Product {
     private List<Image> detailImages;
 
     @JsonProperty
-    private List<String> bulletPoint;
+    private List<String> bulletPoints;
 
     @JsonProperty
     private List<Attribute> features;
@@ -149,12 +149,15 @@ public class Product {
         this.detailImages = detailImages;
     }
 
-    public List<String> getBulletPoint() {
-        return bulletPoint;
+    public List<String> getBulletPoints() {
+        return bulletPoints;
     }
 
-    public void setBulletPoint(List<String> bulletPoint) {
-        this.bulletPoint = bulletPoint;
+    public void addBulletPoint(String bulletPoint) {
+        if (bulletPoints == null) {
+            bulletPoints = new ArrayList<String>();
+        }
+        bulletPoints.add(bulletPoint);
     }
 
     public List<Attribute> getFeatures() {

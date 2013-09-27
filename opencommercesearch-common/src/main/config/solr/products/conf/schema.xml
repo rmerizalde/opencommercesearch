@@ -20,8 +20,11 @@
 
 <schema name="brands" version="1.4">
   <types>
+    <fieldType name="int" class="solr.TrieIntField" precisionStep="0" omitNorms="true" positionIncrementGap="0"/>
     <fieldType name="long" class="solr.TrieLongField" precisionStep="0" omitNorms="true" positionIncrementGap="0"/>
+    <fieldType name="float" class="solr.TrieFloatField" precisionStep="0" omitNorms="true" positionIncrementGap="0"/>
     <fieldType name="string" class="solr.StrField" sortMissingLast="true" omitNorms="true"/>
+    <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true" omitNorms="true"/>
     <fieldtype name="ignored" stored="false" indexed="false" class="solr.StrField" />
 
     <fieldType name="ngram" class="solr.TextField" positionIncrementGap="100">
@@ -38,17 +41,25 @@
  </types>
 
  <fields>
-   <field name="_version_"         type="long"    indexed="true"  stored="true"                  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="id"                type="string"  indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="title"             type="string"  indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="description"       type="string"  indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="shortDescription"  type="string"  indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="sizingChart"       type="string"  indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <!-- todo: use block join for detail images -->
-   <field name="detailImages"      type="string"  indexed="true"  stored="true"  required="true" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="detailImageTitles" type="string"  indexed="true"  stored="true"  required="true" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="bulletPoints"      type="string"  indexed="true"  stored="true"  required="true" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="techSpecs"         type="string"  indexed="true"  stored="true"  required="true" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="_version_"         type="long"    indexed="true"  stored="true"                    multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="id"                type="string"  indexed="true"  stored="true"  required="true"   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="title"             type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="gender"            type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="description"       type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="shortDescription"  type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="sizingChart"       type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="brand"             type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="detailImages"      type="string"  indexed="false" stored="true"  required="false"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="bulletPoints"      type="string"  indexed="false" stored="true"  required="false"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="attributes"        type="string"  indexed="false" stored="true"  required="false"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="features"          type="string"  indexed="false" stored="true"  required="false"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="reviewAverage"     type="float"   indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
+   <field name="reviews"           type="int"     indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
+   <field name="isOutOfStock"      type="boolean" indexed="true"  stored="true"  required="true"   multiValued="false" omitNorms="true" />
+   <field name="hasFreeGift"       type="string"  indexed="true"  stored="true"  required="false"  multiValued="true" omitNorms="true" />
+   <field name="titleNGrams"       type="ngram"   indexed="true"  stored="true"  required="true"   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+
+
  </fields>
 
  <!-- Field to use to determine and enforce document uniqueness.
@@ -57,11 +68,11 @@
  <uniqueKey>id</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>nameNGrams</defaultSearchField>
+ <defaultSearchField>titleNGrams</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="AND"/>
 
- <copyField source="name" dest="nameNGrams"/>
+ <copyField source="title" dest="titleNGrams"/>
 
 </schema>

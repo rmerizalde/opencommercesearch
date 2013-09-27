@@ -40,6 +40,8 @@ import scala.Some
  * @param isRuleBased indicates if this a rule based category or not
  * @param catalogs the catalogs the categories belongs to
  * @param parentCategories the parent categories. Empty for root categories
+ *
+ * @author rmerizalde
  */
 case class Category(
   var id: Option[String],
@@ -62,32 +64,32 @@ case class Category(
 
   @Field
   def setId(id: String) {
-    this.id = Some(id)
+    this.id = Option.apply(id)
   }
 
   @Field
   def setName(name: String) {
-    this.name = Some(name)
+    this.name = Option.apply(name)
   }
 
   @Field("isRuleBased")
   def setRuleBased(isRuleBased: Boolean) {
-    this.isRuleBased = Some(isRuleBased)
+    this.isRuleBased = Option.apply(isRuleBased)
   }
 
   @Field("catalogs")
   def setCatalogs(catalogs: util.Collection[String]) {
-    this.catalogs = Some(JIterableWrapper(catalogs).toSeq)
+    this.catalogs = Option.apply(JIterableWrapper(catalogs).toSeq)
   }
 
   @Field
   def setParentCategories(parentCategories: util.Collection[String]) {
-    this.parentCategories = Some(JIterableWrapper(parentCategories).toSeq.map(id => new Category(Some(id))))
+    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => new Category(Some(id))))
   }
 
   @Field("childCategories")
   def setChildCategories(childCategories: util.Collection[String]) {
-    this.childCategories = Some(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
+    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
   }
 }
 
