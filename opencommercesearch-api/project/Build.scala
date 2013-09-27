@@ -11,11 +11,12 @@ object ApplicationBuild extends Build {
 
   lazy val s = Defaults.defaultSettings ++ Seq(jacoco.settings:_*)
 
-  val appDependencies = Seq(
+  val appDependencies: Seq[sbt.ModuleID] = Seq(
     "org.opencommercesearch" %% "play-solrj" % "0.2-SNAPSHOT",
     "com.typesafe.play.plugins" %% "play-statsd" % "2.1.1",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
-    "org.hamcrest" % "hamcrest-all" % "1.3" % "test"
+    "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
+    "com.wordnik" %% "swagger-play2" % "1.2.5"
   )
 
 
@@ -23,6 +24,8 @@ object ApplicationBuild extends Build {
   // @todo: publish play-solrj as maven style??
     resolvers += "sbt-plugin-releases" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/",
     resolvers += "sbt-plugin-snapshots" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-snapshots/",
+    resolvers += "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+    resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases",
     organization  := "org.opencommercesearch",
     publishMavenStyle := true,
     publishTo <<= (version) { version: String =>

@@ -25,7 +25,6 @@ import play.api.Logger
 import play.api.libs.json.{JsArray, Json}
 
 import scala.concurrent.Future
-import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
