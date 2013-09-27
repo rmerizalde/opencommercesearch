@@ -90,9 +90,12 @@
 
   <searchComponent name="groupCollapse" class="solr.GroupCollapseComponent" />
 
+  <!-- Rule manager component - Filters, boosts or modifies results based on pre-defined business rules -->
+  <searchComponent name="ruleManager" class="solr.RuleManagerComponent"/>
+
   <xi:include href="xinclude/custom-components.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
-     
+
   <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
 
     <str name="queryAnalyzerFieldType">textSpell</str>

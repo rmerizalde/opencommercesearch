@@ -1,4 +1,4 @@
-package org.opencommercesearch.api
+package org.opencommercesearch;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,18 +19,11 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.libs.json.JsValue
-import play.api.mvc.{AnyContent, Request, Call}
+public class SearchConstants {
+    public static final String CATEGORY_SEPARATOR = ".";
+    public static final String OUTLET = "outlet";
+    
+    private SearchConstants() {
 
-/**
- * @todo figure out if there a way to use Call.absoluteUrl with play.api.mvc.Request
- */
-object Util {
-
-  /**
-   * Transform the given call to an absolute URL.
-   */
-  def absoluteURL[T](call: Call, request: Request[T], secure: Boolean = false) : String = {
-    s"http${if (secure) "s" else ""}://${request.host}${call.url}"
-  }
+    }
 }

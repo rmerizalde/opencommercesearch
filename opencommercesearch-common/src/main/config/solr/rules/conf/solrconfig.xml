@@ -102,7 +102,6 @@
      <lst name="invariants">
        <!-- TODO remove this -->
        <str name="sort">sortPriority asc,score asc,id asc</str>
-       <int name="rows">40</int>
      </lst>
      <lst name="defaults">
        <str name="echoParams">none</str>

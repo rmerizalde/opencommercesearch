@@ -1,6 +1,25 @@
 package org.opencommercesearch.api
 
-import play.api.{Play, GlobalSettings, Logger, Application}
+/*
+* Licensed to OpenCommerceSearch under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. OpenCommerceSearch licenses this
+* file to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+import play.api.{Play, Logger, Application}
 import play.api.libs.json.Json
 
 import org.apache.solr.client.solrj.AsyncSolrServer
@@ -13,8 +32,10 @@ import play.modules.statsd.api.StatsdFilter
 object Global extends WithFilters(new StatsdFilter()) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
   lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateProductBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
   lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateRuleBatchSize = getConfigInt("rule.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfigInt("facet.maxUpdateBatchSize", 100)
   lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
   lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
   lazy val SearchPreviewCollection = getConfigString("preview.searchCollection", "catalogPreview")
@@ -27,6 +48,26 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
   lazy val DefaultPaginationLimit = getConfigInt("maxPaginationLimit", 10)
+
+  /**
+   * Rule preview collection from configuration.
+   */
+  lazy val RulePreviewCollection = getConfigString("preview.ruleCollection", "rulePreview")
+
+  /**
+   * * Rule public collection from configuration.
+   */
+  lazy val RulePublicCollection = getConfigString("public.ruleCollection", "rulePublic")
+
+  /**
+   * Facet preview collection from configuration.
+   */
+  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetPreview")
+
+  /**
+   * * Facet public collection from configuration.
+   */
+  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetPublic")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null

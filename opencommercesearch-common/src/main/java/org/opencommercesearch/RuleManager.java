@@ -45,9 +45,6 @@ import static org.opencommercesearch.repository.RankingRuleProperty.*;
  * query or triggers.
  * 
  * @author rmerizalde
- *
- * @todo decouple this class from ATG
- * 
  */
 public class RuleManager<T extends SolrServer> {
     public static final String FIELD_CATEGORY = "category";
@@ -61,7 +58,7 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_START_DATE = "startDate";
     public static final String FIELD_END_DATE = "endDate";
 
-    private static final String WILDCARD = "__all__";
+    public static final String WILDCARD = "__all__";
     
     private Repository searchRepository;
     private RulesBuilder rulesBuilder;
@@ -111,7 +108,7 @@ public class RuleManager<T extends SolrServer> {
                     List<RepositoryItem> products = (List<RepositoryItem>) rule
                             .getPropertyValue(BoostRuleProperty.BOOSTED_PRODUCTS);
                     if (products != null && products.size() > 0) {
-                        StringBuffer b = new StringBuffer("fixedBoost(productId,");
+                        StringBuilder b = new StringBuilder("fixedBoost(productId,");
                         for (RepositoryItem product : products) {
                             b.append("'").append(product.getRepositoryId()).append("',");
                         }
@@ -234,8 +231,8 @@ public class RuleManager<T extends SolrServer> {
         query.addSortField(FIELD_SCORE, ORDER.asc);
         query.addSortField(FIELD_ID, ORDER.asc);
         query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
-        
-        StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
+
+        StringBuilder filterQueries = new StringBuilder().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
             filterQueries.append(" OR ").append("category:" + categoryFilterQuery);
         }
@@ -439,7 +436,7 @@ public class RuleManager<T extends SolrServer> {
             query.addFilterQuery(filterQuery.toString());
         }
 
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         for (Entry<String, Set<String>> entry : multiExpressionFilters.entrySet()) {
             String operator = " OR ";
             String fieldName = entry.getKey();

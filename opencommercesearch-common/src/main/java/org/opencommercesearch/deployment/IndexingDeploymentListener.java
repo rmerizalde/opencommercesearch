@@ -34,6 +34,8 @@ import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
 import atg.repository.RepositoryException;
+import org.opencommercesearch.feed.FacetFeed;
+import org.opencommercesearch.feed.RuleFeed;
 import org.opencommercesearch.feed.CategoryFeed;
 
 /**
@@ -57,8 +59,24 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private SearchServer searchServer;
     private String triggerStatus;
     private List<String> triggerItemDescriptorNames;
+    private List<String> facetsTriggerItemDescriptorNames;
+    private List<String> rulesTriggerItemDescriptorNames;
     private boolean enableEvaluation;
     private EvaluationServiceSender evaluationServiceSender;
+
+    /**
+     * Facets REST feed instance.
+     */
+    private FacetFeed facetFeed;
+
+    /**
+     * Rules REST feed instance.
+     */
+    private RuleFeed ruleFeed;
+
+    /**
+     * Category REST feed instance
+     */
     private CategoryFeed categoryFeed;
 
     public SearchServer getSearchServer() {
@@ -84,7 +102,23 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public void setTriggerItemDescriptorNames(List<String> triggerItemDescriptorNames) {
         this.triggerItemDescriptorNames = triggerItemDescriptorNames;
     }
-    
+
+    public List<String> getFacetsTriggerItemDescriptorNames() {
+        return facetsTriggerItemDescriptorNames;
+    }
+
+    public void setFacetsTriggerItemDescriptorNames(List<String> facetsTriggerItemDescriptorNames) {
+        this.facetsTriggerItemDescriptorNames = facetsTriggerItemDescriptorNames;
+    }
+
+    public List<String> getRulesTriggerItemDescriptorNames() {
+        return rulesTriggerItemDescriptorNames;
+    }
+
+    public void setRulesTriggerItemDescriptorNames(List<String> rulesTriggerItemDescriptorNames) {
+        this.rulesTriggerItemDescriptorNames = rulesTriggerItemDescriptorNames;
+    }
+
     public EvaluationServiceSender getEvaluationServiceSender() {
         return evaluationServiceSender;
     }
@@ -93,7 +127,6 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
             EvaluationServiceSender evaluationServiceSender) {
         this.evaluationServiceSender = evaluationServiceSender;
     }
-  
      
     public boolean isEnableEvaluation() {
         return enableEvaluation;
@@ -103,6 +136,22 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         this.enableEvaluation = enableEvaluation;
     }
 
+    public FacetFeed getFacetFeed() {
+        return facetFeed;
+    }
+
+    public void setFacetFeed(FacetFeed facetFeed) {
+        this.facetFeed = facetFeed;
+    }
+
+    public RuleFeed getRuleFeed() {
+        return ruleFeed;
+    }
+
+    public void setRuleFeed(RuleFeed ruleFeed) {
+        this.ruleFeed = ruleFeed;
+    }
+
     public void setCategoryFeed(CategoryFeed categoryFeed) {
         this.categoryFeed = categoryFeed;
     }
@@ -110,7 +159,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     public CategoryFeed getCategoryFeed() {
         return categoryFeed;
     }
-    
+
     @Override
     public void deploymentEvent(DeploymentEvent event) {
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
@@ -130,7 +179,29 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                             logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
 
-                        if ((itemDescriptorName.equals("category") || itemDescriptorName.equals("ruleBasedCategory"))
+                        String descriptorName = repositoryName + ":" + itemDescriptorName;
+                        if(getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
+                            try {
+                                getRuleFeed().startFeed();
+                            }
+                            catch (Exception ex) {
+                                if(isLoggingError()) {
+                                    logError("Rules REST feed failed", ex);
+                                }
+                            }
+                        }
+
+                        if(getFacetsTriggerItemDescriptorNames().contains(descriptorName)) {
+                            try {
+                                getFacetFeed().startFeed();
+                            }
+                            catch (Exception ex) {
+                                if(isLoggingError()) {
+                                    logError("Facet REST feed failed", ex);
+                                }
+                            }
+                        }
+                        else if ((itemDescriptorName.equals("category") || itemDescriptorName.equals("ruleBasedCategory"))
                                 && repositoryName.equals("/atg/commerce/catalog/ProductCatalog")) {
                             try {
                                 categoryFeed.startFeed();
@@ -139,7 +210,8 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                                     logError("Category feed failed", ex);
                                 }
                             }
-                        } else if (triggerItemDescriptorNames.contains(repositoryName + ":" + itemDescriptorName)) {
+                        }
+                        else if (triggerItemDescriptorNames.contains(descriptorName) || getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
                             doEvaluation = true;
                             notifyItemChange(repositoryName, itemDescriptorNames);
                             break;
