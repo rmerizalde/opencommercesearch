@@ -315,6 +315,18 @@ public class AbstractSearchServerIntegrationTest {
         validateCorrectedTerms(server, "jckt footwear", "jckt footwear", false);
     }
     
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testSortbySortField(SearchServer server) throws SearchServerException {
+        AbstractSearchServer baseServer = (AbstractSearchServer) server;
+        baseServer.setGroupSortingEnabled(true);
+        SolrQuery query = new SolrQuery("Camp Sandal");
+        query.setRows(ROWS);
+        SearchResponse res = baseServer.search(query, site);
+        QueryResponse queryResponse = res.getQueryResponse();
+        assertEquals("TNF3137-FUPINYL-S3",(String) queryResponse.getGroupResponse().getValues().get(0).getValues().get(0).getResult().get(0).getFirstValue("id"));
+        
+    }
+    
     @SearchTest(newInstance = true)
     public void testDeleteByQuery(SearchServer server) throws SearchServerException {
         SolrQuery query = new SolrQuery("jacket");

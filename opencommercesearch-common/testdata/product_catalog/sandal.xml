@@ -93,6 +93,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[2]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
@@ -200,6 +201,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[1]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
@@ -307,6 +309,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[0]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
@@ -414,6 +417,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[3]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
@@ -521,6 +525,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[4]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
@@ -627,6 +632,7 @@
     <field name="isPastSeason"><![CDATA[false]]></field>
     <field name="seoUrl"><![CDATA[/the-north-face-base-camp-sandal-girls]]></field>
     <field name="colorFamily"><![CDATA[pink]]></field>
+    <field name="sort"><![CDATA[5]]></field>
     <field name="brandId"><![CDATA[88]]></field>
     <field name="brand"><![CDATA[The North Face]]></field>
     <field name="listRank"><![CDATA[1]]></field>
