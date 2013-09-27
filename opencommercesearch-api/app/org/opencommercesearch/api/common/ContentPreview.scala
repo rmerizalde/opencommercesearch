@@ -90,5 +90,49 @@ trait ContentPreview {
     collection
   }
 
+  def withRuleCollection(query: SolrQuery, preview: Boolean, acceptLanguages:Seq[Lang]) : SolrQuery = {
+    query.setParam("collection", getRuleCollection(preview, acceptLanguages))
+  }
 
+  def withRuleCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean, acceptLanguages:Seq[Lang]) : T = {
+    request.setParam("collection", getRuleCollection(preview, acceptLanguages))
+    request
+  }
+
+  private def getRuleCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
+    var collection = RulePublicCollection
+    if (preview) {
+      collection = RulePreviewCollection
+    }
+
+    var language: String = "en"
+    acceptLanguages.map(lang => language = lang.language)
+
+    collection = collection + "_" + language
+
+    collection
+  }
+
+  def withFacetCollection(query: SolrQuery, preview: Boolean, acceptLanguages:Seq[Lang]) : SolrQuery = {
+    query.setParam("collection", getFacetCollection(preview, acceptLanguages))
+  }
+
+  def withFacetCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean, acceptLanguages:Seq[Lang]) : T = {
+    request.setParam("collection", getFacetCollection(preview, acceptLanguages))
+    request
+  }
+
+  private def getFacetCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
+    var collection = FacetPublicCollection
+    if (preview) {
+      collection = FacetPreviewCollection
+    }
+
+    var language: String = "en"
+    acceptLanguages.map(lang => language = lang.language)
+
+    collection = collection + "_" + language
+
+    collection
+  }
 }

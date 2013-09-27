@@ -374,7 +374,7 @@ public class RuleManagerTest {
         
         RepositoryItem facet2 = mock(RepositoryItem.class);
         facets.add(facet2);
-        when(facet1.getRepositoryId()).thenReturn("facet2");
+        when(facet2.getRepositoryId()).thenReturn("facet2");
 
         Map<String, SolrDocument> ruleDocs = new HashMap<String, SolrDocument>();
         SolrDocument facetRuleDoc = mock(SolrDocument.class);
@@ -1217,8 +1217,8 @@ public class RuleManagerTest {
         facetRules.add(facetRule2);
 
         SolrDocument facetRuleDoc2 = mock(SolrDocument.class);
-        when(facetRuleDoc.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(combineMode);
-        ruleDocs.put("facetRule2", facetRuleDoc);
+        when(facetRuleDoc2.getFieldValue(FacetRuleProperty.COMBINE_MODE)).thenReturn(combineMode);
+        ruleDocs.put("facetRule2", facetRuleDoc2);
 
         RepositoryItem facet4 = mock(RepositoryItem.class, "facet4");
         RepositoryItem facet5 = mock(RepositoryItem.class, "facet5");

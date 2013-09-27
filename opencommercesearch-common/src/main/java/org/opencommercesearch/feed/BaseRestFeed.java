@@ -33,7 +33,10 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.api.ProductService;
 import org.restlet.Request;
 import org.restlet.Response;
-import org.restlet.data.*;
+import org.restlet.data.Encoding;
+import org.restlet.data.MediaType;
+import org.restlet.data.Method;
+import org.restlet.data.Status;
 import org.restlet.engine.application.EncodeRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StreamRepresentation;
@@ -47,7 +50,7 @@ import java.util.Arrays;
 import static org.opencommercesearch.api.ProductService.Endpoint;
 
 /**
- * Base feed class that sends repository items to the OCS rest API.
+ * Base feed class that sends repository items to the OCS REST API.
  * <p/>
  * Data is transferred in JSON format and through regular HTTP calls. Child classes should handle
  * repository item to JSON transforms.
@@ -55,10 +58,10 @@ import static org.opencommercesearch.api.ProductService.Endpoint;
  * Notice that the API must be aware of the repository item being fed (checkout opencommercesearch-api project).
  * <p/>
  * A feed can be transactional or not. When using transactions, all items will be cleared first. If an exception happens
- * all changes will be rollback. If not, changes are committed. Be aware when using Solr. Solr transactions are not isolated.
+ * all changes will be rolled back. If not, changes are committed. Be aware when using Solr. Solr transactions are not isolated.
  * Make sure the SolrCore doesn't have auto commits enabled.
  *
- * Non transactional feeds will be delete all items that were not updated during the feed.
+ * Non transactional feeds will delete all items that were not updated during the feed.
  *
  * @author jmendez
  */
@@ -238,6 +241,10 @@ public abstract class BaseRestFeed extends GenericService {
             }
         }
         catch(Exception e) {
+            if(isLoggingError()) {
+                logError("Error while processing feed.", e);
+            }
+
             if (isTransactional()) {
                 sendRollback();
             }
@@ -324,9 +331,7 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws IOException if the commit fails.
      */
     protected void sendCommit() throws IOException {
-        String commitEndpointUrl = endpointUrl;
-        commitEndpointUrl += (getProductService().getPreview())? "&" : "?";
-        commitEndpointUrl += "commit=true";
+        String commitEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "commit");
 
         final Request request = new Request(Method.POST, commitEndpointUrl);
         final Response response = getProductService().handle(request);
@@ -341,9 +346,7 @@ public abstract class BaseRestFeed extends GenericService {
      * @throws IOException if the rollback fails.
      */
     protected void sendRollback() throws IOException {
-        String rollbackEndpointUrl = endpointUrl;
-        rollbackEndpointUrl += (getProductService().getPreview())? "&" : "?";
-        rollbackEndpointUrl += "rollback=true";
+        String rollbackEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "rollback");
 
         final Request request = new Request(Method.POST, rollbackEndpointUrl);
         final Response response = getProductService().handle(request);
@@ -422,10 +425,14 @@ public abstract class BaseRestFeed extends GenericService {
             }
         }
         catch (JSONException ex) {
-            // do nothing
+            if(isLoggingError()) {
+                logError("Can't parse error response.", ex);
+            }
         }
         catch (IOException ex) {
-            // do nothing
+            if(isLoggingError()) {
+                logError("Can't get error response.", ex);
+            }
         }
 
         return message;
@@ -454,3 +461,4 @@ public abstract class BaseRestFeed extends GenericService {
      */
     protected abstract String[] getRequiredItemFields();
 }
+

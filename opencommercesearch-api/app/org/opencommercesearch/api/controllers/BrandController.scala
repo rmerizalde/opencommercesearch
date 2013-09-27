@@ -66,7 +66,7 @@ object BrandController extends Controller with ContentPreview with FieldList wit
 
   def createOrUpdate(version: Int, id: String, preview: Boolean) = Action (parse.json) { request =>
     Json.fromJson[Brand](request.body).map { brand =>
-      if (brand.logo.isEmpty || brand.logo.isEmpty) {
+      if (brand.name.isEmpty || brand.logo.isEmpty) {
         BadRequest(Json.obj("message" -> "Missing required fields"))
       } else {
         val brandDoc = brand.toDocument
