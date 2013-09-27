@@ -34,6 +34,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.opencommercesearch.RuleManager;
 import org.opencommercesearch.RulesBuilder;
+import org.opencommercesearch.Utils;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RankingRuleProperty;
 import org.opencommercesearch.repository.RuleProperty;
@@ -192,8 +193,8 @@ public class RuleFeedTest {
         assertThat((List)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertThat((List)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertThat((List)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertEquals("1969-12-31T18:00:20Z", doc.get("startDate"));
-        assertEquals("1969-12-31T18:00:25Z", doc.get("endDate"));
+        assertEquals(Utils.getISO8601Date(20000), doc.get("startDate"));
+        assertEquals(Utils.getISO8601Date(25000), doc.get("endDate"));
     }
 
     @Test
