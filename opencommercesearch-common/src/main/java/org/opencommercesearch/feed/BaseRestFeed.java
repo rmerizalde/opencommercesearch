@@ -307,13 +307,22 @@ public abstract class BaseRestFeed extends GenericService {
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
             final Response response = getProductService().handle(request);
 
-            if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
-                if (isLoggingInfo()) {
-                    logInfo("Sending " + itemDescriptorName + "[" + getIdsFromItemsArray(itemList) + "] failed with status: " + response.getStatus() + " ["
-                            + errorResponseToString(response.getEntity()) + "]");
-                }
+            try {
+                if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
+                    if (isLoggingInfo()) {
+                        logInfo("Sending " + itemDescriptorName + "[" + getIdsFromItemsArray(itemList) + "] failed with status: " + response.getStatus() + " ["
+                                + errorResponseToString(response.getEntity()) + "]");
+                    }
 
-                return 0;
+                    return 0;
+                }
+            } finally {
+                if (response != null) {
+                    response.release();
+                }
+                if (request != null) {
+                    request.release();
+                }
             }
 
             return sent;
