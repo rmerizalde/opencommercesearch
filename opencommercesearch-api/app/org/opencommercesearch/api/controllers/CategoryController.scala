@@ -25,19 +25,34 @@ import play.api.libs.json.{JsError, Json}
 import play.api.Logger
 
 import scala.concurrent.Future
-import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.models.{Category, CategoryList}
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.service.CategoryService
+import com.wordnik.swagger.annotations._
+import javax.ws.rs.PathParam
+import javax.ws.rs.QueryParam
 
+@Api(value = "/categories", listingPath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController {
 
   val categoryService = new CategoryService(solrServer)
 
-  def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
+  @ApiOperation(value = "Searches categories", notes = "Returns category information for a given category", responseClass = "org.opencommercesearch.api.models.Category", httpMethod = "GET")
+  @ApiErrors(value = Array(new ApiError(code = 404, reason = "Category not found")))
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def findById(
+      version: Int,
+      @ApiParam(value = "A category id", required = true)
+      @PathParam("id")
+      id: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action { implicit request =>
     val future = categoryService.findById(id, preview, request.getQueryString("fields")).map(category => {
       if (category.isDefined) {
         Ok(Json.obj(
@@ -55,7 +70,19 @@ object CategoryController extends BaseController {
     }
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+  @ApiOperation(value = "Creates categories", notes = "Creates/updates the given categories", httpMethod = "PUT")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "categories", value = "Categories to create/update", required = true, dataType = "org.opencommercesearch.api.models.CategoryList", paramType = "body")
+  ))
+  @ApiErrors(value = Array(
+    new ApiError(code = 400, reason = "Missing required fields"),
+    new ApiError(code = 400, reason = "Exceeded maximum number of categories that can be created at once")
+  ))
+  def bulkCreateOrUpdate(
+    version: Int,
+    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create categories in preview", required = false)
+    @QueryParam("preview")
+    preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[CategoryList](request.body).map { categoryList =>
       val categories = categoryList.categories
       if (categories.size > MaxUpdateCategoryBatchSize) {
@@ -91,7 +118,15 @@ object CategoryController extends BaseController {
     }
   }
 
-  def deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean) = Action { implicit request =>
+  @ApiOperation(value = "Deletes categories", notes = "Deletes categories that were not updated in a given feed", httpMethod = "DELETE")
+  def deleteByTimestamp(
+      version: Int = 1,
+      @ApiParam(value = "The feed timestamp. All categories with a different timestamp are deleted", required = true)
+      @QueryParam("feedTimestamp")
+      feedTimestamp: Long,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete categories in preview", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action { implicit request =>
     val update = withCategoryCollection(new AsyncUpdateRequest(), preview)
     update.deleteByQuery("-feedTimestamp:" + feedTimestamp)
 
@@ -104,7 +139,24 @@ object CategoryController extends BaseController {
     }
   }
 
-  def findSuggestions(version: Int, query: String, site: String, preview: Boolean) = Action { implicit request =>
+  @ApiOperation(value = "Suggests categories", notes = "Returns category suggestions for given partial category name", responseClass = "org.opencommercesearch.api.models.Category", httpMethod = "GET")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Partial category name is too short")))
+  def findSuggestions(
+      version: Int,
+      @ApiParam(value = "Partial category name", required = true)
+      @QueryParam("q")
+      query: String,
+      @ApiParam(value = "Site to search", required = true)
+      @QueryParam("site")
+      site: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action { implicit request =>
     val solrQuery = withCategoryCollection(new SolrQuery(query), preview)
     //@todo: solrQuery.addFilterQuery(s"catalogs:$site")
     Async {

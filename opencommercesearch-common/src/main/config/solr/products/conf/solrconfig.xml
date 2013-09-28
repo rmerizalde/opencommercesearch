@@ -70,7 +70,7 @@
     <lst name="defaults">
       <str name="echoParams">none</str>
       <int name="rows">10</int>
-      <str name="fl">id,title,description,shortDescription,sizingChart,detailImages,bulletPoints,attributes,features,reviews,reviewAverage,isOutOfStock</str>
+      <str name="fl">id,title</str>
     </lst>
   </requestHandler>
 

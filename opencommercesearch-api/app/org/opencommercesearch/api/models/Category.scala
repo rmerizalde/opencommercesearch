@@ -1,17 +1,5 @@
 package org.opencommercesearch.api.models
 
-import play.api.libs.json._
-import play.api.libs.json.util._
-
-import scala.collection.convert.Wrappers.JIterableWrapper
-
-
-import java.util
-
-import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.beans.Field
-import play.api.libs.functional.syntax._
-import scala.Some
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -31,6 +19,19 @@ import scala.Some
 * specific language governing permissions and limitations
 * under the License.
 */
+
+import play.api.libs.json._
+
+import scala.collection.convert.Wrappers.JIterableWrapper
+
+
+import java.util
+
+import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.beans.Field
+import play.api.libs.functional.syntax._
+import com.wordnik.swagger.annotations.ApiProperty
+
 
 /**
  * A category model.

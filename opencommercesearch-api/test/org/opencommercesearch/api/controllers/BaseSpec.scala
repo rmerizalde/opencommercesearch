@@ -41,7 +41,7 @@ abstract class BaseSpec extends Specification with Mockito {
     (queryResponse, namedList)
   }
 
-  protected def validateQuery(queryResponse: QueryResponse, namedList: NamedList[AnyRef]) = {
+  protected def validateQuery(queryResponse: QueryResponse, namedList: NamedList[AnyRef], expectedQueries: Int = 1) = {
     // @todo figure out how to wait for async code executed through the route code
     Thread.sleep(300)
     there was one(solrServer).query(any[SolrQuery])

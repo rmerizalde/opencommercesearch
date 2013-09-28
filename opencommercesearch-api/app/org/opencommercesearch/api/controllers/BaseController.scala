@@ -45,17 +45,22 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     val startTime = System.currentTimeMillis()
     val solrQuery = withPagination(withFields(query, req.getQueryString("fields")))
 
-    val future = solrServer.query(solrQuery).map( response => {
-      val docs = response.getResults
-      //val s: String = JIterableWrapper(docs).toSeq.map(doc => solrServer.binder.getBean(clazz, doc))
-      Ok(Json.obj(
-        "metadata" -> Json.obj(
-           "found" -> docs.getNumFound,
-           "time" -> (System.currentTimeMillis() - startTime)),
-        "suggestions" -> JIterableWrapper(docs).map(doc => solrServer.binder.getBean(clazz, doc))
-      ))
-    })
+    if (query == null || query.getQuery.length < 2) {
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
+      )))
+    } else {
+      val future = solrServer.query(solrQuery).map( response => {
+        val docs = response.getResults
+        Ok(Json.obj(
+          "metadata" -> Json.obj(
+             "found" -> docs.getNumFound,
+             "time" -> (System.currentTimeMillis() - startTime)),
+          "suggestions" -> JIterableWrapper(docs).map(doc => solrServer.binder.getBean(clazz, doc))
+        ))
+      })
 
-    withErrorHandling(future, s"Cannot suggest $typeName  for [${query.getQuery}]")
+      withErrorHandling(future, s"Cannot suggest $typeName  for [${query.getQuery}]")
+    }
   }
 }
