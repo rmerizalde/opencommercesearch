@@ -26,7 +26,7 @@ import scala.concurrent.Future
 
 import org.specs2.mutable._
 import org.specs2.mock.Mockito
-import org.apache.solr.client.solrj.response.QueryResponse
+import org.apache.solr.client.solrj.response.{GroupCommand, GroupResponse, QueryResponse}
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
@@ -38,6 +38,7 @@ abstract class BaseSpec extends Specification with Mockito {
 
     queryResponse.getResponse returns namedList
     solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
+
     (queryResponse, namedList)
   }
 

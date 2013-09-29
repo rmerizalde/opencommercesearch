@@ -25,8 +25,6 @@ import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
 import scala.concurrent.Future
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.convert.Wrappers.JListWrapper
 
 import java.util
 
@@ -40,10 +38,7 @@ import org.apache.solr.common.SolrDocument
 import org.apache.commons.lang3.StringUtils
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.convert.Wrappers.JListWrapper
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.convert.Wrappers.JListWrapper
+
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.convert.Wrappers.JListWrapper
 
@@ -80,9 +75,9 @@ object ProductController extends BaseController {
     query.setRequestHandler(RealTimeRequestHandler)
 
     val productFuture = solrServer.query(query).map( response => {
-      val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
+      val doc = response.getResponse.get("doc")
       if (doc != null) {
-        solrServer.binder.getBean(classOf[Product], doc)
+        solrServer.binder.getBean(classOf[Product], doc.asInstanceOf[SolrDocument])
       } else {
         null
       }
@@ -156,9 +151,11 @@ object ProductController extends BaseController {
       val documentList = response.getResults
       val products = new util.ArrayList[Product]
 
+      // @todo optimize. Each sku is wrapped into its own product. This code is only called
+      // when calling findById to parse the product skus
       for (doc <- JIterableWrapper(documentList)) {
         val product = solrServer.binder.getBean(classOf[Product], documentList.get(0))
-        product.skus = Option.apply(Seq(solrServer.binder.getBean(classOf[Sku], doc)).toSeq)
+        product.skus = Option.apply(Seq(solrServer.binder.getBean(classOf[Sku], doc)))
         products.add(product)
       }
       (documentList.getNumFound.toInt, products)
@@ -263,15 +260,15 @@ object ProductController extends BaseController {
   ))
   def browseBrandCategory(
       version: Int,
+      @ApiParam(value = "Site to browse", required = true)
+      @QueryParam("site")
+      site: String,
       @ApiParam(value = "Brand to browse", required = true)
       @PathParam("brandId")
       brandId: String,
       @ApiParam(value = "Category to browse", required = true)
       @PathParam("categoryId")
       categoryId: String,
-      @ApiParam(value = "Site to browse", required = true)
-      @QueryParam("site")
-      site: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action { implicit request =>
@@ -290,13 +287,16 @@ object ProductController extends BaseController {
   ))
   def browse(
       version: Int,
+      @ApiParam(value = "Site to browse", required = true)
+      @QueryParam("site")
+      site: String,
       @ApiParam(value = "Category to browse", required = true)
       @PathParam("id")
       categoryId: String,
-      @ApiParam(value = "Site to browse", required = true)
-      @QueryParam("site")
-      site: String, onSale: Boolean,
       ruleFilter: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display on sale results", required = false)
+      @QueryParam("onSale")
+      onSale: Boolean,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action { implicit request =>

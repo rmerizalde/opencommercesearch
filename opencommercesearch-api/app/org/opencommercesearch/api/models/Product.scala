@@ -151,12 +151,12 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
     var expectedDocCount = 0
     var currentDocCount = 0
+    var currentProductCount = 0
 
     for (product: Product <- products) {
       for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
            skus <- product.skus; listRank <- product.listRank) {
         expectedDocCount += skus.size
-
         val productDoc = new SolrInputDocument()
         var gender: String = null
         productDoc.setField("id", productId)
@@ -259,11 +259,12 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("indexStamp", feedTimestamp)
             skuDocuments.add(doc)
             currentDocCount += 1
+            currentProductCount += 1
           }
         }
       }
 
-      if (expectedDocCount != currentDocCount) {
+      if (currentProductCount != products.size || expectedDocCount != currentDocCount) {
         throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
       }
     }

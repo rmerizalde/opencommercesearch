@@ -392,9 +392,9 @@ public abstract class BaseRestFeed extends GenericService {
 
         if (isLoggingInfo()) {
             if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                logInfo("Successfully deleted products with feed timestamp before to " + feedTimestamp);
+                logInfo("Successfully deleted " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp);
             } else {
-                logInfo("Deleting products with feed timestamp before to " + feedTimestamp + " failed with status: " + response.getStatus());
+                logInfo("Deleting " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp + " failed with status: " + response.getStatus());
             }
         }
     }

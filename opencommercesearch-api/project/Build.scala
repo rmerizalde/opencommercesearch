@@ -37,8 +37,8 @@ object ApplicationBuild extends Build {
        Some(Resolver.url(name, new URL(url))(Resolver.mavenStylePatterns))
     },
     parallelExecution in jacoco.Config := false,
-    jacoco.reportFormats in jacoco.Config := Seq(XMLReport("utf-8"), HTMLReport("utf-8")),
-    jacoco.excludes in jacoco.Config := Seq("default.*", "org.opencommercesearch.api.controllers.Reverse*", "org.opencommercesearch.api.controllers.javascript.*", "org.opencommercesearch.api.controllers.ref.*", "org.opencommercesearch.api.Routes*")
+    jacoco.reportFormats in jacoco.Config := Seq(HTMLReport("utf-8")),
+    jacoco.excludes in jacoco.Config := Seq("views*", "*Routes*", "*controllers*routes*", "*controllers*Reverse*", "*controllers*javascript*", "*controller*ref*", "*Controller")
   )
 
 }

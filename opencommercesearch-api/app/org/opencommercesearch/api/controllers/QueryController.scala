@@ -23,14 +23,34 @@ import play.api.mvc._
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.models.UserQuery
+import com.wordnik.swagger.annotations._
+import javax.ws.rs.QueryParam
 
 /**
  * The controller for query suggestions
  *
  * @author rmerizalde
  */
+@Api(value = "/queries", listingPath = "/api-docs/queries", description = "User Query API endpoints")
 object QueryController extends BaseController {
-  def findSuggestions(version: Int, q: String, site: String, preview: Boolean) = Action { implicit request =>
+
+  @ApiOperation(value = "Suggests user queries", notes = "Returns brand suggestions for given partial user query", responseClass = "org.opencommercesearch.api.models.UserQuery", httpMethod = "GET")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "userQuery", required = false, dataType = "string", paramType = "query")
+  ))
+  def findSuggestions(
+      version: Int,
+      @ApiParam(value = "Partial user query", required = true)
+      @QueryParam("q")
+      q: String,
+      @ApiParam(value = "Site to search for user query suggestions", required = true)
+      @QueryParam("site")
+      site: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action { implicit request =>
     val solrQuery = withQueryCollection(new SolrQuery(q), preview)
     solrQuery.setFields("userQuery")
     solrQuery.setFilterQueries(s"siteId:$site")
