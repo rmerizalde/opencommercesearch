@@ -20,6 +20,9 @@
       <str name="groupcollapse">true</str>
       <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS</str>
     </lst>
+    <arr name="first-components">
+   	  <str>ruleManager</str>
+   	</arr>
     <arr name="last-components">
       <str>spellcheck</str>
       <str>groupCollapse</str>

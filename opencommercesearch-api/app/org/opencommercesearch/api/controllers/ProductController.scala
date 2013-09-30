@@ -87,7 +87,7 @@ object ProductController extends BaseController {
     val skuQuery = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(productIdQuery)), preview), site, request.getQueryString("*"))
     skuQuery.set("group", false)
     skuQuery.setFacet(false)
-    initQueryParams(skuQuery, site, showCloseoutProducts = true)
+    initQueryParams(skuQuery, site, showCloseoutProducts = true, null)
     val skuFuture = solrServer.query(skuQuery).map( response => {
       processSearchResult(productIdQuery, response)
     })
@@ -187,7 +187,7 @@ object ProductController extends BaseController {
     query.set("siteId", site)
     query.set("pageType", "search") // category or rule
     query.set("rule", true)
-    initQueryParams(query, site, showCloseoutProducts = true)
+    initQueryParams(query, site, showCloseoutProducts = true, "search")
 
     val future = solrServer.query(query).map( response => {
       if (query.getRows > 0) {
@@ -248,7 +248,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing brand $brandId")
     Async {
-      withErrorHandling(doBrowse(version, null, site, brandId, onSale = false, null, preview), s"Cannot browse brand [$brandId]")
+      withErrorHandling(doBrowse(version, null, site, brandId, onSale = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
     }
   }
 
@@ -274,7 +274,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing category $categoryId for brand $brandId")
     Async {
-      withErrorHandling(doBrowse(version, categoryId, site, brandId, onSale = false, null, preview), s"Cannot browse brand category [$brandId - $categoryId]")
+      withErrorHandling(doBrowse(version, categoryId, site, brandId, onSale = false, null, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
     }
   }
 
@@ -302,12 +302,12 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing $categoryId")
     Async {
-      withErrorHandling(doBrowse(version, categoryId, site, null, onSale, ruleFilter, preview), s"Cannot browse category [$categoryId]")
+      withErrorHandling(doBrowse(version, categoryId, site, null, onSale, ruleFilter, preview, "category"), s"Cannot browse category [$categoryId]")
     }
   }
 
   private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, onSale: Boolean, ruleFilter: String,
-                       preview: Boolean)(implicit request: Request[AnyContent]) = {
+                       preview: Boolean, requestType: String)(implicit request: Request[AnyContent]) = {
     val startTime = System.currentTimeMillis()
     val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery("*:*")), preview), site, request.getQueryString("fields"))
 
@@ -331,7 +331,7 @@ object ProductController extends BaseController {
     }
 
     query.setFacet(true)
-    initQueryParams(query, site, showCloseoutProducts = false)
+    initQueryParams(query, site, showCloseoutProducts = false, requestType)
 
     solrServer.query(query).map( response => {
       val groupResponse = response.getGroupResponse
@@ -505,19 +505,25 @@ object ProductController extends BaseController {
    * @param request is the implicit request
    * @return the solr query
    */
-  private def initQueryParams(query: SolrQuery, site: String, showCloseoutProducts: Boolean)(implicit request: Request[AnyContent]) : SolrQuery = {
+  private def initQueryParams(query: SolrQuery, site: String, showCloseoutProducts: Boolean, requestType: String)(implicit request: Request[AnyContent]) : SolrQuery = {
     if (query.get("facet") != null && query.getBool("facet")) {
       query.addFacetField("category")
       query.set("facet.mincount", 1)
     }
 
-    // @todo check if javier already did this
-    query.addFilterQuery("category:" + "0." + site)
+    query.set("rule", true)
+    query.set("siteId", site)
+    // @todo add to API interface
+    query.set("catalogId", site)
+    if (requestType != null) {
+      query.set("pageType", requestType)
+    }
 
     if ((query.getRows != null && query.getRows > 0) && (query.get("group") == null || query.getBool("group"))) {
       initQueryGroupParams(query)
     } else {
       query.remove("groupcollapse")
+      query.remove("groupcollapse.fl")
       query.remove("groupcollapse.ff")
     }
 
@@ -615,7 +621,8 @@ object ProductController extends BaseController {
 
     query.addFilterQuery(s"country:$country_")
     query.setParam("groupcollapse", true)
-    query.setParam("groupcollapse.ff", s"$listPrice,$salePrice,$discountPercent")
+    query.setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent")
+    query.setParam("groupcollapse.ff", "isCloseout")
 
     if (fields.isEmpty || fields.get.size <= 0) {
       query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country_,

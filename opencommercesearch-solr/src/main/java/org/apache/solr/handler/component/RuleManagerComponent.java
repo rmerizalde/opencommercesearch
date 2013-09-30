@@ -101,6 +101,9 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      *     'category' : all category based pages (including brand categories)
      * </ul>
      * <ul>
+     *     'brand' : main brand page
+     * </ul>
+     * <ul>
      *     'rule' : all rule based pages
      * <ul/>
      */

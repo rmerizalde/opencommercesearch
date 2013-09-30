@@ -151,7 +151,6 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
     var expectedDocCount = 0
     var currentDocCount = 0
-    var currentProductCount = 0
 
     for (product: Product <- products) {
       for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
@@ -240,7 +239,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
                 for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
                 for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
-                for (onSale <- country.onSale) { doc.setField("onSale" + code, onSale) }
+                for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
                 for (stockLevel <- country.stockLevel)  { doc.setField("stockLevel" + code, stockLevel) }
                 for (url <- country.url) { doc.setField("url" + code, url) }
               }
@@ -259,12 +258,11 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("indexStamp", feedTimestamp)
             skuDocuments.add(doc)
             currentDocCount += 1
-            currentProductCount += 1
           }
         }
       }
 
-      if (currentProductCount != products.size || expectedDocCount != currentDocCount) {
+      if (expectedDocCount != currentDocCount) {
         throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
       }
     }
