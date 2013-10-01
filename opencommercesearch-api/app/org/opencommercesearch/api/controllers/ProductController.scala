@@ -67,7 +67,10 @@ object ProductController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action { implicit request =>
     val startTime = System.currentTimeMillis()
-    val query = withProductCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
+    val fields = request.getQueryString("fields")
+    val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1
+
+    val query = withProductCollection(withFields(new SolrQuery(), fields), preview)
 
     Logger.debug(s"Query product $id")
 
@@ -84,17 +87,26 @@ object ProductController extends BaseController {
     })
 
     val productIdQuery = s"productId:$id"
-    val skuQuery = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(productIdQuery)), preview), site, request.getQueryString("*"))
-    skuQuery.set("group", false)
-    skuQuery.setFacet(false)
-    initQueryParams(skuQuery, site, showCloseoutProducts = true, null)
-    val skuFuture = solrServer.query(skuQuery).map( response => {
-      processSearchResult(productIdQuery, response)
-    })
+    var skuFuture: Future[(Int, util.List[Product])] = null
+
+    if (searchSkus) {
+      val skuQuery = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(productIdQuery)), preview), site, None)
+      skuQuery.set("group", false)
+      skuQuery.setFacet(false)
+      initQueryParams(skuQuery, site, showCloseoutProducts = true, null)
+
+      skuFuture = solrServer.query(skuQuery).map( response => {
+        processSearchResults(productIdQuery, response)
+      })
+    } else {
+      skuFuture = Future.successful((0, null))
+    }
 
     val future = productFuture zip skuFuture map { case (product, (found, products)) =>
       if (product != null) {
-        product.skus = Option.apply(JIterableWrapper(products).toSeq.map( p => p.skus.get(0) ))
+        if (products != null) {
+          product.skus = Option.apply(JIterableWrapper(products).toSeq.map( p => p.skus.get(0) ))
+        }
         Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> found,
@@ -109,7 +121,7 @@ object ProductController extends BaseController {
     }
 
     Async {
-      withErrorHandling(future, s"Cannot retrieve category with id [$id]")
+      withErrorHandling(future, s"Cannot retrieve product with id [$id]")
     }
   }
 
@@ -119,7 +131,7 @@ object ProductController extends BaseController {
    * @param response the Solr response
    * @return a tuple with the total number of SKUs found and the list of SKUs in the response
    */
-  private def processSearchResult(q: String, response: QueryResponse) : (Int, util.List[Product]) = {
+  private def processSearchResults(q: String, response: QueryResponse) : (Int, util.List[Product]) = {
     val groupResponse = response.getGroupResponse
     if (groupResponse != null) {
       val commands = groupResponse.getValues
@@ -191,7 +203,7 @@ object ProductController extends BaseController {
 
     val future = solrServer.query(query).map( response => {
       if (query.getRows > 0) {
-        val (found, skus) = processSearchResult(q, response)
+        val (found, skus) = processSearchResults(q, response)
         if (skus != null) {
           if (skus.size() > 0) {
             Ok(Json.obj(
@@ -248,7 +260,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing brand $brandId")
     Async {
-      withErrorHandling(doBrowse(version, null, site, brandId, onSale = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
+      withErrorHandling(doBrowse(version, null, site, brandId, closeout = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
     }
   }
 
@@ -274,7 +286,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing category $categoryId for brand $brandId")
     Async {
-      withErrorHandling(doBrowse(version, categoryId, site, brandId, onSale = false, null, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
+      withErrorHandling(doBrowse(version, categoryId, site, brandId, closeout = false, null, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
     }
   }
 
@@ -282,8 +294,7 @@ object ProductController extends BaseController {
   @ApiParamsImplicit(value = Array(
     new ApiParamImplicit(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiParamImplicit(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiParamImplicit(name = "onSale", value = "Return product on sale only", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def browse(
       version: Int,
@@ -294,19 +305,19 @@ object ProductController extends BaseController {
       @PathParam("id")
       categoryId: String,
       ruleFilter: String,
-      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display on sale results", required = false)
-      @QueryParam("onSale")
-      onSale: Boolean,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display closeout results", required = false)
+      @QueryParam("closeout")
+      closeout: Boolean,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action { implicit request =>
     Logger.debug(s"Browsing $categoryId")
     Async {
-      withErrorHandling(doBrowse(version, categoryId, site, null, onSale, ruleFilter, preview, "category"), s"Cannot browse category [$categoryId]")
+      withErrorHandling(doBrowse(version, categoryId, site, null, closeout, ruleFilter, preview, "category"), s"Cannot browse category [$categoryId]")
     }
   }
 
-  private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, onSale: Boolean, ruleFilter: String,
+  private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, closeout: Boolean, ruleFilter: String,
                        preview: Boolean, requestType: String)(implicit request: Request[AnyContent]) = {
     val startTime = System.currentTimeMillis()
     val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery("*:*")), preview), site, request.getQueryString("fields"))
@@ -323,15 +334,10 @@ object ProductController extends BaseController {
       if (StringUtils.isNotBlank(brandId)) {
         query.addFilterQuery(s"brandId:$brandId")
       }
-
-      if (onSale) {
-        val country_ = country(request.acceptLanguages)
-        query.addFilterQuery(s"onsale${country_}:true")
-      }
     }
 
     query.setFacet(true)
-    initQueryParams(query, site, showCloseoutProducts = false, requestType)
+    initQueryParams(query, site, showCloseoutProducts = closeout, requestType)
 
     solrServer.query(query).map( response => {
       val groupResponse = response.getGroupResponse
@@ -531,10 +537,13 @@ object ProductController extends BaseController {
     if ("true".equals(closeout)) {
       query.addFilterQuery("isRetail:true")
 
-      val onSale = request.getQueryString("onSale").getOrElse("false")
-      if ("true".eq(onSale)) {
+      if (showCloseoutProducts) {
         query.addFilterQuery("isCloseout:true")
-      } else if (!showCloseoutProducts) {
+        if (!"search".equals(requestType)) {
+          val country_ = country(request.acceptLanguages)
+          query.addFilterQuery("onsale" + country_ + ":true")
+        }
+      } else {
         query.addFilterQuery("isCloseout:" + false)
       }
     }

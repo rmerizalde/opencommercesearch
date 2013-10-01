@@ -36,8 +36,7 @@ import org.apache.solr.client.solrj.beans.BindingException
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.common.SolrDocument
 
-// @todo add support for other content types and default to json
-object RuleController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+object RuleController extends BaseController {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
     val query = withRuleCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)

@@ -130,7 +130,7 @@ object BrandController extends BaseController {
       version: Int,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create brands in preview", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action (parse.json) { implicit request =>
+      preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 

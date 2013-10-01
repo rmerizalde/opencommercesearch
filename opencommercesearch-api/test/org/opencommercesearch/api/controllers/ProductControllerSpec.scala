@@ -146,6 +146,9 @@ class ProductControllerSpec extends BaseSpec {
         validateQueryResult(result.get, OK, "application/json")
         productQuery.getQuery must beEqualTo("term")
         productQuery.getBool("rule", true)
+        productQuery.getBool("isRetail", true)
+        productQuery.getBool("isCloseout", true)
+        productQuery.getBool("onsaleUS", false)
         productQuery.get("pageType", "search")
         validateCommonQueryParams(productQuery)
 
@@ -183,9 +186,48 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, onSale = false, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = false)
+        validateCommonQueryParams(productQuery)
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "product").validate[Product].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              product.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+        } recoverTotal {
+          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when a product is found when browsing an closeout category" in new Products {
+      running(FakeApplication()) {
+        val product = new Product()
+        val sku = new Sku()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product))
+        var productQuery:SolrQuery = null
+
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = new Sku()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
+        }
+
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = true, preview = false).url))
+        validateQueryResult(result.get, OK, "application/json")
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = true)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -224,7 +266,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1")
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isCloseout = false)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -263,7 +305,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", null, "brand1")
+        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isCloseout = false)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -283,7 +325,7 @@ class ProductControllerSpec extends BaseSpec {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
 
-        val url = routes.ProductController.bulkCreateOrUpdate(false).url
+        val url = routes.ProductController.bulkCreateOrUpdate(preview = false).url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 
@@ -296,7 +338,7 @@ class ProductControllerSpec extends BaseSpec {
     "send 400 when exceeding maximum products an a bulk create" in new Products {
       running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
-        val (expectedId, expectedName, expectedIsRuleBased) = ("PRD100", "A Product", true)
+        val (expectedId, expectedName) = ("PRD100", "A Product")
         val jsonBrand = Json.obj("id" -> "1000")
         val json = Json.obj(
           "feedTimestamp" -> 1001,
@@ -398,7 +440,7 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 201 when a products are created" in new Products {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        setupUpdate
         val (expectedId, expectedName) = ("PRD0001", "A Product")
         val jsonBrand = Json.obj("id" -> "PRD0001")
         val json = Json.obj(
@@ -436,7 +478,7 @@ class ProductControllerSpec extends BaseSpec {
    * @param categoryId an optional category id
    * @param brandId and optional brand id
    */
-  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String) : Unit = {
+  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String, isCloseout: Boolean) : Unit = {
     var expected = 3
     if (categoryId == null && brandId != null) {
       productQuery.get("pageType") must beEqualTo("brand")
@@ -453,12 +495,18 @@ class ProductControllerSpec extends BaseSpec {
       expected += 1
       productQuery.getFilterQueries contains s"brand:$brandId"
     }
+
+    if (isCloseout) {
+      expected += 1
+      productQuery.getFilterQueries contains "onsaleUS:true"
+    }
+
     productQuery.getBool("rule", true)
     productQuery.get("siteId", site)
     productQuery.getFilterQueries.size must beEqualTo(expected)
     productQuery.getFilterQueries contains "country:US"
     productQuery.getFilterQueries contains "isRetail:true"
-    productQuery.getFilterQueries contains "isCloseout:false"
+    productQuery.getFilterQueries contains s"isCloseout:$isCloseout"
   }
 
   /**
@@ -569,6 +617,6 @@ class ProductControllerSpec extends BaseSpec {
     val groupResponse = mock[GroupResponse]
     groupResponse.getValues returns commandValues
     queryResponse.getGroupResponse returns groupResponse
-    (queryResponse)
+    queryResponse
   }
 }

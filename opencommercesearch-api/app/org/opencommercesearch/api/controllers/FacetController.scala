@@ -35,9 +35,7 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 
-// @todo add support for other content types and default to json
-object 
-FacetController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+object FacetController extends BaseController {
 
   def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
     val query = withFacetCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
