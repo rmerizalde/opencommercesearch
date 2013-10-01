@@ -261,42 +261,6 @@ public class AbstractSearchServerUnitTest {
     	verifyNoMoreInteractions(rulesServerFr);
     }
     
-    @Test
-    public void testIndexRulesNoRules() throws Exception {
-        ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(0);
-
-        server.indexRules();
-
-        verify(rulesServerEn).request(argument.capture());
-        assertNotNull(argument.getValue().getDeleteQuery());
-        assertEquals(1, argument.getValue().getDeleteQuery().size());
-        assertEquals("*:*", argument.getValue().getDeleteQuery().get(0));
-        verify(rulesServerEn).commit();
-    }
-
-    @Test
-    public void testIndexRules() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(4);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{
-                redirectRule, boostRule, blockRule, facetRule
-        }).thenReturn(null);
-
-        server.indexRules();
-
-        verifyIndexedRules(4, redirectRule.getRepositoryId(), facetRule.getRepositoryId(),
-            blockRule.getRepositoryId(), boostRule.getRepositoryId());
-    }
-
-    @Test
-    public void testIndexRulesRollback() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(4);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
-        server.indexRules();
-        verify(rulesServerEn).rollback();
-        verify(rulesServerEn, never()).commit();
-    }
-    
     private void verifyIndexedRules(int count, String... expectedRuleIds) throws SolrServerException, IOException {
 
         ArgumentCaptor<UpdateRequest> argument = ArgumentCaptor.forClass(UpdateRequest.class);
@@ -338,65 +302,9 @@ public class AbstractSearchServerUnitTest {
     }
 
     @Test
-    public void testItemChangedBoostRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
-                .thenReturn(new RepositoryItem[]{boostRule})
-                .thenReturn(null);
-
-        Set<String> itemDescriptorNames = new HashSet<String>();
-        itemDescriptorNames.add(SearchRepositoryItemDescriptor.BOOST_RULE);
-        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
-        verifyIndexedRules(1, boostRule.getRepositoryId());
-    }
-
-    @Test
-    public void testItemChangedBlockRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
-                .thenReturn(new RepositoryItem[]{blockRule})
-                .thenReturn(null);
-
-        Set<String> itemDescriptorNames = new HashSet<String>();
-        itemDescriptorNames.add(SearchRepositoryItemDescriptor.BLOCK_RULE);
-        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
-        verifyIndexedRules(1, blockRule.getRepositoryId());
-    }
-
-    @Test
-    public void testItemChangeFacetRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
-                .thenReturn(new RepositoryItem[]{facetRule})
-                .thenReturn(null);
-
-        Set<String> itemDescriptorNames = new HashSet<String>();
-        itemDescriptorNames.add(SearchRepositoryItemDescriptor.FACET_RULE);
-        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
-        verifyIndexedRules(1, facetRule.getRepositoryId());
-    }
-
-    @Test
-    public void testItemChangedRedirectRule() throws Exception {
-        when(rulesRqlCount.executeCountQuery(synonymListRepositoryView, null)).thenReturn(1);
-        when(rulesRql.executeQueryUncached(eq(synonymListRepositoryView), (Object[]) anyObject()))
-                .thenReturn(new RepositoryItem[]{redirectRule})
-                .thenReturn(null);
-
-        Set<String> itemDescriptorNames = new HashSet<String>();
-        itemDescriptorNames.add(SearchRepositoryItemDescriptor.REDIRECT_RULE);
-        server.onRepositoryItemChanged("org.opencommercesearch.SearchRepository", itemDescriptorNames);
-        verify(dummySearchServer, times(0)).exportSynonymList(synonymList, getEnglishLocale());
-        verifyIndexedRules(1, redirectRule.getRepositoryId());
-    }
-
-    @Test
     public void testFrenchLocaleSearch() throws SearchServerException, SolrServerException {
         server.search(query, site, getFrenchLocale());
-        verify(catalogServerEn, times(0)).query(any(SolrParams.class));
+        verify(catalogServerEn,atg times(0)).query(any(SolrParams.class));
         verify(catalogServerFr, times(2)).query(any(SolrParams.class));
     }
 
