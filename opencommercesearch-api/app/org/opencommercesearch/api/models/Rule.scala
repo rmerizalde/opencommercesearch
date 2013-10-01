@@ -83,7 +83,7 @@ case class Rule(
   @Field
   def setCombineMode(combineMode: String) : Unit = { this.combineMode = Option.apply(combineMode) }
 
-  def getStartDate : String = { startDate.get }
+  def getStartDate : String = { startDate.getOrElse(null) }
 
   @Field
   def setStartDate(startDate: Date) : Unit = { this.startDate = Option.apply(startDate.toString) }
