@@ -16,6 +16,7 @@
         <junit.version>4.11</junit.version>
         <mockito.version>1.9.5</mockito.version>
         <powermock.version>1.5</powermock.version>
+        <jacoco.version>0.6.0.201210061924</jacoco.version>
     </properties>  
 
     <scm>
@@ -120,6 +121,33 @@
                       <include>**/*.class</include>
                   </includes>
               </configuration>
+          </plugin>
+
+          <plugin>
+              <groupId>org.jacoco</groupId>
+              <artifactId>jacoco-maven-plugin</artifactId>
+              <version>${jacoco.version}</version>
+              <configuration>
+                  <destFile>${basedir}/target/coverage-reports/jacoco-unit.exec</destFile>
+                  <dataFile>${basedir}/target/coverage-reports/jacoco-unit.exec</dataFile>
+                  <output>file</output>
+                  <append>true</append>
+              </configuration>
+              <executions>
+                <execution>
+                    <id>jacoco-initialize</id>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <execution>
+                    <id>jacoco-site</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+              </executions>
           </plugin>
       </plugins>
   </build>

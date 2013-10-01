@@ -28,8 +28,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This class implements an abstract service to load data that is process sequentially from an SQL data source. The
@@ -56,9 +55,10 @@ import java.util.Map;
  * cache miss. However, if the requested id is higher than the maximum id but there are no records left in the data source
  * it won't access the data source and the request is counted as a cache hit.
  *
- * This class is not thread safe.
+ * The cache implementation is delegated to subclasses. Subclasses decide how cache data is stored in memory. For instance,
+ * the cache could be backed up by concurrent hash map or a regular map using a ThreadLocal object.
  *
- * @rmerizalde
+ * @author rmerizalde
  */
 public abstract class SequentialDataLoaderService<K extends Comparable, V> extends GenericService {
 
@@ -68,18 +68,15 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
          * to build the item the will be stored in a cache
          * @param rs is the result set
          * @return the item that will be cache for the current row in the result set
-         * @throws SQLException is exception occurrs while retrieving the row columns
+         * @throws SQLException is exception occurs while retrieving the row columns
          */
         V processRecord(ResultSet rs) throws SQLException;
     }
 
     private Repository repository;
-    private K minId;
-    private K maxId;
-    private Map<K, V> cache;
-    private long requestCount;
-    private long cacheHitCount;
-    private int cacheSize = 1000;
+    private AtomicLong requestCount = new AtomicLong(0);
+    private AtomicLong cacheHitCount = new AtomicLong(0);
+    private int maxCacheSize = 1000;
     private String sqlQuery;
     private RecordProcessor<V> recordProcessor;
 
@@ -92,19 +89,19 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     }
 
     public long getRequestCount() {
-        return requestCount;
+        return requestCount.get();
     }
 
     public long getCacheHitCount() {
-        return cacheHitCount;
+        return cacheHitCount.get();
     }
 
-    public int getCacheSize() {
-        return cacheSize;
+    public int getMaxCacheSize() {
+        return maxCacheSize;
     }
 
-    public void setCacheSize(int cacheSize) {
-        this.cacheSize = cacheSize;
+    public void setMaxCacheSize(int maxCacheSize) {
+        this.maxCacheSize = maxCacheSize;
     }
 
     public String getSqlQuery() {
@@ -117,12 +114,28 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
 
     public double getCacheHitRatio() {
         synchronized (this) {
-            if (requestCount == 0) {
+            if (requestCount.get() == 0) {
                 return 0d;
             }
-            return (cacheHitCount / (double) requestCount) * 100;
+            return (cacheHitCount.get() / (double) requestCount.get()) * 100;
         }
     }
+
+    protected abstract K getMinId();
+
+    protected abstract void setMinId(K minId);
+
+    protected abstract K getMaxId();
+
+    protected abstract void setMaxId(K maxId);
+
+    protected abstract V putCachedItem(K id, V value);
+
+    protected abstract V getCachedItem(K id);
+
+    protected abstract void clearCache();
+
+    protected abstract int cacheSize();
 
     public RecordProcessor<V> getRecordProcessor() {
         return recordProcessor;
@@ -145,8 +158,8 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         }
 
         synchronized (this) {
-            requestCount = 0;
-            cacheHitCount = 0;
+            requestCount.set(0);
+            cacheHitCount.set(0);
         }
     }
 
@@ -155,21 +168,25 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
      * @param id the key to search for
      * @return the item mapped to the given id
      */
+    @SuppressWarnings("unchecked")
     public V getItem(K id) {
-        requestCount++;
+        requestCount.incrementAndGet();
+        K min = getMinId();
+        K max = getMaxId();
 
-        if (minId != null && minId.compareTo(maxId) == 0 && id.compareTo(maxId) > 0) {
-            cacheHitCount++;
+        if (min != null && min.compareTo(max) == 0 && id.compareTo(max) > 0) {
+            cacheHitCount.incrementAndGet();
             return null;
         }
 
-        if (maxId == null || id.compareTo(minId) < 0 || id.compareTo(maxId) > 0) {
+        if (max == null || id.compareTo(min) < 0 || id.compareTo(max) > 0) {
             loadData(id);
         } else {
-            cacheHitCount++;
+            cacheHitCount.incrementAndGet();
         }
 
-        return cache.get(id);
+
+        return getCachedItem(id);
     }
 
     /**
@@ -219,24 +236,21 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     /**
      * Another helper method that actually does executes the query
      */
+    @SuppressWarnings("unchecked")
     private void loadData(K id, PreparedStatement stmt) throws SQLException {
-        if (cache == null) {
-            cache = new HashMap<K, V>(getCacheSize());
-        } else {
-            cache.clear();
-        }
+        clearCache();
 
         long startTime = System.currentTimeMillis();
         if (isLoggingDebug()) {
-            logDebug("Loading record with id " + id + " + " + getCacheSize() + " successors");
+            logDebug(Thread.currentThread() + " - Loading record with id " + id + " + " + getMaxCacheSize() + " successors");
         }
 
         int offset = 1;
-        int rowCount = getCacheSize();
+        int rowCount = getMaxCacheSize();
 
         prepareArguments(id, offset, rowCount, stmt);
-        minId = id;
-        maxId = id;
+        setMinId(id);
+        setMaxId(id);
 
         if (stmt.execute()) {
             ResultSet rs = stmt.getResultSet();
@@ -245,9 +259,9 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
                 K nextId = (K) rs.getObject("id");
                 V item = getRecordProcessor().processRecord(rs);
                 if (item != null) {
-                    cache.put(nextId, item);
+                    putCachedItem(nextId, item);
                 }
-                maxId = nextId;
+                setMaxId(nextId);
             }
 
             try {
@@ -260,9 +274,9 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         }
 
         if (isLoggingInfo()) {
-            logInfo("Loaded data in " + ((System.currentTimeMillis() - startTime) / 1000)
-                    + " seconds. Id range: " + minId + " - " + maxId + ". Cache contains "
-                    + cache.size() + " items");
+            logInfo(Thread.currentThread() + " - Loaded data in " + ((System.currentTimeMillis() - startTime) / 1000)
+                    + " seconds. Id range: " + getMinId() + " - " + getMaxId() + ". Cache contains "
+                    + cacheSize() + " items");
         }
     }
 

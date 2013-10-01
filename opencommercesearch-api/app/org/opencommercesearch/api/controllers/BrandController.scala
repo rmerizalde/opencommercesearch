@@ -1,5 +1,24 @@
 package org.opencommercesearch.api.controllers
 
+/*
+* Licensed to OpenCommerceSearch under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. OpenCommerceSearch licenses this
+* file to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
@@ -9,18 +28,30 @@ import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.Util._
-import org.opencommercesearch.api.models.Brand
-import org.opencommercesearch.api.models.BrandList
+import org.opencommercesearch.api.models.{Brand, BrandList}
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
-import scala.collection.convert.Wrappers.JIterableWrapper
+import com.wordnik.swagger.annotations._
+import javax.ws.rs.{QueryParam, PathParam}
 
-// @todo add support for other content types and default to json
-object BrandController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+@Api(value = "/brands", listingPath = "/api-docs/brands", description = "Brand API endpoints")
+object BrandController extends BaseController {
 
-  def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
-    val query = withBrandCollection(withFields(new SolrQuery()), preview)
+  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
+  @ApiErrors(value = Array(new ApiError(code = 404, reason = "Brand not found")))
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def findById(
+    version: Int,
+    @ApiParam(value = "A brand id", required = true)
+    @PathParam("id")
+    id: String,
+    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+    @QueryParam("preview")
+    preview: Boolean) = Action { implicit request =>
+    val query = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
 
     query.setRequestHandler(RealTimeRequestHandler)
     query.add("id", id)
@@ -45,9 +76,23 @@ object BrandController extends Controller with ContentPreview with FieldList wit
     }
   }
 
-  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action (parse.json) { request =>
+  @ApiOperation(value = "Creates a brand", notes = "Creates/updates the given brand", httpMethod = "PUT")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "brand", value = "Brand to create/update", required = true, dataType = "org.opencommercesearch.api.models.Brand", paramType = "body")
+  ))
+  @ApiErrors(value = Array(
+    new ApiError(code = 400, reason = "Missing required fields")
+  ))
+  def createOrUpdate(
+      version: Int,
+      @ApiParam( value = "A brand id", required = true)
+      @PathParam("id")
+      id: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create the brand in preview", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action (parse.json) { request =>
     Json.fromJson[Brand](request.body).map { brand =>
-      if (brand.logo.isEmpty || brand.logo.isEmpty) {
+      if (brand.name.isEmpty || brand.logo.isEmpty) {
         BadRequest(Json.obj("message" -> "Missing required fields"))
       } else {
         val brandDoc = brand.toDocument
@@ -73,13 +118,25 @@ object BrandController extends Controller with ContentPreview with FieldList wit
     }
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
+  @ApiOperation(value = "Creates brands", notes = "Creates/updates the given brands", httpMethod = "PUT")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "brands", value = "Brands to create/update", required = true, dataType = "org.opencommercesearch.api.models.BrandList", paramType = "body")
+  ))
+  @ApiErrors(value = Array(
+    new ApiError(code = 400, reason = "Missing required fields"),
+    new ApiError(code = 400, reason = "Exceeded maximum number of brands that can be created at once")
+  ))
+  def bulkCreateOrUpdate(
+      version: Int,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create brands in preview", required = false)
+      @QueryParam("preview")
+      preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 
-      if (brands.length > MaxUpdateBatchSize) {
+      if (brands.length > MaxUpdateBrandBatchSize) {
         BadRequest(Json.obj(
-          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBatchSize"))
+          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize"))
       } else if (hasMissingFields(brands)) {
         BadRequest(Json.obj(
           "message" -> "Missing required fields"))
@@ -105,19 +162,25 @@ object BrandController extends Controller with ContentPreview with FieldList wit
     }
   }
 
-  def findSuggestions(version: Int, query: String, preview: Boolean) = Action { implicit request =>
-    val solrQuery = withPagination(withBrandCollection(withFields(new SolrQuery(query)), preview))
-
-    val future = solrServer.query(solrQuery).map( response => {
-      val docs = response.getResults
-      Ok(Json.obj(
-        "metadata" -> Json.obj("found" -> docs.getNumFound),
-        "suggestions" -> JIterableWrapper(docs).map(doc => doc.get("name").asInstanceOf[String])
-      ))
-    })
+  @ApiOperation(value = "Suggests brands", notes = "Returns brand suggestions for given partial brand name", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
+  @ApiParamsImplicit(value = Array(
+    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Partial category name is too short")))
+  def findSuggestions(
+    version: Int,
+    @ApiParam(value = "Partial category name", required = true)
+    @QueryParam("q")
+    query: String,
+    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+    @QueryParam("preview")
+    preview: Boolean) = Action { implicit request =>
+    val solrQuery = withBrandCollection(new SolrQuery(query), preview)
 
     Async {
-      withErrorHandling(future, s"Cannot suggest brands for [$query]")
+      findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
     }
   }
 

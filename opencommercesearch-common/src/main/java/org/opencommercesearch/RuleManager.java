@@ -45,9 +45,6 @@ import static org.opencommercesearch.repository.RankingRuleProperty.*;
  * query or triggers.
  * 
  * @author rmerizalde
- *
- * @todo decouple this class from ATG
- * 
  */
 public class RuleManager<T extends SolrServer> {
     public static final String FIELD_CATEGORY = "category";
@@ -61,7 +58,7 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_START_DATE = "startDate";
     public static final String FIELD_END_DATE = "endDate";
 
-    private static final String WILDCARD = "__all__";
+    public static final String WILDCARD = "__all__";
     
     private Repository searchRepository;
     private RulesBuilder rulesBuilder;
@@ -111,7 +108,7 @@ public class RuleManager<T extends SolrServer> {
                     List<RepositoryItem> products = (List<RepositoryItem>) rule
                             .getPropertyValue(BoostRuleProperty.BOOSTED_PRODUCTS);
                     if (products != null && products.size() > 0) {
-                        StringBuffer b = new StringBuffer("fixedBoost(productId,");
+                        StringBuilder b = new StringBuilder("fixedBoost(productId,");
                         for (RepositoryItem product : products) {
                             b.append("'").append(product.getRepositoryId()).append("',");
                         }
@@ -234,8 +231,8 @@ public class RuleManager<T extends SolrServer> {
         query.addSortField(FIELD_SCORE, ORDER.asc);
         query.addSortField(FIELD_ID, ORDER.asc);
         query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
-        
-        StringBuffer filterQueries = new StringBuffer().append("(category:").append(WILDCARD);
+
+        StringBuilder filterQueries = new StringBuilder().append("(category:").append(WILDCARD);
         if (StringUtils.isNotBlank(categoryFilterQuery)) {
             filterQueries.append(" OR ").append("category:" + categoryFilterQuery);
         }
@@ -439,7 +436,7 @@ public class RuleManager<T extends SolrServer> {
             query.addFilterQuery(filterQuery.toString());
         }
 
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
         for (Entry<String, Set<String>> entry : multiExpressionFilters.entrySet()) {
             String operator = " OR ";
             String fieldName = entry.getKey();
@@ -465,99 +462,6 @@ public class RuleManager<T extends SolrServer> {
         }
 
         return null;
-    }
-
-    /**
-     * Create a search document representing a rule
-     * 
-     * @param rule
-     *            the repository item to be indexed
-     * @return the search document to be indexed
-     * @throws RepositoryException
-     *             is an exception occurs while retrieving data from the
-     *             repository
-     */
-    SolrInputDocument createRuleDocument(RepositoryItem rule) throws RepositoryException {
-        SolrInputDocument doc = new SolrInputDocument();
-        doc.setField("id", rule.getRepositoryId());
-        String query = (String) rule.getPropertyValue(RuleProperty.QUERY);
-        if (query == null || query.equals("*")) {
-            query = WILDCARD;
-        } else {
-            query = query.toLowerCase();
-        }
-        doc.setField(FIELD_QUERY, query);
-        doc.setField(FIELD_SORT_PRIORITY, rule.getPropertyValue(RuleProperty.SORT_PRIORITY));
-        doc.setField(FIELD_COMBINE_MODE, rule.getPropertyValue(RuleProperty.COMBINE_MODE));
-        
-        //Add the start and end dates
-        doc.setField(FIELD_START_DATE, rule.getPropertyValue(RuleProperty.START_DATE));
-        doc.setField(FIELD_END_DATE, rule.getPropertyValue(RuleProperty.END_DATE));
-        
-        String target = (String) rule.getPropertyValue(RuleProperty.TARGET);
-        if(target != null) {
-            target = StringUtils.replace(target, " ", "");
-            doc.setField("target",target.toLowerCase());
-        }
-        
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
-
-        if (sites != null && sites.size() > 0) {
-            for (RepositoryItem site : sites) {
-                doc.addField("siteId", site.getRepositoryId());
-            }
-        } else {
-            doc.setField("siteId", WILDCARD);
-        }
-
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> catalogs = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATALOGS);
-
-        if (catalogs != null && catalogs.size() > 0) {
-            for (RepositoryItem catalog : catalogs) {
-                doc.addField("catalogId", catalog.getRepositoryId());
-            }
-        } else {
-            doc.setField("catalogId", WILDCARD);
-        }
-
-        @SuppressWarnings("unchecked")
-        Set<RepositoryItem> categories = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATEGORIES);
-
-
-        if (categories != null && categories.size() > 0) {
-            Boolean includeSubcategories = (Boolean) rule.getPropertyValue(RuleProperty.INCLUDE_SUBCATEGORIES);
-
-            if (includeSubcategories == null) {
-                includeSubcategories = Boolean.FALSE;
-            }
-
-            for (RepositoryItem category : categories) {
-                if (CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())) {
-                    setCategorySearchTokens(doc, category, includeSubcategories);
-                    setCategoryCategoryPaths(doc, category, includeSubcategories);
-                } else {
-                    setCategoryCategoryPaths(doc, category, false);
-                }
-                
-            }
-            
-            if (doc.getFieldValue(FIELD_CATEGORY) == null) {
-                doc.setField(FIELD_CATEGORY, "null");
-            }
-            
-        } else {
-            doc.setField(FIELD_CATEGORY, WILDCARD);
-        }
-
-        String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
-        if (RuleProperty.TYPE_RANKING_RULE.equals(ruleType)) {
-            setRankingRuleFields(rule, doc);
-        } else if (RuleProperty.TYPE_FACET_RULE.equals(ruleType)) {
-            setFacetRuleFields(rule, doc);
-        }
-        return doc;
     }
 
     private void setFacetRuleFields(RepositoryItem rule, SolrInputDocument doc) {

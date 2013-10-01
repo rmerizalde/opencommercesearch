@@ -19,18 +19,17 @@ package org.opencommercesearch.inventory;
 * under the License.
 */
 
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
-
-import org.opencommercesearch.service.SequentialDataLoaderService;
-
 import atg.commerce.inventory.InventoryException;
 import atg.commerce.inventory.InventoryManager;
 import atg.nucleus.ServiceException;
+import org.opencommercesearch.service.SequentialDataLoaderService;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class implements a sequential in-memory inventory manager to help speeding up the feed
@@ -45,7 +44,8 @@ import atg.nucleus.ServiceException;
  * The manager also allows going back and forth. However, going back in the list will require more
  * repository requests.
  *
- * The class is not thread safe.
+ * The class is thread safe. However, each thread has its on copy of the cache. This class is for feed the process
+ * product catalog partitions in parallel.
  *
  * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
  */
@@ -53,7 +53,57 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
 
     public static final String LOCALE_SEPARATOR = ":";
 
+    // Thread locals are usually static variables. However, there could be multiple instances of this
+    // class. For example, an inventory manager per locale.
+    private final ThreadLocal<String> minId = new ThreadLocal<String>();
+    private final ThreadLocal<String> maxId = new ThreadLocal<String>();
+    private final ThreadLocal<Map<String, InventoryEntry>> cache = new ThreadLocal<Map<String, InventoryEntry>>();
+
     private String inventoryName = "In Memory Inventory";
+
+    @Override
+    protected String getMinId() {
+        return minId.get();
+    }
+
+    @Override
+    protected void setMinId(String id) {
+        minId.set(id);
+    }
+
+    @Override
+    protected String getMaxId() {
+        return maxId.get();
+    }
+
+    @Override
+    protected void setMaxId(String id) {
+        maxId.set(id);
+    }
+
+    @Override
+    protected InventoryEntry putCachedItem(String id, InventoryEntry entry) {
+        return cache.get().put(id, entry);
+    }
+
+    @Override
+    protected InventoryEntry getCachedItem(String id) {
+        return cache.get().get(id);
+    }
+
+    @Override
+    protected int cacheSize() {
+        return cache.get().size();
+    }
+
+    @Override
+    protected void clearCache() {
+        if (cache.get() == null) {
+            cache.set(new HashMap<String, InventoryEntry>(getMaxCacheSize()));
+        } else {
+            cache.get().clear();
+        }
+    }
 
     @Override
     public void doStartService() throws ServiceException {
@@ -160,7 +210,7 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
         }
 
         if (isLoggingDebug()) {
-            logDebug("Availability Status for " + id + " is " + entry.getAvailabilityStatus());
+            logDebug(Thread.currentThread() + " - Availability Status for " + id + " is " + entry.getAvailabilityStatus());
         }
 
         return entry.getAvailabilityStatus();
@@ -177,7 +227,7 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
         }
 
         if (isLoggingDebug()) {
-            logDebug("Backorder level for " + id + " is " + entry.getBackorderLevel());
+            logDebug(Thread.currentThread() + " - Backorder level for " + id + " is " + entry.getBackorderLevel());
         }
 
         return entry.getBackorderLevel();
@@ -205,11 +255,12 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
         InventoryEntry entry = getItem(id);
 
         if (entry == null) {
-            throw new InventoryException("Inventory not found for " + id);
+            throw new InventoryException(String.format("%s - Inventory not found for %s in range %s - %s",
+                    Thread.currentThread(), id, getMinId(), getMaxId()));
         }
 
         if (isLoggingDebug()) {
-            logDebug("Stock level for " + id + " is " + entry.getStockLevel());
+            logDebug(Thread.currentThread() + "Stock level for " + id + " is " + entry.getStockLevel());
         }
 
         return entry.getStockLevel();

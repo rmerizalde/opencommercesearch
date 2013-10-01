@@ -1,5 +1,24 @@
 package org.opencommercesearch.api.models
 
+/*
+* Licensed to OpenCommerceSearch under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. OpenCommerceSearch licenses this
+* file to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
@@ -7,6 +26,7 @@ import java.util
 
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.beans.Field
 
 
 /**
@@ -15,8 +35,27 @@ import org.apache.solr.common.SolrInputDocument
  * @param id is the system id of the brand
  * @param name is the display name of the brand
  * @param logo is the URL for the brand's logo
+ *
+ * @author rmerizalde
  */
-case class Brand(id: Option[String], name: Option[String], logo: Option[String]) {
+case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String]) {
+
+  def this() = this(None, None, None)
+
+  @Field
+  def setId(id: String) : Unit = {
+    this.id = Option.apply(id)
+  }
+
+  @Field
+  def setName(name: String) : Unit = {
+    this.name = Option.apply(name)
+  }
+
+  @Field
+  def setLogo(logo: String) : Unit = {
+    this.logo = Option.apply(logo)
+  }
 
   def toDocument : SolrInputDocument = {
     val doc = new SolrInputDocument()

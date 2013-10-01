@@ -109,7 +109,7 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             FieldType fieldType = schema.getFieldType(filterField);
 
             if(!fieldType.getTypeName().equals("boolean")) {
-              log.warn("Group collapse filter field is not boolean, no filtering will be done. Check if the param GROUP_COLLAPSE_EF is correct.");
+              log.warn("Group collapse filter field is not boolean, no filtering will be done. Check if the param GROUP_COLLAPSE_FF is correct.");
               filterField = null;
             }
         }

@@ -30,8 +30,8 @@ public interface GroupCollapseParams {
     /**
     * Specifies the name of the field that determines what docs in the group should be ignored when creating summaries.
     * <p/>
-    * The filter field specified here must be boolean, and will behave as follows: if all docs in the group are GROUP_COLLAPSE_EF=true, then
-    * nothing happens. Otherwise, if GROUP_COLLAPSE_EF=true for one doc, that doc is ignored from field summary calculations.
+    * The filter field specified here must be boolean, and will behave as follows: if all docs in the group are GROUP_COLLAPSE_FF=true, then
+    * nothing happens. Otherwise, if GROUP_COLLAPSE_FF=true for one doc, that doc is ignored from field summary calculations.
     * <p/>
     * For example, one would want that certain Sku are not used for price calculation, such as those that are from outlet.
     */

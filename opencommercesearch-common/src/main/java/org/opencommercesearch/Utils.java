@@ -19,18 +19,18 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.MissingResourceException;
-import java.util.ResourceBundle;
-import java.util.Set;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+import atg.json.JSONException;
+import atg.json.JSONObject;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.CategoryProperty;
 
 import atg.repository.RepositoryItem;
+import org.restlet.representation.Representation;
 
 public class Utils {
 
@@ -39,6 +39,11 @@ public class Utils {
     public static final String RESOURCE_BEFORE = "before";
     public static final String RESOURCE_AFTER = "after";
     public static final String RESOURCE_CRUMB = "crumb";
+
+    /**
+     * Date formatter for ISO 8601 dates.
+     */
+    private static final SimpleDateFormat iso8601Formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     public static final ResourceBundle resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources");
 
@@ -51,7 +56,7 @@ public class Utils {
             return StringUtils.EMPTY;
         }
 
-        StringBuffer b = new StringBuffer();
+        StringBuilder b = new StringBuilder();
 
         for (FilterQuery filterQuery : filterQueries) {
             if (!filterQuery.equals(skipFilter)) {
@@ -163,7 +168,7 @@ public class Utils {
                 }
             }
         }
-        //check for fixedparent categories
+        //check for fixed parent categories
         Set<RepositoryItem> fixedParentCatagories = (Set<RepositoryItem>)categoryItem.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);
         if (fixedParentCatagories != null) {
             for(RepositoryItem catagory : fixedParentCatagories) {
@@ -178,7 +183,7 @@ public class Utils {
     
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
-     * @see buildCategoryPrefix
+     * @see Utils#buildCategoryPrefix
      * @param categoryPath LinkList storing the path
      * @return
      */
@@ -240,14 +245,13 @@ public class Utils {
                 prefix.append(entry);
             }
         }
-        return prefix.toString(); 
-        
+
+        return prefix.toString();
     }
     
     /**
      * Auxiliary recursive method for buildCategoryPrefix.
-     * 
-     * @see buildCategoryPrefix
+     * @see Utils#buildCategoryPrefix
      * @param currentPath Placeholder to accumulate the path
      * @param category The current category we are traversing
      */
@@ -265,9 +269,45 @@ public class Utils {
             currentPath.add(0, parent.getRepositoryId());
             buildPath(currentPath, parent);
         }
+    }
 
+    /**
+     * Get valid ISO 8601 date out of a given time in milliseconds.
+     * @param millis Time in milliseconds to convert.
+     * @return Valid string representation in ISO 8601 format of the given time in milliseconds.
+     */
+    public static String getISO8601Date(long millis) {
+        return iso8601Formatter.format(new Date(millis));
     }
     
-    
-    
+    public static String getItemsId(RepositoryItem[] items) {
+        if (items == null && items.length == 0) {
+            return StringUtils.EMPTY;
+        }
+        StringBuilder buffer = new StringBuilder();
+
+        for (RepositoryItem brandInfo : items) {
+            buffer.append(brandInfo.getRepositoryId()).append(", ");
+        }
+        buffer.setLength(buffer.length() - 2);
+        return buffer.toString();
+    }
+
+    public static String errorMessage(Representation representation) {
+        if (representation == null) {
+            return StringUtils.EMPTY;
+        }
+
+        String message = "unknown exception";
+
+        try {
+            JSONObject obj = new JSONObject(representation.getText());
+            message = obj.getString("message");
+        } catch (JSONException ex) {
+            // do nothing
+        } catch (IOException ex) {
+            // do nothing
+        }
+        return message;
+    }
 }

@@ -20,6 +20,7 @@ package org.opencommercesearch.repository;
 */
 
 public class FacetProperty {
+
     protected FacetProperty() {
     }
 
@@ -32,4 +33,13 @@ public class FacetProperty {
     // TODO: refactor fieldName column to cs_facet table.
     public static final String FIELD = "fieldName";
     public static final String BLACKLIST = "blacklist";
+    public static final String MIN_COUNT = "minCount";
+    public static final String SORT = "sort";
+    public static final String MISSING = "missing";
+    public static final String LIMIT = "limit";
+    public static final String START = "start";
+    public static final String END = "end";
+    public static final String GAP = "gap";
+    public static final String HARDENED = "hardened";
+    public static final String QUERIES = "queries";
 }

@@ -106,6 +106,20 @@
         <scope>provided</scope>
       </dependency>
 
+      <dependency>
+      	<groupId>org.codehaus.jackson</groupId>
+      	<artifactId>jackson-core-asl</artifactId>
+      	<version>1.9.13</version>
+      	<scope>provided</scope>
+      </dependency>
+
+      <dependency>
+      	<groupId>org.codehaus.jackson</groupId>
+      	<artifactId>jackson-mapper-asl</artifactId>
+      	<version>1.9.13</version>
+      	<scope>provided</scope>
+      </dependency>
+
       <!-- Test depedencies -->
       <dependency>
         <groupId>junit</groupId>
@@ -291,21 +305,25 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
                 <configuration>
-                    <propertyName>jacoco.agent.argLine</propertyName>
+                    <destFile>${basedir}/target/coverage-reports/jacoco-unit.exec</destFile>
+                    <dataFile>${basedir}/target/coverage-reports/jacoco-unit.exec</dataFile>
+                    <output>file</output>
+                    <append>true</append>
                 </configuration>
                 <executions>
                     <execution>
+                        <id>jacoco-initialize</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
                     </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>post-integration-test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
+                  <execution>
+                    <id>jacoco-site</id>
+                    <phase>verify</phase>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                  </execution>
                 </executions>
             </plugin>
         </plugins>

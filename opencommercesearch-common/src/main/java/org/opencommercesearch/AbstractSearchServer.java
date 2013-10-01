@@ -89,6 +89,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     private RulesBuilder rulesBuilder;
     private boolean isGroupSortingEnabled;
 
+    private static final String Q_ALT = "q.alt";
+    private static final String BRAND_ID = "brandId";
+    private static final String CATEGORY_PATH = "categoryPath";
+
     public void setCatalogSolrServer(T catalogSolrServer, Locale locale) {
         catalogSolrServers.put(locale.getLanguage(), catalogSolrServer);
     }
@@ -268,11 +272,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         isGroupSortingEnabled = groupSortingEnabled;
     }
 
-    private static final String Q_ALT = "q.alt";
-    private static final String BRAND_ID = "brandId";
-    private static final String CATEGORY_PATH = "categoryPath";
-    
-
     @Override
     public SearchResponse browse(BrowseOptions options, SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
         return browse(options, query, SiteContextManager.getCurrentSite(), Locale.US, filterQueries);
@@ -367,7 +366,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         return response;
     }
-    
     
     @Override
     public SearchResponse search(SolrQuery query, FilterQuery... filterQueries) throws SearchServerException {
@@ -537,9 +535,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
 
             long searchTime = System.currentTimeMillis() - startTime;
-         // @TODO change ths to debug mode
-            if (isLoggingInfo()) {
-                logInfo("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
+            if (isLoggingDebug()) {
+                logDebug("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
             return new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
         } catch (SolrServerException ex) {
@@ -592,7 +589,6 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
-        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FF, "isCloseout");
     }
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
@@ -857,20 +853,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public void onRepositoryItemChanged(String repositoryName, Set<String> itemDescriptorNames)
             throws RepositoryException, SearchServerException {
         if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
-            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST)) {
-                // TODO: support locaclized synonyms
-                exportSynonyms(Locale.ENGLISH);
-                reloadCollections();
-            }
-            if (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BOOST_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.BLOCK_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.FACET_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.RANKING_RULE)
-                    || itemDescriptorNames.contains(SearchRepositoryItemDescriptor.REDIRECT_RULE)) {
-                indexRules();
-            }
+            // TODO: support localized synonyms
+            exportSynonyms(Locale.ENGLISH);
+            reloadCollections();
         }
     }
 
@@ -908,7 +893,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             }
         } else {
             if (isLoggingInfo()) {
-                logInfo("No synomym lists were exported to ZooKeeper");
+                logInfo("No synonym lists were exported to ZooKeeper");
             }
         }
     }
@@ -939,78 +924,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
      * @throws SearchServerException if an error occurs while reloading the core
      * 
      */
-     public abstract void reloadCollection(String collectionName, Locale locale) throws SearchServerException;
+    public abstract void reloadCollection(String collectionName, Locale locale) throws SearchServerException;
 
-    /**
-     * Indexes all repository rules in the search index
-     *
-     * @throws RepositoryException
-     *             is an exception occurs while retrieving data from the
-     *             repository
-     * @throws SolrServerException
-     *             if an exception occurs while indexing the document
-     */
-    public void indexRules() throws RepositoryException, SearchServerException {
-        long startTime = System.currentTimeMillis();
-        RepositoryView view = getSearchRepository().getView(SearchRepositoryItemDescriptor.RULE);
-        int ruleCount = ruleCountRql.executeCountQuery(view, null);
-
-        if (ruleCount == 0) {
-            deleteByQuery("*:*", getRulesCollection());
-            commit(getRulesCollection());
-
-            if (isLoggingInfo()) {
-                logInfo("No rules found for indexing");
-            }
-            return;
-        }
-
-        if (isLoggingInfo()) {
-            logInfo("Started rule feed for " + ruleCount + " rules");
-        }
-        
-        int processed = 0;
-                
-        try {
-            //TODO fix this
-            deleteByQuery("*:*", getRulesCollection());
-    
-            List<SolrInputDocument> docs = new ArrayList<SolrInputDocument>();
-            Integer[] rqlArgs = new Integer[] { 0, getRuleBatchSize() };
-            RepositoryItem[] rules = ruleRql.executeQueryUncached(view, rqlArgs);
-        
-            // TODO fix: add support for localized rules
-            RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(Locale.ENGLISH));
-            while (rules != null) {
-    
-                for (RepositoryItem rule : rules) {
-                    docs.add(ruleManager.createRuleDocument(rule));
-                    ++processed;
-                }
-                add(docs, getRulesCollection());
-    
-                rqlArgs[0] += getRuleBatchSize();
-                rules = ruleRql.executeQueryUncached(view, rqlArgs);
-    
-                if (isLoggingInfo()) {
-                    logInfo("Processed " + processed + " out of " + ruleCount);
-                }
-            }
-            commit(getRulesCollection());            
-        } catch (Exception e) {
-            rollback(getRulesCollection());
-            if(isLoggingError()) {
-                logError("Error exporting indexing rules", e);
-            }
-        }
-
-        if (isLoggingInfo()) {
-            logInfo("Rules feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                    + processed + " rules were indexed");
-        }
-    }
-    
-    
     private List<CategoryGraph> createCategoryGraph(SearchResponse searchResponse, String path, String catalogId,
             String categoryId) {
 

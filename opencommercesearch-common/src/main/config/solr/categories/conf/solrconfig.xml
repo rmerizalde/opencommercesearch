@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!--
+     For more details about configurations options that may appear in
+     this file, see http://wiki.apache.org/solr/SolrConfigXml.
+-->
+<config>
+  <luceneMatchVersion>LUCENE_42</luceneMatchVersion>
+
+  <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
+  <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-clustering-\d.*\.jar" />
+  <lib dir="../../contrib/clustering/lib/" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-langid-\d.*\.jar" />
+  <lib dir="../../contrib/langid/lib/" regex=".*\.jar" />
+
+  <lib dir="../../dist/" regex="apache-solr-velocity-\d.*\.jar" />
+  <lib dir="../../contrib/velocity/lib" regex=".*\.jar" />
+
+  <lib dir="/total/crap/dir/ignored" />
+
+  <dataDir>${solr.data.dir:}</dataDir>
+
+  <directoryFactory name="DirectoryFactory"
+                    class="${solr.directoryFactory:solr.StandardDirectoryFactory}"/>
+
+
+  <indexConfig>
+    <lockType>${solr.lockFactory:native}</lockType>
+  </indexConfig>
+
+  <xi:include href="xinclude/jmx.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+  <xi:include href="xinclude/update-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+  <xi:include href="xinclude/query.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+    <requestDispatcher handleSelect="false" >
+
+    <requestParsers enableRemoteStreaming="true"
+                    multipartUploadLimitInKB="2048000" />
+
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
+
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">none</str>
+      <int name="rows">10</int>
+      <str name="fl">name</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+      <str name="fl">id,name</str>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/update" class="solr.UpdateRequestHandler">
+  </requestHandler>
+
+  <!-- ping/healthcheck -->
+  <requestHandler name="/admin/ping" class="solr.PingRequestHandler">
+    <lst name="invariants">
+      <str name="q">solrpingquery</str>
+    </lst>
+    <lst name="defaults">
+      <str name="echoParams">all</str>
+    </lst>
+  </requestHandler>
+
+
+  <xi:include href="xinclude/admin-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
+</config>
