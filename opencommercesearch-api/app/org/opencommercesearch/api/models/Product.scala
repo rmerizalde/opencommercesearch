@@ -68,12 +68,21 @@ case class Product (
   
   @Field
   def setShortDescription(shortDescription: String) : Unit = { this.shortDescription = Option.apply(shortDescription) }    
+
+  @Field
+  def setBrandId(id: String) : Unit = {
+    if (brand.isEmpty) {
+        brand = Option.apply(new Brand())
+    }
+    brand.get.setId(id) 
+  }  
   
   @Field
-  def setBrand(id: String) : Unit = {
-    val brand = new Brand()
-    brand.setId(id) 
-    this.brand = Option.apply(brand) 
+  def setBrand(name: String) : Unit = {
+    if (brand.isEmpty) {
+        brand = Option.apply(new Brand())
+    }
+    brand.get.setName(name) 
   }  
 
   @Field
