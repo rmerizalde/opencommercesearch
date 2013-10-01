@@ -534,7 +534,7 @@ object ProductController extends BaseController {
     }
 
     val closeout = request.getQueryString("closeout").getOrElse("true")
-    if ("true".equals(closeout)) {
+    if (requestType != null && "true".equals(closeout)) {
       query.addFilterQuery("isRetail:true")
 
       if (showCloseoutProducts) {
