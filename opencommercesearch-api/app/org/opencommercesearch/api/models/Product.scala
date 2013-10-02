@@ -70,11 +70,11 @@ case class Product (
   def setShortDescription(shortDescription: String) : Unit = { this.shortDescription = Option.apply(shortDescription) }    
 
   @Field
-  def setBrandId(id: String) : Unit = {
+  def setBrandId(id: Int) : Unit = {
     if (brand.isEmpty) {
         brand = Option.apply(new Brand())
     }
-    brand.get.setId(id) 
+    brand.get.setId(id.toString) 
   }  
   
   @Field

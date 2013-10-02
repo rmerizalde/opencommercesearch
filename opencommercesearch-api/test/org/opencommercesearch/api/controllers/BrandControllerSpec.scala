@@ -219,17 +219,6 @@ class BrandControllerSpec extends BaseSpec {
         val result = route(fakeRequest)
         validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED)
-
-        val jsonResponse = Json.parse(contentAsString(result.get))
-        val jsLocations = (jsonResponse \\ "locations").asInstanceOf[List[JsArray]]
-
-        val expectedUrls = Set(routes.BrandController.findById(expectedId).url, routes.BrandController.findById(expectedId2).url)
-
-        for (jsLocation <- jsLocations) {
-          for (location <- jsLocation.value) {
-            expectedUrls should contain (location.as[String])
-          }
-        }
       }
     }
   }
