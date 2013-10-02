@@ -145,10 +145,7 @@ object BrandController extends BaseController {
         update.add(brandList.toDocuments)
 
         val future: Future[Result] = update.process(solrServer).map( response => {
-          Created(Json.obj(
-            "locations" -> JsArray(
-              brands map (b => Json.toJson(routes.BrandController.findById(b.id.get).url))
-            )))
+          Created
         })
 
         Async {
