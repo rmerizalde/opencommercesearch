@@ -54,7 +54,6 @@ public class ProductService extends GenericService {
     private String host = "http://localhost:9000";
     private Map<String, String> endpoints;
     private boolean isPreview = false;
-    private Client client;
     private Map<String, String> httpSettings;
 
 
@@ -90,10 +89,6 @@ public class ProductService extends GenericService {
         this.httpSettings = httpSettings;
     }
 
-    Client getClient() {
-        return client;
-    }
-
     public String getUrl4Endpoint(Endpoint endpoint) {
         return getUrl4Endpoint(endpoint, null);
     }
@@ -113,12 +108,7 @@ public class ProductService extends GenericService {
         return endpointUrl;
     }
 
-    @Override
-    public void doStartService() {
-        if (client != null) {
-            shutdownClient();
-        }
-
+    private Client createClient() {
         Context context = new Context();
         if (getHttpSettings() != null) {
             for (Map.Entry<String, String> entry : getHttpSettings().entrySet()) {
@@ -126,33 +116,27 @@ public class ProductService extends GenericService {
             }
         }
 
-        client = new Client(context, Protocol.HTTP);
+        Client client = new Client(context, Protocol.HTTP);
         try {
             client.start();
+            return client;
         } catch (Exception ex) {
-            new ServiceException(ex);
-        }
-    }
-
-    @Override
-    public void doStopService() throws ServiceException {
-        shutdownClient();
-    }
-
-    public void shutdownClient() {
-        if (client != null) {
-            try {
-                client.stop();
-            } catch (Exception ex) {
-                new ServiceException(ex);
-            } finally {
-                client = null;
-            }
+            throw new RuntimeException(ex);
         }
     }
 
     public Response handle(Request request) {
-        return client.handle(request);
+        Client client = createClient();
+
+        try {
+            return client.handle(request);
+        } finally {
+            try {
+                client.stop();
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
+            }
+        }
     }
 
 }
