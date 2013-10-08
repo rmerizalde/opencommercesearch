@@ -207,7 +207,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws SolrServerException
      *             if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog) throws RepositoryException,
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId) throws RepositoryException,
             SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query ");
@@ -248,7 +248,19 @@ public class RuleManager<T extends SolrServer> {
                 filterQueries.append(" OR ").append("siteId:" + site);
             }
         }
-                
+        
+        filterQueries.append(") AND ").append("(brand:").append(WILDCARD);
+        if(StringUtils.isNotBlank(brandId)) {
+            filterQueries.append(" OR ").append("brand:" + brandId);
+        }
+        
+        filterQueries.append(") AND ").append("(retailOutlet:").append(WILDCARD);
+        if(isOutletPage) {
+            filterQueries.append(" OR ").append("retailOutlet:" + "Outlet");
+        } else {
+            filterQueries.append(" OR ").append("retailOutlet:" + "Retail");
+        }
+        
         filterQueries.append(") AND ").append("(catalogId:").append(WILDCARD).append(" OR ").append("catalogId:")
         .append(catalog.getRepositoryId()).append(")");
         
@@ -343,12 +355,12 @@ public class RuleManager<T extends SolrServer> {
         return query.substring(1, query.length() - 1);
     }
 
-    void setRuleParams(SolrQuery query, boolean isSearch, boolean isRuleBasedPage, String categoryPath, FilterQuery[] filterQueries, RepositoryItem catalog)
+    void setRuleParams(SolrQuery query, boolean isSearch, boolean isRuleBasedPage, String categoryPath, FilterQuery[] filterQueries, RepositoryItem catalog, boolean isOutletPage, String brandId)
             throws RepositoryException,
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog);
+            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);

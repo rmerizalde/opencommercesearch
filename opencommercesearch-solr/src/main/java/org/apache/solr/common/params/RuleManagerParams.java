@@ -53,4 +53,15 @@ public interface RuleManagerParams {
      * Parameter used to specify the current path when browsing.
      */
     public static final String PATH = "path";
+    
+    /**
+     * Parameter used to specify whether page is outlet or retail
+     */
+    public static final String RETAIL_OUTLET = "retailOutlet";
+    
+    /**
+     * Parameter used to specify whether page is outlet or retail
+     */
+    public static final String BRAND = "brand";
+    
 }

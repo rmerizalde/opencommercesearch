@@ -33,6 +33,7 @@ import java.util.Date
  * @param startDate is the date this rule will start applying
  * @param endDate is the date this rule will stop applying
  * @param target is a list of target page types to which the rules will apply to
+ * @param retailOutlet retail or outlet pages to which the rules will apply to
  * @param siteId is a list of target siteId to which the rules will apply to
  * @param catalogId is a list of catalogId to which the rules will apply to (you may have more than one catalog on per site)
  * @param category is a list of category and tokens to which the rules should apply.
@@ -49,9 +50,11 @@ case class Rule(
   var startDate: Option[String],
   var endDate: Option[String],
   var target: Option[Array[String]],
+  var retailOutlet: Option[Array[String]],
   var siteId: Option[Array[String]],
   var catalogId: Option[Array[String]],
   var category: Option[Array[String]],
+  var brand: Option[Array[String]],
   var boostFunction: Option[String],
   var facetField: Option[Array[String]],
   var facetId: Option[Array[String]],
@@ -59,7 +62,7 @@ case class Rule(
   var blockedProducts: Option[Array[String]],
   var ruleType: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 
@@ -98,6 +101,11 @@ case class Rule(
   @Field
   def setTarget(target: Array[String]) : Unit = { this.target = Option.apply(target) }
 
+  def getRetailOutlet : Array[String] = { retailOutlet.get }
+  
+  @Field
+  def setRetailOutlet(retailOutlet: Array[String]) : Unit = { this.retailOutlet = Option.apply(retailOutlet) }
+  
   def getSiteId : Array[String] = { siteId.get }
 
   @Field
@@ -113,7 +121,12 @@ case class Rule(
   @Field
   def setCategory(category: Array[String]) : Unit = { this.category = Option.apply(category) }
 
-  def getBoostFunction : String = { boostFunction.getOrElse(null) }
+  def getBrand : Array[String] = { brand.get }
+
+  @Field
+  def setBrand(brand: Array[String]) : Unit = { this.brand = Option.apply(brand) }
+
+def getBoostFunction : String = { boostFunction.getOrElse(null) }
 
   @Field
   def setBoostFunction(boostFunction: String) : Unit = { this.boostFunction = Option.apply(boostFunction) }

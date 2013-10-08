@@ -49,7 +49,7 @@ public class RuleFeed extends BaseRestFeed {
 
     private Map<String, String> strengthMap;
     private RulesBuilder rulesBuilder;
-
+    private final String BOTH = "Both";
     /**
      * Return the Endpoint for this feed
      * @return an Endpoint enum representing the endpoint for this feed
@@ -93,6 +93,12 @@ public class RuleFeed extends BaseRestFeed {
             ruleJsonObj.put(RuleConstants.FIELD_TARGET, new JSONArray().put(target.toLowerCase()));
         }
 
+        String retailOutlet = (String) rule.getPropertyValue(RuleProperty.RETAIL_OUTLET);
+        if(retailOutlet != null && !retailOutlet.equals(BOTH)) {
+        	ruleJsonObj.put(RuleConstants.FIELD_RETAIL_OUTLET, new JSONArray().put(retailOutlet));
+        } else {
+        	ruleJsonObj.put(RuleConstants.FIELD_RETAIL_OUTLET, new JSONArray().put(RuleConstants.WILDCARD));        	
+        }
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
         if (sites != null && sites.size() > 0) {
@@ -152,6 +158,18 @@ public class RuleFeed extends BaseRestFeed {
             ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, new JSONArray().put(RuleConstants.WILDCARD));
         }
 
+        @SuppressWarnings("unchecked")
+        Set<RepositoryItem> brands = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.BRANDS);
+        if (brands != null && brands.size() > 0) {
+            JSONArray brandIds = new JSONArray();
+        	for (RepositoryItem brand:brands) {
+        	    brandIds.add(brand.getRepositoryId());        		
+        	}
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND, brandIds);
+        } else {
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND, new JSONArray().put(RuleConstants.WILDCARD));
+        }           
+        
         //Set additional fields required by different rule types.
         String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
         if (RuleProperty.TYPE_RANKING_RULE.equals(ruleType)) {

@@ -4,7 +4,9 @@
         <field name="siteId"><![CDATA[__all__]]></field>
         <field name="catalogId"><![CDATA[__all__]]></field>
         <field name="category"><![CDATA[__all__]]></field>
+        <field name="brand"><![CDATA[__all__]]></field>
         <field name="query"><![CDATA[__all__]]></field>
+        <field name="retailOutlet"><![CDATA[__all__]]></field>
         <field name="target"><![CDATA[allpages]]></field>
         <field name="combineMode"><![CDATA[Replace]]></field>
         <field name="sortPriority"><![CDATA[0]]></field>

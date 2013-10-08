@@ -304,7 +304,7 @@ public class AbstractSearchServerUnitTest {
     @Test
     public void testFrenchLocaleSearch() throws SearchServerException, SolrServerException {
         server.search(query, site, getFrenchLocale());
-        verify(catalogServerEn,atg times(0)).query(any(SolrParams.class));
+        verify(catalogServerEn, times(0)).query(any(SolrParams.class));
         verify(catalogServerFr, times(2)).query(any(SolrParams.class));
     }
 

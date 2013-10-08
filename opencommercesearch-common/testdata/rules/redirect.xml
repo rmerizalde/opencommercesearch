@@ -4,7 +4,9 @@
         <field name="siteId"><![CDATA[__all__]]></field>
         <field name="catalogId"><![CDATA[__all__]]></field>
         <field name="category"><![CDATA[__all__]]></field>
+        <field name="brand"><![CDATA[__all__]]></field>
         <field name="query"><![CDATA[redirect]]></field>
+        <field name="retailOutlet"><![CDATA[__all__]]></field>
         <field name="target"><![CDATA[allpages]]></field>
         <field name="startDate"><![CDATA[2000-05-06T00:00:00Z]]></field>
         <field name="endDate"><![CDATA[2200-05-28T00:00:00Z]]></field>
