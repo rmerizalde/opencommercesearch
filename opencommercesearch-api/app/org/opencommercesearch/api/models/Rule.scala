@@ -73,12 +73,12 @@ case class Rule(
   @Field
   def setQuery(query: String) : Unit = { this.query = Option.apply(query) }
 
-  def getSortPriority : Int = { sortPriority.get }
+  def getSortPriority : Integer = { sortPriority.getOrElse(null).asInstanceOf[Integer] }
 
   @Field
   def setSortPriority(sortPriority: Int) : Unit = { this.sortPriority = Option.apply(sortPriority) }
 
-  def getCombineMode : String = { combineMode.get }
+  def getCombineMode : String = { combineMode.getOrElse(null) }
 
   @Field
   def setCombineMode(combineMode: String) : Unit = { this.combineMode = Option.apply(combineMode) }

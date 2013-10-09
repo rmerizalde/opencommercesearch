@@ -33,7 +33,6 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
-import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.common.SolrDocument
 
 object RuleController extends BaseController {
@@ -94,8 +93,9 @@ object RuleController extends BaseController {
     }
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json(maxLength = 1024 * 2000)) { request =>
     Json.fromJson[RuleList](request.body).map { ruleList =>
+
       val rules = ruleList.rules
       try {
         if (rules.length > MaxUpdateRuleBatchSize) {
