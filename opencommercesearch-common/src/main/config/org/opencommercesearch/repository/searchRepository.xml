@@ -118,8 +118,8 @@
           <option value="Search Pages"     code="2"/>
           <option value="Category Pages"   code="3"/>
         </property>
-	<property name="retailOutlet" data-type="enumerated" display-name="Retail Or Outlet"
-                  column-name="retailOutlet" required="true" default="Both" category="Context">
+	<property name="subTarget" data-type="enumerated" display-name="SubTarget"
+                  column-name="sub_target" required="true" default="Both" category="Context">
           <attribute name="propertySortPriority" value="2" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="Retail"     code="1"/>

@@ -57,11 +57,11 @@ public interface RuleManagerParams {
     /**
      * Parameter used to specify whether page is outlet or retail
      */
-    public static final String RETAIL_OUTLET = "retailOutlet";
+    public static final String SUB_TARGET = "subTarget";
     
     /**
      * Parameter used to specify whether page is outlet or retail
      */
-    public static final String BRAND = "brand";
+    public static final String BRAND_ID = "brandId";
     
 }

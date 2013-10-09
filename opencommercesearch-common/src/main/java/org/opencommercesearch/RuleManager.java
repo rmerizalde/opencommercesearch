@@ -249,16 +249,16 @@ public class RuleManager<T extends SolrServer> {
             }
         }
         
-        filterQueries.append(") AND ").append("(brand:").append(WILDCARD);
+        filterQueries.append(") AND ").append("(brandId:").append(WILDCARD);
         if(StringUtils.isNotBlank(brandId)) {
-            filterQueries.append(" OR ").append("brand:" + brandId);
+            filterQueries.append(" OR ").append("brandId:" + brandId);
         }
         
-        filterQueries.append(") AND ").append("(retailOutlet:").append(WILDCARD);
+        filterQueries.append(") AND ").append("(subTarget:").append(WILDCARD);
         if(isOutletPage) {
-            filterQueries.append(" OR ").append("retailOutlet:" + "Outlet");
+            filterQueries.append(" OR ").append("subTarget:" + "Outlet");
         } else {
-            filterQueries.append(" OR ").append("retailOutlet:" + "Retail");
+            filterQueries.append(" OR ").append("subTarget:" + "Retail");
         }
         
         filterQueries.append(") AND ").append("(catalogId:").append(WILDCARD).append(" OR ").append("catalogId:")

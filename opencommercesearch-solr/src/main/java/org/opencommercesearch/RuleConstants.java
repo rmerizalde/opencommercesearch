@@ -47,9 +47,9 @@ public class RuleConstants {
     public static final String FIELD_TARGET = "target";
 
     /**
-     * retailOutlet field name. Checks if the rule apply to outlet category pages or retail category pages 
+     * subTarget field name. Checks if the rule apply to outlet category pages or retail category pages 
      */
-    public static final String FIELD_RETAIL_OUTLET = "retailOutlet";
+    public static final String FIELD_SUB_TARGET = "subTarget";
 
     /**
      * Wildcard string.
@@ -63,10 +63,9 @@ public class RuleConstants {
     public static final String FIELD_CATEGORY = "category";
 
     /**
-     * Name of the categories field. This field should be muti-values and allows to filter results based on specific
-     * product categories.
+     * Name of  brand Ids field. This field should be muti-values and allows to filter results based on specific brand pages
      */
-    public static final String FIELD_BRAND = "brand";
+    public static final String FIELD_BRAND_ID = "brandId";
 
     /**
      * Field that holds the boost function on boost rules

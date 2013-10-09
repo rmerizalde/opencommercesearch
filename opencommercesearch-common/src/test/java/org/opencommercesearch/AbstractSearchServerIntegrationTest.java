@@ -726,8 +726,8 @@ public class AbstractSearchServerIntegrationTest {
         update.append("<field name=\"category\">__all__</field>");
         update.append("<field name=\"target\">allpages</field>");
         update.append("<field name=\"query\">redirect</field>");
-        update.append("<field name=\"brand\">__all__</field>");
-        update.append("<field name=\"retailOutlet\">__all__</field>");
+        update.append("<field name=\"brandId\">__all__</field>");
+        update.append("<field name=\"subTarget\">__all__</field>");
 
     }
 

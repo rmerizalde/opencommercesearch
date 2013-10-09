@@ -749,7 +749,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__) AND (retailOutlet:__all__ OR retailOutlet:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         //assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
@@ -772,7 +772,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__) AND (retailOutlet:__all__ OR retailOutlet:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
@@ -795,7 +795,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__) AND (retailOutlet:__all__ OR retailOutlet:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
@@ -917,7 +917,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__) AND (retailOutlet:__all__ OR retailOutlet:Outlet) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Outlet) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
@@ -939,7 +939,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__) AND (retailOutlet:__all__ OR retailOutlet:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
@@ -962,7 +962,7 @@ public class RuleManagerTest {
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brand:__all__ OR brand:54) AND (retailOutlet:__all__ OR retailOutlet:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__ OR brandId:54) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     

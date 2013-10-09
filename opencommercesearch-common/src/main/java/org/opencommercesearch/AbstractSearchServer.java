@@ -349,18 +349,13 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             catalog = (RepositoryItem) site.getPropertyValue("defaultCatalog");
         }
         
-        boolean isOutletPage = false;
-        if(options.isOnSale()) {
-            isOutletPage = true;
-        }
-        
         SearchResponse response =  null;
         if (options.isRuleBasedPage()) {
-            response = doSearch(query, site, catalog, locale, false, true, categoryPath, isOutletPage, options.getBrandId(), filterQueries);
+            response = doSearch(query, site, catalog, locale, false, true, categoryPath, options.isOnSale(), options.getBrandId(), filterQueries);
         } else if(hasCategoryPath){
-            response = doSearch(query, site, catalog, locale, false, false, categoryPath, isOutletPage, options.getBrandId(), filterQueries);
+            response = doSearch(query, site, catalog, locale, false, false, categoryPath, options.isOnSale(), options.getBrandId(), filterQueries);
         } else {
-            response = doSearch(query, site, catalog, locale, false, false, null, isOutletPage, options.getBrandId(), filterQueries);
+            response = doSearch(query, site, catalog, locale, false, false, null, options.isOnSale(), options.getBrandId(), filterQueries);
         }
         
         if (addCategoryGraph) {

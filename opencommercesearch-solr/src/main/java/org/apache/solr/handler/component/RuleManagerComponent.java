@@ -492,20 +492,20 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             }
         }
         
-        filterQueries.append(") AND ").append("(brand:").append(RuleConstants.WILDCARD);
-        String brandId = requestParams.get(RuleManagerParams.BRAND);
+        filterQueries.append(") AND ").append("(brandId:").append(RuleConstants.WILDCARD);
+        String brandId = requestParams.get(RuleManagerParams.BRAND_ID);
         if(StringUtils.isNotBlank(brandId)) {
-            filterQueries.append(" OR ").append("brand:" + brandId);
+            filterQueries.append(" OR ").append("brandId:" + brandId);
         }
         
-        filterQueries.append(") AND ").append("(retailOutlet:").append(RuleConstants.WILDCARD);
-   	    String retailOrOutlet = requestParams.get(RuleManagerParams.RETAIL_OUTLET);        
+        filterQueries.append(") AND ").append("(subTarget:").append(RuleConstants.WILDCARD);
+   	    String subTarget = requestParams.get(RuleManagerParams.SUB_TARGET);        
     	
-        if(StringUtils.isNotBlank(retailOrOutlet)) {            
-        	if(retailOrOutlet.equals("Outlet")) {
-        		filterQueries.append(" OR ").append("retailOutlet:" + "Outlet");
-        	} else if(retailOrOutlet.equals("Retail")) {
-        		filterQueries.append(" OR ").append("retailOutlet:" + "Retail");
+        if(StringUtils.isNotBlank(subTarget)) {            
+        	if(subTarget.equals("Outlet")) {
+        		filterQueries.append(" OR ").append("subTarget:" + "Outlet");
+        	} else if(subTarget.equals("Retail")) {
+        		filterQueries.append(" OR ").append("subTarget:" + "Retail");
         	}
         }
         filterQueries.append(") AND ").append("(catalogId:").append(RuleConstants.WILDCARD).append(" OR ").append("catalogId:").append(catalogId).append(")");

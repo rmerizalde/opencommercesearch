@@ -93,11 +93,11 @@ public class RuleFeed extends BaseRestFeed {
             ruleJsonObj.put(RuleConstants.FIELD_TARGET, new JSONArray().put(target.toLowerCase()));
         }
 
-        String retailOutlet = (String) rule.getPropertyValue(RuleProperty.RETAIL_OUTLET);
+        String retailOutlet = (String) rule.getPropertyValue(RuleProperty.SUB_TARGET);
         if(retailOutlet != null && !retailOutlet.equals(BOTH)) {
-        	ruleJsonObj.put(RuleConstants.FIELD_RETAIL_OUTLET, new JSONArray().put(retailOutlet));
+        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(retailOutlet));
         } else {
-        	ruleJsonObj.put(RuleConstants.FIELD_RETAIL_OUTLET, new JSONArray().put(RuleConstants.WILDCARD));        	
+        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(RuleConstants.WILDCARD));        	
         }
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
@@ -165,9 +165,9 @@ public class RuleFeed extends BaseRestFeed {
         	for (RepositoryItem brand:brands) {
         	    brandIds.add(brand.getRepositoryId());        		
         	}
-        	ruleJsonObj.put(RuleConstants.FIELD_BRAND, brandIds);
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, brandIds);
         } else {
-        	ruleJsonObj.put(RuleConstants.FIELD_BRAND, new JSONArray().put(RuleConstants.WILDCARD));
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, new JSONArray().put(RuleConstants.WILDCARD));
         }           
         
         //Set additional fields required by different rule types.
