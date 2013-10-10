@@ -123,7 +123,6 @@ object FacetController extends BaseController {
             "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]"))
       }
     }.recoverTotal {
-          System.out.println(request.body.toString());
       e => BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
         "message" -> "Missing required fields",

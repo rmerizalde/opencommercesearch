@@ -77,6 +77,9 @@ public class RuleManagerComponentTest {
     private SolrCore facetsCore;
     @Mock private SolrIndexSearcher facetsIndexSearcher;
 
+        private SolrCore categoriesCore;
+    @Mock private SolrIndexSearcher categoriesIndexSearcher;
+
     RuleManagerComponent component = new RuleManagerComponent();
     ModifiableSolrParams params = new ModifiableSolrParams();
 
@@ -85,18 +88,23 @@ public class RuleManagerComponentTest {
         initMocks(this);
         rulesCore = PowerMockito.mock(SolrCore.class);
         facetsCore = PowerMockito.mock(SolrCore.class);
+        categoriesCore = PowerMockito.mock(SolrCore.class);
 
         rb.req = req;
         rb.rsp = rsp;
         component.rulesCoreName = "rulesCore";
         component.facetsCoreName = "facetsCore";
+        component.categoriesCoreName = "categoriesCore";
         component.coreContainer = coreContainer;
 
         when(req.getParams()).thenReturn(params);
         when(coreContainer.getCore("rulesCore")).thenReturn(rulesCore);
         when(coreContainer.getCore("facetsCore")).thenReturn(facetsCore);
+        when(coreContainer.getCore("categoriesCore")).thenReturn(categoriesCore);
         when(rulesCore.getRequestHandler("/select")).thenReturn(searchHandler);
         when(facetsCore.getRequestHandler("/select")).thenReturn(searchHandler);
+        when(categoriesCore.getRequestHandler("/select")).thenReturn(searchHandler);
+
         when(rulesCore.getSearcher()).thenReturn(new RefCounted<SolrIndexSearcher>(rulesIndexSearcher) {
             @Override
             protected void close() {
@@ -104,6 +112,11 @@ public class RuleManagerComponentTest {
         });
 
         when(facetsCore.getSearcher()).thenReturn(new RefCounted<SolrIndexSearcher>(facetsIndexSearcher) {
+            @Override
+            protected void close() {}
+        });
+
+        when(categoriesCore.getSearcher()).thenReturn(new RefCounted<SolrIndexSearcher>(categoriesIndexSearcher) {
             @Override
             protected void close() {}
         });

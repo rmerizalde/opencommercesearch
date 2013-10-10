@@ -43,4 +43,9 @@ public interface RuleManagerParams {
      * Catalog currently being searched.
      */
     public static final String CATALOG_ID = "catalogId";
+
+    /**
+     * Whether or not rules debug information should be returned on the response.
+     */
+    public static final String DEBUG = "debugRule";
 }

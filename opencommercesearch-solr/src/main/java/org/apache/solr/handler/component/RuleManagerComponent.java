@@ -278,6 +278,12 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             }
 
             logger.debug("Augmented request: " + augmentedParams.toString());
+
+            String debug = requestParams.get(RuleManagerParams.DEBUG);
+            if(debug != null && debug.equals("true")) {
+                rb.rsp.add("rule_debug", getDebugInfo(rulesMap, augmentedParams));
+            }
+
             rb.req.setParams(augmentedParams);
         }
         catch(Throwable e) {
@@ -676,12 +682,12 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * @param ruleParams The new query parameters added by the rules component.
      * @param category The
      */
-    void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams, Document category) {
+    private void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams, Document category) {
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
 
-        if (category == null && category.get(CategoryConstants.FIELD_FILTER) != null) {
+        if (category == null || category.get(CategoryConstants.FIELD_FILTER) != null) {
             return;
         }
 
@@ -690,6 +696,22 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         int levelIndex = categoryFilter.indexOf('.');
         int categoryFacetPrefixLevel = Integer.valueOf(categoryFilter.substring(0, levelIndex)) + 1;
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, categoryFacetPrefixLevel + "." + categoryFilter.substring(levelIndex + 1) + ".");
+    }
+
+    /**
+     * Creates a named list with all rules that are being applied to the current request.
+     * <p/>
+     * The final named list can be added to the search response, for debugging purposes.
+     * @param rulesMap Map of rules that were found by the manager component.
+     * @param ruleParams List of params that will be added to the original query due found rules.
+     * @return named list can be added to the search response, for debugging purposes.
+     */
+    private NamedList<Object> getDebugInfo(Map<RuleType, List<Document>> rulesMap, SolrParams ruleParams) {
+        NamedList<Object> debugInfo = new NamedList<Object>();
+        debugInfo.add("rules", rulesMap);
+        debugInfo.add("ruleParams", ruleParams.toString());
+
+        return debugInfo;
     }
 
     /**
