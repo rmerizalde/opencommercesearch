@@ -1,4 +1,4 @@
-package org.apache.solr.common.params;
+package org.opencommercesearch;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -20,27 +20,24 @@ package org.apache.solr.common.params;
 */
 
 /**
- * Group Collapse Parameters
+ * Constants used by RuleManagerComponent
  */
-public interface RuleManagerParams {
+public class CategoryConstants {
+
+    private CategoryConstants() {}
 
     /**
-     * Whether or not the rule component is enabled. A value of rule=false disables the rule manager component for the request.
+     * ID field for indexed categories
      */
-    public static final String RULE = "rule";
+    public static final String FIELD_ID = "id";
 
     /**
-     * Type of page being served (search, category, rule).
+     * Filter field used to find out the current category being browsed.
      */
-    public static final String PAGE_TYPE = "pageType";
+    public static final String FIELD_FILTER = "filter";
 
     /**
-     * List of site IDs to which rules should apply.
+     * Field that contains the different paths for this category. This is a concatenation of all parent categories.
      */
-    public static final String SITE_IDS = "siteId";
-
-    /**
-     * Catalog currently being searched.
-     */
-    public static final String CATALOG_ID = "catalogId";
+    public static final String FIELD_PATHS = "paths";
 }

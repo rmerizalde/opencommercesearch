@@ -133,6 +133,12 @@ public class RuleConstants {
     public static final String FIELD_REDIRECT_URL = "redirectUrl";
 
     /**
+     * On the product catalog, this is the field that stores ancestor category ids. Used by the rules component
+     * to find out what's the current category.
+     */
+    public static final String FIELD_ANCESTOR_CATEGORY = "ancestorCategoryId";
+
+    /**
      * Combine mode value that when specified replaces all existing rule values of the same type.
      */
     public static final String COMBINE_MODE_REPLACE = "Replace";

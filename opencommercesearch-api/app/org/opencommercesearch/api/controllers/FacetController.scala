@@ -22,7 +22,7 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsError, JsArray, Json}
 
 import scala.concurrent.Future
 
@@ -123,9 +123,11 @@ object FacetController extends BaseController {
             "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]"))
       }
     }.recoverTotal {
+          System.out.println(request.body.toString());
       e => BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
-        "message" -> "Missing required fields"))
+        "message" -> "Missing required fields",
+        "detail" -> JsError.toFlatJson(e)))
     }
   }
 

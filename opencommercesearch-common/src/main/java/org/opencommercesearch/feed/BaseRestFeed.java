@@ -431,6 +431,10 @@ public abstract class BaseRestFeed extends GenericService {
             if(representation != null && representation.getText() != null) {
                 JSONObject obj = new JSONObject(representation.getText());
                 message = obj.getString("message");
+
+                if(isLoggingDebug() && obj.has("detail")) {
+                    message += "\n\n" + obj.getString("detail");
+                }
             }
         }
         catch (JSONException ex) {
