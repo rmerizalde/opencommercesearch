@@ -32,6 +32,7 @@
   <field name="year"               type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
   <field name="season"             type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />
   <field name="listRank"           type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
+  <field name="variantCount"       type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <!-- making the categoryNodes not required for scenarios where the sku is assigned to the first level category
     IE. assigned to "1.catalog.firstCategory" Here, the categoryLeaves would be firstCategory and nodes would be empty
   -->
