@@ -47,6 +47,8 @@ import static org.opencommercesearch.repository.RankingRuleProperty.ATTRIBUTE;
  */
 public class RuleFeed extends BaseRestFeed {
 
+    public static String[] REQUIRED_FIELDS = { "id", "category" };
+
     private Map<String, String> strengthMap;
     private RulesBuilder rulesBuilder;
     private final String BOTH = "Both";
@@ -148,10 +150,17 @@ public class RuleFeed extends BaseRestFeed {
             }
             catch(RepositoryException e) {
                 //Can't load categories
+                if(isLoggingError()) {
+                    logError("Can't load categories for rule " + rule.getRepositoryId(), e);
+                }
             }
 
-            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null) {
-                ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, "null");
+            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null || ((JSONArray) ruleJsonObj.get(RuleConstants.FIELD_CATEGORY)).isEmpty()) {
+                //Don't index this rule, it has no category information.
+                if(isLoggingWarning()) {
+                    logWarning("Rule " + rule.getRepositoryId() + " has no valid category data associated to it.");
+                    return null;
+                }
             }
         }
         else {
@@ -211,7 +220,7 @@ public class RuleFeed extends BaseRestFeed {
 
     @Override
     protected String[] getRequiredItemFields() {
-        return null;
+        return REQUIRED_FIELDS;
     }
 
     /**

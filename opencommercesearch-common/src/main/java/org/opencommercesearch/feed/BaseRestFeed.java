@@ -428,7 +428,7 @@ public abstract class BaseRestFeed extends GenericService {
     private String errorResponseToString(Representation representation) {
         String message = "unknown exception";
         try {
-            if(representation != null) {
+            if(representation != null && representation.getText() != null) {
                 JSONObject obj = new JSONObject(representation.getText());
                 message = obj.getString("message");
             }
