@@ -345,9 +345,10 @@ public abstract class BaseRestFeed extends GenericService {
                 }
             };
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
-            final Response response = getProductService().handle(request);
+            Response response = null;
 
             try {
+                response = getProductService().handle(request);
                 if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
                     if (isLoggingInfo()) {
                         logInfo("Sending " + itemDescriptorName + "[" + getIdsFromItemsArray(itemList) + "] failed with status: " + response.getStatus() + " ["
@@ -383,10 +384,20 @@ public abstract class BaseRestFeed extends GenericService {
         String commitEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "commit");
 
         final Request request = new Request(Method.POST, commitEndpointUrl);
-        final Response response = getProductService().handle(request);
+        Response response = null;
 
-        if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw new IOException("Failed to send commit with status " + response.getStatus() + " " + errorResponseToString(response.getEntity()));
+        try {
+            response = getProductService().handle(request);
+            if (!response.getStatus().equals(Status.SUCCESS_OK)) {
+                throw new IOException("Failed to send commit with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            }
+        } finally {
+            if (response != null) {
+                response.release();
+            }
+            if (request != null) {
+                request.release();
+            }
         }
     }
 
@@ -398,10 +409,20 @@ public abstract class BaseRestFeed extends GenericService {
         String rollbackEndpointUrl = productService.getUrl4Endpoint(getEndpoint(), "rollback");
 
         final Request request = new Request(Method.POST, rollbackEndpointUrl);
-        final Response response = getProductService().handle(request);
+        Response response = null;
 
-        if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw new IOException("Failed to send rollback with status " + response.getStatus() + " " +  errorResponseToString(response.getEntity()));
+        try {
+            response = getProductService().handle(request);
+            if (!response.getStatus().equals(Status.SUCCESS_OK)) {
+                throw new IOException("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            }
+        } finally {
+            if (response != null) {
+                response.release();
+            }
+            if (request != null) {
+                request.release();
+            }
         }
     }
 
@@ -415,10 +436,20 @@ public abstract class BaseRestFeed extends GenericService {
         deleteEndpointUrl += "query=*:*";
 
         final Request request = new Request(Method.DELETE, deleteEndpointUrl);
-        final Response response = getProductService().handle(request);
+        Response response = null;
 
-        if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw new IOException("Failed to send delete by query with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+        try {
+            response = getProductService().handle(request);
+            if (!response.getStatus().equals(Status.SUCCESS_OK)) {
+                throw new IOException("Failed to send delete by query with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            }
+        } finally {
+            if (response != null) {
+                response.release();
+            }
+            if (request != null) {
+                request.release();
+            }
         }
     }
 
@@ -428,13 +459,23 @@ public abstract class BaseRestFeed extends GenericService {
         deleteEndpointUrl += "feedTimestamp=" + feedTimestamp;
 
         final Request request = new Request(Method.DELETE, deleteEndpointUrl);
-        final Response response = getProductService().handle(request);
+        Response response = null;
 
-        if (isLoggingInfo()) {
-            if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                logInfo("Successfully deleted " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp);
-            } else {
-                logInfo("Deleting " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp + " failed with status: " + response.getStatus());
+        try {
+            response = getProductService().handle(request);
+            if (isLoggingInfo()) {
+                if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                    logInfo("Successfully deleted " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp);
+                } else {
+                    logInfo("Deleting " + itemDescriptorName + " items with feed timestamp before to " + feedTimestamp + " failed with status: " + response.getStatus());
+                }
+            }
+        } finally {
+            if (response != null) {
+                response.release();
+            }
+            if (request != null) {
+                request.release();
             }
         }
     }

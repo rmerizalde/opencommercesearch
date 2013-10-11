@@ -53,4 +53,14 @@ public interface RuleManagerParams {
      * Whether or not rules debug information should be returned on the response.
      */
     public static final String DEBUG = "debugRule";
+
+    /**
+     * Parameter used to specify whether page is outlet or retail
+     */
+    public static final String SUB_TARGET = "subTarget";
+
+    /**
+     * Parameter used to specify whether page is outlet or retail
+     */
+    public static final String BRAND_ID = "brandId";
 }

@@ -206,7 +206,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           } 
         }        
         productDocuments.add(productDoc)
-
+        var skuCount = skus.size;
         for (sku: Sku <- skus) {
           for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                isCloseout <- sku.isCloseout; countries <- sku.countries) {
@@ -220,6 +220,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("listRank", listRank)
             doc.setField("isToos", isOutOfStock)
             doc.setField("isRetail", isRetail)
+            doc.setField("skuCount", skuCount)
             doc.setField("isCloseout", isCloseout)
             for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
             if (gender != null) { doc.setField("gender", gender ) }

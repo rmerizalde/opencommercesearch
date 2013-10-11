@@ -28,7 +28,6 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.StopWatch;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.api.ProductService;
@@ -444,21 +443,32 @@ public abstract class SearchFeed extends GenericService {
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
             final ClientInfo clientInfo = request.getClientInfo();
             clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(language))));
-            final Response response = getProductService().handle(request);
+            Response response = null;
 
-            if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
-                if (isLoggingInfo()) {
-                    logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
-                            + errorMessage(response.getEntity()) + "]");
+            try {
+                response = getProductService().handle(request);
+
+                if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
+                    if (isLoggingInfo()) {
+                        logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
+                                + errorMessage(response.getEntity()) + "]");
+                    }
+                    onProductsSentError(productList.getProducts());
+                    return false;
+                } else {
+                    onProductsSent(response, productList.getProducts());
+                    return true;
+
                 }
-
-                onProductsSentError(productList.getProducts());
-                return false;
-            } else {
-                onProductsSent(response, productList.getProducts());
-                return true;
+            } finally {
+                if (response != null) {
+                    response.release();
+                }
+                if (request != null) {
+                    request.release();
+                }
             }
-        }
+       }
         catch (Exception ex) {
             if (isLoggingInfo()) {
                 logInfo("Sending products [" + productsId(productList.getProducts()) + "] failed with unexpected exception", ex);
@@ -484,16 +494,27 @@ public abstract class SearchFeed extends GenericService {
                     final Request request = new Request(Method.DELETE, getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id));
                     final ClientInfo clientInfo = request.getClientInfo();
                     clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
-                    final Response response = getProductService().handle(request);
+                    Response response = null;
 
-                    if (isLoggingInfo()) {
-                        if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                            logInfo("Successfully deleted product " + id + " for " + locale.getLanguage());
-                        } else {
-                            logInfo("Deleting product " + id + " for " + locale.getLanguage() + " failed with status: " + response.getStatus());
+                    try {
+                        response = getProductService().handle(request);
+
+                        if (isLoggingInfo()) {
+                            if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                                logInfo("Successfully deleted product " + id + " for " + locale.getLanguage());
+                            } else {
+                                logInfo("Deleting product " + id + " for " + locale.getLanguage() + " failed with status: " + response.getStatus());
+                            }
+                        }
+                        languages.add(locale.getLanguage());
+                    } finally {
+                        if (response != null) {
+                            response.release();
+                        }
+                        if (request != null) {
+                            request.release();
                         }
                     }
-                    languages.add(locale.getLanguage());
                 } catch (Exception ex) {
                     if (isLoggingError()) {
                         logError("Deleting product " + id + " failed", ex);
@@ -518,18 +539,29 @@ public abstract class SearchFeed extends GenericService {
                     final Request request = new Request(Method.DELETE, endpointUrl);
                     final ClientInfo clientInfo = request.getClientInfo();
                     clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
-                    final Response response = getProductService().handle(request);
+                    Response response = null;
 
-                    if (isLoggingInfo()) {
-                        if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                            logInfo("Successfully deleted products for " + locale.getLanguage() + " with feed timestamp before to "
-                                    + feedTimestamp);
-                        } else {
-                            logInfo("Deleting products for " + locale.getLanguage() + " with feed timestamp before to "
-                                    + feedTimestamp + " failed with status: " + response.getStatus());
+                    try {
+                        response = getProductService().handle(request);
+
+                        if (isLoggingInfo()) {
+                            if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                                logInfo("Successfully deleted products for " + locale.getLanguage() + " with feed timestamp before to "
+                                        + feedTimestamp);
+                            } else {
+                                logInfo("Deleting products for " + locale.getLanguage() + " with feed timestamp before to "
+                                        + feedTimestamp + " failed with status: " + response.getStatus());
+                            }
+                        }
+                        languages.add(locale.getLanguage());
+                    } finally {
+                        if (response != null) {
+                            response.release();
+                        }
+                        if (request != null) {
+                            request.release();
                         }
                     }
-                    languages.add(locale.getLanguage());
                 } catch (Exception ex) {
                     if (isLoggingError()) {
                         logError("Deleting products for " + locale.getLanguage() + " with feed timestamp before to "
