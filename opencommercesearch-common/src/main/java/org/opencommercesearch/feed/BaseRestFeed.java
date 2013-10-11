@@ -98,7 +98,14 @@ public abstract class BaseRestFeed extends GenericService {
     private boolean enabled;
 
     /**
-     * Transactional
+     * Max error percentage tolerated by this feed. If this threshold is reached, then the feed will be discarded
+     * since it will be considered risky. I.e. set it to 0.1 if you want a maximum of 10% errors of the total items
+     * cause the feed to stop.
+     */
+    private double errorThreshold;
+
+    /**
+     * Whether or not this feeds is transactional.
      */
     private boolean transactional = true;
 
@@ -170,6 +177,14 @@ public abstract class BaseRestFeed extends GenericService {
         this.productService = productService;
     }
 
+    public double getErrorThreshold() {
+        return errorThreshold;
+    }
+
+    public void setErrorThreshold(double errorThreshold) {
+        this.errorThreshold = errorThreshold;
+    }
+
     @Override
     public void doStartService() throws ServiceException {
         if (getProductService() == null) {
@@ -197,6 +212,7 @@ public abstract class BaseRestFeed extends GenericService {
 
         RepositoryView itemView = getRepository().getView(itemDescriptorName);
         int count = countRql.executeCountQuery(itemView, null);
+        int errorThreshold = (int) (count * getErrorThreshold());
 
         if (isLoggingInfo()) {
             logInfo("Started " + itemDescriptorName + " feed for " + count + " items." );
@@ -204,11 +220,12 @@ public abstract class BaseRestFeed extends GenericService {
 
         try {
             long feedTimestamp = System.currentTimeMillis();
-            if (isTransactional()) {
-                sendDeleteByQuery();
-            }
 
             if(count > 0) {
+                if (isTransactional()) {
+                    sendDeleteByQuery();
+                }
+
                 Integer[] rqlArgs = new Integer[] { 0, getBatchSize() };
                 RepositoryItem[] items = rql.executeQueryUncached(itemView, rqlArgs);
 
@@ -225,19 +242,42 @@ public abstract class BaseRestFeed extends GenericService {
                         }
                     }
 
-                    rqlArgs[0] += getBatchSize();
-                    items = rql.executeQueryUncached(itemView, rqlArgs);
-
                     if (isLoggingInfo()) {
                         logInfo("Processed " + processed + " " + itemDescriptorName + " items out of " + count + " with " + failed + " failures");
                     }
+
+                    if(failed < errorThreshold) {
+                        //Get the next batch only if the feed is performing well.
+                        rqlArgs[0] += getBatchSize();
+                        items = rql.executeQueryUncached(itemView, rqlArgs);
+                    }
+                    else {
+                        //Error threshold reached. Stop.
+                        break;
+                    }
+                }
+
+                if(failed < errorThreshold) {
+                    //Send commit or deletes if the feeds looks healthy.
+                    if (isTransactional()) {
+                        sendCommit();
+                    } else {
+                        sendDelete(feedTimestamp);
+                    }
+                }
+                else {
+                    if(isLoggingError()) {
+                        logError(itemDescriptorName + " feed interrupted since it seems to be failing too often. At least " + (getErrorThreshold() * 100) + "% out of " + count + " items had errors");
+                    }
+
+                    //Roll back as much as we can from the changes done before the threshold was reached (specially initial delete from transactional feeds)
+                    sendRollback();
                 }
             }
-
-            if (isTransactional()) {
-                sendCommit();
-            } else {
-                sendDelete(feedTimestamp);
+            else {
+                if(isLoggingInfo()) {
+                    logInfo("No " + itemDescriptorName + " items found. Nothing to do here.");
+                }
             }
         }
         catch(Exception e) {
@@ -346,7 +386,7 @@ public abstract class BaseRestFeed extends GenericService {
         final Response response = getProductService().handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw new IOException("Failed to send commit with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            throw new IOException("Failed to send commit with status " + response.getStatus() + " " + errorResponseToString(response.getEntity()));
         }
     }
 
@@ -361,7 +401,7 @@ public abstract class BaseRestFeed extends GenericService {
         final Response response = getProductService().handle(request);
 
         if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-            throw new IOException("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+            throw new IOException("Failed to send rollback with status " + response.getStatus() + " " +  errorResponseToString(response.getEntity()));
         }
     }
 
