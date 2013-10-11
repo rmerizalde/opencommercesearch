@@ -506,21 +506,20 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             }
         }
 
-        filterQueries.append(") AND ").append("(brandId:").append(RuleConstants.WILDCARD);
-        String brandId = requestParams.get(RuleManagerParams.BRAND_ID);
+        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_BRAND_ID).append(":").append(RuleConstants.WILDCARD);
+        String brandId = getBrandIdFromFilterQuery(requestParams.getParams(CommonParams.FQ));
         if(StringUtils.isNotBlank(brandId)) {
-            filterQueries.append(" OR ").append("brandId:").append(brandId);
+            filterQueries.append(" OR ").append(RuleConstants.FIELD_BRAND_ID).append(":").append(brandId);
         }
 
-        filterQueries.append(") AND ").append("(subTarget:").append(RuleConstants.WILDCARD);
-   	    String subTarget = requestParams.get(RuleManagerParams.SUB_TARGET);        
-    	
-        if(StringUtils.isNotBlank(subTarget)) {            
-        	if(subTarget.equals("Outlet")) {
-        		filterQueries.append(" OR ").append("subTarget:").append("Outlet");
-        	} else if(subTarget.equals("Retail")) {
-        		filterQueries.append(" OR ").append("subTarget:").append("Retail");
-        	}
+        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_SUB_TARGET).append(":").append(RuleConstants.WILDCARD);
+        filterQueries.append(" OR ").append(RuleConstants.FIELD_SUB_TARGET).append(":");
+
+        if(isOutletRequest(requestParams.getParams(CommonParams.FQ))) {
+            filterQueries.append(RuleConstants.SUB_TARGET_OUTLET);
+        }
+        else {
+            filterQueries.append(RuleConstants.SUB_TARGET_RETAIL);
         }
 
         filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId).append(")");
@@ -535,6 +534,46 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
         return ruleParams;
     }
+
+    /**
+     * Tells whether or not the current search should include outlet results or not.
+     * <p/>
+     * This is done by inspecting the filter queries set for the current search request.
+     * @param filterQueries Array of filter queries to inspect.
+     * @return True if the current search will include outlet results, false otherwise.
+     */
+    private boolean isOutletRequest(String[] filterQueries) {
+        if(filterQueries != null) {
+            for(String filterQuery : filterQueries) {
+                if(filterQuery.startsWith(SearchConstants.IS_CLOSEOUT + ":true")) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Inspects a list of filter queries to find out what the current brand id is.
+     * <p/>
+     * The current brand id comes in the filter query "brandId" for a brand earch requests.
+     * @param filterQueries Array of filter queries to inspect.
+     * @return The brand ID set on the brandId filter, null if not found.
+     */
+    private String getBrandIdFromFilterQuery(String[] filterQueries) {
+        if(filterQueries != null) {
+            for(String filterQuery : filterQueries) {
+                int index = filterQuery.indexOf(RuleConstants.FIELD_BRAND_ID + ":");
+                    if(index >= 0) {
+                        return filterQuery.substring(index + RuleConstants.FIELD_BRAND_ID.length() + 1);
+                }
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * Get core for facet fields.

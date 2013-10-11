@@ -157,4 +157,14 @@ public class RuleConstants {
      * Combine mode value that when specified appends existing rule values of the same type.
      */
     public static final String COMBINE_MODE_APPEND = "Append";
+
+    /**
+     * Outlet value for the sub target field. This indicates that a rule should match only for outlet only searches.
+     */
+    public static final String SUB_TARGET_OUTLET = "Outlet";
+
+    /**
+     * Retail value for the sub target field. This indicates that a rule should match only for retail only searches.
+     */
+    public static final String SUB_TARGET_RETAIL = "Retail";
 }
