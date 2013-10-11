@@ -442,7 +442,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         }
 
         StringBuilder stringBuilder = new StringBuilder();
-
+        
         //Create the rules query
         if(pageType == PageType.search) {
             String qParam = requestParams.get(CommonParams.Q);
@@ -491,7 +491,23 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 filterQueries.append(" OR ").append("siteId:").append(site);
             }
         }
-
+        
+        filterQueries.append(") AND ").append("(brandId:").append(RuleConstants.WILDCARD);
+        String brandId = requestParams.get(RuleManagerParams.BRAND_ID);
+        if(StringUtils.isNotBlank(brandId)) {
+            filterQueries.append(" OR ").append("brandId:" + brandId);
+        }
+        
+        filterQueries.append(") AND ").append("(subTarget:").append(RuleConstants.WILDCARD);
+   	    String subTarget = requestParams.get(RuleManagerParams.SUB_TARGET);        
+    	
+        if(StringUtils.isNotBlank(subTarget)) {            
+        	if(subTarget.equals("Outlet")) {
+        		filterQueries.append(" OR ").append("subTarget:" + "Outlet");
+        	} else if(subTarget.equals("Retail")) {
+        		filterQueries.append(" OR ").append("subTarget:" + "Retail");
+        	}
+        }
         filterQueries.append(") AND ").append("(catalogId:").append(RuleConstants.WILDCARD).append(" OR ").append("catalogId:").append(catalogId).append(")");
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
@@ -500,7 +516,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         //Also, notice that NOW/DAY is midnight from last night, and NOW/DAY+1DAY is midnight today.
         //The below query is intended to match rules with null start or end dates, or start and end dates in the proper range.
         filterQueries.append(" AND ").append("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))");
-
+        
         ruleParams.add(CommonParams.FQ, filterQueries.toString());
 
         return ruleParams;

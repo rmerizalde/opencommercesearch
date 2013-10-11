@@ -351,11 +351,11 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         
         SearchResponse response =  null;
         if (options.isRuleBasedPage()) {
-            response = doSearch(query, site, catalog, locale, false, true, categoryPath, filterQueries);
+            response = doSearch(query, site, catalog, locale, false, true, categoryPath, options.isOnSale(), options.getBrandId(), filterQueries);
         } else if(hasCategoryPath){
-            response = doSearch(query, site, catalog, locale, false, false, categoryPath, filterQueries);
+            response = doSearch(query, site, catalog, locale, false, false, categoryPath, options.isOnSale(), options.getBrandId(), filterQueries);
         } else {
-            response = doSearch(query, site, catalog, locale, false, false, null, filterQueries);
+            response = doSearch(query, site, catalog, locale, false, false, null, options.isOnSale(), options.getBrandId(), filterQueries);
         }
         
         if (addCategoryGraph) {
@@ -400,7 +400,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     @Override
     public SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
             throws SearchServerException {
-        return doSearch(query, site, catalog, locale, true, false, null, filterQueries);
+        return doSearch(query, site, catalog, locale, true, false, null, false, null, filterQueries);
     }
     
     @Override
@@ -455,7 +455,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
     
-    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch,  boolean isRuleBasedPage, String categoryPath, FilterQuery... filterQueries)
+    private SearchResponse doSearch(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, boolean isSearch,  boolean isRuleBasedPage, String categoryPath, boolean isOutletPage, String brandId, FilterQuery... filterQueries)
             throws SearchServerException {
         if (site == null) {
             throw new IllegalArgumentException("Missing site");
@@ -473,7 +473,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             setGroupParams(query);
             setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
             try {
-                ruleManager.setRuleParams(query, isSearch, isRuleBasedPage, categoryPath, filterQueries, catalog);
+                ruleManager.setRuleParams(query, isSearch, isRuleBasedPage, categoryPath, filterQueries, catalog, isOutletPage, brandId);
                 
                 if(ruleManager.getRules().containsKey(SearchRepositoryItemDescriptor.REDIRECT_RULE)){
                     Map<String, List<RepositoryItem>> rules = ruleManager.getRules();

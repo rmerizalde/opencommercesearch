@@ -47,9 +47,11 @@ import static org.opencommercesearch.repository.RankingRuleProperty.ATTRIBUTE;
  */
 public class RuleFeed extends BaseRestFeed {
 
+    public static String[] REQUIRED_FIELDS = { "id", "category" };
+
     private Map<String, String> strengthMap;
     private RulesBuilder rulesBuilder;
-
+    private final String BOTH = "Both";
     /**
      * Return the Endpoint for this feed
      * @return an Endpoint enum representing the endpoint for this feed
@@ -93,6 +95,12 @@ public class RuleFeed extends BaseRestFeed {
             ruleJsonObj.put(RuleConstants.FIELD_TARGET, new JSONArray().put(target.toLowerCase()));
         }
 
+        String retailOutlet = (String) rule.getPropertyValue(RuleProperty.SUB_TARGET);
+        if(retailOutlet != null && !retailOutlet.equals(BOTH)) {
+        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(retailOutlet));
+        } else {
+        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(RuleConstants.WILDCARD));        	
+        }
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
         if (sites != null && sites.size() > 0) {
@@ -142,16 +150,35 @@ public class RuleFeed extends BaseRestFeed {
             }
             catch(RepositoryException e) {
                 //Can't load categories
+                if(isLoggingError()) {
+                    logError("Can't load categories for rule " + rule.getRepositoryId(), e);
+                }
             }
 
-            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null) {
-                ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, "null");
+            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null || ((JSONArray) ruleJsonObj.get(RuleConstants.FIELD_CATEGORY)).isEmpty()) {
+                //Don't index this rule, it has no category information.
+                if(isLoggingWarning()) {
+                    logWarning("Rule " + rule.getRepositoryId() + " has no valid category data associated to it.");
+                    return null;
+                }
             }
         }
         else {
             ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, new JSONArray().put(RuleConstants.WILDCARD));
         }
 
+        @SuppressWarnings("unchecked")
+        Set<RepositoryItem> brands = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.BRANDS);
+        if (brands != null && brands.size() > 0) {
+            JSONArray brandIds = new JSONArray();
+        	for (RepositoryItem brand:brands) {
+        	    brandIds.add(brand.getRepositoryId());        		
+        	}
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, brandIds);
+        } else {
+        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, new JSONArray().put(RuleConstants.WILDCARD));
+        }           
+        
         //Set additional fields required by different rule types.
         String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
         if (RuleProperty.TYPE_RANKING_RULE.equals(ruleType)) {
@@ -193,7 +220,7 @@ public class RuleFeed extends BaseRestFeed {
 
     @Override
     protected String[] getRequiredItemFields() {
-        return null;
+        return REQUIRED_FIELDS;
     }
 
     /**

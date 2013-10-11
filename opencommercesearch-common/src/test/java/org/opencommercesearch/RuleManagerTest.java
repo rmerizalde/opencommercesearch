@@ -229,7 +229,7 @@ public class RuleManagerTest {
         when(hasLacesFacetItem.getPropertyValue((FacetProperty.IS_MULTI_SELECT))).thenReturn(true);        
         
         // and nothing for chopsticks
-        mgr.setRuleParams(query, true, false, null, filterQueries, catalog);
+        mgr.setRuleParams(query, true, false, null, filterQueries, catalog, false, null);
         
         verify(query).setFacetPrefix("category", "1.bobcatalog.");
         verify(query).addFilterQuery("category:0.bobcatalog");
@@ -282,7 +282,7 @@ public class RuleManagerTest {
         SolrQuery query = mock(SolrQuery.class);
         when(query.getQuery()).thenReturn("jackets");
         
-        mgr.setRuleParams(query, true, false, null, null, catalog);
+        mgr.setRuleParams(query, true, false, null, null, catalog, false, null);
         verify(query).setFacetPrefix("category", "1.bobcatalog.");
         verify(query).addFilterQuery("category:0.bobcatalog");
         verify(query).getQuery();
@@ -459,7 +459,7 @@ public class RuleManagerTest {
         ruleList.setStart(0L);
         when(queryResponse.getResults()).thenReturn(ruleList);
         when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
-        mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, true, cataA);
+        mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, true, cataA, false, null);
         assertEquals(mgr.getRules().size(), 2);
     }
     
@@ -515,7 +515,7 @@ public class RuleManagerTest {
     @Test(expected=IllegalArgumentException.class)
     public void testLoadRulesEmptyQuery() throws RepositoryException, SolrServerException {
         RuleManager mgr = new RuleManager(repository, builder, server);
-        mgr.loadRules("", null, "Men's Clothing", true, false, cataA);
+        mgr.loadRules("", null, "Men's Clothing", true, false, cataA, false, null);
     }  
     
     @Test
@@ -543,7 +543,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -585,7 +585,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -658,7 +658,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -715,7 +715,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());        
@@ -742,14 +742,15 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, true, false, cataA);
+        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null);
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        //assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
@@ -764,14 +765,14 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, false, false, cataA);
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null);
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
     }
     
@@ -787,14 +788,14 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, true, false, cataA);
+        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null);
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
         assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
         assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
     }
     
@@ -810,7 +811,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA);
+        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null);
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
@@ -828,7 +829,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA);
+        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null);
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
@@ -898,6 +899,73 @@ public class RuleManagerTest {
         testFacetRuleSortingAux(FacetRuleProperty.COMBINE_MODE_APPEND, 0);
     }
 
+    @Test
+    public void testOutletCategoryRule () throws SolrServerException, RepositoryException {
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        String category = "My category";
+        String searchQuery = "catId:myCat";
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        // ----------- set up rule manager -------------
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        
+        // ------------ make the call to load the rules etc -------------
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, true, null);
+        
+        // ------------ assertions about the inner solr query that was performed -----------
+        ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
+        verify(server).query(query.capture());
+        List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
+        assertEquals(1, filters.size()); 
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Outlet) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+    }
+    
+    @Test
+    public void testRetailCategoryRule() throws SolrServerException, RepositoryException {
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        String category = "My category";
+        String searchQuery = "catId:myCat";
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        // ----------- set up rule manager -------------
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        
+        // ------------ make the call to load the rules etc -------------
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null);
+        
+        // ------------ assertions about the inner solr query that was performed -----------
+        ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
+        verify(server).query(query.capture());
+        List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
+        assertEquals(1, filters.size()); 
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+    }
+    
+    @Test
+    public void testBrandCategoryRule() throws SolrServerException, RepositoryException {
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        String category = "My category";
+        String searchQuery = "catId:myCat";
+        String brandId = "54"; 
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        // ----------- set up rule manager -------------
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        
+        // ------------ make the call to load the rules etc -------------
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, brandId);
+        
+        // ------------ assertions about the inner solr query that was performed -----------
+        ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
+        verify(server).query(query.capture());
+        List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
+        assertEquals(1, filters.size()); 
+        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__ OR brandId:54) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
+        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+    }
+    
     private void testFacetRuleSortingAux(String combineMode, int clearTimes) {
         final FacetManager facetManager = mock(FacetManager.class);
         RuleManager mgr = new RuleManager(repository, builder, server) {

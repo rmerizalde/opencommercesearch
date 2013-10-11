@@ -100,6 +100,7 @@ public class EmbeddedServerIntegrationTest {
         doc.setField("ancestorCategoryId", "category0");
         doc.setField("categoryLeaves", "category 0");
         doc.setField("listRank", "1");
+        doc.setField("skuCount", "0");
         doc.setField("seoUrl", "/santa-cruz-bicycles-tallboy-lt-carbon");
         doc.setField("image", "MATCAR.jpg");
         doc.setField("brandId", "100000796");

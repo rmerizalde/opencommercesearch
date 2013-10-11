@@ -36,11 +36,12 @@ public class RuleProperty {
     public static final String SITES = "sites";
     public static final String CATALOGS = "catalogs";
     public static final String CATEGORIES = "categories";
+    public static final String BRANDS = "brands";
     public static final String INCLUDE_SUBCATEGORIES = "includeSubcategories";
     public static final String RULE_TYPE = "ruleType";
     public static final String SORT_PRIORITY = "sortPriority";
     public static final String COMBINE_MODE = "combineMode";
-
+    public static final String SUB_TARGET = "subTarget";
     public static final String TYPE_BOOST_RULE = "boostRule";
     public static final String TYPE_BLOCK_RULE = "blockRule";
     public static final String TYPE_FACET_RULE = "facetRule";
