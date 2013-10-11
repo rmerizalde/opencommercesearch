@@ -482,7 +482,6 @@ public class AbstractSearchServerIntegrationTest {
         
     }
     
-    
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testGetFacet(SearchServer server) throws SearchServerException {
         Facet facet = server.getFacet(site, Locale.US, "brandId", 100);
@@ -727,6 +726,9 @@ public class AbstractSearchServerIntegrationTest {
         update.append("<field name=\"category\">__all__</field>");
         update.append("<field name=\"target\">allpages</field>");
         update.append("<field name=\"query\">redirect</field>");
+        update.append("<field name=\"brandId\">__all__</field>");
+        update.append("<field name=\"subTarget\">__all__</field>");
+
     }
 
     /**
