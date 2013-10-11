@@ -52,8 +52,6 @@
    <field name="isLeaf"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="isOrphan"         type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="feedTimestamp"    type="long"    indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="paths"            type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="filter"           type="string"  indexed="false" stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
  </fields>
 

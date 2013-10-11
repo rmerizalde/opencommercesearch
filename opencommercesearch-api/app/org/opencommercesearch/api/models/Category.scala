@@ -48,15 +48,13 @@ case class Category(
   var isRuleBased: Option[Boolean],
   var catalogs: Option[Seq[String]],
   var parentCategories: Option[Seq[Category]],
-  var childCategories: Option[Seq[Category]],
-  var paths: Option[Seq[String]],
-  var filter: Option[String]) {
+  var childCategories: Option[Seq[Category]]) {
 
   /**
    * This constructor is for lazy loaded categories
    * @param id is the id of the category to lazy load
    */
-  def this(id: Option[String]) = this(id, None, None, None, None, None, None, None)
+  def this(id: Option[String]) = this(id, None, None, None, None, None)
 
   /**
    * This constructor is intended document object binder used to load Solr documents
@@ -92,16 +90,6 @@ case class Category(
   def setChildCategories(childCategories: util.Collection[String]) {
     this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
   }
-
-  @Field("paths")
-  def setPaths(paths: util.Collection[String]) {
-    this.paths = Option.apply(JIterableWrapper(paths).toSeq)
-  }
-
-  @Field
-  def setFilter(filter: String) {
-    this.filter = Option.apply(filter)
-  }
 }
 
 object Category {
@@ -111,9 +99,7 @@ object Category {
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "catalogs").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
-    (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
-    (__ \ "paths").readNullable[Seq[String]] ~
-    (__ \ "filter").readNullable[String]
+    (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
   ) (Category.apply _)
 
   implicit val writesCategory : Writes[Category] = (
@@ -122,9 +108,7 @@ object Category {
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "catalogs").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
-    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
-    (__ \ "paths").writeNullable[Seq[String]] ~
-    (__ \ "filter").writeNullable[String]
+    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
 }
 
@@ -170,16 +154,6 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
               doc.addField("childCategories", id)
             }
           }
-        }
-
-        for (paths <- category.paths) {
-          for (path <- paths) {
-            doc.addField("paths", path)
-          }
-        }
-
-        for(filter <- category.filter) {
-          doc.setField("filter", filter)
         }
 
         // this is just informational info

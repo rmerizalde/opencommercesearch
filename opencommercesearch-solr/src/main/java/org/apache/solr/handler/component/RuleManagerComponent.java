@@ -92,11 +92,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     String facetsCoreName;
 
     /**
-     * The core to query for category data.
-     */
-    String categoriesCoreName;
-
-    /**
      * Binder to transform Lucene docs to objects.
      */
     DocumentObjectBinder binder = new DocumentObjectBinder();
@@ -116,25 +111,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     public enum PageType { search, category, rule}
 
-    /**
-     * Enum that is used to translate site codes to site ids.
-     * TODO: Rules should be indexed with the site code, not the site ID. This translation is risky and not scalable,
-     * as there could be new sites or sites could have new IDs
-     */
-    public enum SiteId {
-        bcs (1), dogfunk(2), competitivecyclist(7);
-
-        private final int id;
-
-        SiteId(int id) {
-            this.id = id;
-        }
-
-        public int getValue() {
-            return id;
-        }
-    }
-
     @Override
     public void init(NamedList args)
     {
@@ -150,11 +126,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         if(facetsCoreBaseName != null) {
             this.facetsCoreBaseName = facetsCoreBaseName;
         }
-
-        String categoriesCoreBaseName = initArgs.get("categoriesCore");
-        if(categoriesCoreBaseName != null) {
-            this.categoriesCoreBaseName = categoriesCoreBaseName;
-        }
     }
 
     /**
@@ -166,15 +137,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
         rulesCoreName = getCoreName(core, rulesCoreBaseName);
         facetsCoreName = getCoreName(core, facetsCoreBaseName);
-        categoriesCoreName = getCoreName(core, categoriesCoreBaseName, false);
 
-        if(rulesCoreName == null || facetsCoreName == null || categoriesCoreName == null) {
-            logger.error("Running on core " + core.getName() + " that is not 'Preview' or 'Public'. Cannot associate appropiate Rules, Facets and Categories cores due that.");
+        if(rulesCoreName == null || facetsCoreName == null) {
+            logger.error("Running on core " + core.getName() + " that is not 'Preview' or 'Public'. Cannot associate appropiate Rules and Facets cores due that.");
         }
         else {
             logger.debug("Rules core name: " + rulesCoreName);
             logger.debug("Facets core name: " + facetsCoreName);
-            logger.debug("Categories core name: " + categoriesCoreName);
         }
     }
 
@@ -198,7 +167,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             return;
         }
 
-        if(rulesCoreName == null || facetsCoreName == null || categoriesCoreName == null) {
+        if(rulesCoreName == null || facetsCoreName == null) {
             logger.warn("There are initialization errors, bypassing this request.");
             return;
         }
@@ -212,10 +181,8 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         }
 
         try {
-            Document category = getCategory(requestParams);
-
             //Get matching rules from rulesCore
-            Map<RuleType, List<Document>> rulesMap = searchRules(requestParams, pageType, category);
+            Map<RuleType, List<Document>> rulesMap = searchRules(requestParams, pageType);
 
             //Now add params to the original query
             MergedSolrParams augmentedParams;
@@ -273,7 +240,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 //Finally add the score field to the sorting spec. Score will be a tie breaker when other sort specs are added
                 augmentedParams.addSort("score", SolrQuery.ORDER.desc);
 
-                setFilterQueries(requestParams, augmentedParams, category);
+                setFilterQueries(requestParams, augmentedParams);
                 rb.rsp.add("rule_facets", facetHandler.getFacets());
             }
 
@@ -347,7 +314,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     public SearchHandler getSearchHandler(SolrCore core) throws IOException {
         if(core == null) {
-            throw new IOException("Cannot process any requests because a required core was not found. Check that you created a core called " + rulesCoreName + ", " + facetsCoreName +  " and also " + categoriesCoreName + ".");
+            throw new IOException("Cannot process any requests because a required core was not found. Check that you created a core called " + rulesCoreName + ", and " + facetsCoreName + ".");
         }
 
         SearchHandler searchHandler = (SearchHandler) core.getRequestHandler("/select");
@@ -370,84 +337,18 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     }
 
     /**
-     * If on a category page, find the current category data by submitting a query to the categories core.
-     * @param requestParams The current request parameters.
-     * @return The current category document if found. Null otherwise.
-     * @throws IOException if there are issues getting a valid search handler for the categories core.
-     */
-    private Document getCategory(SolrParams requestParams) throws IOException {
-        String categoryId = getCategoryFromFilterQuery(requestParams.getParams(CommonParams.FQ));
-
-        if(categoryId == null) {
-            //No category was set on the request params.
-            logger.debug("Expected a category ID, but none found. Check that the filter query ancestorCategoryId was set with the proper data.");
-            return null;
-        }
-
-        SolrQuery categoryQuery = new SolrQuery(CategoryConstants.FIELD_ID + ":" + categoryId);
-        SolrCore categoriesCore = coreContainer.getCore(categoriesCoreName);
-        SearchHandler searchHandler = getSearchHandler(categoriesCore);
-        RefCounted<SolrIndexSearcher> categoriesSearcher = categoriesCore.getSearcher();
-
-        try {
-            SolrQueryResponse response = new SolrQueryResponse();
-            categoriesCore.execute(searchHandler, new LocalSolrQueryRequest(categoriesCore, categoryQuery), response);
-            ResultContext result = (ResultContext) response.getValues().get("response");
-
-            if(result != null) {
-                DocList categories = result.docs;
-                DocIterator categoriesIterator = categories.iterator();
-                if(categoriesIterator.hasNext()) {
-                    return categoriesSearcher.get().doc(categoriesIterator.nextDoc());
-                }
-                else {
-                    logger.debug("No category found that matches categoryID:" + categoryId);
-                }
-            }
-            else {
-                logger.error("An error occurred when searching for category data", response.getException());
-            }
-        }
-        finally {
-            categoriesSearcher.decref();
-        }
-
-        return null;
-    }
-
-    /**
-     * Inspects a list of filter queries to find out what the current category is.
-     * <p/>
-     * The current category comes in the filter query "ancestoryCategoryId" for a category search request.
-     * @param filterQueries Array of filter queries to inspect.
-     * @return The category ID set on the ancestorCategoryId filter, null if not found.
-     */
-    private String getCategoryFromFilterQuery(String[] filterQueries) {
-        if(filterQueries != null) {
-            for(String filterQuery : filterQueries) {
-                int index = filterQuery.indexOf(RuleConstants.FIELD_ANCESTOR_CATEGORY + ":");
-                if(index >= 0) {
-                    return filterQuery.substring(index + RuleConstants.FIELD_ANCESTOR_CATEGORY.length() + 1);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Search for matching rules. Any found rules are added to a map to process them later.
      * @param requestParams Incoming search params.
      * @param pageType Current page type.
      * @return Map of rules where the key is the rule type.
      * @throws IOException If there are issues getting the rules core.
      */
-    private Map<RuleType, List<Document>> searchRules(SolrParams requestParams, PageType pageType, Document category) throws IOException {
+    private Map<RuleType, List<Document>> searchRules(SolrParams requestParams, PageType pageType) throws IOException {
         Map<RuleType, List<Document>> rulesMap = new HashMap<RuleType, List<Document>>();
 
         //Prepare query to rules index
         String qParam = requestParams.get(CommonParams.Q);
-        SolrQuery ruleParams = getRulesQuery(requestParams, pageType, category);
+        SolrQuery ruleParams = getRulesQuery(requestParams, pageType);
 
         if(ruleParams == null) {
             //Do nothing, this request is not supported by the RuleManager component
@@ -484,26 +385,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                         }
 
                         RuleType ruleType = RuleType.valueOf(ruleDoc.get(RuleConstants.FIELD_RULE_TYPE));
-                        if(ruleType == RuleType.facetRule) {
-                            addRuleToMap(rulesMap, ruleType, ruleDoc);
-                        }
-                        else {
-                            String categoryPath = null;
-
-                            if(category != null) {
-                                categoryPath = category.get(CategoryConstants.FIELD_PATHS);
-                            }
-
-                            if (categoryPath != null && PageType.rule == pageType) {
-                                //For rule based pages, include only those rules that match the current category path.
-                                String[] ruleCategories = ruleDoc.getValues(RuleConstants.FIELD_CATEGORY);
-                                if(ruleCategories != null && Arrays.asList(ruleCategories).contains(categoryPath)) {
-                                    addRuleToMap(rulesMap, ruleType, ruleDoc);
-                                }
-                            } else {
-                                addRuleToMap(rulesMap, ruleType, ruleDoc);
-                            }
-                        }
+                        addRuleToMap(rulesMap, ruleType, ruleDoc);
                     }
                 }
                 else {
@@ -567,11 +449,10 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * This query is intended to match any rules that apply for the current request.
      * @param requestParams Parameters on the current request being processed (i.e. search, category browsing, rule based pages, etc).
      * @param pageType Type of page to which this request belongs to.
-     * @param category Category data if any.
      * @return Query ready to be sent to the rules core, to fetch all rules that apply for the given request.
      * @throws IOException If there are missing required values.
      */
-    private SolrQuery getRulesQuery(SolrParams requestParams, PageType pageType, Document category) throws IOException {
+    private SolrQuery getRulesQuery(SolrParams requestParams, PageType pageType) throws IOException {
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
 
         if(catalogId == null) {
@@ -610,30 +491,18 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         //Filter queries
         StringBuilder filterQueries =  new StringBuilder().append("(").append(RuleConstants.FIELD_CATEGORY).append(":").append(RuleConstants.WILDCARD);
 
-        String categoryFilterQuery = null;
-        String categoryPath = null;
-
-        if(category != null) {
-            categoryFilterQuery = category.get(CategoryConstants.FIELD_FILTER);
-            categoryPath = category.get(CategoryConstants.FIELD_PATHS);
-        }
-
-        if (StringUtils.isNotBlank(categoryFilterQuery)) {
-            filterQueries.append(" OR ").append(RuleConstants.FIELD_CATEGORY).append(":").append(categoryFilterQuery);
-        }
-
-        if (categoryPath != null) {
-            filterQueries.append(" OR ").append(RuleConstants.FIELD_CATEGORY).append(":").append(categoryPath);
+        String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
+        if (StringUtils.isNotBlank(categoryFilter)) {
+            filterQueries.append(" OR ").append(RuleConstants.FIELD_CATEGORY).append(":").append(categoryFilter);
         }
 
         filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_SITE_ID).append(":").append(RuleConstants.WILDCARD);
 
-        String[] siteIds = requestParams.getParams(RuleManagerParams.SITE_IDS);
+        String[] sites = requestParams.getParams(RuleManagerParams.SITE_IDS);
 
-        if (siteIds != null) {
-            for(String site : siteIds) {
-                SiteId siteId = SiteId.valueOf(site);
-                filterQueries.append(" OR ").append(RuleConstants.FIELD_SITE_ID).append(":").append(siteId.getValue());
+        if (sites != null) {
+            for(String site : sites) {
+                filterQueries.append(" OR ").append(RuleConstants.FIELD_SITE_ID).append(":").append(site);
             }
         }
 
@@ -680,18 +549,17 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * Set filter queries params, used for faceting and filtering of results.
      * @param requestParams Original request params
      * @param ruleParams The new query parameters added by the rules component.
-     * @param category The
      */
-    private void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams, Document category) {
+    private void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams) {
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
 
-        if (category == null || category.get(CategoryConstants.FIELD_FILTER) != null) {
+        String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
+        if (categoryFilter == null) {
             return;
         }
 
-        String categoryFilter = category.get(CategoryConstants.FIELD_FILTER);
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":" + categoryFilter);
         int levelIndex = categoryFilter.indexOf('.');
         int categoryFacetPrefixLevel = Integer.valueOf(categoryFilter.substring(0, levelIndex)) + 1;

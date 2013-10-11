@@ -45,6 +45,11 @@ public interface RuleManagerParams {
     public static final String CATALOG_ID = "catalogId";
 
     /**
+     * Category filter to apply. Certain rules only apply for specific categories.
+     */
+    public static final String CATEGORY_FILTER = "categoryFilter";
+
+    /**
      * Whether or not rules debug information should be returned on the response.
      */
     public static final String DEBUG = "debugRule";
