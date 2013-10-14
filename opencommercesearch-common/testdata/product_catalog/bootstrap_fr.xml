@@ -17,6 +17,7 @@
     <field name="categoryNodes">Catégorie Deux</field>
     <field name="categoryLeaves">Catégorie Trois</field>
     <field name="listRank">1</field>
+    <field name="skuCount">10</field>
     <field name="seoUrl">/my-product</field>
     <field name="image">my-product.jpg</field>
     <field name="brandId">88</field>
