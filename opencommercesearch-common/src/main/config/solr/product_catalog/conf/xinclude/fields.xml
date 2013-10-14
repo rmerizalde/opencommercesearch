@@ -59,7 +59,7 @@
 
   <!-- dynamic facet fields -->
   <dynamicField name="stockLevel*"            type="int"     indexed="true" stored="true"   required="false"  multiValued="false" omitNorms="true" />
-  <dynamicField name="allowBackorder*"        type="boolean" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" default="false" />
+  <dynamicField name="allowBackorder*"        type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true" />
   <dynamicField name="onsale*"                type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="true"  />
   <!-- the review average is used for range queries so lets use a float with precisionStep > 0 -->
   <dynamicField name="reviewAverage*"         type="tfloat"  indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
@@ -67,8 +67,8 @@
   <dynamicField name="bayesianReviewAverage*" type="float"   indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
   <dynamicField name="reviews*"               type="int"     indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
   <dynamicField name="freeGift*"              type="boolean" indexed="true"  stored="true"  required="false"  multiValued="false" omitNorms="false" />
-  <dynamicField name="seoUrl*"                type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
-  <dynamicField name="url*"                   type="string"  indexed="false" stored="true"  required="true"   multiValued="false" omitNorms="true" />
+  <dynamicField name="seoUrl*"                type="string"  indexed="false" stored="true"  required="false"   multiValued="false" omitNorms="true" />
+  <dynamicField name="url*"                   type="string"  indexed="false" stored="true"  required="false"   multiValued="false" omitNorms="true" />
   <dynamicField name="ha_*"                   type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
   <dynamicField name="attr_*"                 type="string"  indexed="true"  stored="false" required="false"  multiValued="true"  omitNorms="true" />
   <dynamicField name="feature_*"              type="string"  indexed="false" stored="true"  required="false"  multiValued="false" omitNorms="true" />
