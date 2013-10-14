@@ -65,6 +65,11 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private EvaluationServiceSender evaluationServiceSender;
 
     /**
+     * Whether or not the indexing deployment listener is enabled.
+     */
+    private boolean enabled;
+
+    /**
      * Facets REST feed instance.
      */
     private FacetFeed facetFeed;
@@ -136,6 +141,14 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         this.enableEvaluation = enableEvaluation;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public FacetFeed getFacetFeed() {
         return facetFeed;
     }
@@ -162,6 +175,13 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 
     @Override
     public void deploymentEvent(DeploymentEvent event) {
+        if(!isEnabled()) {
+            if(isLoggingInfo()) {
+                logInfo("Indexing deployment listener not enabled.");
+            }
+            return;
+        }
+
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         String date = formatter.format(new Date());
         boolean doEvaluation = false;
