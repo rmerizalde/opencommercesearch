@@ -107,6 +107,7 @@ public class RuleFeed extends BaseRestFeed {
             JSONArray siteIds = new JSONArray();
             for (RepositoryItem site : sites) {
                 siteIds.add(site.getRepositoryId());
+                siteIds.add(site.getPropertyValue("code"));
             }
 
             ruleJsonObj.put(RuleConstants.FIELD_SITE_ID, siteIds);

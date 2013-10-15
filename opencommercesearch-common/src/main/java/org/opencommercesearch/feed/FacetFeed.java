@@ -71,9 +71,9 @@ public class FacetFeed extends BaseRestFeed {
 
 
         if(facetType.equals(FacetConstants.FACET_TYPE_DATE) || facetType.equals(FacetConstants.FACET_TYPE_RANGE)) {
-            facetJsonObj.put(FacetConstants.FIELD_START, facet.getPropertyValue(FacetProperty.START));
-            facetJsonObj.put(FacetConstants.FIELD_END, facet.getPropertyValue(FacetProperty.END));
-            facetJsonObj.put(FacetConstants.FIELD_GAP, facet.getPropertyValue(FacetProperty.GAP));
+            facetJsonObj.put(FacetConstants.FIELD_START, facet.getPropertyValue(FacetProperty.START).toString());
+            facetJsonObj.put(FacetConstants.FIELD_END, facet.getPropertyValue(FacetProperty.END).toString());
+            facetJsonObj.put(FacetConstants.FIELD_GAP, facet.getPropertyValue(FacetProperty.GAP).toString());
             facetJsonObj.put(FacetConstants.FIELD_HARDENED, facet.getPropertyValue(FacetProperty.HARDENED));
         }
 

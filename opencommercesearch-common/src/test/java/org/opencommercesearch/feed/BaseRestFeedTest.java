@@ -27,27 +27,19 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
-import com.objectspace.jgl.functions.Hash;
-import com.sun.xml.bind.StringInputStream;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.internal.matchers.Any;
 import org.opencommercesearch.api.ProductService;
-import org.restlet.Client;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.Method;
 import org.restlet.data.Status;
-import org.restlet.engine.application.EncodeRepresentation;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.Assert.assertEquals;
@@ -105,9 +97,6 @@ public class BaseRestFeedTest {
         when(productService.getUrl4Endpoint(ProductService.Endpoint.BRANDS)).thenReturn("http://localhost:9000/v1/brands");
         when(productService.getUrl4Endpoint(ProductService.Endpoint.BRANDS, "commit")).thenReturn("http://localhost:9000/v1/brands/commit");
         when(productService.getUrl4Endpoint(ProductService.Endpoint.BRANDS, "rollback")).thenReturn("http://localhost:9000/v1/brands/rollback");
-        Response response = new Response(new Request());
-        response.setStatus(Status.SUCCESS_OK);
-        when(productService.handle(any(Request.class))).thenReturn(response);
 
         feed.setRepository(repository);
         feed.setCountRql(rqlCount);
@@ -116,6 +105,8 @@ public class BaseRestFeedTest {
         feed.setEnabled(true);
         feed.setProductService(productService);
         feed.doStartService();
+        feed.setErrorThreshold(0.5);
+        feed.setBatchSize(2);
 
         when(repository.getView("TestDescriptor")).thenReturn(repositoryView);
 
@@ -128,14 +119,13 @@ public class BaseRestFeedTest {
         ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
         when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(0);
 
+        Response response = new Response(new Request());
+        response.setStatus(Status.SUCCESS_OK);
+        when(productService.handle(any(Request.class))).thenReturn(response);
+
         feed.startFeed();
 
-        verify(productService, times(2)).handle(argument.capture());
-        assertEquals(Method.DELETE, argument.getAllValues().get(0).getMethod());
-        assertEquals("http://localhost:9000/v1/brands?query=*:*", argument.getAllValues().get(0).getResourceRef().toString());
-
-        assertEquals(Method.POST, argument.getValue().getMethod());
-        assertEquals("http://localhost:9000/v1/brands/commit", argument.getValue().getResourceRef().toString());
+        verify(productService, never()).handle(argument.capture());
     }
 
     @Test
@@ -143,6 +133,13 @@ public class BaseRestFeedTest {
         ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
         when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(2);
         when(rql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{itemA, itemB}).thenReturn(null);
+
+        Response responseOk = new Response(new Request());
+        responseOk.setStatus(Status.SUCCESS_OK);
+
+        Response responseCreated = new Response(new Request());
+        responseCreated.setStatus(Status.SUCCESS_CREATED);
+        when(productService.handle(any(Request.class))).thenReturn(responseOk).thenReturn(responseCreated).thenReturn(responseOk);
 
         feed.startFeed();
 
@@ -169,10 +166,53 @@ public class BaseRestFeedTest {
         when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
         when(rql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenThrow(new RepositoryException());
 
+        Response responseOk = new Response(new Request());
+        responseOk.setStatus(Status.SUCCESS_OK);
+
+        Response responseCreated = new Response(new Request());
+        responseCreated.setStatus(Status.SUCCESS_OK);
+        when(productService.handle(any(Request.class))).thenReturn(responseOk).thenReturn(responseCreated).thenReturn(responseOk);
+
         feed.startFeed();
 
         verify(productService, times(2)).handle(argument.capture());
 
+        assertEquals(Method.POST, argument.getValue().getMethod());
+        assertEquals("http://localhost:9000/v1/brands/rollback", argument.getValue().getResourceRef().toString());
+    }
+
+    @Test
+    public void testErrorThreshold() throws Exception {
+        ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
+
+        when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(4);
+        when(rql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{itemA, itemB}).thenReturn(new RepositoryItem[]{itemA, itemB}).thenReturn(null);
+
+        Response badResponse = new Response(new Request());
+        badResponse.setStatus(Status.SERVER_ERROR_INTERNAL);
+
+        Response goodResponse = new Response(new Request());
+        goodResponse.setStatus(Status.SUCCESS_OK);
+        when(productService.handle(any(Request.class))).thenReturn(goodResponse).thenReturn(badResponse).thenReturn(goodResponse);
+
+        feed.startFeed();
+
+        verify(productService, times(3)).handle(argument.capture());
+        verify(rql, times(1)).executeQueryUncached(eq(repositoryView), (Object[]) anyObject());
+
+        GZIPInputStream is = new GZIPInputStream(argument.getAllValues().get(1).getEntity().getStream());
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String jsonString = br.readLine();
+        assertNotNull(jsonString);
+
+        //Check that it tried to send the first two items before failing
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONArray items = (JSONArray) jsonObject.get("brands");
+
+        assertEquals(((JSONObject)items.get(0)).get("id"), "itemA");
+        assertEquals(((JSONObject)items.get(1)).get("id"), "itemB");
+
+        //Check that it did rollback afterwards
         assertEquals(Method.POST, argument.getValue().getMethod());
         assertEquals("http://localhost:9000/v1/brands/rollback", argument.getValue().getResourceRef().toString());
     }
