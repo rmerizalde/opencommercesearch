@@ -52,6 +52,7 @@ public class IndexingDeploymentListenerUnitTest {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
+        indexingDeploymentListener.setEnabled(true);
         indexingDeploymentListener.setSearchServer(searchServer);
         indexingDeploymentListener.setTriggerStatus(Status.stateToString(1));
         indexingDeploymentListener.setTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor1", "searchRepo:triggerItemDescriptor2"));
