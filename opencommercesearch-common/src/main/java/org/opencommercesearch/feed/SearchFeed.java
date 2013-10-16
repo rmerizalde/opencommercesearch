@@ -295,7 +295,7 @@ public abstract class SearchFeed extends GenericService {
                         localProductProcessedCount++;
 
                         //If global failures exceed the error threshold, then stop this partition task
-                        shouldStop = failedProductCount.get() < currentErrorThreshold;
+                        shouldStop = failedProductCount.get() >= currentErrorThreshold;
                         done = localProductProcessedCount >= limit || shouldStop;
                         if (done) break;
                     }
