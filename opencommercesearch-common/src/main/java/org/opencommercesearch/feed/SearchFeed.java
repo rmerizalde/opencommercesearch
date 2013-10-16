@@ -531,10 +531,7 @@ public abstract class SearchFeed extends GenericService {
         for (Locale locale : localeService.getSupportedLocales()) {
             if (!languages.contains(locale.getLanguage())) {
                 try {
-
-                    if (endpointUrl.indexOf("?") != -1) {
-                        endpointUrl += "&";
-                    }
+                    endpointUrl += endpointUrl.indexOf("?") != -1? "&" : "?";
                     endpointUrl += "feedTimestamp=" + feedTimestamp;
                     final Request request = new Request(Method.DELETE, endpointUrl);
                     final ClientInfo clientInfo = request.getClientInfo();
