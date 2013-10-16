@@ -7,6 +7,8 @@ GET           /v1/brands/suggestions                                     org.ope
 GET           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
+POST          /v1/brands/rollback                                        org.opencommercesearch.api.controllers.BrandController.rollback(preview: Boolean ?= false)
+DELETE        /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.deleteByTimestamp(preview: Boolean ?= false, feedTimestamp: Long)
 
 # product routes
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
@@ -24,6 +26,7 @@ GET           /v1/categories/suggestions                                 org.ope
 GET           /v1/categories/:id                                         org.opencommercesearch.api.controllers.CategoryController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
 DELETE        /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean ?= false)
+POST          /v1/categories/rollback                                    org.opencommercesearch.api.controllers.CategoryController.rollback(preview: Boolean ?= false)
 
 # query routes
 GET           /v1/queries/suggestions                                    org.opencommercesearch.api.controllers.QueryController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)

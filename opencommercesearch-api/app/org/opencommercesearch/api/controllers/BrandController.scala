@@ -22,7 +22,7 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.Json
 
 import scala.concurrent.Future
 
@@ -196,5 +196,32 @@ object BrandController extends BaseController {
         brand.logo.isEmpty
     }
     missingFields
+  }
+
+  /**
+   * Delete method that remove all brands not matching a given timestamp.
+   */
+  @ApiOperation(value = "Delete brands", notes = "Removes brands based on a given query", httpMethod = "DELETE")
+  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Cannot delete brands")))
+  def deleteByTimestamp(
+   @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete brands in preview", required = false)
+   @QueryParam("preview")
+   preview: Boolean,
+   @ApiParam(value = "The feed timestamp. All brands with a different timestamp are deleted", required = true)
+   @QueryParam("feedTimestamp")
+   feedTimestamp: Long) = Action { request =>
+    deleteByQuery("-feedTimestamp:" + feedTimestamp, withBrandCollection(new AsyncUpdateRequest(), preview))
+  }
+
+  /**
+   * Rollback any changes after the last commit.
+   */
+  @ApiOperation(value = "Rollback brand changes", notes = "Rolls back brand changes after the last commit", httpMethod = "POST")
+  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Cannot rollback brands")))
+  def rollback(
+   @ApiParam(defaultValue="false", allowableValues="true,false", value = "Rollback brands in preview", required = false)
+   @QueryParam("preview")
+   preview: Boolean) = Action { request =>
+    commitOrRollback(commit = false, rollback = true, withBrandCollection(new AsyncUpdateRequest(), preview))
   }
 }
