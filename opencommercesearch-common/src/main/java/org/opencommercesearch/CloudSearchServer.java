@@ -30,9 +30,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.solr.client.solrj.ResponseParser;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.BinaryResponseParser;
-import org.apache.solr.client.solrj.impl.CloudSolrServer;
-import org.apache.solr.client.solrj.impl.HttpSolrServer;
+import org.apache.solr.client.solrj.impl.*;
 import org.apache.solr.client.solrj.request.CoreAdminRequest;
 import org.apache.solr.client.solrj.response.CoreAdminResponse;
 import org.apache.solr.common.cloud.ClusterState;
@@ -42,6 +40,7 @@ import org.apache.solr.common.cloud.ZkCoreNodeProps;
 import org.apache.solr.common.cloud.ZkNodeProps;
 import org.apache.solr.common.cloud.ZkStateReader;
 import org.apache.solr.common.params.CoreAdminParams.CoreAdminAction;
+import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
@@ -76,6 +75,13 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
     private SolrZkClient zkClient;
     private String host;
     private ResponseParser responseParser = binaryParser;
+    private int maxConnections;
+    private int maxConnectionsPerHost;
+    private int connectTimeout;
+    private int socketTimeout;
+    private int zkConnectTimeout = 10000;
+    private int zkClientTimeout = 10000;
+    private LBHttpSolrServer lbServer;
 
     public String getHost() {
         return host;
@@ -91,6 +97,55 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
 
     public void setResponseParser(ResponseParser responseParser) {
         this.responseParser = responseParser;
+    }
+
+    public int getMaxConnections() {
+        return maxConnections;
+    }
+
+    public void setMaxConnections(int maxConnections) {
+        this.maxConnections = maxConnections;
+    }
+
+    public int getMaxConnectionsPerHost() {
+        return maxConnectionsPerHost;
+    }
+
+    public void setMaxConnectionsPerHost(int maxConnectionsPerHost) {
+        this.maxConnectionsPerHost = maxConnectionsPerHost;
+    }
+
+    public int getConnectTimeout() {
+        return connectTimeout;
+    }
+
+    public void setConnectTimeout(int connectTimeout) {
+        this.connectTimeout = connectTimeout;
+    }
+
+    public int getSocketTimeout() {
+        return socketTimeout;
+    }
+
+    public void setSocketTimeout(int socketTimeout) {
+        this.socketTimeout = socketTimeout;
+    }
+
+    public int getZkClientTimeout() {
+        return zkClientTimeout;
+    }
+
+    public void setZkClientTimeout(int zkClientTimeout) {
+        this.zkClientTimeout = zkClientTimeout;
+    }
+
+
+    public int getZkConnectTimeout() {
+        return zkConnectTimeout;
+    }
+
+    public void setZkConnectTimeout(int zkConnectTimeout) {
+        this.zkConnectTimeout = zkConnectTimeout;
     }
 
     private SolrZkClient getZkClient(Locale locale) {
@@ -167,7 +222,23 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         }
     }
 
-    public void initSolrServer() throws MalformedURLException {
+    public synchronized void initSolrServer() throws MalformedURLException {
+        ModifiableSolrParams params = new ModifiableSolrParams();
+        if (maxConnections > 0) {
+            params.set(HttpClientUtil.PROP_MAX_CONNECTIONS, maxConnections);
+        }
+        if (maxConnectionsPerHost > 0) {
+            params.set(HttpClientUtil.PROP_MAX_CONNECTIONS_PER_HOST, maxConnectionsPerHost);
+        }
+        if (connectTimeout > 0) {
+            params.set(HttpClientUtil.PROP_CONNECTION_TIMEOUT, connectTimeout);
+        }
+        if (socketTimeout > 0) {
+            params.set(HttpClientUtil.PROP_SO_TIMEOUT, socketTimeout);
+        }
+        HttpClient httpClient = HttpClientUtil.createClient(params);
+        LBHttpSolrServer newLbServer = new LBHttpSolrServer(httpClient);
+
         for (Locale locale : SUPPORTED_LOCALES) {
             CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
             String languagePrefix = "_" + locale.getLanguage();
@@ -175,8 +246,11 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             if (catalogSolrServer != null) {
                 catalogSolrServer.shutdown();
             }
-            catalogSolrServer = new CloudSolrServer(getHost());
+
+            catalogSolrServer = new CloudSolrServer(getHost(), newLbServer);
             catalogSolrServer.setDefaultCollection(getCatalogCollection() + languagePrefix);
+            catalogSolrServer.setZkConnectTimeout(getZkConnectTimeout());
+            catalogSolrServer.setZkClientTimeout(getZkClientTimeout());
             setCatalogSolrServer(catalogSolrServer, locale);
 
             CloudSolrServer rulesSolrServer = getSolrServer(getRulesCollection(), locale);
@@ -184,20 +258,29 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             if (rulesSolrServer != null) {
                 rulesSolrServer.shutdown();
             }
-            rulesSolrServer = new CloudSolrServer(getHost());
+            rulesSolrServer = new CloudSolrServer(getHost(), newLbServer);
             rulesSolrServer.setDefaultCollection(getRulesCollection() + languagePrefix);
+            rulesSolrServer.setZkConnectTimeout(getZkConnectTimeout());
+            rulesSolrServer.setZkClientTimeout(getZkClientTimeout());
             setRulesSolrServer(rulesSolrServer, locale);
-            
+
             CloudSolrServer autocompleteSolrServer = getSolrServer(getAutocompleteCollection(), locale);
-            
+
             if (autocompleteSolrServer != null) {
                 autocompleteSolrServer.shutdown();
             }
-            autocompleteSolrServer = new CloudSolrServer(getHost());
+            autocompleteSolrServer = new CloudSolrServer(getHost(), newLbServer);
             //TODO gsegura: we may need to add the language prefix here
             autocompleteSolrServer.setDefaultCollection(getAutocompleteCollection());
+            autocompleteSolrServer.setZkConnectTimeout(getZkConnectTimeout());
+            autocompleteSolrServer.setZkClientTimeout(getZkClientTimeout());
             setAutocompleteSolrServers(autocompleteSolrServer, locale);
         }
+
+        if (lbServer != null) {
+            lbServer.shutdown();
+        }
+        lbServer = newLbServer;
     }
 
 

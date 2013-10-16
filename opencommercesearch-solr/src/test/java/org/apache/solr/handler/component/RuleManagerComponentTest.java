@@ -97,6 +97,7 @@ public class RuleManagerComponentTest {
         when(coreContainer.getCore("facetsCore")).thenReturn(facetsCore);
         when(rulesCore.getRequestHandler("/select")).thenReturn(searchHandler);
         when(facetsCore.getRequestHandler("/select")).thenReturn(searchHandler);
+
         when(rulesCore.getSearcher()).thenReturn(new RefCounted<SolrIndexSearcher>(rulesIndexSearcher) {
             @Override
             protected void close() {

@@ -45,23 +45,12 @@ public interface RuleManagerParams {
     public static final String CATALOG_ID = "catalogId";
 
     /**
-     * Parameter used to filter rules (rules can target specific categories).
-    */
-    public static final String CATEGORY_PATH = "categoryPath";
+     * Category filter to apply. Certain rules only apply for specific categories.
+     */
+    public static final String CATEGORY_FILTER = "categoryFilter";
 
     /**
-     * Parameter used to specify the current path when browsing.
+     * Whether or not rules debug information should be returned on the response.
      */
-    public static final String PATH = "path";
-    
-    /**
-     * Parameter used to specify whether page is outlet or retail
-     */
-    public static final String SUB_TARGET = "subTarget";
-    
-    /**
-     * Parameter used to specify whether page is outlet or retail
-     */
-    public static final String BRAND_ID = "brandId";
-    
+    public static final String DEBUG = "debugRule";
 }

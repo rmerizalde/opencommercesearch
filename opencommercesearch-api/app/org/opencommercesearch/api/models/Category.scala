@@ -30,8 +30,6 @@ import java.util
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
-import com.wordnik.swagger.annotations.ApiProperty
-
 
 /**
  * A category model.
@@ -115,7 +113,7 @@ object Category {
 }
 
 case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
-  def toDocuments() : util.List[SolrInputDocument] = {
+  def toDocuments: util.List[SolrInputDocument] = {
     val documents = new util.ArrayList[SolrInputDocument](categories.size)
     var expectedDocCount = 0
     var currentDocCount = 0
@@ -174,10 +172,10 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
           doc.setField("isOrphan", true)
         }
 
-
         documents.add(doc)
         currentDocCount += 1
       }
+
       if (expectedDocCount != currentDocCount) {
         throw new IllegalArgumentException("Missing required fields for category " + category.id.get)
       }

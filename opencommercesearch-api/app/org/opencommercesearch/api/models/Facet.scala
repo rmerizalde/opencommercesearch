@@ -53,9 +53,9 @@ case class Facet(
   var sort: Option[String],
   var isMissing: Option[Boolean],
   var limit: Option[Int],
-  var start: Option[Int],
-  var end: Option[Int],
-  var gap: Option[Int],
+  var start: Option[String],
+  var end: Option[String],
+  var gap: Option[String],
   var isHardened: Option[Boolean],
   var queries: Option[Array[String]]) {
 
@@ -120,20 +120,20 @@ case class Facet(
   @Field
   def setLimit(limit: Integer) : Unit = {this.limit = Option.apply(limit) }
 
-  def getStart : Integer = { start.getOrElse(null).asInstanceOf[Integer] }
+  def getStart : String = { start.getOrElse(null) }
 
   @Field
-  def setStart(start: Integer) : Unit = {this.start = Option.apply(start) }
+  def setStart(start: String) : Unit = {this.start = Option.apply(start) }
 
-  def getEnd : Integer = { end.getOrElse(null).asInstanceOf[Integer] }
-
-  @Field
-  def setEnd(end: Integer) : Unit = {this.end = Option.apply(end) }
-
-  def getGap : Integer = { gap.getOrElse(null).asInstanceOf[Integer] }
+  def getEnd : String = { end.getOrElse(null) }
 
   @Field
-  def setGap(gap: Integer) : Unit = {this.gap = Option.apply(gap) }
+  def setEnd(end: String) : Unit = {this.end = Option.apply(end) }
+
+  def getGap : String = { gap.getOrElse(null) }
+
+  @Field
+  def setGap(gap: String) : Unit = {this.gap = Option.apply(gap) }
 
   def getIsHardened : java.lang.Boolean = { isHardened.getOrElse(null).asInstanceOf[java.lang.Boolean] }
 
