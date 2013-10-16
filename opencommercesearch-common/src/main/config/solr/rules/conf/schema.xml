@@ -130,8 +130,8 @@
    <field name="_version_"         type="long"   indexed="true"  stored="true"                   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="id"                type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="ruleType"          type="string" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="target"            type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="subTarget"         type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="target"            type="string" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="subTarget"         type="string" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="siteId"            type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="catalogId"         type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="category"          type="string" indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
