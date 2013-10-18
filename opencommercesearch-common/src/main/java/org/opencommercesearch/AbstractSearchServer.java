@@ -575,18 +575,28 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    /**
+     * Sets the list of fields that should be returned from search.
+     * @param query Current SolrQuery being created.
+     * @param country Current country code
+     * @param catalog Current catalog code
+     */
     private void setFieldListParams(SolrQuery query, String country, String catalog) {
         String listPrice = "listPrice" + country;
         String salePrice =  "salePrice" + country;
         String discountPercent = "discountPercent" + country;
-        if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")){
+
+        if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")) {
             query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
                     "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
         }
-        else{
-            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
-               "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
+        else {
+            if(StringUtils.isEmpty(query.getFields())) {
+                query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
+                        "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
+            }
         }
+
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
     }

@@ -164,16 +164,4 @@ object CategoryController extends BaseController {
       findSuggestionsFor(classOf[Category], "categories" , solrQuery)
     }
   }
-
-  /**
-   * Rollback any changes after the last commit.
-   */
-  @ApiOperation(value = "Rollback category changes", notes = "Rolls back category changes after the last commit", httpMethod = "POST")
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Cannot rollback categories")))
-  def rollback(
-    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Rollback categories in preview", required = false)
-    @QueryParam("preview")
-    preview: Boolean) = Action { request =>
-    commitOrRollback(commit = false, rollback = true, withCategoryCollection(new AsyncUpdateRequest(), preview))
-  }
 }

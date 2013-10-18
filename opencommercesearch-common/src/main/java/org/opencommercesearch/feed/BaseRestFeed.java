@@ -270,8 +270,10 @@ public abstract class BaseRestFeed extends GenericService {
                         logError(itemDescriptorName + " feed interrupted since it seems to be failing too often. At least " + (getErrorThreshold() * 100) + "% out of " + count + " items had errors");
                     }
 
-                    //Roll back as much as we can from the changes done before the threshold was reached (specially initial delete from transactional feeds)
-                    sendRollback();
+                    if (isTransactional()) {
+                        //Roll back as much as we can from the changes done before the threshold was reached (specially initial delete)
+                        sendRollback();
+                    }
                 }
             }
             else {
