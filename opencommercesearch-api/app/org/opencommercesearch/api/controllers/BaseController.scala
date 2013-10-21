@@ -25,12 +25,14 @@ import play.api.mvc._
 import play.api.libs.json.{Writes, Json}
 
 import scala.concurrent.Future
-import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 
 import org.opencommercesearch.api.Global._
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import scala.collection.convert.Wrappers.JIterableWrapper
+import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 
 /**
  * This class provides common functionality for all controllers
@@ -61,6 +63,62 @@ class BaseController extends Controller with ContentPreview with FieldList with 
       })
 
       withErrorHandling(future, s"Cannot suggest $typeName  for [${query.getQuery}]")
+    }
+  }
+
+  /**
+   * Delete method that removes all docs matching a given query.
+   * @param query is the query used to delete docs, default is *:*
+   * @param update is the update request used to delete docs. Child classes should set the collection the request should use.
+   * @param typeName name of the item type to delete
+   */
+  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Result = {
+    update.deleteByQuery(query)
+
+    val future: Future[Result] = update.process(solrServer).map( response => {
+      NoContent
+    })
+
+    Async {
+      withErrorHandling(future, s"Cannot delete $typeName")
+    }
+  }
+
+  /**
+   * Will send commit or rollback to Solr accordingly.
+   * @param commit true if a commit should be done.
+   * @param rollback true if a rollback should be done.
+   * @param update is the update request used to commit or rollback docs. Child classes should set the collection the request should use.
+   * @param typeName name of the item type to commit or rollback
+   */
+  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Result = {
+    if(commit == rollback) {
+      BadRequest(Json.obj(
+        "message" -> s"commit and boolean can't have the same value."))
+    }
+    else {
+      if(commit) {
+        update.setAction(ACTION.COMMIT, false, false, false)
+        val future: Future[Result] = update.process(solrServer).map( response => {
+          Ok (Json.obj(
+            "message" -> "commit success"))
+        })
+
+        Async {
+          withErrorHandling(future, s"Cannot commit $typeName")
+        }
+      }
+      else {
+        update.rollback
+        val future: Future[Result] = update.process(solrServer).map( response => {
+          Ok (Json.obj(
+            "message" -> "rollback success"))
+        })
+
+        Async {
+          withErrorHandling(future, s"Cannot rollback $typeName")
+        }
+      }
     }
   }
 }
