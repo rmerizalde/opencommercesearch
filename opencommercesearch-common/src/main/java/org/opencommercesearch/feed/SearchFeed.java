@@ -28,14 +28,12 @@ import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.StopWatch;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.model.Product;
 import org.opencommercesearch.model.ProductList;
 import org.opencommercesearch.model.Sku;
-import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.opencommercesearch.service.localeservice.FeedLocaleService;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -59,7 +57,7 @@ import static org.opencommercesearch.Utils.errorMessage;
  *  - Product loading
  *  - Category tokens
  *
- * @TODO implement default feed functionality
+ * TODO implement default feed functionality
  */
 public abstract class SearchFeed extends GenericService {
     private static SendQueueItem POISON_PILL = new SendQueueItem();
@@ -76,12 +74,28 @@ public abstract class SearchFeed extends GenericService {
     private int workerCount;
     private ExecutorService productTaskExecutor;
     private AtomicInteger processedProductCount;
+
+    /**
+     * Counter of product index failures.
+     */
+    private AtomicInteger failedProductCount;
     private AtomicInteger indexedProductCount;
     private ExecutorService sendTaskExecutor;
     private BlockingDeque<SendQueueItem> sendQueue;
     private volatile boolean running;
-    private Map<Thread, Map<String,StopWatch>> timersByThread;
     private FeedLocaleService localeService;
+
+    /**
+     * Max error percentage tolerated by this feed. If this threshold is reached, then the feed will be discarded
+     * since it will be considered risky. I.e. set it to 0.1 if you want a maximum of 10% errors of the total items
+     * cause the feed to stop.
+     */
+    private double errorThreshold;
+
+    /**
+     * The error threshold for the current run.
+     */
+    private int currentErrorThreshold;
 
     public Repository getProductRepository() {
         return productRepository;
@@ -163,10 +177,6 @@ public abstract class SearchFeed extends GenericService {
         return mapper;
     }
 
-    public Map<Thread, Map<String,StopWatch>> getTimers() {
-         return timersByThread;
-    }
-
     public int getCurrentProcessedProductCount() {
         return processedProductCount.get();
     }
@@ -179,6 +189,10 @@ public abstract class SearchFeed extends GenericService {
         return sendQueue.size();
     }
 
+    public int getCurrentFailedProductCount() {
+        return failedProductCount.get();
+    }
+
     public FeedLocaleService getLocaleService() {
         return localeService;
     }
@@ -187,44 +201,20 @@ public abstract class SearchFeed extends GenericService {
         this.localeService = localeService;
     }
 
-    // Returns the timers for the current threads
-    private Map<String, StopWatch> getCurrentTimers() {
-        if (timersByThread == null) {
-            timersByThread = new ConcurrentHashMap<Thread, Map<String, StopWatch>>(getWorkerCount());
-        }
-
-        Map<String, StopWatch> timers = timersByThread.get(Thread.currentThread());
-
-        if (timers == null) {
-            timers = new LinkedHashMap<String, StopWatch>();
-            timersByThread.put(Thread.currentThread(), timers);
-        }
-        return timers;
+    public double getErrorThreshold() {
+        return errorThreshold;
     }
 
-    public void startTimer(String key) {
-        Map<String, StopWatch> timers = getCurrentTimers();
-        StopWatch timer = timers.get(key);
-        if (timer == null) {
-            timer = new StopWatch();
-            timer.start();
-            timers.put(key, timer);
-        } else {
-            timer.resume();
-        }
+    public void setErrorThreshold(double errorThreshold) {
+        this.errorThreshold = errorThreshold;
     }
 
-    public void stopTimer(String key) {
-        Map<String, StopWatch> timers = getCurrentTimers();
-        timers.get(key).suspend();
+    public int getCurrentErrorThreshold() {
+        return currentErrorThreshold;
     }
 
-    public void stopAllTimers() {
-        for (Map.Entry<Thread, Map<String, StopWatch>> entry : timersByThread.entrySet()) {
-            for (StopWatch timer : entry.getValue().values()) {
-                timer.stop();
-            }
-        }
+    public void setCurrentErrorThreshold(int currentErrorThreshold) {
+        this.currentErrorThreshold = currentErrorThreshold;
     }
 
     @Override
@@ -241,7 +231,7 @@ public abstract class SearchFeed extends GenericService {
         productTaskExecutor = Executors.newFixedThreadPool(getWorkerCount());
         processedProductCount = new AtomicInteger(0);
         indexedProductCount = new AtomicInteger(0);
-        timersByThread = new ConcurrentHashMap<Thread, Map<String, StopWatch>>(getWorkerCount());
+        failedProductCount = new AtomicInteger(0);
         sendTaskExecutor = Executors.newSingleThreadExecutor();
         sendQueue = new LinkedBlockingDeque<SendQueueItem>();
     }
@@ -292,23 +282,21 @@ public abstract class SearchFeed extends GenericService {
                 int productCount = limit;
                 int localProductProcessedCount = 0;
                 boolean done = false;
+                boolean shouldStop = false;
 
                 while (running && !done && productItems != null) {
                     for (RepositoryItem product : productItems) {
                         if (isProductIndexable(product)) {
-                            try {
-                                startTimer("processProduct");
-                                processProduct(product, products);
-                            } finally {
-                                stopTimer("processProduct");
-                            }
+                            processProduct(product, products);
                             indexedProductCount.incrementAndGet();
                             sendProducts(products, feedTimestamp, getIndexBatchSize(), true);
                         }
                         processedProductCount.incrementAndGet();
                         localProductProcessedCount++;
 
-                        done = localProductProcessedCount >= limit;
+                        //If global failures exceed the error threshold, then stop this partition task
+                        shouldStop = failedProductCount.get() >= currentErrorThreshold;
+                        done = localProductProcessedCount >= limit || shouldStop;
                         if (done) break;
                     }
 
@@ -323,7 +311,9 @@ public abstract class SearchFeed extends GenericService {
                     }
                 }
 
-                sendProducts(products, feedTimestamp, 0, true);
+                if(!shouldStop) {
+                    sendProducts(products, feedTimestamp, 0, true);
+                }
             } catch (RepositoryException ex) {
                 if (isLoggingError()) {
                     logError("Exception processing catalog partition: " + getName(), ex);
@@ -373,7 +363,9 @@ public abstract class SearchFeed extends GenericService {
                         break;
                     }
 
-                    sendProducts(item.locale.getLanguage(), item.productList);
+                    if(!sendProducts(item.locale.getLanguage(), item.productList)) {
+                        failedProductCount.incrementAndGet();
+                    }
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -389,14 +381,14 @@ public abstract class SearchFeed extends GenericService {
     /**
      * Sends the products for indexing
      *
-     * @param products the lists of products be indexed
+     * @param products the lists of products to be indexed
      * @param feedTimestamp the feed timestamp
      * @param min the minimum size of of a product list. If the size is not met then the products are not sent
      *            for indexing
      * @param async determines if the products should be send right away or asynchronously.
+     * return False if there were errors while sending the products, true otherwise.
      */
-    public void sendProducts(SearchFeedProducts products, long feedTimestamp, int min, boolean async) {
-        startTimer("sendProducts");
+    public boolean sendProducts(SearchFeedProducts products, long feedTimestamp, int min, boolean async) {
         for (Locale locale : products.getLocales()) {
             if (products.getSkuCount(locale) > min) {
                 List<Product> productList = products.getProducts(locale);
@@ -405,20 +397,31 @@ public abstract class SearchFeed extends GenericService {
                         List<Product> clone = new ArrayList<Product>(productList.size());
                         clone.addAll(productList);
                         sendQueue.offer(new SendQueueItem(locale, new ProductList(clone, feedTimestamp)));
+                        //If an async call is made, this always return true.
+                        return true;
                     } else {
-                        sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp));
+                        if(sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
+                            return true;
+                        }
+                        else {
+                            failedProductCount.incrementAndGet();
+                            return false;
+                        }
                     }
                 } finally {
                     productList.clear();
                 }
             }
         }
-        stopTimer("sendProducts");
+
+        return true;
     }
 
-    // helper method that actually sends the products for indexing
-    private void sendProducts(final String language, final ProductList productList) {
-        startTimer("sendProductsToApi");
+    /**
+     * Helper method that actually sends the products for indexing
+     * @return False if there are errors sending the product, true otherwise.
+     */
+    private boolean sendProducts(final String language, final ProductList productList) {
         try {
             final StreamRepresentation representation = new StreamRepresentation(MediaType.APPLICATION_JSON) {
                 @Override
@@ -429,20 +432,17 @@ public abstract class SearchFeed extends GenericService {
                 @Override
                 public void write(OutputStream outputStream) throws IOException {
                     try {
-                        startTimer("sendProductsToApi.generateJson");
                         getObjectMapper().writeValue(outputStream, productList);
                     } catch (IOException ex) {
                         if (isLoggingDebug()) {
                             logDebug("Unable to convert product list to JSON");
                         }
-                    } finally {
-                        stopTimer("sendProductsToApi.generateJson");
-                    }                }
+                    }
+                }
             };
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
             final ClientInfo clientInfo = request.getClientInfo();
             clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(language))));
-            startTimer("sendProductsToApi.sendJson");
             Response response = null;
 
             try {
@@ -453,9 +453,12 @@ public abstract class SearchFeed extends GenericService {
                         logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
                                 + errorMessage(response.getEntity()) + "]");
                     }
-                    onProductsSent(response, productList.getProducts());
-                } else {
                     onProductsSentError(productList.getProducts());
+                    return false;
+                } else {
+                    onProductsSent(response, productList.getProducts());
+                    return true;
+
                 }
             } finally {
                 if (response != null) {
@@ -465,14 +468,15 @@ public abstract class SearchFeed extends GenericService {
                     request.release();
                 }
             }
-        } catch (Exception ex) {
+       }
+        catch (Exception ex) {
             if (isLoggingInfo()) {
                 logInfo("Sending products [" + productsId(productList.getProducts()) + "] failed with unexpected exception", ex);
             }
             onProductsSentError(productList.getProducts());
-        } finally {
-            stopTimer("sendProductsToApi.sendJson");
-            stopTimer("sendProductsToApi");
+            return false;
+        }
+        finally {
             productList.getProducts().clear();
         }
     }
@@ -578,13 +582,12 @@ public abstract class SearchFeed extends GenericService {
         }
 
         try {
-            timersByThread.clear();
-            startTimer("startFullFeed");
             running = true;
             final long startTime = System.currentTimeMillis();
 
             RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
             int productCount = productRql.executeCountQuery(productView, null);
+            currentErrorThreshold = (int) (productCount * getErrorThreshold());
 
             if (isLoggingInfo()) {
                 logInfo("Started full feed for " + productCount + " products");
@@ -595,10 +598,12 @@ public abstract class SearchFeed extends GenericService {
             onFeedStarted(feedTimestamp);
             processedProductCount.set(0);
             indexedProductCount.set(0);
+            failedProductCount.set(0);
 
             // create send worker
             final CountDownLatch sendEndGate = new CountDownLatch(1);
             sendTaskExecutor.execute(new SendTask(sendEndGate));
+
             // create a partition for each worker
             final CountDownLatch endGate = new CountDownLatch(workerCount);
             int partitionSize = productCount / getWorkerCount();
@@ -619,24 +624,32 @@ public abstract class SearchFeed extends GenericService {
             if (isLoggingInfo()) {
                 logInfo("Waiting for workers to finish...");
             }
+
             endGate.await();
+
             if (isLoggingInfo()) {
                 logInfo("Waiting for send worker to finish...");
             }
+
             sendQueue.offer(POISON_PILL);
             sendEndGate.await();
-            if (running) {
-                delete(feedTimestamp);
-                onFeedFinished(feedTimestamp);
-                stopTimer("startFullFeed");
-                stopAllTimers();
 
-                if (isLoggingInfo()) {
-                    logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
-                            + indexedProductCount.get() + " products were indexable from  " + processedProductCount.get()
-                            + " processed products");
+            if (running) {
+                if(failedProductCount.get() < currentErrorThreshold) {
+                    delete(feedTimestamp);
+                    onFeedFinished(feedTimestamp);
+
+                    if (isLoggingInfo()) {
+                        logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
+                                + indexedProductCount.get() + " products were indexable from  " + processedProductCount.get()
+                                + " processed products");
+                    }
                 }
-            } else {
+                else {
+                    logError("Full feed interrupted since it seems to be failing too often. At least " + (getErrorThreshold() * 100) + "% out of " + productCount + " items had errors");
+                }
+            }
+            else {
                 if (isLoggingInfo()) {
                     logInfo("Full feed was terminated");
                 }
@@ -647,7 +660,7 @@ public abstract class SearchFeed extends GenericService {
     }
 
     private String productsId(List<Product> products) {
-        if (products == null && products.size() == 0) {
+        if (products == null || products.size() == 0) {
             return StringUtils.EMPTY;
         }
         StringBuilder buffer = new StringBuilder();
@@ -739,15 +752,6 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-
-
-    private boolean isRulesCategory(RepositoryItem category) throws RepositoryException {
-    	if (category == null) {
-    		return false;
-    	}
-    	return RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName());
-    }
-    
     /**
      * Helper method to test if category is assigned to any of the given catalogs
      * 

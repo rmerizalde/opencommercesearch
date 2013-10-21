@@ -24,11 +24,10 @@ import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-
-import java.util.Collection;
-
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+
+import java.util.Collection;
 
 /**
  * A feed for categories.
@@ -61,7 +60,6 @@ public class CategoryFeed extends BaseRestFeed {
         setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
-
         return category;
     }
 

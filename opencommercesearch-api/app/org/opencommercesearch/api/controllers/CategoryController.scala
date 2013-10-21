@@ -91,7 +91,7 @@ object CategoryController extends BaseController {
       } else {
         try {
           val update = withCategoryCollection(new AsyncUpdateRequest(), preview)
-          val docs = categoryList.toDocuments()
+          val docs = categoryList.toDocuments
           update.add(docs)
 
           val future: Future[Result] = update.process(solrServer).map( response => {
@@ -99,7 +99,7 @@ object CategoryController extends BaseController {
           })
 
           Async {
-            withErrorHandling(future, s"Cannot store products with ids [${categories map (_.id) mkString ","}]")
+            withErrorHandling(future, s"Cannot store categories with ids [${categories map (_.id) mkString ","}]")
           }
         } catch {
           case e: IllegalArgumentException => {
@@ -113,7 +113,8 @@ object CategoryController extends BaseController {
     }.recoverTotal {
       case e: JsError => {
         BadRequest(Json.obj(
-          "message" -> "Missing required fields"))
+          "message" -> "Missing required fields",
+          "detail" -> JsError.toFlatJson(e)))
       }
     }
   }
