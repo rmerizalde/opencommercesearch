@@ -454,12 +454,15 @@ public class RuleManagerTest {
         setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, ruleList);
         List<String> categories = new ArrayList<String>();
         categories.add("myCatalog.ruleBasedCategory");
+        categories.add("__all__");
         setUpRuleData(categories, "bag are nice for carring goods !", "reebok", boostRule, bagItem, ruleList);
         ruleList.setNumFound(ruleList.size()); 
         ruleList.setStart(0L);
         when(queryResponse.getResults()).thenReturn(ruleList);
         when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
         mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, true, cataA, false, null);
+        assertEquals(mgr.getRules().size(), 2);
+        mgr.loadRules("", null, null, false, true, cataA, false, null);
         assertEquals(mgr.getRules().size(), 2);
     }
     

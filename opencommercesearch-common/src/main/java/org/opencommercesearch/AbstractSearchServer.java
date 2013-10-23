@@ -307,8 +307,8 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         if (options.isRuleBasedPage()) {
             //handle rule based pages
             String filter = rulesBuilder.buildRulesFilter(options.getCategoryId(), locale);
-            query.set(Q_ALT, filter);
-            query.setParam("q", "");
+            query.addFilterQuery(filter);
+            query.setParam("q", "*:*");
             
         } else {
             //handle brand, category or onsale pages                
