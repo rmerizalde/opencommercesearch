@@ -163,7 +163,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         Boolean rulesEnabled = requestParams.getBool(RuleManagerParams.RULE);
 
         if(rulesEnabled == null || !rulesEnabled) {
-            logger.debug("Rule param is set to false. Doing nothing.");
+            logger.debug("Rule param is set to false. Nothing to do here.");
             return;
         }
 
@@ -545,7 +545,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     private boolean isOutletRequest(String[] filterQueries) {
         if(filterQueries != null) {
             for(String filterQuery : filterQueries) {
-                if(filterQuery.startsWith(SearchConstants.IS_CLOSEOUT + ":true")) {
+                if(filterQuery.startsWith(SearchConstants.FIELD_IS_CLOSEOUT + ":true")) {
                     return true;
                 }
             }
