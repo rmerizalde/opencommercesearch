@@ -748,10 +748,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        //assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     @Test
@@ -771,9 +776,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("target:allpages OR target:categorypages", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     @Test
@@ -794,9 +805,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__) AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:searchpages) AND ((" + escapedSearchQuery + ")^2 OR query:__all__)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic\\ jackets)^2 OR query:__all__)", filters.get(0));
+        assertEquals("category:__all__", filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     // finished
@@ -916,9 +933,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Outlet) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("target:allpages OR target:categorypages", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Outlet", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     @Test
@@ -938,9 +961,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("target:allpages OR target:categorypages", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     @Test
@@ -961,9 +990,15 @@ public class RuleManagerTest {
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
         verify(server).query(query.capture());
         List<String> filters = Arrays.asList(query.getValue().getFilterQueries());
-        assertEquals(1, filters.size()); 
-        assertEquals("(category:__all__ OR category:" + category + ") AND (siteId:__all__ OR siteId:site:alpha) AND (brandId:__all__ OR brandId:54) AND (subTarget:__all__ OR subTarget:Retail) AND (catalogId:__all__ OR catalogId:cata:alpha) AND -(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(0));
-        assertEquals("(target:allpages OR target:categorypages)", query.getValue().getQuery());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", query.getValue().getQuery());
+        assertEquals("target:allpages OR target:categorypages", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__ OR brandId:54", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
     }
     
     private void testFacetRuleSortingAux(String combineMode, int clearTimes) {
