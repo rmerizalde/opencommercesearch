@@ -239,7 +239,7 @@ public class Facet {
         void setSelected(String fieldName, String expression, FilterQuery[] filterQueries) {
             if (filterQueries != null) {
                 for (FilterQuery query : filterQueries) {
-                    if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(expression)) {
+                    if (query.getFieldName().equals(fieldName) && query.getUnescapeExpression().equals(FilterQuery.unescapeQueryChars(expression))) {
                         setSelected(true);
                         break;
                     }
