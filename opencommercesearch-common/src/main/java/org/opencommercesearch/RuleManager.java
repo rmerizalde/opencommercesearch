@@ -31,7 +31,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrInputDocument;
+import org.apache.solr.common.params.CommonParams;
 import org.opencommercesearch.repository.*;
 
 import atg.repository.Repository;
@@ -57,6 +57,8 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_SCORE = "score";
     public static final String FIELD_START_DATE = "startDate";
     public static final String FIELD_END_DATE = "endDate";
+    public static final int DEFAULT_START = 0;
+    public static final int DEFAULT_ROWS = 20;
 
     public static final String WILDCARD = "__all__";
     
@@ -67,6 +69,11 @@ public class RuleManager<T extends SolrServer> {
     private Map<String, List<RepositoryItem>> rules;
     private Map<String, SolrDocument> ruleDocs;
     private Map<String, String> strengthMap;
+
+    /**
+     * The time it took to load rules from Solr
+     */
+    int loadRulesTime = 0;
 
     enum RuleType {
         facetRule() {
@@ -185,7 +192,7 @@ public class RuleManager<T extends SolrServer> {
     }
 
     private void buildRuleLists (String ruleType, RepositoryItem rule, SolrDocument doc) {
-        List<RepositoryItem> ruleList = (List<RepositoryItem>) rules.get(ruleType);
+        List<RepositoryItem> ruleList = rules.get(ruleType);
         if (ruleList == null) {
             ruleList = new ArrayList<RepositoryItem>();
             rules.put(ruleType, ruleList);
@@ -193,89 +200,59 @@ public class RuleManager<T extends SolrServer> {
         ruleList.add(rule);
         ruleDocs.put(rule.getRepositoryId(), doc);
     }
+
     /**
      * Loads the rules that matches the given query
      * 
-     * @param q
-     *            is the user query
-     * @param isSearch
-     *            indicate if we are browsing or searching the site
-     * @param catalog
-     *            the current catalog we are browsing/searching
-     * @throws RepositoryException
-     *             if an exception happens retrieving a rule from the repository
-     * @throws SolrServerException
-     *             if an exception happens querying the search engine
+     * @param q is the user query
+     * @param categoryPath is the current category path, used to filter out rules (i.e. rule based pages)
+     * @param categoryFilterQuery is the current category search token that will be used for filtering out rules and facets
+     * @param isSearch indicates if we are browsing or searching the site
+     * @param isRuleBasedPage tells whether or not we are on a rule based page
+     * @param catalog the current catalog we are browsing/searching
+     * @param isOutletPage tells whether or not the current page is outlet
+     * @param brandId is the current brand id currently browsed, if any.
+     * @throws RepositoryException if an exception happens retrieving a rule from the repository
+     * @throws SolrServerException if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId) throws RepositoryException,
-            SolrServerException {
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId) throws RepositoryException, SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
-            throw new IllegalArgumentException("Missing query ");
+            throw new IllegalArgumentException("Missing query");
         }
-        StringBuilder queryStr = new StringBuilder();
-        if (isSearch) {
-            queryStr.append("(target:allpages OR target:searchpages) AND ((");
-            queryStr.append(ClientUtils.escapeQueryChars(q.toLowerCase()));
-            queryStr.append(")^2 OR query:__all__)");
-        } else {
-            queryStr.append("(target:allpages OR target:categorypages)");
-        }
-        
-        SolrQuery query = new SolrQuery(queryStr.toString());
-        int start = 0;
-        int rows = 20;
-        query.setStart(start);
-        query.setRows(rows);
-        query.setParam("fl", "id");
-        query.addSortField(FIELD_SORT_PRIORITY, ORDER.asc);
-        query.addSortField(FIELD_SCORE, ORDER.asc);
-        query.addSortField(FIELD_ID, ORDER.asc);
-        query.add("fl", FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
 
-        StringBuilder filterQueries = new StringBuilder().append("(category:").append(WILDCARD);
-        if (StringUtils.isNotBlank(categoryFilterQuery)) {
-            filterQueries.append(" OR ").append("category:" + categoryFilterQuery);
-        }
-        
-        if (categoryPath != null) {
-            filterQueries.append(" OR ").append("category:" + categoryPath);
-        }
-        
-        filterQueries.append(") AND ").append("(siteId:").append(WILDCARD);
-        Set<String> siteSet = (Set<String>) catalog.getPropertyValue("siteIds");
-        if (siteSet != null) {
-            for(String site : siteSet) {
-                filterQueries.append(" OR ").append("siteId:" + site);
-            }
-        }
-        
-        filterQueries.append(") AND ").append("(brandId:").append(WILDCARD);
-        if(StringUtils.isNotBlank(brandId)) {
-            filterQueries.append(" OR ").append("brandId:" + brandId);
-        }
-        
-        filterQueries.append(") AND ").append("(subTarget:").append(WILDCARD);
-        if(isOutletPage) {
-            filterQueries.append(" OR ").append("subTarget:" + "Outlet");
-        } else {
-            filterQueries.append(" OR ").append("subTarget:" + "Retail");
-        }
-        
-        filterQueries.append(") AND ").append("(catalogId:").append(WILDCARD).append(" OR ").append("catalogId:")
-        .append(catalog.getRepositoryId()).append(")");
-        
+        SolrQuery query = new SolrQuery("*:*");
+        query.setStart(DEFAULT_START);
+        query.setRows(DEFAULT_ROWS);
+        query.addSort(FIELD_SORT_PRIORITY, ORDER.asc);
+        query.addSort(FIELD_SCORE, ORDER.asc);
+        query.addSort(FIELD_ID, ORDER.asc);
+        query.add(CommonParams.FL, FIELD_ID, FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
+
+        StringBuilder reusableStringBuilder = new StringBuilder();
+        query.addFilterQuery(getTargetFilter(reusableStringBuilder, isSearch, q));
+        query.addFilterQuery(getCategoryFilter(reusableStringBuilder, categoryFilterQuery, categoryPath));
+        query.addFilterQuery(getSiteFilter(reusableStringBuilder, catalog));
+        query.addFilterQuery(getBrandFilter(reusableStringBuilder, brandId));
+        query.addFilterQuery(getSubTargetFilter(reusableStringBuilder, isOutletPage));
+
+        StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
+        catalogFilter.append("catalogId:").append(WILDCARD).append(" OR ").append("catalogId:").append(catalog.getRepositoryId());
+        query.addFilterQuery(catalogFilter.toString());
+
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
         //would need a new entry on the filter cache...
         //Also, notice that NOW/DAY is midnight from last night, and NOW/DAY+1DAY is midnight today.
         //The below query is intended to match rules with null start or end dates, or start and end dates in the proper range.
-        filterQueries.append(" AND ").append("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))");
+        query.addFilterQuery("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))");
 
-        query.addFilterQuery(filterQueries.toString());
+        int queryTime = 0;
         QueryResponse res = server.query(query);
+        queryTime += res.getQTime();
 
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
             rules = Collections.emptyMap();
+            loadRulesTime = queryTime;
             return;
         }
 
@@ -322,9 +299,117 @@ public class RuleManager<T extends SolrServer> {
             if (processed < total) {
                 query.setStart(processed);
                 res = server.query(query);
+                queryTime += res.getQTime();
                 docs = res.getResults();
             }
         }
+
+        loadRulesTime = queryTime;
+    }
+
+    /**
+     * Gets the target filter
+     * @param reusableStringBuilder String builder to put data into
+     * @return Target filter for rules
+     */
+    private String getTargetFilter(StringBuilder reusableStringBuilder, boolean isSearch, String q) {
+        StringBuilder targetFilter = reuseStringBuilder(reusableStringBuilder);
+
+        if (isSearch) {
+            targetFilter.append("(target:allpages OR target:searchpages) AND ((");
+            targetFilter.append(ClientUtils.escapeQueryChars(q.toLowerCase()));
+            targetFilter.append(")^2 OR query:__all__)");
+        }
+        else {
+            targetFilter.append("target:allpages OR target:categorypages");
+        }
+
+        return targetFilter.toString();
+    }
+
+    /**
+     * Gets the category filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param categoryFilterQuery Category search tokens to filter out rules
+     * @param categoryPath Current category path to get rule based pages if any
+     * @return Category filter for rules
+     */
+    private String getCategoryFilter(StringBuilder reusableStringBuilder, String categoryFilterQuery, String categoryPath) {
+        StringBuilder categoryFilter = reuseStringBuilder(reusableStringBuilder);
+        categoryFilter.append("category:").append(WILDCARD);
+
+        if (StringUtils.isNotBlank(categoryFilterQuery)) {
+            categoryFilter.append(" OR ").append("category:").append(categoryFilterQuery);
+        }
+
+        if (categoryPath != null) {
+            categoryFilter.append(" OR ").append("category:").append(categoryPath);
+        }
+
+        return categoryFilter.toString();
+    }
+
+    /**
+     * Gets the site filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param catalog Catalog repository item used to get the sites from
+     * @return The site filter
+     */
+    private String getSiteFilter(StringBuilder reusableStringBuilder, RepositoryItem catalog) {
+        StringBuilder siteFilter = reuseStringBuilder(reusableStringBuilder);
+        siteFilter.append("siteId:").append(WILDCARD);
+        Set<String> siteSet = (Set<String>) catalog.getPropertyValue("siteIds");
+        if (siteSet != null) {
+            for(String site : siteSet) {
+                siteFilter.append(" OR ").append("siteId:").append(site);
+            }
+        }
+
+        return siteFilter.toString();
+    }
+
+    /**
+     * Gets the brand filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param brandId Brand ID used to filter by if any
+     * @return The brand filter
+     */
+    private String getBrandFilter(StringBuilder reusableStringBuilder, String brandId) {
+        StringBuilder brandFilter = reuseStringBuilder(reusableStringBuilder);
+        brandFilter.append("brandId:").append(WILDCARD);
+        if(StringUtils.isNotBlank(brandId)) {
+            brandFilter.append(" OR ").append("brandId:").append(brandId);
+        }
+
+        return brandFilter.toString();
+    }
+
+    /**
+     * Gets the subTarget filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param isOutletPage whether or not the current page is outlet
+     * @return The subTarget filter
+     */
+    private String getSubTargetFilter(StringBuilder reusableStringBuilder, boolean isOutletPage) {
+        StringBuilder subTargetFilter = reuseStringBuilder(reusableStringBuilder);
+        subTargetFilter.append("subTarget:").append(WILDCARD);
+        if(isOutletPage) {
+            subTargetFilter.append(" OR ").append("subTarget:").append(RuleConstants.SUB_TARGET_OUTLET);
+        } else {
+            subTargetFilter.append(" OR ").append("subTarget:").append(RuleConstants.SUB_TARGET_RETAIL);
+        }
+
+        return subTargetFilter.toString();
+    }
+
+    /**
+     * Resets a string builder so it can be reused.
+     * @param stringBuilder String builder to reuse.
+     * @return new empty string builder based on the one provided.
+     */
+    private StringBuilder reuseStringBuilder(StringBuilder stringBuilder) {
+        stringBuilder.reverse().setLength(0);
+        return stringBuilder;
     }
 
     /**
@@ -476,50 +561,10 @@ public class RuleManager<T extends SolrServer> {
         return null;
     }
 
-    private void setFacetRuleFields(RepositoryItem rule, SolrInputDocument doc) {
-        List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
-
-        for (RepositoryItem facet : facets) {
-            doc.addField("facetField", facet.getPropertyValue(FacetProperty.FIELD));
-        }
-    }
-
-    private void setRankingRuleFields(RepositoryItem rule, SolrInputDocument doc) {
-        String rankAction = null;
-
-        if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
-            String strength = (String) rule.getPropertyValue(STRENGTH);
-            rankAction = mapStrength(strength);
-        } else {
-            rankAction = (String) rule.getPropertyValue(ATTRIBUTE);
-            if (rankAction == null) {
-                rankAction = "1.0";
-            }
-        }
-
-        // TODO: add support for locales
-        String conditionQuery = rulesBuilder.buildRankingRuleFilter(rule, Locale.US);
-        StringBuilder boostFunctionQuery = new StringBuilder();
-
-        if (conditionQuery.length() > 0) {
-            boostFunctionQuery
-                .append("if(exists(query({!lucene v='")
-                .append(StringUtils.replace(conditionQuery, "'", "\\'"))
-                .append("'})),")
-                .append(rankAction)
-                .append(",1.0)");
-        } else {
-            boostFunctionQuery.append(rankAction);
-        }
-
-        doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
-    }
-
     /**
      * Maps the given strength to a boost factor
      *
      * @param strength is the strength name. See RankingRuleProperty
-     * @return
      */
     protected String mapStrength(String strength) {
         if (strengthMap == null) {
@@ -537,7 +582,7 @@ public class RuleManager<T extends SolrServer> {
     /**
      * Initializes the strenght map.
      *
-     * @TODO move this mappings to configuration file
+     * TODO move this mappings to configuration file
      */
     private void initializeStrengthMap() {
         strengthMap = new HashMap<String, String>(STRENGTH_LEVELS);
@@ -552,56 +597,13 @@ public class RuleManager<T extends SolrServer> {
         strengthMap.put(STRENGTH_STRONG_BOOST, Float.toString(5f));
         strengthMap.put(STRENGTH_MAXIMUM_BOOST, Float.toString(10f));
     }
-    
-    private void setCategoryCategoryPaths(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) {
-        Set<String> categoryPaths = Utils.buildCategoryPrefix(category);
-                
-        for (String categoryPath : categoryPaths) {
-            doc.addField(FIELD_CATEGORY, categoryPath);
-        }
-        
-        if (includeSubcategories) {
-            @SuppressWarnings("unchecked")
-            List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
-            if (childCategories != null) {
-                for (RepositoryItem childCategory : childCategories) {
-                    setCategoryCategoryPaths(doc, childCategory, includeSubcategories);
-                }
-            }
-        }
-        
+
+    public int getLoadRulesTime() {
+        return loadRulesTime;
     }
-    
-    /**
-     * Helper method to set the category search token for document
-     * 
-     * @param doc
-     *            the document to be indexed
-     * @param category
-     *            the category's repository item
-     * @throws RepositoryException
-     *             if an exception occurs while retrieving category info
-     */
-    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) throws RepositoryException {
-        @SuppressWarnings("unchecked")
-        Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
-        if (searchTokens != null) {
-            for (String searchToken : searchTokens) {
-                doc.addField(FIELD_CATEGORY, searchToken);
-            }
-        }
 
-        if (includeSubcategories) {
-            @SuppressWarnings("unchecked")
-            List<RepositoryItem> childCategories = (List<RepositoryItem>) category
-                    .getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
-
-            if (childCategories != null) {
-                for (RepositoryItem childCategory : childCategories) {
-                    setCategorySearchTokens(doc, childCategory, includeSubcategories);
-                }
-            }
-        }
+    public void setLoadRulesTime(int loadRulesTime) {
+        this.loadRulesTime = loadRulesTime;
     }
 }
 

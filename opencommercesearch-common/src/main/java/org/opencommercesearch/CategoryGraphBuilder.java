@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.Facet.Filter;
 
 import com.google.common.collect.Lists;
@@ -53,23 +54,28 @@ public class CategoryGraphBuilder {
     public void addPath(Filter filter){
         String filterPath = Utils.findFilterExpressionByName(filter.getPath(), CATEGORY_PATH);
         if(filterPath != null) {
-            String[] pathArray = filterPath.split("\\"+SearchConstants.CATEGORY_SEPARATOR);
+            String[] pathArray = StringUtils.split(filterPath, SearchConstants.CATEGORY_SEPARATOR);
             parentNode.setId(pathArray[0]);
-            recursiveAdd(filter, Arrays.copyOfRange(pathArray, 1 ,pathArray.length), parentNode);
+            recursiveAdd(filter, pathArray, 1, parentNode);
         }  
     }
 
-    private void recursiveAdd(Filter filter, String[] pathArray, CategoryGraph parentNode) {
+    private void recursiveAdd(Filter filter, String[] pathArray, int arrayIndex, CategoryGraph parentNode) {
         
         if(pathArray == null || pathArray.length == 0){
             return;
         }
         
-        if(pathArray.length == 1){
+        int currentOffset = pathArray.length - arrayIndex;
+        if(currentOffset < 1) {
+            return;
+        }
+        
+        if(currentOffset == 1){
             createNewNode(filter, parentNode);
         } else {
             
-            String currentId = pathArray[0];
+            String currentId = pathArray[arrayIndex];
             CategoryGraph node = search(currentId, parentNode);
             
             if (node == null) {
@@ -80,7 +86,7 @@ public class CategoryGraphBuilder {
                 parentNode.getCategoryGraphNodes().add(node);
             }
             
-            recursiveAdd(filter, Arrays.copyOfRange(pathArray, 1, pathArray.length), node);
+            recursiveAdd(filter, pathArray, arrayIndex+1, node);
         }
 
     }
