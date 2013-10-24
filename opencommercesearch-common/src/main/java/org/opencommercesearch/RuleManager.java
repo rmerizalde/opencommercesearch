@@ -31,7 +31,6 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
-import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.CommonParams;
 import org.opencommercesearch.repository.*;
 
@@ -70,6 +69,11 @@ public class RuleManager<T extends SolrServer> {
     private Map<String, List<RepositoryItem>> rules;
     private Map<String, SolrDocument> ruleDocs;
     private Map<String, String> strengthMap;
+
+    /**
+     * The time it took to load rules from Solr
+     */
+    int loadRulesTime = 0;
 
     enum RuleType {
         facetRule() {
@@ -196,6 +200,7 @@ public class RuleManager<T extends SolrServer> {
         ruleList.add(rule);
         ruleDocs.put(rule.getRepositoryId(), doc);
     }
+
     /**
      * Loads the rules that matches the given query
      * 
@@ -241,10 +246,13 @@ public class RuleManager<T extends SolrServer> {
         //The below query is intended to match rules with null start or end dates, or start and end dates in the proper range.
         query.addFilterQuery("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))");
 
+        int queryTime = 0;
         QueryResponse res = server.query(query);
+        queryTime += res.getQTime();
 
         if (res.getResults() == null || res.getResults().getNumFound() == 0) {
             rules = Collections.emptyMap();
+            loadRulesTime = queryTime;
             return;
         }
 
@@ -291,9 +299,12 @@ public class RuleManager<T extends SolrServer> {
             if (processed < total) {
                 query.setStart(processed);
                 res = server.query(query);
+                queryTime += res.getQTime();
                 docs = res.getResults();
             }
         }
+
+        loadRulesTime = queryTime;
     }
 
     /**
@@ -550,50 +561,10 @@ public class RuleManager<T extends SolrServer> {
         return null;
     }
 
-    private void setFacetRuleFields(RepositoryItem rule, SolrInputDocument doc) {
-        List<RepositoryItem> facets = (List<RepositoryItem>) rule.getPropertyValue(FacetRuleProperty.FACETS);
-
-        for (RepositoryItem facet : facets) {
-            doc.addField("facetField", facet.getPropertyValue(FacetProperty.FIELD));
-        }
-    }
-
-    private void setRankingRuleFields(RepositoryItem rule, SolrInputDocument doc) {
-        String rankAction = null;
-
-        if (BOOST_BY_FACTOR.equals(rule.getPropertyValue(BOOST_BY))) {
-            String strength = (String) rule.getPropertyValue(STRENGTH);
-            rankAction = mapStrength(strength);
-        } else {
-            rankAction = (String) rule.getPropertyValue(ATTRIBUTE);
-            if (rankAction == null) {
-                rankAction = "1.0";
-            }
-        }
-
-        // TODO: add support for locales
-        String conditionQuery = rulesBuilder.buildRankingRuleFilter(rule, Locale.US);
-        StringBuilder boostFunctionQuery = new StringBuilder();
-
-        if (conditionQuery.length() > 0) {
-            boostFunctionQuery
-                .append("if(exists(query({!lucene v='")
-                .append(StringUtils.replace(conditionQuery, "'", "\\'"))
-                .append("'})),")
-                .append(rankAction)
-                .append(",1.0)");
-        } else {
-            boostFunctionQuery.append(rankAction);
-        }
-
-        doc.setField(FIELD_BOOST_FUNCTION, boostFunctionQuery.toString());
-    }
-
     /**
      * Maps the given strength to a boost factor
      *
      * @param strength is the strength name. See RankingRuleProperty
-     * @return
      */
     protected String mapStrength(String strength) {
         if (strengthMap == null) {
@@ -611,7 +582,7 @@ public class RuleManager<T extends SolrServer> {
     /**
      * Initializes the strenght map.
      *
-     * @TODO move this mappings to configuration file
+     * TODO move this mappings to configuration file
      */
     private void initializeStrengthMap() {
         strengthMap = new HashMap<String, String>(STRENGTH_LEVELS);
@@ -626,56 +597,13 @@ public class RuleManager<T extends SolrServer> {
         strengthMap.put(STRENGTH_STRONG_BOOST, Float.toString(5f));
         strengthMap.put(STRENGTH_MAXIMUM_BOOST, Float.toString(10f));
     }
-    
-    private void setCategoryCategoryPaths(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) {
-        Set<String> categoryPaths = Utils.buildCategoryPrefix(category);
-                
-        for (String categoryPath : categoryPaths) {
-            doc.addField(FIELD_CATEGORY, categoryPath);
-        }
-        
-        if (includeSubcategories) {
-            @SuppressWarnings("unchecked")
-            List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
-            if (childCategories != null) {
-                for (RepositoryItem childCategory : childCategories) {
-                    setCategoryCategoryPaths(doc, childCategory, includeSubcategories);
-                }
-            }
-        }
-        
+
+    public int getLoadRulesTime() {
+        return loadRulesTime;
     }
-    
-    /**
-     * Helper method to set the category search token for document
-     * 
-     * @param doc
-     *            the document to be indexed
-     * @param category
-     *            the category's repository item
-     * @throws RepositoryException
-     *             if an exception occurs while retrieving category info
-     */
-    private void setCategorySearchTokens(SolrInputDocument doc, RepositoryItem category, boolean includeSubcategories) throws RepositoryException {
-        @SuppressWarnings("unchecked")
-        Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
-        if (searchTokens != null) {
-            for (String searchToken : searchTokens) {
-                doc.addField(FIELD_CATEGORY, searchToken);
-            }
-        }
 
-        if (includeSubcategories) {
-            @SuppressWarnings("unchecked")
-            List<RepositoryItem> childCategories = (List<RepositoryItem>) category
-                    .getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
-
-            if (childCategories != null) {
-                for (RepositoryItem childCategory : childCategories) {
-                    setCategorySearchTokens(doc, childCategory, includeSubcategories);
-                }
-            }
-        }
+    public void setLoadRulesTime(int loadRulesTime) {
+        this.loadRulesTime = loadRulesTime;
     }
 }
 
