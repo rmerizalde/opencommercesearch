@@ -41,11 +41,12 @@ case class Sku(
   var colorFamily: Option[String],
   var isRetail: Option[Boolean],
   var isCloseout: Option[Boolean],
+  var isOutlet: Option[Boolean],
   var size: Option[Size],
   var catalogs: Option[Seq[String]],
   var customSort: Option[Int]) {
 
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -119,6 +120,11 @@ case class Sku(
   @Field("isCloseout")
   def setCloseout(isCloseout: Boolean) {
     this.isCloseout = Option.apply(isCloseout)
+  }
+
+  @Field("isOutlet")
+  def setOutlet(isOutlet: Boolean) {
+    this.isOutlet = Option.apply(isOutlet)
   }
 
   /**

@@ -51,9 +51,9 @@
    <field name="limit"            type="int"      indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
 
    <!--Range facet fields -->
-   <field name="start"            type="int"      indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-   <field name="end"              type="int"      indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-   <field name="gap"              type="int"      indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+   <field name="start"            type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+   <field name="end"              type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+   <field name="gap"              type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
    <field name="isHardened"       type="boolean"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" default="false" />
 
    <!--Query facet fields -->

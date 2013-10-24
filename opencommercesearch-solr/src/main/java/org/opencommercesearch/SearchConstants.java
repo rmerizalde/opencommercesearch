@@ -22,7 +22,17 @@ package org.opencommercesearch;
 public class SearchConstants {
     public static final String CATEGORY_SEPARATOR = ".";
     public static final String OUTLET = "outlet";
-    
+
+    /**
+     * Legacy field that has the same function as FIELD_IS_OUTLET
+     */
+    public static final String FIELD_IS_CLOSEOUT = "isCloseout";
+
+    /**
+     * Specifies whether a sku is on outlet or not.
+     */
+    public static final String FIELD_IS_OUTLET = "isOutlet";
+
     private SearchConstants() {
 
     }

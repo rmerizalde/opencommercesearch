@@ -57,6 +57,9 @@ public class Sku {
     private boolean isCloseout;
 
     @JsonProperty
+    private boolean isOutlet;
+
+    @JsonProperty
     private Size size;
 
     @JsonProperty
@@ -137,6 +140,15 @@ public class Sku {
 
     public void setCloseout(boolean isCloseout) {
         this.isCloseout = isCloseout;
+    }
+    
+    @JsonIgnore
+    public boolean isOutlet() {
+        return isOutlet;
+    }
+
+    public void setOutlet(boolean isOutlet) {
+        this.isOutlet = isOutlet;
     }
 
     public Size getSize() {
