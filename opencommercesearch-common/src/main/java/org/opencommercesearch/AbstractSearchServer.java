@@ -588,12 +588,12 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
         if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")) {
             query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
-                    "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
+                    "reviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
         }
         else {
             if(StringUtils.isEmpty(query.getFields())) {
                 query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
-                        "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
+                        "reviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
             }
         }
 
