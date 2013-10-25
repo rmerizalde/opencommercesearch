@@ -56,6 +56,10 @@ GET           /api-docs/queries                                          control
 GET           /images/*file                                              controllers.Assets.at(path="/public/images", file)
 GET           /assets/*file                                              controllers.Assets.at(path="/public", file)
 
+# info
+
+GET           /v1/info                                                   org.opencommercesearch.api.controllers.ApiInfoController.getInfo
+
 
 
 

@@ -58,6 +58,8 @@ public class SearchResponse {
     private List<CategoryGraph> categoryGraph;
     private boolean matchesAll;
     private String correctedTerm;
+
+    private int ruleQueryTime;
     
     SearchResponse(SolrQuery query, QueryResponse queryResponse, RuleManager ruleManager, FilterQuery[] filterQueries, String redirectResponse, String correctedTerm, boolean matchesAll) {
         this.query = query;
@@ -99,6 +101,14 @@ public class SearchResponse {
 
     public String getCorrectedTerm() {
         return correctedTerm;
+    }
+
+    public int getRuleQueryTime() {
+        return ruleQueryTime;
+    }
+
+    public void setRuleQueryTime(int ruleQueryTime) {
+        this.ruleQueryTime = ruleQueryTime;
     }
 
     public void removeFacet(String name){
