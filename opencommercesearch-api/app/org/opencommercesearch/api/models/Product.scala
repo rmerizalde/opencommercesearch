@@ -222,7 +222,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("isRetail", isRetail)
             doc.setField("skuCount", skuCount)
             doc.setField("isCloseout", isCloseout)
-            doc.setField("isOutlet", sku.isOutlet)
+            doc.setField("isOutlet", sku.isOutlet.get)
             for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
             if (gender != null) { doc.setField("gender", gender ) }
 
