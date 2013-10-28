@@ -452,7 +452,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * @return Query ready to be sent to the rules core, to fetch all rules that apply for the given request.
      * @throws IOException If there are missing required values.
      */
-    private SolrQuery getRulesQuery(SolrParams requestParams, PageType pageType) throws IOException {
+    protected SolrQuery getRulesQuery(SolrParams requestParams, PageType pageType) throws IOException {
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
 
         if(catalogId == null) {
@@ -460,24 +460,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             return null;
         }
 
-        StringBuilder stringBuilder = new StringBuilder();
-        
-        //Create the rules query
-        if(pageType == PageType.search) {
-            String qParam = requestParams.get(CommonParams.Q);
-
-            if(StringUtils.isEmpty(qParam)) {
-                throw new IOException("Cannot process search request because the 'q' param is empty.");
-            }
-
-            stringBuilder.append("(target:allpages OR target:searchpages) AND ((");
-            stringBuilder.append(ClientUtils.escapeQueryChars(qParam.toLowerCase()));
-            stringBuilder.append(")^2 OR query:__all__)");
-        } else {
-            stringBuilder.append("(target:allpages OR target:categorypages)");
-        }
-
-        SolrQuery ruleParams = new SolrQuery(stringBuilder.toString());
+        SolrQuery ruleParams = new SolrQuery("*:*");
 
         //Common params
         ruleParams.set(CommonParams.ROWS, PAGE_SIZE);
@@ -489,50 +472,140 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         ruleParams.addSort(RuleConstants.FIELD_ID, SolrQuery.ORDER.asc);
 
         //Filter queries
-        StringBuilder filterQueries =  new StringBuilder().append("(").append(RuleConstants.FIELD_CATEGORY).append(":").append(RuleConstants.WILDCARD);
+        StringBuilder reusableStringBuilder = new StringBuilder();
+        ruleParams.addFilterQuery(getTargetFilter(reusableStringBuilder, pageType, requestParams.get(CommonParams.Q)));
+        ruleParams.addFilterQuery(getCategoryFilter(reusableStringBuilder, requestParams.get(RuleManagerParams.CATEGORY_FILTER)));
+        ruleParams.addFilterQuery(getSiteFilter(reusableStringBuilder, requestParams.getParams(RuleManagerParams.SITE_IDS)));
+        ruleParams.addFilterQuery(getBrandFilter(reusableStringBuilder, getBrandIdFromFilterQuery(requestParams.getParams(CommonParams.FQ))));
+        ruleParams.addFilterQuery(getSubTargetFilter(reusableStringBuilder, isOutletRequest(requestParams.getParams(CommonParams.FQ))));
 
-        String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
-        if (StringUtils.isNotBlank(categoryFilter)) {
-            filterQueries.append(" OR ").append(RuleConstants.FIELD_CATEGORY).append(":").append(categoryFilter);
-        }
-
-        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_SITE_ID).append(":").append(RuleConstants.WILDCARD);
-
-        String[] sites = requestParams.getParams(RuleManagerParams.SITE_IDS);
-
-        if (sites != null) {
-            for(String site : sites) {
-                filterQueries.append(" OR ").append(RuleConstants.FIELD_SITE_ID).append(":").append(site);
-            }
-        }
-
-        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_BRAND_ID).append(":").append(RuleConstants.WILDCARD);
-        String brandId = getBrandIdFromFilterQuery(requestParams.getParams(CommonParams.FQ));
-        if(StringUtils.isNotBlank(brandId)) {
-            filterQueries.append(" OR ").append(RuleConstants.FIELD_BRAND_ID).append(":").append(brandId);
-        }
-
-        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_SUB_TARGET).append(":").append(RuleConstants.WILDCARD);
-        filterQueries.append(" OR ").append(RuleConstants.FIELD_SUB_TARGET).append(":");
-
-        if(isOutletRequest(requestParams.getParams(CommonParams.FQ))) {
-            filterQueries.append(RuleConstants.SUB_TARGET_OUTLET);
-        }
-        else {
-            filterQueries.append(RuleConstants.SUB_TARGET_RETAIL);
-        }
-
-        filterQueries.append(") AND ").append("(").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId).append(")");
+        StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
+        catalogFilter.append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId);
+        ruleParams.addFilterQuery(catalogFilter.toString());
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
         //would need a new entry on the filter cache...
         //Also, notice that NOW/DAY is midnight from last night, and NOW/DAY+1DAY is midnight today.
         //The below query is intended to match rules with null start or end dates, or start and end dates in the proper range.
-        filterQueries.append(" AND ").append("-(((").append(RuleConstants.FIELD_START_DATE).append(":[* TO *]) AND -(").append(RuleConstants.FIELD_START_DATE).append(":[* TO NOW/DAY+1DAY])) OR (").append(RuleConstants.FIELD_END_DATE).append(":[* TO *] AND -").append(RuleConstants.FIELD_END_DATE).append(":[NOW/DAY+1DAY TO *]))");
-        ruleParams.add(CommonParams.FQ, filterQueries.toString());
-
+        StringBuilder dateFilter = reuseStringBuilder(reusableStringBuilder);
+        dateFilter.append("-(((").append(RuleConstants.FIELD_START_DATE).append(":[* TO *]) AND -(").append(RuleConstants.FIELD_START_DATE).append(":[* TO NOW/DAY+1DAY])) OR (").append(RuleConstants.FIELD_END_DATE).append(":[* TO *] AND -").append(RuleConstants.FIELD_END_DATE).append(":[NOW/DAY+1DAY TO *]))");
+        ruleParams.addFilterQuery(dateFilter.toString());
         return ruleParams;
+    }
+
+    /**
+     * Gets the target filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param pageType The current page type
+     * @param q the query param from original request
+     * @return Target filter for rules
+     */
+    private String getTargetFilter(StringBuilder reusableStringBuilder, PageType pageType, String q) throws IOException {
+        StringBuilder targetFilter = reuseStringBuilder(reusableStringBuilder);
+
+        if(pageType == PageType.search) {
+            if(StringUtils.isEmpty(q)) {
+                throw new IOException("Cannot process search request because the 'q' param is empty.");
+            }
+
+            targetFilter.append("(target:allpages OR target:searchpages) AND ((");
+            targetFilter.append(ClientUtils.escapeQueryChars(q));
+            targetFilter.append(")^2 OR query:__all__)");
+        }
+        else {
+            targetFilter.append("target:allpages OR target:categorypages");
+        }
+
+        return targetFilter.toString();
+    }
+
+    /**
+     * Gets the category filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param categoryToken Category search tokens to filter out rules
+     * @return Category filter for rules
+     */
+    private String getCategoryFilter(StringBuilder reusableStringBuilder, String categoryToken) {
+        StringBuilder categoryFilter = reuseStringBuilder(reusableStringBuilder);
+
+        categoryFilter.append(RuleConstants.FIELD_CATEGORY).append(":").append(RuleConstants.WILDCARD);
+
+        if (StringUtils.isNotBlank(categoryToken)) {
+            categoryFilter.append(" OR ").append(RuleConstants.FIELD_CATEGORY).append(":").append(categoryToken);
+        }
+
+        return categoryFilter.toString();
+    }
+
+    /**
+     * Gets the site filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param sites Array of site codes to look for
+     * @return The site filter
+     */
+    private String getSiteFilter(StringBuilder reusableStringBuilder, String[] sites) {
+        StringBuilder siteFilter = reuseStringBuilder(reusableStringBuilder);
+
+        siteFilter.append(RuleConstants.FIELD_SITE_ID).append(":").append(RuleConstants.WILDCARD);
+
+        if (sites != null) {
+            for(String site : sites) {
+                siteFilter.append(" OR ").append(RuleConstants.FIELD_SITE_ID).append(":").append(site);
+            }
+        }
+
+        return siteFilter.toString();
+    }
+
+    /**
+     * Gets the brand filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param brandId Brand ID used to filter by if any
+     * @return The brand filter
+     */
+    private String getBrandFilter(StringBuilder reusableStringBuilder, String brandId) {
+        StringBuilder brandFilter = reuseStringBuilder(reusableStringBuilder);
+
+        brandFilter.append(RuleConstants.FIELD_BRAND_ID).append(":").append(RuleConstants.WILDCARD);
+
+        if(StringUtils.isNotBlank(brandId)) {
+            brandFilter.append(" OR ").append(RuleConstants.FIELD_BRAND_ID).append(":").append(brandId);
+        }
+
+        return brandFilter.toString();
+    }
+
+    /**
+     * Gets the subTarget filter
+     * @param reusableStringBuilder String builder to put data into
+     * @param isOutletPage whether or not the current page is outlet
+     * @return The subTarget filter
+     */
+    private String getSubTargetFilter(StringBuilder reusableStringBuilder, boolean isOutletPage) {
+        StringBuilder subTargetFilter = reuseStringBuilder(reusableStringBuilder);
+
+        subTargetFilter.append(RuleConstants.FIELD_SUB_TARGET).append(":").append(RuleConstants.WILDCARD);
+        subTargetFilter.append(" OR ").append(RuleConstants.FIELD_SUB_TARGET).append(":");
+
+        if(isOutletPage) {
+            subTargetFilter.append(RuleConstants.SUB_TARGET_OUTLET);
+        }
+        else {
+            subTargetFilter.append(RuleConstants.SUB_TARGET_RETAIL);
+        }
+
+        return subTargetFilter.toString();
+    }
+
+    /**
+     * Resets a string builder so it can be reused.
+     * @param stringBuilder String builder to reuse.
+     * @return new empty string builder based on the one provided.
+     */
+    private StringBuilder reuseStringBuilder(StringBuilder stringBuilder) {
+        stringBuilder.reverse().setLength(0);
+        return stringBuilder;
     }
 
     /**
@@ -573,7 +646,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
         return null;
     }
-
 
     /**
      * Get core for facet fields.

@@ -77,10 +77,62 @@
 
     <listener event="newSearcher" class="solr.QuerySenderListener">
       <arr name="queries">
+        <!-- Seed common sort fields -->
+        <lst>
+          <str name="q">*:*</str>
+          <str name="sort">sortPriority asc,score asc,id asc</str>
+        </lst>
+
+        <!-- Seed common filter queries -->
+        <lst>
+          <str name="fq">target:allpages OR target:categorypages</str>
+          <str name="fq">category:__all__</str>
+          <str name="fq">siteId:__all__</str>
+          <str name="fq">siteId:__all__ OR siteId:1</str>
+          <str name="fq">siteId:__all__ OR siteId:2</str>
+          <str name="fq">siteId:__all__ OR siteId:7</str>
+          <str name="fq">siteId:__all__ OR siteId:bcs</str>
+          <str name="fq">siteId:__all__ OR siteId:dogfunk</str>
+          <str name="fq">siteId:__all__ OR siteId:competitivecyclist</str>
+          <str name="fq">brandId:__all__</str>
+          <str name="fq">subTarget:__all__ OR subTarget:Retail</str>
+          <str name="fq">subTarget:__all__ OR subTarget:Outlet</str>
+          <str name="fq">catalogId:__all__</str>
+          <str name="fq">catalogId:__all__ OR catalogId:bcs</str>
+          <str name="fq">catalogId:__all__ OR catalogId:dogfunk</str>
+          <str name="fq">catalogId:__all__ OR catalogId:competitivecyclist</str>
+          <str name="fq">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
+        </lst>
       </arr>
     </listener>
     <listener event="firstSearcher" class="solr.QuerySenderListener">
       <arr name="queries">
+        <!-- Seed common sort fields -->
+        <lst>
+          <str name="q">*:*</str>
+          <str name="sort">sortPriority asc,score asc,id asc</str>
+        </lst>
+
+        <!-- Seed common filter queries -->
+        <lst>
+          <str name="fq">target:allpages OR target:categorypages</str>
+          <str name="fq">category:__all__</str>
+          <str name="fq">siteId:__all__</str>
+          <str name="fq">siteId:__all__ OR siteId:1</str>
+          <str name="fq">siteId:__all__ OR siteId:2</str>
+          <str name="fq">siteId:__all__ OR siteId:7</str>
+          <str name="fq">siteId:__all__ OR siteId:bcs</str>
+          <str name="fq">siteId:__all__ OR siteId:dogfunk</str>
+          <str name="fq">siteId:__all__ OR siteId:competitivecyclist</str>
+          <str name="fq">brandId:__all__</str>
+          <str name="fq">subTarget:__all__ OR subTarget:Retail</str>
+          <str name="fq">subTarget:__all__ OR subTarget:Outlet</str>
+          <str name="fq">catalogId:__all__</str>
+          <str name="fq">catalogId:__all__ OR catalogId:bcs</str>
+          <str name="fq">catalogId:__all__ OR catalogId:dogfunk</str>
+          <str name="fq">catalogId:__all__ OR catalogId:competitivecyclist</str>
+          <str name="fq">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
+        </lst>
       </arr>
     </listener>
 
@@ -116,14 +168,6 @@
       <str name="omitHeader">true</str>
     </lst>
   </requestHandler>
-
-  <!--
-  <requestHandler name="/get" class="solr.RealTimeGetHandler">
-    <lst name="defaults">
-      <str name="omitHeader">true</str>
-    </lst>
-  </requestHandler>
-  -->
 
   <requestHandler name="/update" class="solr.UpdateRequestHandler"/>
 

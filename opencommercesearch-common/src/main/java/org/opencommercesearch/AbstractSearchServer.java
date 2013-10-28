@@ -538,7 +538,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (isLoggingDebug()) {
                 logDebug("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
-            return new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
+
+            SearchResponse searchResponse = new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
+            searchResponse.setRuleQueryTime(ruleManager.getLoadRulesTime());
+            return searchResponse;
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrException ex) {
