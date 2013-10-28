@@ -296,7 +296,7 @@ public class RuleManager<T extends SolrServer> {
 
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
                         SearchRepositoryItemDescriptor.RULE);
-                
+
                 //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
                     String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
@@ -307,7 +307,7 @@ public class RuleManager<T extends SolrServer> {
                         if (categoryPath != null && isRuleBasedPage) {
                             List<String> ruleCategories = (List<String>) doc.getFieldValue(FIELD_CATEGORY);
                             if(ruleCategories != null) {
-                                if(ruleCategories.contains(categoryPath) || ruleCategories.contains(WILDCARD)) {
+                                if(ruleCategories.contains(categoryPath)) {
                                     buildRuleLists(ruleType, rule, doc);
                                 }
                             }
