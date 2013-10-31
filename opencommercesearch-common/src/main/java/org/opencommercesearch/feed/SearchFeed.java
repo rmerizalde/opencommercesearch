@@ -388,9 +388,25 @@ public abstract class SearchFeed extends GenericService {
      * @param async determines if the products should be send right away or asynchronously.
      * return False if there were errors while sending the products, true otherwise.
      */
+    
     public boolean sendProducts(SearchFeedProducts products, long feedTimestamp, int min, boolean async) {
+        return sendProducts(products, feedTimestamp, min, async, false);
+    }
+    
+    /**
+     * Sends the products for indexing
+     *
+     * @param products the lists of products to be indexed
+     * @param feedTimestamp the feed timestamp
+     * @param min the minimum size of of a product list. If the size is not met then the products are not sent
+     *            for indexing
+     * @param async determines if the products should be send right away or asynchronously.
+     * @param isLastProduct checks if this this the last product in the batch then we have to send the products
+     * return False if there were errors while sending the products, true otherwise.
+     */
+    public boolean sendProducts(SearchFeedProducts products, long feedTimestamp, int min, boolean async, boolean isLastProduct) {
         for (Locale locale : products.getLocales()) {
-            if (products.getSkuCount(locale) > min) {
+            if (products.getSkuCount(locale) > min || isLastProduct) {
                 List<Product> productList = products.getProducts(locale);
                 try {
                     if (async) {
@@ -400,10 +416,7 @@ public abstract class SearchFeed extends GenericService {
                         //If an async call is made, this always return true.
                         return true;
                     } else {
-                        if(sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
-                            return true;
-                        }
-                        else {
+                        if(!sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
                             failedProductCount.incrementAndGet();
                             return false;
                         }
