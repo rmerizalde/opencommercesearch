@@ -406,7 +406,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     }
     
     @Override
-    public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, FilterQuery... filterQueries) throws SearchServerException {
+    public Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, int depthLimit, String separator, FilterQuery... filterQueries) throws SearchServerException {
         try { 
             SolrQuery query = new SolrQuery();
             query.setRows(0);
@@ -437,7 +437,14 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                         facet = new Facet();
                         facet.setName(StringUtils.capitalize(fieldFacet));
                         List<Filter> filters = new ArrayList<Facet.Filter>();
+                        
+                        boolean filterByDepth = depthLimit > 0 && StringUtils.isNotBlank(separator);
                         for(Count count : values) {
+                            
+                            if( filterByDepth && StringUtils.countMatches(count.getName(), separator) > depthLimit) {
+                                continue;
+                            }
+                            
                             Filter filter = new Filter();
                             filter.setName(count.getName());
                             filter.setCount(count.getCount());

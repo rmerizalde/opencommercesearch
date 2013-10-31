@@ -489,7 +489,7 @@ public class AbstractSearchServerIntegrationTest {
     
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testGetFacet(SearchServer server) throws SearchServerException {
-        Facet facet = server.getFacet(site, Locale.US, "brandId", 100);
+        Facet facet = server.getFacet(site, Locale.US,  "brandId", 100, -1, null);
         assertNotNull(facet);
         assertEquals(1, facet.getFilters().size());
         assertEquals("88", facet.getFilters().get(0).getName());   
@@ -498,7 +498,7 @@ public class AbstractSearchServerIntegrationTest {
         Site siteZ = mock(Site.class);
         when(siteZ.getPropertyValue("defaultCatalog")).thenReturn(catalogZ);
         when(catalogZ.getRepositoryId()).thenReturn("Zcatalog");
-        facet = server.getFacet(siteZ, Locale.US, "brandId", 100);
+        facet = server.getFacet(siteZ, Locale.US, "brandId", 100, -1, null);
         assertNull(facet);
     }
     
