@@ -270,8 +270,10 @@ public abstract class BaseRestFeed extends GenericService {
                         logError(itemDescriptorName + " feed interrupted since it seems to be failing too often. At least " + (getErrorThreshold() * 100) + "% out of " + count + " items had errors");
                     }
 
-                    //Roll back as much as we can from the changes done before the threshold was reached (specially initial delete from transactional feeds)
-                    sendRollback();
+                    if (isTransactional()) {
+                        //Roll back as much as we can from the changes done before the threshold was reached (specially initial delete)
+                        sendRollback();
+                    }
                 }
             }
             else {
@@ -389,7 +391,7 @@ public abstract class BaseRestFeed extends GenericService {
         try {
             response = getProductService().handle(request);
             if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-                throw new IOException("Failed to send commit with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+                throw new IOException("Failed to send commit with status " + response.getStatus() + " " + errorResponseToString(response.getEntity()));
             }
         } finally {
             if (response != null) {
@@ -414,7 +416,7 @@ public abstract class BaseRestFeed extends GenericService {
         try {
             response = getProductService().handle(request);
             if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-                throw new IOException("Failed to send rollback with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+                throw new IOException("Failed to send rollback with status " + response.getStatus() + " " + errorResponseToString(response.getEntity()));
             }
         } finally {
             if (response != null) {
@@ -441,7 +443,7 @@ public abstract class BaseRestFeed extends GenericService {
         try {
             response = getProductService().handle(request);
             if (!response.getStatus().equals(Status.SUCCESS_OK)) {
-                throw new IOException("Failed to send delete by query with status " + response.getStatus() + errorResponseToString(response.getEntity()));
+                throw new IOException("Failed to send delete by query with status " + response.getStatus() + " " + errorResponseToString(response.getEntity()));
             }
         } finally {
             if (response != null) {

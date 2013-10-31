@@ -208,7 +208,12 @@ public class AbstractSearchServerIntegrationTest {
         
         assertEquals(1, response.getQueryResponse().getGroupResponse().getValues().size());
         assertEquals("The North Face", getFirstResponseProperty(response, "brand"));
-        validateFilterByCat3000003(response);
+        //for brand categories we shouldn't generate the category graph. Use the regular category facet
+        assertNull(response.getCategoryGraph());
+        Facet categoryFacet = response.getFacets().get(0);
+        assertNotNull(categoryFacet);
+        assertEquals("Kids' Clothing", categoryFacet.getFilters().get(0).getName());
+        assertEquals("Shoes & Footwear", categoryFacet.getFilters().get(1).getName());
         validateCategoryPathNotInFacets(response);
 
     }

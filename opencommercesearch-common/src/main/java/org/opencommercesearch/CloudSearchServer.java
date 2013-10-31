@@ -79,8 +79,8 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
     private int maxConnectionsPerHost;
     private int connectTimeout;
     private int socketTimeout;
-    private int zkConnectTimeout = 10000;
-    private int zkClientTimeout = 10000;
+    private int zkConnectTimeout = 2000;
+    private int zkClientTimeout = 20000;
     private LBHttpSolrServer lbServer;
 
     public String getHost() {

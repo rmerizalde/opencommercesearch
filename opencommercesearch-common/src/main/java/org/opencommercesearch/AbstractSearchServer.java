@@ -294,7 +294,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         boolean hasCategoryId = StringUtils.isNotBlank(options.getCategoryId());
         boolean hasCategoryPath = StringUtils.isNotBlank(options.getCategoryPath());
         boolean hasBrandId = StringUtils.isNotBlank(options.getBrandId());
-        boolean addCategoryGraph = (options.isFetchCategoryGraph() || (hasBrandId && options.isFetchProducts())) && ! options.isRuleBasedPage();
+        boolean addCategoryGraph = (options.isFetchCategoryGraph() || 
+                                   (hasBrandId && options.isFetchProducts() && !hasCategoryId)) && 
+                                   ! options.isRuleBasedPage();
 
         String categoryPath = null;
         
@@ -538,7 +540,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             if (isLoggingDebug()) {
                 logDebug("Search time is " + searchTime + ", search engine time is " + queryResponse.getQTime());
             }
-            return new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
+
+            SearchResponse searchResponse = new SearchResponse(query, queryResponse, ruleManager, filterQueries, null, correctedTerm, matchesAll);
+            searchResponse.setRuleQueryTime(ruleManager.getLoadRulesTime());
+            return searchResponse;
         } catch (SolrServerException ex) {
             throw create(SEARCH_EXCEPTION, ex);
         } catch (SolrException ex) {
@@ -575,18 +580,28 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
     }
 
+    /**
+     * Sets the list of fields that should be returned from search.
+     * @param query Current SolrQuery being created.
+     * @param country Current country code
+     * @param catalog Current catalog code
+     */
     private void setFieldListParams(SolrQuery query, String country, String catalog) {
         String listPrice = "listPrice" + country;
         String salePrice =  "salePrice" + country;
         String discountPercent = "discountPercent" + country;
-        if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")){
+
+        if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")) {
             query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
                     "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
         }
-        else{
-            query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
-               "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
+        else {
+            if(StringUtils.isEmpty(query.getFields())) {
+                query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
+                        "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image", "isCloseout");
+            }
         }
+
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
     }
