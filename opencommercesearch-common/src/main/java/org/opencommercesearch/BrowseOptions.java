@@ -30,13 +30,15 @@ public class BrowseOptions {
     private String categoryId;
     private String categoryPath;
     private String catalogId;
+    private int depthLimit = -1;
+    private String separator;
     
     public BrowseOptions() {
     }
     
     public BrowseOptions(boolean fetchCategoryGraph, boolean fetchProducts,
             boolean onSale, boolean ruleBasedPage, int maxCategoryResults, String brandId,
-            String categoryId, String categoryPath, String catalogId) {
+            String categoryId, String categoryPath, String catalogId, int depthLimit, String separator) {
         this.fetchCategoryGraph = fetchCategoryGraph;
         this.fetchProducts = fetchProducts;
         this.onSale = onSale;
@@ -46,6 +48,8 @@ public class BrowseOptions {
         this.categoryId = categoryId;
         this.categoryPath = categoryPath;
         this.catalogId = catalogId;
+        this.depthLimit = depthLimit;
+        this.separator = separator;
     }
 
     public boolean isFetchCategoryGraph() {
@@ -101,6 +105,18 @@ public class BrowseOptions {
     }
     public void setRuleBasedPage(boolean ruleBasedPage) {
         this.ruleBasedPage = ruleBasedPage;
+    }
+    public int getDepthLimit() {
+        return depthLimit;
+    }
+    public void setDepthLimit(int depthLimit) {
+        this.depthLimit = depthLimit;
+    }
+    public String getSeparator() {
+        return separator;
+    }
+    public void setSeparator(String separator) {
+        this.separator = separator;
     }
     
 }

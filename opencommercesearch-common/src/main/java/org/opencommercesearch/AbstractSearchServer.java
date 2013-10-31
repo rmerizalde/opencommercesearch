@@ -363,7 +363,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         if (addCategoryGraph) {
             response.setCategoryGraph(createCategoryGraph(response,
                     options.getCategoryPath(), options.getCatalogId(),
-                    options.getCategoryId()));
+                    options.getCategoryId(), options.getDepthLimit(), options.getSeparator()));
         }
 
         return response;
@@ -949,31 +949,36 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     public abstract void reloadCollection(String collectionName, Locale locale) throws SearchServerException;
 
     private List<CategoryGraph> createCategoryGraph(SearchResponse searchResponse, String path, String catalogId,
-            String categoryId) {
+            String categoryId, int depthLimit, String separator) {
 
         List<CategoryGraph> categoryGraphList = new ArrayList<CategoryGraph>();
 
         for (Facet facet : searchResponse.getFacets()) {
             if (CATEGORY_PATH.equalsIgnoreCase(facet.getName())) {
                 searchResponse.removeFacet(facet.getName());
-                return createCategoryGraphAux(facet, path, catalogId, categoryId);
+                return createCategoryGraphAux(facet, path, catalogId, categoryId, depthLimit, separator);
             }
         }
         return categoryGraphList;
     }
 
-    private List<CategoryGraph> createCategoryGraphAux(Facet facet, String path, String catalogId, String categoryId) {
+    private List<CategoryGraph> createCategoryGraphAux(Facet facet, String path, String catalogId, String categoryId, int depthLimit, String separator) {
         List<CategoryGraph> categoryGraphList = new ArrayList<CategoryGraph>();
         if (facet != null) {
 
             CategoryGraphBuilder categoryFacetBuilder = new CategoryGraphBuilder();
 
+            boolean filterByDepth = depthLimit > 0 && StringUtils.isNotBlank(separator);
+            
             // iterate through the flat category facet structure and create a
             // graph from it
             for (Filter filter : facet.getFilters()) {
                 if (isLoggingDebug()) {
                     String filterPath = Utils.findFilterExpressionByName(filter.getPath(), CATEGORY_PATH);
                     logDebug("Generating CategoryGraph for path: " + filterPath);
+                }
+                if(filterByDepth && StringUtils.countMatches(filter.getName(), separator) > depthLimit) {
+                    continue;
                 }
                 categoryFacetBuilder.addPath(filter);
             }

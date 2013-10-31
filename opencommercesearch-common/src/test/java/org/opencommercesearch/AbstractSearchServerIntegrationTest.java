@@ -159,7 +159,7 @@ public class AbstractSearchServerIntegrationTest {
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseCategory(SearchServer server) throws SearchServerException {
         //scenario where we want to display only the top level categories. no results
-        BrowseOptions options = new BrowseOptions(true, false, false, false,  100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        BrowseOptions options = new BrowseOptions(true, false, false, false,  100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog", -1, null);                
         SolrQuery query = new SolrQuery();
         SearchResponse response = server.browse(options, query, site, Locale.US, null);
         
@@ -168,7 +168,7 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         
         //scenario where we want to show results. not only display the top level categories
-        options = new BrowseOptions(false, false, false, false, 100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        options = new BrowseOptions(false, false, false, false, 100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog", -1, null);                
         query = new SolrQuery();
         response = server.browse(options, query, site, Locale.US, null);
         
@@ -181,7 +181,7 @@ public class AbstractSearchServerIntegrationTest {
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseBrand(SearchServer server) throws SearchServerException {
         //scenario where we want to display only the top level categories for products that have a specific brand
-        BrowseOptions options = new BrowseOptions(true, false, false,false,  100, "88", null, null, "mycatalog");
+        BrowseOptions options = new BrowseOptions(true, false, false,false,  100, "88", null, null, "mycatalog", -1, null);
         SolrQuery query = new SolrQuery();
         SearchResponse response = server.browse(options, query, site, Locale.US, null);
         
@@ -190,7 +190,7 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         
         //scenario where we want to show results for products from a given brand. Not only display the top level categories
-        options = new BrowseOptions(false, true, false, false, 100, "88", null, null, "mycatalog");
+        options = new BrowseOptions(false, true, false, false, 100, "88", null, null, "mycatalog", -1, null);
         query = new SolrQuery();
         query.setRows(ROWS);
         response = server.browse(options, query, site, Locale.US, null);
@@ -201,7 +201,7 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         
         //scenario where we want to show results for products from a given brand and category. Not only display the top level categories
-        options = new BrowseOptions(false, true, false, false, 100, "88", "cat3000003", "mycatalog.cat3000003", "mycatalog");                
+        options = new BrowseOptions(false, true, false, false, 100, "88", "cat3000003", "mycatalog.cat3000003", "mycatalog", -1, null);                
         query = new SolrQuery();
         query.setRows(ROWS);
         response = server.browse(options, query, site, Locale.US, null);
@@ -259,7 +259,7 @@ public class AbstractSearchServerIntegrationTest {
     public void testOnSale(SearchServer server) throws SearchServerException {
         
         //scenario where we want to display only the top level categories for products that are on sale.
-        BrowseOptions options = new BrowseOptions(true, false, true, false, 100, null, null, null, "mycatalog");                
+        BrowseOptions options = new BrowseOptions(true, false, true, false, 100, null, null, null, "mycatalog", -1, null);                
         SolrQuery query = new SolrQuery();
         SearchResponse response = server.browse(options, query, site, Locale.US, null);
         
@@ -268,7 +268,7 @@ public class AbstractSearchServerIntegrationTest {
         validateCategoryPathNotInFacets(response);
         
         //scenario where we want to show results for products that are on sale. not only display the top level categories
-        options = new BrowseOptions(false, true, true, false, 100, null, null, null, "mycatalog");                
+        options = new BrowseOptions(false, true, true, false, 100, null, null, null, "mycatalog", -1, null);                
         query = new SolrQuery();
         query.setFields("id");
         query.setRows(ROWS);
@@ -288,7 +288,7 @@ public class AbstractSearchServerIntegrationTest {
         abstractServer.setRulesBuilder(rulesBuilder);
         
         //scenario where we want to display a rule based category that shows product with a discount > 15%
-        BrowseOptions options = new BrowseOptions(false, false, false, true,  100, null, "cat3000003", null, "mycatalog");     
+        BrowseOptions options = new BrowseOptions(false, false, false, true,  100, null, "cat3000003", null, "mycatalog", -1, null);     
         when(rulesBuilder.buildRulesFilter(options.getCategoryId(), Locale.US)).thenReturn("(categoryId:ruleCategory) OR (discountPercentUS:[15 TO 100])");
         SolrQuery query = new SolrQuery();
         query.setRows(ROWS);
