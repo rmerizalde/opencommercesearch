@@ -294,7 +294,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         boolean hasCategoryId = StringUtils.isNotBlank(options.getCategoryId());
         boolean hasCategoryPath = StringUtils.isNotBlank(options.getCategoryPath());
         boolean hasBrandId = StringUtils.isNotBlank(options.getBrandId());
-        boolean addCategoryGraph = (options.isFetchCategoryGraph() || (hasBrandId && options.isFetchProducts())) && ! options.isRuleBasedPage();
+        boolean addCategoryGraph = (options.isFetchCategoryGraph() || 
+                                   (hasBrandId && options.isFetchProducts() && !hasCategoryId)) && 
+                                   ! options.isRuleBasedPage();
 
         String categoryPath = null;
         

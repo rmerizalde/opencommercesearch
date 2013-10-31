@@ -19,8 +19,14 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import atg.nucleus.ServiceException;
-import atg.repository.RepositoryItem;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Locale;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -30,9 +36,8 @@ import org.apache.solr.client.solrj.request.DirectXmlRequest;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
 
-import java.io.*;
-import java.util.Arrays;
-import java.util.Locale;
+import atg.nucleus.ServiceException;
+import atg.repository.RepositoryItem;
 
 /**
  * This class provides a SearchServer implementation which can be run as an embedded instance. By default, the configuration
@@ -104,7 +109,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 System.setProperty("solr.lockFactory", "single");
                 configUrl += ".ram";
                 if (isLoggingInfo()) {
-                    logInfo("Initializing in-memery embedded search server");
+                    logInfo("Initializing in-memory embedded search server");
                 }
             } else {
                 if (getDataDir() != null) {
@@ -132,7 +137,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 }
                 out.close();
 
-                coreContainer = new CoreContainer(getSolrCorePath(), tmpConfigFile);
+                coreContainer = CoreContainer.createAndLoad(getSolrCorePath(), tmpConfigFile);
                 tmpConfigFile.delete();
                 // @TODO fix this support configurable supported locales
                 setCatalogSolrServer(createEmbeddedSolrServer(coreContainer, getCatalogCollection(),  Locale.ENGLISH), Locale.ENGLISH);
