@@ -21,7 +21,7 @@
      this file, see http://wiki.apache.org/solr/SolrConfigXml.
 -->
 <config>
-  <luceneMatchVersion>LUCENE_42</luceneMatchVersion>
+  <luceneMatchVersion>4.5</luceneMatchVersion>
 
   <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
   <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
@@ -179,21 +179,20 @@
   </requestHandler>
 
   <queryParser name="synonym_edismax" class="solr.SynonymExpandingExtendedDismaxQParserPlugin">
-    <str name="luceneMatchVersion">LUCENE_42</str>
     <lst name="synonymAnalyzers">
       <lst name="default">
         <lst name="tokenizer">
-          <str name="class">solr.StandardTokenizerFactory</str>
+          <str name="class">standard</str>
         </lst>
         <lst name="filter">
-          <str name="class">solr.ShingleFilterFactory</str>
+          <str name="class">shingle</str>
           <str name="outputUnigramsIfNoShingles">true</str>
           <str name="outputUnigrams">true</str>
           <str name="minShingleSize">2</str>
           <str name="maxShingleSize">4</str>
         </lst>
         <lst name="filter">
-          <str name="class">solr.SynonymFilterFactory</str>
+          <str name="class">synonym</str>
           <str name="synonyms">synonyms-${solr.env.dir:preview}/query_parser_synonyms.txt</str>
           <str name="tokenizerFactory">solr.KeywordTokenizerFactory</str>
           <str name="expand">true</str>

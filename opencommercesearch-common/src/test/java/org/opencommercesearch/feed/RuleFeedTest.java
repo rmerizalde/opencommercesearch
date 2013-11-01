@@ -26,6 +26,7 @@ import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,6 +39,8 @@ import org.opencommercesearch.Utils;
 import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RankingRuleProperty;
 import org.opencommercesearch.repository.RuleProperty;
+
+import com.google.common.collect.Lists;
 
 import java.sql.Timestamp;
 import java.util.*;
@@ -175,9 +178,9 @@ public class RuleFeedTest {
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
-        assertThat((List)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
     }
 
     @Test
@@ -190,9 +193,9 @@ public class RuleFeedTest {
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
-        assertThat((List)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertEquals(Utils.getISO8601Date(20000), doc.get("startDate"));
         assertEquals(Utils.getISO8601Date(25000), doc.get("endDate"));
     }
@@ -206,9 +209,9 @@ public class RuleFeedTest {
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
-        assertThat((List)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
     }
 
     @Test
@@ -220,9 +223,9 @@ public class RuleFeedTest {
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("myid", doc.get("id"));
         assertEquals("arc'teryx", doc.get("query"));
-        assertThat((List)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
-        assertThat((List)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
+        assertThat((List<String>)doc.get("category"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
     }
 
     @Test
@@ -242,18 +245,21 @@ public class RuleFeedTest {
 
         @SuppressWarnings("unchecked")
         JSONArray sites = (JSONArray) doc.get("siteId");
-        assertThat(sites, CoreMatchers.hasItem("site:alpha"));
-        assertThat(sites, CoreMatchers.hasItem("site:beta"));
-        assertThat(sites, CoreMatchers.hasItem("site:charlie"));
+        List<String> siteList = Lists.newArrayList(sites);
+        assertThat(siteList, CoreMatchers.hasItem("site:alpha"));
+        assertThat(siteList, CoreMatchers.hasItem("site:beta"));
+        assertThat(siteList, CoreMatchers.hasItem("site:charlie"));
 
         @SuppressWarnings("unchecked")
         JSONArray catalogs = (JSONArray) doc.get("catalogId");
-        assertThat(catalogs, CoreMatchers.hasItem("cata:alpha"));
-        assertThat(catalogs, CoreMatchers.hasItem("cata:beta"));
-        assertThat(catalogs, CoreMatchers.hasItem("cata:charlie"));
+        List<String> catalogList = Lists.newArrayList(catalogs);
+        assertThat(catalogList, CoreMatchers.hasItem("cata:alpha"));
+        assertThat(catalogList, CoreMatchers.hasItem("cata:beta"));
+        assertThat(catalogList, CoreMatchers.hasItem("cata:charlie"));
 
         @SuppressWarnings("unchecked")
         JSONArray categories = (JSONArray) doc.get("category");
+        List<String> categoryList = Lists.newArrayList(categories);
         for (String token : new String[] {
                 "cateA:token1",
                 "cateA:token2",
@@ -261,7 +267,7 @@ public class RuleFeedTest {
                 "cateCchild1:token",
                 "cateCchild2:token",
         }) {
-            assertThat(categories, CoreMatchers.hasItem(token));
+            assertThat(categoryList, CoreMatchers.hasItem(token));
         }
     }
 

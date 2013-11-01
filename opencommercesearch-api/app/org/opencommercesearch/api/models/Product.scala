@@ -101,7 +101,11 @@ case class Product (
   def setDetailImages(detailImages: util.List[String]) {
     this.detailImages = Some(JIterableWrapper(detailImages).map( { image => 
       val parts = StringUtils.split(image, FieldSeparator)
-      new Image(Some(parts(0)), Some(parts(1)))    
+      if(parts.size == 1) {
+          new Image(Some(StringUtils.EMPTY), Some(parts(0)))
+      } else {
+        new Image(Some(parts(0)), Some(parts(1)))
+      }
     }).toSeq)
   }   
 

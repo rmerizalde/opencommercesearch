@@ -18,12 +18,12 @@ ATG-Class-Path: lib/hotfix/p13311143_1001_v1_lib.jar
   lib/classes lib/classes.jar lib/resources.jar
   ...
   lib/opencommercesearch/opencommercesearch-common-0.2-SNAPSHOT.jar lib/opencommercesearch/opencommercesearch-solr-0.2-SNAPSHOT.jar
-  lib/solr/solr-solrj-4.2.1.jar lib/solr/solr-core-4.2.1.jar lib/solr/zookeeper-3.4.5.jar lib/solr/spatial4j-0.3.jar
-  lib/lucene/lucene-core-4.2.1.jar lib/lucene/lucene-analyzers-common-4.2.1.jar
-  lib/lucene/lucene-queries-4.2.1.jar lib/lucene/lucene-queryparser-4.2.1.jar lib/lucene/lucene-grouping-4.2.1.jar
-  lib/lucene/lucene-suggest-4.2.1.jar lib/lucene/lucene-highlighter-4.2.1.jar lib/lucene/lucene-memory-4.2.1.jar
-  lib/lucene/lucene-misc-4.2.1.jar lib/lucene/lucene-analyzers-phonetic-4.2.1.jar
-  lib/lucene/hon-lucene-synonyms-1.2.2-solr-4.1.0.jar 
+  lib/solr/solr-solrj-4.5.1.jar lib/solr/solr-core-4.5.1.jar lib/solr/zookeeper-3.4.5.jar lib/solr/spatial4j-0.3.jar
+  lib/lucene/lucene-core-4.5.1.jar lib/lucene/lucene-analyzers-common-4.5.1.jar
+  lib/lucene/lucene-queries-4.5.1.jar lib/lucene/lucene-queryparser-4.5.1.jar lib/lucene/lucene-grouping-4.5.1.jar
+  lib/lucene/lucene-suggest-4.5.1.jar lib/lucene/lucene-highlighter-4.5.1.jar lib/lucene/lucene-memory-4.5.1.jar
+  lib/lucene/lucene-misc-4.5.1.jar lib/lucene/lucene-analyzers-phonetic-4.5.1.jar
+  lib/lucene/hon-lucene-synonyms-1.3.1-solr-4.3.0.jar 
   ...
 ATG-Config-Path: lib/opencommercesearch/opencommercesearch-common-0.2-SNAPSHOT.jar config
 
