@@ -46,6 +46,7 @@ import org.junit.Before;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.junit.SearchTest;
 import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 import org.opencommercesearch.repository.FacetProperty;
@@ -178,6 +179,30 @@ public class AbstractSearchServerIntegrationTest {
         
     }
 
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testBrowseCategoryDepthLimit(SearchServer server) throws SearchServerException {
+        //scenario where we want to display only the top level categories. no results
+        BrowseOptions options = new BrowseOptions(true, false, false, false,  100, null, "cat3000003", "mycatalog.cat3000003", "mycatalog", 2, ".");                
+        SolrQuery query = new SolrQuery();
+        SearchResponse response = server.browse(options, query, site, Locale.US, null);
+        
+        int maxDepth = 0;
+        for(CategoryGraph currentLevel : response.getCategoryGraph()){
+            //we are checking 3 as max depth cause the base depth is level 1 plus 2 extra level we added in the call
+            validateCategoryGraphDepth(currentLevel, 0, 3);
+        }
+    }
+    
+    private void validateCategoryGraphDepth(CategoryGraph graph, int currentDepth, int maxDepth) {
+        if(currentDepth > maxDepth) {
+            fail("category graph generated was too deep");
+        } else {
+            for(CategoryGraph child : graph.getCategoryGraphNodes()) {
+                validateCategoryGraphDepth(child, currentDepth+1, maxDepth);
+            }
+        }
+    }
+    
     @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
     public void testBrowseBrand(SearchServer server) throws SearchServerException {
         //scenario where we want to display only the top level categories for products that have a specific brand
@@ -500,6 +525,26 @@ public class AbstractSearchServerIntegrationTest {
         when(catalogZ.getRepositoryId()).thenReturn("Zcatalog");
         facet = server.getFacet(siteZ, Locale.US, "brandId", 100, -1, null);
         assertNull(facet);
+    }
+    
+    @SearchTest(newInstance = true, productData = "/product_catalog/sandal.xml")
+    public void testGetFacetDepthLimit(SearchServer server) throws SearchServerException {
+        Facet facet = server.getFacet(site, Locale.US,  "categoryPath", 100, 2, ".");
+        assertNotNull(facet);
+        for(Filter filter : facet.getFilters()) {
+            assertTrue(StringUtils.countMatches(filter.getName(), ".") <= 2);
+        }
+        
+        facet = server.getFacet(site, Locale.US,  "categoryPath", 100, -1, ".");
+        assertNotNull(facet);
+        boolean fullFacetDepth = false;
+        for(Filter filter : facet.getFilters()) {
+            if(StringUtils.countMatches(filter.getName(), ".") > 2) {
+                fullFacetDepth = true;
+                break;
+            }
+        }
+        assertEquals("the depth of the generated categoryPath facet should be greater than 2. checkout possible incorrect prune logic", true, fullFacetDepth);
     }
     
     protected void validateFilterByTopLevelCat(SearchResponse response, boolean hasProducts) {
