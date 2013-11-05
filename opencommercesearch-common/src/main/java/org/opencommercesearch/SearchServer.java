@@ -35,6 +35,7 @@ import org.apache.solr.common.SolrInputDocument;
 import atg.multisite.Site;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+
 import org.apache.solr.common.util.NamedList;
 
 /**
@@ -66,7 +67,7 @@ public interface SearchServer {
     SearchResponse search(SolrQuery query, Site site, RepositoryItem catalog, Locale locale, FilterQuery... filterQueries)
              throws SearchServerException;
 
-    Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, FilterQuery... filterQueries) throws SearchServerException;
+    Facet getFacet(Site site, Locale locale, String fieldFacet, int facetLimit, int depthLimit, String separator, FilterQuery... filterQueries) throws SearchServerException;
     
     QueryResponse query(SolrQuery solrQuery,  String collection, Locale locale) throws SearchServerException;
     
