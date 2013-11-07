@@ -405,10 +405,7 @@ public abstract class SearchFeed extends GenericService {
                         //If an async call is made, this always return true.
                         return true;
                     } else {
-                        if(sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
-                            return true;
-                        }
-                        else {
+                        if(!sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
                             failedProductCount.incrementAndGet();
                             return false;
                         }

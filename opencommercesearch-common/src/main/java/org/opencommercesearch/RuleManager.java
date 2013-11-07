@@ -273,7 +273,7 @@ public class RuleManager<T extends SolrServer> {
 
                 RepositoryItem rule = searchRepository.getItem((String) doc.getFieldValue("id"),
                         SearchRepositoryItemDescriptor.RULE);
-                
+
                 //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
                     String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
