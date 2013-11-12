@@ -80,28 +80,32 @@
         <!-- Seed common sort fields -->
         <lst>
           <str name="q">*:*</str>
+          <str name="rows>">3000</str>
           <str name="sort">sortPriority asc,score asc,id asc</str>
         </lst>
 
         <!-- Seed common filter queries -->
         <lst>
-          <str name="fq">target:allpages OR target:categorypages</str>
-          <str name="fq">category:__all__</str>
-          <str name="fq">siteId:__all__</str>
-          <str name="fq">siteId:__all__ OR siteId:1</str>
-          <str name="fq">siteId:__all__ OR siteId:2</str>
-          <str name="fq">siteId:__all__ OR siteId:7</str>
-          <str name="fq">siteId:__all__ OR siteId:bcs</str>
-          <str name="fq">siteId:__all__ OR siteId:dogfunk</str>
-          <str name="fq">siteId:__all__ OR siteId:competitivecyclist</str>
-          <str name="fq">brandId:__all__</str>
-          <str name="fq">subTarget:__all__ OR subTarget:Retail</str>
-          <str name="fq">subTarget:__all__ OR subTarget:Outlet</str>
-          <str name="fq">catalogId:__all__</str>
-          <str name="fq">catalogId:__all__ OR catalogId:bcs</str>
-          <str name="fq">catalogId:__all__ OR catalogId:dogfunk</str>
-          <str name="fq">catalogId:__all__ OR catalogId:competitivecyclist</str>
-          <str name="fq">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
+          <str name="q">*:*</str>
+          <str name="rows>">3000</str>
+          <str name="facet">true</str>
+          <str name="facet.query">target:allpages OR target:categorypages</str>
+          <str name="facet.query">category:__all__</str>
+          <str name="facet.query">siteId:__all__</str>
+          <str name="facet.query">siteId:__all__ OR siteId:1</str>
+          <str name="facet.query">siteId:__all__ OR siteId:2</str>
+          <str name="facet.query">siteId:__all__ OR siteId:7</str>
+          <str name="facet.query">siteId:__all__ OR siteId:bcs</str>
+          <str name="facet.query">siteId:__all__ OR siteId:dogfunk</str>
+          <str name="facet.query">siteId:__all__ OR siteId:competitivecyclist</str>
+          <str name="facet.query">brandId:__all__</str>
+          <str name="facet.query">subTarget:__all__ OR subTarget:Retail</str>
+          <str name="facet.query">subTarget:__all__ OR subTarget:Outlet</str>
+          <str name="facet.query">catalogId:__all__</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:bcs</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:dogfunk</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:competitivecyclist</str>
+          <str name="facet.query">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
         </lst>
       </arr>
     </listener>
@@ -110,28 +114,32 @@
         <!-- Seed common sort fields -->
         <lst>
           <str name="q">*:*</str>
+          <str name="rows">3000</str>
           <str name="sort">sortPriority asc,score asc,id asc</str>
         </lst>
 
         <!-- Seed common filter queries -->
         <lst>
-          <str name="fq">target:allpages OR target:categorypages</str>
-          <str name="fq">category:__all__</str>
-          <str name="fq">siteId:__all__</str>
-          <str name="fq">siteId:__all__ OR siteId:1</str>
-          <str name="fq">siteId:__all__ OR siteId:2</str>
-          <str name="fq">siteId:__all__ OR siteId:7</str>
-          <str name="fq">siteId:__all__ OR siteId:bcs</str>
-          <str name="fq">siteId:__all__ OR siteId:dogfunk</str>
-          <str name="fq">siteId:__all__ OR siteId:competitivecyclist</str>
-          <str name="fq">brandId:__all__</str>
-          <str name="fq">subTarget:__all__ OR subTarget:Retail</str>
-          <str name="fq">subTarget:__all__ OR subTarget:Outlet</str>
-          <str name="fq">catalogId:__all__</str>
-          <str name="fq">catalogId:__all__ OR catalogId:bcs</str>
-          <str name="fq">catalogId:__all__ OR catalogId:dogfunk</str>
-          <str name="fq">catalogId:__all__ OR catalogId:competitivecyclist</str>
-          <str name="fq">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
+          <str name="q">*:*</str>
+          <str name="rows">3000</str>
+          <str name="facet">true</str>
+          <str name="facet.query">target:allpages OR target:categorypages</str>
+          <str name="facet.query">category:__all__</str>
+          <str name="facet.query">siteId:__all__</str>
+          <str name="facet.query">siteId:__all__ OR siteId:1</str>
+          <str name="facet.query">siteId:__all__ OR siteId:2</str>
+          <str name="facet.query">siteId:__all__ OR siteId:7</str>
+          <str name="facet.query">siteId:__all__ OR siteId:bcs</str>
+          <str name="facet.query">siteId:__all__ OR siteId:dogfunk</str>
+          <str name="facet.query">siteId:__all__ OR siteId:competitivecyclist</str>
+          <str name="facet.query">brandId:__all__</str>
+          <str name="facet.query">subTarget:__all__ OR subTarget:Retail</str>
+          <str name="facet.query">subTarget:__all__ OR subTarget:Outlet</str>
+          <str name="facet.query">catalogId:__all__</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:bcs</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:dogfunk</str>
+          <str name="facet.query">catalogId:__all__ OR catalogId:competitivecyclist</str>
+          <str name="facet.query">-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))</str>
         </lst>
       </arr>
     </listener>
