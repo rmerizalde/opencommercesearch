@@ -70,7 +70,7 @@ import atg.repository.RepositoryView;
 public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> implements SearchServer {
     private static final BinaryResponseParser binaryParser = new BinaryResponseParser();
     // @TODO makes this configurable in the abstract search server
-    private static final Locale[] SUPPORTED_LOCALES = {Locale.ENGLISH, Locale.FRENCH};
+    public static final Locale[] SUPPORTED_LOCALES = {Locale.ENGLISH, Locale.FRENCH};
 
     private SolrZkClient zkClient;
     private String host;
@@ -148,7 +148,12 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
         this.zkConnectTimeout = zkConnectTimeout;
     }
 
-    private SolrZkClient getZkClient(Locale locale) {
+    /**
+     * Get the underlying zookeeper client.
+     * @param locale The locale of the wanted ZK client.
+     * @return Usable zookeeper client.
+     */
+    public SolrZkClient getZkClient(Locale locale) {
         if (zkClient == null) {
             ZkStateReader stateReader = getCatalogSolrServer(locale).getZkStateReader();
 
@@ -199,7 +204,6 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
     public void close() throws IOException {
         for (Locale locale : SUPPORTED_LOCALES) {
             CloudSolrServer catalogSolrServer = getSolrServer(getCatalogCollection(), locale);
-            String languagePrefix = "_" + locale.getLanguage();
 
             if (catalogSolrServer != null) {
                 catalogSolrServer.shutdown();
