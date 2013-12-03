@@ -7,7 +7,7 @@
     <groupId>org.opencommercesearch</groupId>
     <artifactId>opencommercesearch-common</artifactId>
     <packaging>jar</packaging>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.3-SNAPSHOT</version>
     <inceptionYear>2012</inceptionYear>
     <licenses>
         <license>
@@ -24,7 +24,7 @@
         <mockito.version>1.9.0</mockito.version>
         <powermock.version>1.5</powermock.version>
         <harmcrest.version>1.3</harmcrest.version>
-        <opencommercesearch.version>0.2-SNAPSHOT</opencommercesearch.version>
+        <opencommercesearch.version>0.3-SNAPSHOT</opencommercesearch.version>
         <jacoco.version>0.6.0.201210061924</jacoco.version>
         <commons.codecs>1.7</commons.codecs>
         <lucene.synonyms>1.3.1-solr-4.3.0</lucene.synonyms>

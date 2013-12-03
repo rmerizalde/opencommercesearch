@@ -7,7 +7,7 @@
     <groupId>org.opencommercesearch</groupId>
     <artifactId>opencommercesearch-solr</artifactId>
     <packaging>jar</packaging>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.3-SNAPSHOT</version>
     <inceptionYear>2012</inceptionYear>
 
     <properties>
