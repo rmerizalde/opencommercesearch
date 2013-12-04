@@ -145,6 +145,7 @@
           <option value="Replace" code="1"/>
           <option value="Append"  code="2"/>
         </property>
+        
         <property name="startDate" data-type="timestamp" display-name="Start Date"
             column-name="start_date" required="false" category="Lifetime">
             <attribute name="propertySortPriority" value="9" />
@@ -196,6 +197,7 @@
             <attribute name="propertySortPriority" value="4" />
         </property>
        </table>
+       
       <table name="cs_rule_brands" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="brands" display-name="Brands" data-type="set" component-item-type="brand"
             column-name="brand_id" repository="/atg/commerce/catalog/ProductCatalog" category="Context">
@@ -210,8 +212,12 @@
             <attribute name="propertySortPriority" value="5" />
         </property>
       </table>
+      <table name="cs_rule_experiment_variants" type="multi" id-column-names="rule_id" multi-column-name="seq_num">
+          <property name="targetExperimentVariants" column-names="experiment_variants" data-type="list" component-data-type="String"/>
+      </table>
+      
     </item-descriptor>
-
+        
     <item-descriptor display-name="Redirect Rule" name="redirectRule" super-type="rule" sub-type-value="redirectRule">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="ContextPriority" value="2" />
@@ -523,6 +529,5 @@
         </property>
       </table>
     </item-descriptor>
-
-</gsa-template>    
-
+       
+</gsa-template>
