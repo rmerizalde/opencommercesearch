@@ -81,14 +81,19 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     private RecordProcessor<V> recordProcessor;
 
     /**
-     * Time in milliseconds when the data chunk in memory will expire (and force a reload from the database) after loaded.
+     * Time in milliseconds when the current in memory data chunk to expire (and force a reload from the database).
      */
-    private AtomicLong expireTime = new AtomicLong(-1);
+    private long expireTime;
 
     /**
      * Time in milliseconds when the current in memory data will expire.
      */
-    private AtomicLong currentExpireTime;
+    private long currentExpireTime;
+
+    /**
+     * Whether or not the current data chunk in memory will expire at some point.
+     */
+    private boolean enableExpiration = false;
 
     public Repository getRepository() {
         return repository;
@@ -120,22 +125,6 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
 
     public void setSqlQuery(String sqlQuery) {
         this.sqlQuery = sqlQuery;
-    }
-
-    public long getExpireTime() {
-        return expireTime.get();
-    }
-
-    public void setExpireTime(long expireTime) {
-        this.expireTime.set(expireTime);
-    }
-
-    public long getCurrentExpireTime() {
-        return currentExpireTime.get();
-    }
-
-    public void setCurrentExpireTime(long currentExpireTime) {
-        this.currentExpireTime.set(currentExpireTime);
     }
 
     public double getCacheHitRatio() {
@@ -198,7 +187,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     public V getItem(K id) {
         requestCount.incrementAndGet();
 
-        if(currentExpireTime.get() <= System.currentTimeMillis()) {
+        if(enableExpiration && currentExpireTime <= System.currentTimeMillis()) {
             if(isLoggingDebug()) {
                 logDebug("Cache expired, forcing data load");
             }
@@ -287,7 +276,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         prepareArguments(id, offset, rowCount, stmt);
         setMinId(id);
         setMaxId(id);
-        currentExpireTime.set(System.currentTimeMillis() + expireTime.get());
+        currentExpireTime = System.currentTimeMillis() + expireTime;
 
         if (stmt.execute()) {
             ResultSet rs = stmt.getResultSet();
@@ -397,5 +386,29 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         stmt.setObject(1, id);
         stmt.setInt(2, offset);
         stmt.setInt(3, rowCount);
+    }
+
+    public long getExpireTime() {
+        return expireTime;
+    }
+
+    public void setExpireTime(long expireTime) {
+        this.expireTime = expireTime;
+    }
+
+    public long getCurrentExpireTime() {
+        return currentExpireTime;
+    }
+
+    public void setCurrentExpireTime(long currentExpireTime) {
+        this.currentExpireTime = currentExpireTime;
+    }
+
+    public boolean isEnableExpiration() {
+        return enableExpiration;
+    }
+
+    public void setEnableExpiration(boolean enableExpiration) {
+        this.enableExpiration = enableExpiration;
     }
 }
