@@ -172,7 +172,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
