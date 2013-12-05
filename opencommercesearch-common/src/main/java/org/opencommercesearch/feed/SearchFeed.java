@@ -369,7 +369,12 @@ public abstract class SearchFeed extends GenericService {
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
-            } finally {
+            } catch (Throwable ex) {
+                if (isLoggingError()) {
+                    logError(Thread.currentThread() + " - Error while executing send task", ex);
+                }
+            }
+            finally {
                 if (isLoggingInfo()) {
                     logInfo(Thread.currentThread() + " - Finished send task");
                 }
@@ -582,6 +587,11 @@ public abstract class SearchFeed extends GenericService {
             RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
             int productCount = productRql.executeCountQuery(productView, null);
             currentErrorThreshold = (int) (productCount * getErrorThreshold());
+
+            //If error threshold is too small, don't do anything with it.
+            if(currentErrorThreshold == 0) {
+                currentErrorThreshold = productCount;
+            }
 
             if (isLoggingInfo()) {
                 logInfo("Started full feed for " + productCount + " products");

@@ -80,6 +80,16 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     private String sqlQuery;
     private RecordProcessor<V> recordProcessor;
 
+    /**
+     * Time in milliseconds when the data chunk in memory will expire (and force a reload from the database) after loaded.
+     */
+    private AtomicLong expireTime = new AtomicLong(-1);
+
+    /**
+     * Time in milliseconds when the current in memory data will expire.
+     */
+    private AtomicLong currentExpireTime;
+
     public Repository getRepository() {
         return repository;
     }
@@ -110,6 +120,22 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
 
     public void setSqlQuery(String sqlQuery) {
         this.sqlQuery = sqlQuery;
+    }
+
+    public long getExpireTime() {
+        return expireTime.get();
+    }
+
+    public void setExpireTime(long expireTime) {
+        this.expireTime.set(expireTime);
+    }
+
+    public long getCurrentExpireTime() {
+        return currentExpireTime.get();
+    }
+
+    public void setCurrentExpireTime(long currentExpireTime) {
+        this.currentExpireTime.set(currentExpireTime);
     }
 
     public double getCacheHitRatio() {
@@ -171,6 +197,16 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     @SuppressWarnings("unchecked")
     public V getItem(K id) {
         requestCount.incrementAndGet();
+
+        if(currentExpireTime.get() <= System.currentTimeMillis()) {
+            if(isLoggingDebug()) {
+                logDebug("Cache expired, forcing data load");
+            }
+
+            setMinId(null);
+            setMaxId(null);
+        }
+
         K min = getMinId();
         K max = getMaxId();
 
@@ -251,6 +287,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         prepareArguments(id, offset, rowCount, stmt);
         setMinId(id);
         setMaxId(id);
+        currentExpireTime.set(System.currentTimeMillis() + expireTime.get());
 
         if (stmt.execute()) {
             ResultSet rs = stmt.getResultSet();

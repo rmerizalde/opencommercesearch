@@ -53,9 +53,6 @@
   <xi:include href="xinclude/update-handler.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
 
-  <xi:include href="xinclude/query.xml" parse="xml"
-    xmlns:xi="http://www.w3.org/2001/XInclude" />
-
   <requestDispatcher handleSelect="false" >
     <requestParsers enableRemoteStreaming="true"
                     multipartUploadLimitInKB="2048000" />
