@@ -369,12 +369,7 @@ public abstract class SearchFeed extends GenericService {
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
-            } catch (Throwable ex) {
-                if (isLoggingError()) {
-                    logError(Thread.currentThread() + " - Error while executing send task", ex);
-                }
-            }
-            finally {
+            } finally {
                 if (isLoggingInfo()) {
                     logInfo(Thread.currentThread() + " - Finished send task");
                 }
