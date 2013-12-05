@@ -83,12 +83,12 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     /**
      * Time in milliseconds when the current in memory data chunk to expire (and force a reload from the database).
      */
-    private long expireTime;
+    private AtomicLong expireTime = new AtomicLong();
 
     /**
      * Time in milliseconds when the current in memory data will expire.
      */
-    private long currentExpireTime;
+    private AtomicLong currentExpireTime = new AtomicLong(Long.MAX_VALUE);
 
     /**
      * Whether or not the current data chunk in memory will expire at some point.
@@ -187,7 +187,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     public V getItem(K id) {
         requestCount.incrementAndGet();
 
-        if(enableExpiration && currentExpireTime <= System.currentTimeMillis()) {
+        if(enableExpiration && currentExpireTime.get() <= System.currentTimeMillis()) {
             if(isLoggingDebug()) {
                 logDebug("Cache expired, forcing data load");
             }
@@ -276,7 +276,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         prepareArguments(id, offset, rowCount, stmt);
         setMinId(id);
         setMaxId(id);
-        currentExpireTime = System.currentTimeMillis() + expireTime;
+        currentExpireTime.set(System.currentTimeMillis() + expireTime.get());
 
         if (stmt.execute()) {
             ResultSet rs = stmt.getResultSet();
@@ -389,19 +389,19 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     }
 
     public long getExpireTime() {
-        return expireTime;
+        return expireTime.get();
     }
 
     public void setExpireTime(long expireTime) {
-        this.expireTime = expireTime;
+        this.expireTime.set(expireTime);
     }
 
     public long getCurrentExpireTime() {
-        return currentExpireTime;
+        return currentExpireTime.get();
     }
 
     public void setCurrentExpireTime(long currentExpireTime) {
-        this.currentExpireTime = currentExpireTime;
+        this.currentExpireTime.set(currentExpireTime);
     }
 
     public boolean isEnableExpiration() {
