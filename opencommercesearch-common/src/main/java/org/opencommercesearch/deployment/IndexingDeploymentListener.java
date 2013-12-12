@@ -233,14 +233,18 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                         }
                         else if (triggerItemDescriptorNames.contains(descriptorName) || getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
                             doEvaluation = true;
-                            notifyItemChange(repositoryName, itemDescriptorNames);
+                            try {
+                                notifyItemChange(repositoryName, itemDescriptorNames);
+                            } catch (Exception ex) {
+                                logError("Failed to process deployment event due unexpected error.", ex);
+                            }
                             break;
                         }
                     }
                 }
             }
         }
-        
+
         if(isEnableEvaluation() && doEvaluation) {
         	if(isLoggingInfo()) {               
                 logInfo("Sending Message for Evaluation Engine");
@@ -262,12 +266,12 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
             getSearchServer().onRepositoryItemChanged(repositoryName, itemDescriptorNames);
         } catch (RepositoryException ex) {
             if (isLoggingError()) {
-                logError("Exception while processing deployemnt event for repository " + repositoryName
+                logError("Exception while processing deployment event for repository " + repositoryName
                         + "with item descriptors " + itemDescriptorNames, ex);
             }
         } catch (SearchServerException ex) {
             if (isLoggingError()) {
-                logError("Exception while processing deployemnt event for repository " + repositoryName
+                logError("Exception while processing deployment event for repository " + repositoryName
                         + "with item descriptors " + itemDescriptorNames, ex);
             }
         }
