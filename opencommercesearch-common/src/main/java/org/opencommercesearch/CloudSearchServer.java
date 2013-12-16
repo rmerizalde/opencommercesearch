@@ -313,9 +313,11 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
             RepositoryView view = getSearchRepository().getView(SearchRepositoryItemDescriptor.SYNONYM);
             Object params[] = {new String(synonymList.getRepositoryId())};
             RepositoryItem[] synonymMappings = getSynonymRql().executeQuery(view, params);
-           
-            for (RepositoryItem synonym : synonymMappings) {
-                out.println((String) synonym.getPropertyValue(SynonymProperty.MAPPING));
+
+            if (synonymMappings != null) {
+                for (RepositoryItem synonym : synonymMappings) {
+                    out.println((String) synonym.getPropertyValue(SynonymProperty.MAPPING));
+                }
             }
             
             out.close();
