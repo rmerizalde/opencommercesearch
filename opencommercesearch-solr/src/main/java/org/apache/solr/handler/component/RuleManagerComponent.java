@@ -885,7 +885,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                                 query.add(RuleConstants.FIELD_BOOST, boostRules[0]);
                                 query.add(CUSTOM_RANKING_PARAM_NAME, boostRules[1]);
                             } else {
-                                //TODO gsegura : figure out how to log error msg here
+                                logger.error("Incorrect use of the '"+ RANKING_SEPARATOR + "' operator in the following ranking rule:" + boostFunction);
                             }
                         } else {
                             query.add(RuleConstants.FIELD_BOOST, boostFunction);
