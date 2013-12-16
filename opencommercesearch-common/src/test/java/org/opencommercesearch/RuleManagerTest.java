@@ -157,13 +157,15 @@ public class RuleManagerTest {
         when(cateCchild3.getItemDescriptor()).thenReturn(faultyDescriptor);
     }
     
-    private void setUpRuleData(List<String> categories, String description, String id, String ruleType, RepositoryItem item, SolrDocumentList documents) throws RepositoryException {
+    private void setUpRuleData(List<String> categories, String description, String id, String ruleType, RepositoryItem item, Boolean experimental, SolrDocumentList documents) throws RepositoryException {
         SolrDocument rule = new SolrDocument();
         rule.addField("description", description);
         rule.addField("id", id);
         rule.addField("category", categories);
+        rule.addField("experimental", experimental);
         documents.add(rule);        
         when(item.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn(ruleType);
+        when(item.getPropertyValue(RuleProperty.ID)).thenReturn(id);
         when(repository.getItem(id, SearchRepositoryItemDescriptor.RULE)).thenReturn(item);
     }
     
@@ -181,13 +183,13 @@ public class RuleManagerTest {
         // we need to make sure that we test filterQueries here...
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
         SolrDocument rule = new SolrDocument();
         rule.addField("description", "avacado's grow on trees!");
         rule.addField("id", "avacado");
         solrDocumentList.add(rule);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, false, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -247,7 +249,8 @@ public class RuleManagerTest {
         // now verify the multi calls to addFilterQuery
         verify(query).addFilterQuery("{!tag=category}category:jackets OR category:12.jackets");
         verify(query).addFilterQuery("{!tag=hasLaces}hasLaces:raingear");        
-        
+        verify(query).getParams("excludeRules");
+        verify(query).getParams("includeRules");
         verifyNoMoreInteractions(query);        
     }
     
@@ -256,13 +259,13 @@ public class RuleManagerTest {
         // test handling null filterQueries
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
         SolrDocument rule = new SolrDocument();
         rule.addField("description", "avacado's grow on trees!");
         rule.addField("id", "avacado");
         solrDocumentList.add(rule);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, false, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -289,6 +292,8 @@ public class RuleManagerTest {
         verify(query, times(2)).getSortFields();
         verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
+        verify(query).getParams("includeRules");
+        verify(query).getParams("excludeRules");
         verifyNoMoreInteractions(query);
     }
     
@@ -446,23 +451,23 @@ public class RuleManagerTest {
     public void testRankingRuleForRuleBasedCategories() throws RepositoryException, SolrServerException {
         RuleManager mgr = new RuleManager(repository, builder, server);
         SolrDocumentList ruleList = new SolrDocumentList();
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, ruleList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, ruleList);
         SolrDocument rule = new SolrDocument();
         rule.addField("description", "avacado's grow on trees!");
         rule.addField("id", "avacado");
         ruleList.add(rule);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, ruleList);
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, false, ruleList);
         List<String> categories = new ArrayList<String>();
         categories.add("myCatalog.ruleBasedCategory");
         categories.add("__all__");
-        setUpRuleData(categories, "bag are nice for carring goods !", "reebok", boostRule, bagItem, ruleList);
+        setUpRuleData(categories, "bag are nice for carring goods !", "reebok", boostRule, bagItem, false, ruleList);
         ruleList.setNumFound(ruleList.size()); 
         ruleList.setStart(0L);
         when(queryResponse.getResults()).thenReturn(ruleList);
         when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
-        mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, true, cataA, false, null);
+        mgr.loadRules("", "myCatalog.ruleBasedCategory", null, false, true, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         assertEquals(mgr.getRules().size(), 2);
-        mgr.loadRules("", null, null, false, true, cataA, false, null);
+        mgr.loadRules("", null, null, false, true, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         assertEquals(mgr.getRules().size(), 2);
     }
     
@@ -518,20 +523,20 @@ public class RuleManagerTest {
     @Test(expected=IllegalArgumentException.class)
     public void testLoadRulesEmptyQuery() throws RepositoryException, SolrServerException {
         RuleManager mgr = new RuleManager(repository, builder, server);
-        mgr.loadRules("", null, "Men's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
     }  
     
     @Test
     public void testLoadRulesNullRule() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
         // note that we do NOT add this into the Repository so that we have a null rule in loadRules, this causes this document to not go into the rules
         SolrDocument rule = new SolrDocument();
         rule.addField("description", "avacado's grow on trees!");
         rule.addField("id", "avacado");
         solrDocumentList.add(rule);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, false, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size());
@@ -546,7 +551,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -571,9 +576,9 @@ public class RuleManagerTest {
     public void testLoadRulesMixedTypes() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
-        setUpRuleData(null, "avacado's grow on trees!", "avacado", blockRule, fruitItem, solrDocumentList);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, solrDocumentList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
+        setUpRuleData(null, "avacado's grow on trees!", "avacado", blockRule, fruitItem, false, solrDocumentList);    
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", boostRule, bottleItem, false, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size()); 
@@ -588,7 +593,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -629,18 +634,18 @@ public class RuleManagerTest {
          
         
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes",     "supra",    facetRule, shoeItem,  docList1); // SKIPPING due to setStart
-        setUpRuleData(null, "avacado's ",       "avacado",  blockRule, fruitItem, docList1);    
-        setUpRuleData(null, "water bottles!",   "nalgene",  boostRule, bottleItem,docList1);
-        setUpRuleData(null, "biking?  fun!",    "tallboy",  boostRule, bikeItem,  docList1);
-        setUpRuleData(null, "sleds are lame",   "suzuki",   facetRule, sledItem,  docList1);
-        setUpRuleData(null, "cars are lame",    "vw",       facetRule, carItem,   docList1);
-        setUpRuleData(null, "fly in a heli",    "heli",     boostRule, heliItem,  docList2); // SKIPPING due to setStart
-        setUpRuleData(null, "snow is fun",      "snow",     boostRule, snowItem,  docList2);
-        setUpRuleData(null, "good for food",    "farm",     blockRule, farmItem,  docList2);
-        setUpRuleData(null, "cows are food",    "steak",    facetRule, steakItem, docList2);
-        setUpRuleData(null, "coatItem",         "patagonia",boostRule, coatItem,  docList2);
-        setUpRuleData(null, "sleeping",         "pillow",   boostRule, pillowItem,docList2);
+        setUpRuleData(null, "i wear shoes",     "supra",    facetRule, shoeItem,  false, docList1); // SKIPPING due to setStart
+        setUpRuleData(null, "avacado's ",       "avacado",  blockRule, fruitItem, false, docList1);    
+        setUpRuleData(null, "water bottles!",   "nalgene",  boostRule, bottleItem,false, docList1);
+        setUpRuleData(null, "biking?  fun!",    "tallboy",  boostRule, bikeItem,  false, docList1);
+        setUpRuleData(null, "sleds are lame",   "suzuki",   facetRule, sledItem,  false, docList1);
+        setUpRuleData(null, "cars are lame",    "vw",       facetRule, carItem,   false, docList1);
+        setUpRuleData(null, "fly in a heli",    "heli",     boostRule, heliItem,  false, docList2); // SKIPPING due to setStart
+        setUpRuleData(null, "snow is fun",      "snow",     boostRule, snowItem,  false, docList2);
+        setUpRuleData(null, "good for food",    "farm",     blockRule, farmItem,  false, docList2);
+        setUpRuleData(null, "cows are food",    "steak",    facetRule, steakItem, false, docList2);
+        setUpRuleData(null, "coatItem",         "patagonia",boostRule, coatItem,  false, docList2);
+        setUpRuleData(null, "sleeping",         "pillow",   boostRule, pillowItem,false, docList2);
                        
         // ----------- set up doclist attributes ----------
         docList1.setNumFound(docList1.size() + docList2.size()); // set numfound to be both pagefuls...
@@ -661,7 +666,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());
@@ -701,9 +706,9 @@ public class RuleManagerTest {
     public void testLoadRulesFacets() throws RepositoryException, SolrServerException {  
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         // ---------- set up docs with a rule type -----------
-        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, solrDocumentList);
-        setUpRuleData(null, "avacado's grow on trees!", "avacado", facetRule, fruitItem, solrDocumentList);    
-        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, solrDocumentList);
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
+        setUpRuleData(null, "avacado's grow on trees!", "avacado", facetRule, fruitItem, false, solrDocumentList);    
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, false, solrDocumentList);
                        
         // ----------- set up doclist attributes ----------
         solrDocumentList.setNumFound(solrDocumentList.size());
@@ -718,7 +723,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the rules that were generated ---------
         assertNotNull(mgr.getRules());        
@@ -745,7 +750,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null);
+        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -763,6 +768,11 @@ public class RuleManagerTest {
     }
     
     @Test
+    public void testExcludeRule() throws RepositoryException, SolrServerException {
+        
+    }
+    
+    @Test
     public void testLoadRulesForCategoryPage() throws RepositoryException, SolrServerException {
         SolrDocumentList solrDocumentList = new SolrDocumentList();
         String category = "My category";
@@ -773,7 +783,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null);
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -802,7 +812,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null);
+        mgr.loadRules(searchQuery, null, category, true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -831,7 +841,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
@@ -849,7 +859,7 @@ public class RuleManagerTest {
         assertEquals(null, mgr.getRules());
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null);
+        mgr.loadRules("pants", null, "Women's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         assertNotNull(mgr.getRules());
         assertEquals(0, mgr.getRules().size());
     }
@@ -930,7 +940,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, false, false, cataA, true, null);
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, true, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -958,7 +968,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null);
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -987,7 +997,7 @@ public class RuleManagerTest {
         RuleManager mgr = new RuleManager(repository, builder, server);
         
         // ------------ make the call to load the rules etc -------------
-        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, brandId);
+        mgr.loadRules(searchQuery, null, category, false, false, cataA, false, brandId, new HashSet<String>(), new HashSet<String>());
         
         // ------------ assertions about the inner solr query that was performed -----------
         ArgumentCaptor<SolrQuery> query = ArgumentCaptor.forClass(SolrQuery.class);
@@ -1062,4 +1072,92 @@ public class RuleManagerTest {
         verify(facetManager).setParams(query);
         verifyNoMoreInteractions(facetManager);
     }
+    
+    @Test
+    public void testIncludeRulesExperimental() throws RepositoryException, SolrServerException {  
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, true, solrDocumentList);
+        setUpRuleData(null, "avacado's grow on trees!", "avacado", facetRule, fruitItem, true, solrDocumentList);    
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, true, solrDocumentList);                       
+        solrDocumentList.setNumFound(solrDocumentList.size());
+        solrDocumentList.setStart(0L);
+        
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        assertEquals(null, mgr.getRules());
+        
+        Set<String> includeRules = new HashSet<String>();
+        includeRules.add("avacado");
+        includeRules.add("nalgene");
+        
+        Set<String> excludeRules = new HashSet<String>();
+        excludeRules.add("supra");
+        
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, includeRules, excludeRules);
+        
+        assertNotNull(mgr.getRules());        
+        Map<String, List<RepositoryItem>> rules = mgr.getRules();
+        assertEquals(1, rules.size());
+        assertEquals(facetRule, rules.keySet().iterator().next());        
+        List<RepositoryItem> facetItems = rules.get(facetRule);        
+        assertEquals(2, facetItems.size());
+        assertThat(facetItems, hasItem(fruitItem));
+        assertThat(facetItems, hasItem(bottleItem));
+    }        
+    
+    @Test
+    public void testIncludeRulesNotExperimental() throws RepositoryException, SolrServerException {  
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, false, solrDocumentList);
+        setUpRuleData(null, "avacado's grow on trees!", "avacado", facetRule, fruitItem, false, solrDocumentList);    
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, true, solrDocumentList);                       
+        solrDocumentList.setNumFound(solrDocumentList.size());
+        solrDocumentList.setStart(0L);
+        
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        assertEquals(null, mgr.getRules());
+                
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), new HashSet<String>());
+        
+        assertNotNull(mgr.getRules());        
+        Map<String, List<RepositoryItem>> rules = mgr.getRules();
+        assertEquals(1, rules.size());
+        assertEquals(facetRule, rules.keySet().iterator().next());        
+        List<RepositoryItem> facetItems = rules.get(facetRule);        
+        assertEquals(2, facetItems.size());
+        assertThat(facetItems, hasItem(shoeItem));
+        assertThat(facetItems, hasItem(fruitItem));
+        
+    }        
+    
+    @Test
+    public void testExcludeRules() throws RepositoryException, SolrServerException {  
+        SolrDocumentList solrDocumentList = new SolrDocumentList();
+        setUpRuleData(null, "i wear shoes", "supra", facetRule, shoeItem, true, solrDocumentList);
+        setUpRuleData(null, "avacado's grow on trees!", "avacado", facetRule, fruitItem, true, solrDocumentList);    
+        setUpRuleData(null, "water bottle's are nice for drinking water!", "nalgene", facetRule, bottleItem, true, solrDocumentList);                       
+        solrDocumentList.setNumFound(solrDocumentList.size());
+        solrDocumentList.setStart(0L);
+        
+        when(queryResponse.getResults()).thenReturn(solrDocumentList);
+        when(server.query(any(SolrParams.class))).thenReturn(queryResponse);
+        
+        RuleManager mgr = new RuleManager(repository, builder, server);
+        assertEquals(null, mgr.getRules());
+        HashSet<String> excludeRules = new HashSet<String>();
+        excludeRules.add("supra");
+        excludeRules.add("avacado");
+        excludeRules.add("nalgene");
+        mgr.loadRules("jackets", null, "Men's Clothing", true, false, cataA, false, null, new HashSet<String>(), excludeRules);
+        
+        assertNotNull(mgr.getRules());        
+        Map<String, List<RepositoryItem>> rules = mgr.getRules();
+        assertEquals(0, rules.size());
+      
+    }        
 }

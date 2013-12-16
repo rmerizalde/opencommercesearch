@@ -51,6 +51,7 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_ID = "id";
     public static final String FIELD_BOOST_FUNCTION = "boostFunction";
     public static final String FIELD_FACET_FIELD = "facetField";
+    public static final String FIELD_EXPERIMENTAL = "experimental";
     public static final String FIELD_SORT_PRIORITY = "sortPriority";
     public static final String FIELD_COMBINE_MODE = "combineMode";
     public static final String FIELD_QUERY = "query";
@@ -215,7 +216,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws RepositoryException if an exception happens retrieving a rule from the repository
      * @throws SolrServerException if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId) throws RepositoryException, SolrServerException {
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId, Set<String> includeExperiments, Set<String> excludeExperiments) throws RepositoryException, SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query");
         }
@@ -276,6 +277,16 @@ public class RuleManager<T extends SolrServer> {
 
                 //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
+                                        
+                    if(excludeExperiments.contains(rule.getPropertyValue(RuleProperty.ID))) {
+                        continue;
+                    }
+                    
+                    Boolean experimental = (Boolean) doc.getFieldValue(FIELD_EXPERIMENTAL);
+                    if(experimental != null && experimental && !includeExperiments.contains(rule.getPropertyValue(RuleProperty.ID))) {
+                        continue;
+                    }
+                    
                     String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
                     if(ruleType.equals(RuleProperty.TYPE_FACET_RULE)) {
                         buildRuleLists(ruleType, rule, doc);
@@ -445,7 +456,20 @@ public class RuleManager<T extends SolrServer> {
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId);
+            String includeExp[] =(String []) query.getParams("includeRules");
+            String excludeExp[] =(String []) query.getParams("excludeRules");
+            
+            Set<String> includeExperiments = new HashSet<String>();
+            if(includeExp != null) {
+                includeExperiments = new HashSet<String>(Arrays.asList(includeExp));
+            }
+            Set<String> excludeExperiments = new HashSet<String>();
+            if(excludeExp != null) {
+                excludeExperiments = new HashSet<String>(Arrays.asList(excludeExp));
+            }
+            System.out.println(includeExperiments);
+            System.out.println(excludeExperiments);
+            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId, includeExperiments, excludeExperiments);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);

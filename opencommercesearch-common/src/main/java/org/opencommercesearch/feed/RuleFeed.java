@@ -94,12 +94,17 @@ public class RuleFeed extends BaseRestFeed {
             target = StringUtils.replace(target, " ", "");
             ruleJsonObj.put(RuleConstants.FIELD_TARGET, new JSONArray().put(target.toLowerCase()));
         }
+        
+        Boolean experimental = (Boolean) rule.getPropertyValue(RuleProperty.EXPERIMENTAL);
+        if(experimental != null) {
+            ruleJsonObj.put(RuleConstants.FIELD_EXPERIMENTAL, experimental);
+        }
 
         String retailOutlet = (String) rule.getPropertyValue(RuleProperty.SUB_TARGET);
         if(retailOutlet != null && !retailOutlet.equals(BOTH)) {
-        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(retailOutlet));
+            ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(retailOutlet));
         } else {
-        	ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(RuleConstants.WILDCARD));        	
+            ruleJsonObj.put(RuleConstants.FIELD_SUB_TARGET, new JSONArray().put(RuleConstants.WILDCARD));            
         }
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> sites = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.SITES);
@@ -172,12 +177,12 @@ public class RuleFeed extends BaseRestFeed {
         Set<RepositoryItem> brands = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.BRANDS);
         if (brands != null && brands.size() > 0) {
             JSONArray brandIds = new JSONArray();
-        	for (RepositoryItem brand:brands) {
-        	    brandIds.add(brand.getRepositoryId());        		
-        	}
-        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, brandIds);
+            for (RepositoryItem brand:brands) {
+                brandIds.add(brand.getRepositoryId());                
+            }
+            ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, brandIds);
         } else {
-        	ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, new JSONArray().put(RuleConstants.WILDCARD));
+            ruleJsonObj.put(RuleConstants.FIELD_BRAND_ID, new JSONArray().put(RuleConstants.WILDCARD));
         }           
         
         //Set additional fields required by different rule types.

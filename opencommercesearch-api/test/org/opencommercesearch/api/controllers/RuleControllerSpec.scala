@@ -268,7 +268,7 @@ class RuleControllerSpec extends Specification with Mockito {
   }
 
   private def getRuleJson(id : String) = {
-    //id, startDate, category, siteID, sortPriority, query, catalogId, brandId, target, subTarget, endDate, combineMode
+    //id, startDate, category, siteID, sortPriority, query, catalogId, brandId, experimental, target, subTarget, endDate, combineMode
     Json.parse("{\"id\": \"" + id + "\"," +
                 "\"startDate\": \"2013-06-21T16:30:22Z\"," +
                 "\"category\": [\"__all__\"]," +
@@ -277,6 +277,7 @@ class RuleControllerSpec extends Specification with Mockito {
                 "\"query\": \"[purses on sale]\"," +
                 "\"catalogId\": [\"__all__\"]," +
                 "\"brandId\": [\"__all__\"]," +
+                "\"experimental\": [\"false\"]," +
                 "\"target\": [\"searchpages\"]," +
                 "\"subTarget\": [\"__all__\"]," +
                 "\"endDate\": \"2014-08-05T09:42:38Z\"," +
