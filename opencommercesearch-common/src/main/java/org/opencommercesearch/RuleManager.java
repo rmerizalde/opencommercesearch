@@ -184,7 +184,7 @@ public class RuleManager<T extends SolrServer> {
                                     //TODO gsegura : figure out how to log error msg here
                                 }
                             } else {
-                                query.add("boost", boostFunction);
+                                query.add(RuleConstants.FIELD_BOOST, boostFunction);
                             }
                         }
                     }
