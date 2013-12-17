@@ -210,7 +210,7 @@ object ProductController extends BaseController {
               "metadata" -> Json.obj(
                 "found" -> found,
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> Json.arr(
+              "products" -> Json.toJson(
                 JListWrapper(skus) map (Json.toJson(_))
               )))
           } else {
