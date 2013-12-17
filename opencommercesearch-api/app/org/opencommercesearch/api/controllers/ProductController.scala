@@ -635,7 +635,7 @@ object ProductController extends BaseController {
 
     if (fields.isEmpty || fields.get.size <= 0) {
       query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country_,
-         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout")
+         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout", "colorFamily", "size")
       query
     } else {
       withFields(query, fields)
