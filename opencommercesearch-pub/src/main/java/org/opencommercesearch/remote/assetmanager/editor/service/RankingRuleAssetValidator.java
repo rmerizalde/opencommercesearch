@@ -50,19 +50,19 @@ public class RankingRuleAssetValidator extends DefaultRuleAssetValidator {
         
         if(attributeProperty != null ) {
             //update asset scenario
-        	validate(editorInfo, (String) attributeProperty.getPropertyValue());
+            validate(editorInfo, (String) attributeProperty.getPropertyValue());
         } else {
-        	//create asset scenario
-        	validate(editorInfo, (String) currentItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE));
+            //create asset scenario
+            validate(editorInfo, (String) currentItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE));
         }
 
     }
 
-	private void validate(AssetEditorInfo editorInfo, String attributeValue) {
-		if( StringUtils.countMatches(attributeValue, RuleManager.RANKING_SEPARATOR) > 1) {
-		    editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, TOO_MANY_PIPE_OPERATOR_ERROR_MSG);
-		} else if( StringUtils.endsWith(attributeValue, RuleManager.RANKING_SEPARATOR)){
-			editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, MISSING_SECOND_EXPRESSION_ERROR_MSG);
-		}
-	}
+    private void validate(AssetEditorInfo editorInfo, String attributeValue) {
+        if( StringUtils.countMatches(attributeValue, RuleManager.RANKING_SEPARATOR) > 1) {
+            editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, TOO_MANY_PIPE_OPERATOR_ERROR_MSG);
+        } else if( StringUtils.endsWith(attributeValue, RuleManager.RANKING_SEPARATOR)){
+            editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, MISSING_SECOND_EXPRESSION_ERROR_MSG);
+        }
+    }
 }
