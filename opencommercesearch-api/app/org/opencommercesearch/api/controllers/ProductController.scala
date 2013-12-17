@@ -68,7 +68,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     val startTime = System.currentTimeMillis()
     val fields = request.getQueryString("fields")
-    val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1
+    val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1 || fields.get.equals("*")
 
     val query = withProductCollection(withFields(new SolrQuery(), fields), preview)
 
