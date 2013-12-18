@@ -467,8 +467,6 @@ public class RuleManager<T extends SolrServer> {
             if(excludeExp != null) {
                 excludeExperiments = new HashSet<String>(Arrays.asList(excludeExp));
             }
-            System.out.println(includeExperiments);
-            System.out.println(excludeExperiments);
             loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId, includeExperiments, excludeExperiments);
         }
         setRuleParams(query, getRules());
