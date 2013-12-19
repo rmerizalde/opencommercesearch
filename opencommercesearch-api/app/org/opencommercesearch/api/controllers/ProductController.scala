@@ -366,7 +366,7 @@ object ProductController extends BaseController {
                 "metadata" -> Json.obj(
                    "found" -> command.getNGroups.intValue(),
                    "time" -> (System.currentTimeMillis() - startTime)),
-                "products" -> Json.arr(
+                "products" -> Json.toJson(
                   JListWrapper(allProducts) map (Json.toJson(_))
                 )))
             } else {
