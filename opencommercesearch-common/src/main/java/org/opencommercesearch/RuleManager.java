@@ -278,12 +278,12 @@ public class RuleManager<T extends SolrServer> {
                 //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
                                         
-                    if(excludeExperiments.contains(rule.getPropertyValue(RuleProperty.ID))) {
+                    if(excludeExperiments.contains(rule.getRepositoryId())) {
                         continue;
                     }
                     
                     Boolean experimental = (Boolean) doc.getFieldValue(FIELD_EXPERIMENTAL);
-                    if(experimental != null && experimental && !includeExperiments.contains(rule.getPropertyValue(RuleProperty.ID))) {
+                    if(experimental != null && experimental && !includeExperiments.contains(rule.getRepositoryId())) {
                         continue;
                     }
                     

@@ -166,6 +166,7 @@ public class RuleManagerTest {
         documents.add(rule);        
         when(item.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn(ruleType);
         when(item.getPropertyValue(RuleProperty.ID)).thenReturn(id);
+        when(item.getRepositoryId()).thenReturn(id);
         when(repository.getItem(id, SearchRepositoryItemDescriptor.RULE)).thenReturn(item);
     }
     
