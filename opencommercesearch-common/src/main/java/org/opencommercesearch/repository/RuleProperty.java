@@ -37,6 +37,7 @@ public class RuleProperty {
     public static final String CATALOGS = "catalogs";
     public static final String CATEGORIES = "categories";
     public static final String BRANDS = "brands";
+    public static final String EXPERIMENTAL = "experimental";
     public static final String INCLUDE_SUBCATEGORIES = "includeSubcategories";
     public static final String RULE_TYPE = "ruleType";
     public static final String SORT_PRIORITY = "sortPriority";

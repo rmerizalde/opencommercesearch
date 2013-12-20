@@ -38,7 +38,7 @@ case class Sku(
   var image: Option[Image],
   var countries: Option[Seq[Country]],
   var isPastSeason: Option[Boolean],
-  var colorFamily: Option[String],
+  var colorFamily: Option[Array[String]],
   var isRetail: Option[Boolean],
   var isCloseout: Option[Boolean],
   var isOutlet: Option[Boolean],
@@ -117,6 +117,16 @@ case class Sku(
     this.isPastSeason = Option.apply(isPastSeason)
   }
 
+  @Field("colorFamily")
+  def setColorFamily(colorFamily: Array[String]) {
+    this.colorFamily = Option.apply(colorFamily)
+  }
+  
+  @Field("size")
+  def setSize(name: String) : Unit = {
+       this.size = Option.apply(new Size(Option.apply(name), None))
+  }
+  
   @Field("isCloseout")
   def setCloseout(isCloseout: Boolean) {
     this.isCloseout = Option.apply(isCloseout)

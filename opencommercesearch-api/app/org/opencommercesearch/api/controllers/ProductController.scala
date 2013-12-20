@@ -68,7 +68,7 @@ object ProductController extends BaseController {
       preview: Boolean) = Action { implicit request =>
     val startTime = System.currentTimeMillis()
     val fields = request.getQueryString("fields")
-    val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1
+    val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1 || fields.get.equals("*")
 
     val query = withProductCollection(withFields(new SolrQuery(), fields), preview)
 
@@ -210,7 +210,7 @@ object ProductController extends BaseController {
               "metadata" -> Json.obj(
                 "found" -> found,
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> Json.arr(
+              "products" -> Json.toJson(
                 JListWrapper(skus) map (Json.toJson(_))
               )))
           } else {
@@ -366,7 +366,7 @@ object ProductController extends BaseController {
                 "metadata" -> Json.obj(
                    "found" -> command.getNGroups.intValue(),
                    "time" -> (System.currentTimeMillis() - startTime)),
-                "products" -> Json.arr(
+                "products" -> Json.toJson(
                   JListWrapper(allProducts) map (Json.toJson(_))
                 )))
             } else {
@@ -635,7 +635,7 @@ object ProductController extends BaseController {
 
     if (fields.isEmpty || fields.get.size <= 0) {
       query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country_,
-         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout")
+         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout", "colorFamily", "size")
       query
     } else {
       withFields(query, fields)
