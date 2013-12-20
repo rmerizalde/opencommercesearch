@@ -37,7 +37,6 @@ import org.opencommercesearch.repository.*;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-
 import static org.opencommercesearch.repository.RankingRuleProperty.*;
 
 /**
@@ -62,7 +61,10 @@ public class RuleManager<T extends SolrServer> {
     public static final int DEFAULT_ROWS = 20;
 
     public static final String WILDCARD = "__all__";
-    
+
+    public static final String RANKING_SEPARATOR = "|";
+    public static final String CUSTOM_RANKING_PARAM_NAME = "customRankingRule";
+
     private Repository searchRepository;
     private RulesBuilder rulesBuilder;
     private SolrServer server;
@@ -168,7 +170,23 @@ public class RuleManager<T extends SolrServer> {
                         String boostFunction = (String) doc.getFieldValue(FIELD_BOOST_FUNCTION);
 
                         if (boostFunction != null) {
-                            query.add("boost", boostFunction);
+                            if(StringUtils.contains(boostFunction, RANKING_SEPARATOR)) {
+                                // If the ranking rule has our custom ranking separator, split the rule by that
+                                // separator.
+                                // Set the first part of the rule as a regular boost param  in the solr query
+                                // and set the second part using the CUSTOM_BOOST_PARAM_NAME
+                                // This is useful to provide a solr expression to a custom component so that you can take advantage of
+                                // the a/b test framework to test many variations of the same expression
+                                String[] boostRules = StringUtils.split(boostFunction, RANKING_SEPARATOR);
+                                if(boostRules.length == 2) {
+                                    query.add(RuleConstants.FIELD_BOOST, boostRules[0]);
+                                    query.add(CUSTOM_RANKING_PARAM_NAME, boostRules[1]);
+                                } else {
+                                    //TODO gsegura : figure out how to log error msg here
+                                }
+                            } else {
+                                query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                            }
                         }
                     }
                 }
