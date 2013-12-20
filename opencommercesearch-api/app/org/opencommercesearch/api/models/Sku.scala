@@ -117,12 +117,12 @@ case class Sku(
     this.isPastSeason = Option.apply(isPastSeason)
   }
 
-  @Field("colorFamily")
+  @Field
   def setColorFamily(colorFamily: Array[String]) {
     this.colorFamily = Option.apply(colorFamily)
   }
   
-  @Field("size")
+  @Field
   def setSize(name: String) : Unit = {
        this.size = Option.apply(new Size(Option.apply(name), None))
   }
