@@ -277,7 +277,7 @@ class RuleControllerSpec extends Specification with Mockito {
                 "\"query\": \"[purses on sale]\"," +
                 "\"catalogId\": [\"__all__\"]," +
                 "\"brandId\": [\"__all__\"]," +
-                "\"experimental\": [\"false\"]," +
+                "\"experimental\": false," +
                 "\"target\": [\"searchpages\"]," +
                 "\"subTarget\": [\"__all__\"]," +
                 "\"endDate\": \"2014-08-05T09:42:38Z\"," +
