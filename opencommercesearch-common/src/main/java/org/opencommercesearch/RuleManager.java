@@ -227,7 +227,7 @@ public class RuleManager<T extends SolrServer> {
         query.addSort(FIELD_SORT_PRIORITY, ORDER.asc);
         query.addSort(FIELD_SCORE, ORDER.asc);
         query.addSort(FIELD_ID, ORDER.asc);
-        query.add(CommonParams.FL, FIELD_ID, FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
+        query.add(CommonParams.FL, FIELD_ID, FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY, FIELD_EXPERIMENTAL);
 
         StringBuilder reusableStringBuilder = new StringBuilder();
         query.addFilterQuery(getTargetFilter(reusableStringBuilder, isSearch, q));
