@@ -874,7 +874,9 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
     @Override
     public void onRepositoryItemChanged(String repositoryName, Set<String> itemDescriptorNames)
             throws RepositoryException, SearchServerException {
-        if (repositoryName.endsWith(getSearchRepository().getRepositoryName())) {
+        if (repositoryName.endsWith(getSearchRepository().getRepositoryName()) &&
+                (itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM) ||
+                 itemDescriptorNames.contains(SearchRepositoryItemDescriptor.SYNONYM_LIST))) {
             // TODO: support localized synonyms
             exportSynonyms(Locale.ENGLISH);
             reloadCollections();
