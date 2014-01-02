@@ -37,7 +37,6 @@ import org.opencommercesearch.repository.*;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-
 import static org.opencommercesearch.repository.RankingRuleProperty.*;
 
 /**
@@ -51,6 +50,7 @@ public class RuleManager<T extends SolrServer> {
     public static final String FIELD_ID = "id";
     public static final String FIELD_BOOST_FUNCTION = "boostFunction";
     public static final String FIELD_FACET_FIELD = "facetField";
+    public static final String FIELD_EXPERIMENTAL = "experimental";
     public static final String FIELD_SORT_PRIORITY = "sortPriority";
     public static final String FIELD_COMBINE_MODE = "combineMode";
     public static final String FIELD_QUERY = "query";
@@ -61,7 +61,10 @@ public class RuleManager<T extends SolrServer> {
     public static final int DEFAULT_ROWS = 20;
 
     public static final String WILDCARD = "__all__";
-    
+
+    public static final String RANKING_SEPARATOR = "|";
+    public static final String CUSTOM_RANKING_PARAM_NAME = "customRankingRule";
+
     private Repository searchRepository;
     private RulesBuilder rulesBuilder;
     private SolrServer server;
@@ -167,7 +170,23 @@ public class RuleManager<T extends SolrServer> {
                         String boostFunction = (String) doc.getFieldValue(FIELD_BOOST_FUNCTION);
 
                         if (boostFunction != null) {
-                            query.add("boost", boostFunction);
+                            if(StringUtils.contains(boostFunction, RANKING_SEPARATOR)) {
+                                // If the ranking rule has our custom ranking separator, split the rule by that
+                                // separator.
+                                // Set the first part of the rule as a regular boost param  in the solr query
+                                // and set the second part using the CUSTOM_BOOST_PARAM_NAME
+                                // This is useful to provide a solr expression to a custom component so that you can take advantage of
+                                // the a/b test framework to test many variations of the same expression
+                                String[] boostRules = StringUtils.split(boostFunction, RANKING_SEPARATOR);
+                                if(boostRules.length == 2) {
+                                    query.add(RuleConstants.FIELD_BOOST, boostRules[0]);
+                                    query.add(CUSTOM_RANKING_PARAM_NAME, boostRules[1]);
+                                } else {
+                                    //TODO gsegura : figure out how to log error msg here
+                                }
+                            } else {
+                                query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                            }
                         }
                     }
                 }
@@ -215,7 +234,7 @@ public class RuleManager<T extends SolrServer> {
      * @throws RepositoryException if an exception happens retrieving a rule from the repository
      * @throws SolrServerException if an exception happens querying the search engine
      */
-    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId) throws RepositoryException, SolrServerException {
+    void loadRules(String q, String categoryPath, String categoryFilterQuery, boolean isSearch, boolean isRuleBasedPage, RepositoryItem catalog, boolean isOutletPage, String brandId, Set<String> includeExperiments, Set<String> excludeExperiments) throws RepositoryException, SolrServerException {
         if (isSearch && StringUtils.isBlank(q)) {
             throw new IllegalArgumentException("Missing query");
         }
@@ -226,7 +245,7 @@ public class RuleManager<T extends SolrServer> {
         query.addSort(FIELD_SORT_PRIORITY, ORDER.asc);
         query.addSort(FIELD_SCORE, ORDER.asc);
         query.addSort(FIELD_ID, ORDER.asc);
-        query.add(CommonParams.FL, FIELD_ID, FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY);
+        query.add(CommonParams.FL, FIELD_ID, FIELD_BOOST_FUNCTION, FIELD_FACET_FIELD, FIELD_COMBINE_MODE, FIELD_QUERY, FIELD_CATEGORY, FIELD_EXPERIMENTAL);
 
         StringBuilder reusableStringBuilder = new StringBuilder();
         query.addFilterQuery(getTargetFilter(reusableStringBuilder, isSearch, q));
@@ -276,6 +295,16 @@ public class RuleManager<T extends SolrServer> {
 
                 //for rule based categories, include all facet rules and ranking rules of only that category
                 if (rule != null) {
+                                        
+                    if(excludeExperiments.contains(rule.getRepositoryId())) {
+                        continue;
+                    }
+                    
+                    Boolean experimental = (Boolean) doc.getFieldValue(FIELD_EXPERIMENTAL);
+                    if(experimental != null && experimental && !includeExperiments.contains(rule.getRepositoryId())) {
+                        continue;
+                    }
+                    
                     String ruleType = (String) rule.getPropertyValue(RuleProperty.RULE_TYPE);
                     if(ruleType.equals(RuleProperty.TYPE_FACET_RULE)) {
                         buildRuleLists(ruleType, rule, doc);
@@ -445,7 +474,18 @@ public class RuleManager<T extends SolrServer> {
             SolrServerException {
         if (getRules() == null) {
             String categoryFilterQuery = extractCategoryFilterQuery(filterQueries);
-            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId);
+            String includeExp[] =(String []) query.getParams("includeRules");
+            String excludeExp[] =(String []) query.getParams("excludeRules");
+            
+            Set<String> includeExperiments = new HashSet<String>();
+            if(includeExp != null) {
+                includeExperiments = new HashSet<String>(Arrays.asList(includeExp));
+            }
+            Set<String> excludeExperiments = new HashSet<String>();
+            if(excludeExp != null) {
+                excludeExperiments = new HashSet<String>(Arrays.asList(excludeExp));
+            }
+            loadRules(query.getQuery(), categoryPath, categoryFilterQuery, isSearch, isRuleBasedPage, catalog, isOutletPage, brandId, includeExperiments, excludeExperiments);
         }
         setRuleParams(query, getRules());
         setFilterQueries(filterQueries, catalog.getRepositoryId(), query);
