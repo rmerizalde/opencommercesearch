@@ -108,11 +108,17 @@
 
         <property name="name" data-type="string" display-name="Name"
                   column-name="name" required="true" category="General">
-          <attribute name="propertySortPriority" value="1" />
+          <attribute name="propertySortPriority" value="1" />        
         </property>
+        
+        <property name="experimental" data-type="boolean" display-name="Experiment (default 'No')" 
+                  column-name="experimental" required="false" category="General">
+          <attribute name="propertySortPriority" value="2" />
+        </property>
+        
         <property name="target" data-type="enumerated" display-name="Target Pages"
                   column-name="target" required="true" category="Context">
-          <attribute name="propertySortPriority" value="1" />
+          <attribute name="propertySortPriority" value="3" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="All Pages"        code="1"/>
           <option value="Search Pages"     code="2"/>
@@ -120,7 +126,7 @@
         </property>
 	<property name="subTarget" data-type="enumerated" display-name="SubTarget"
                   column-name="sub_target" required="true" default="Both" category="Context">
-          <attribute name="propertySortPriority" value="2" />
+          <attribute name="propertySortPriority" value="4" />
           <attribute name="useCodeForValue" value="false"/>
           <option value="Retail"     code="1"/>
           <option value="Outlet"     code="2"/>
@@ -128,7 +134,7 @@
         </property>
         <property name="query" data-type="string" display-name="Query"
                   column-name="query" category="Context">
-          <attribute name="propertySortPriority" value="3" />
+          <attribute name="propertySortPriority" value="5" />
         </property>
         <property name="includeSubcategories" data-type="boolean" display-name="Include Subcategories (default 'No')"
                   column-name="include_subcats" required="false" category="Context">
@@ -145,6 +151,7 @@
           <option value="Replace" code="1"/>
           <option value="Append"  code="2"/>
         </property>
+        
         <property name="startDate" data-type="timestamp" display-name="Start Date"
             column-name="start_date" required="false" category="Lifetime">
             <attribute name="propertySortPriority" value="9" />
@@ -196,6 +203,7 @@
             <attribute name="propertySortPriority" value="4" />
         </property>
        </table>
+       
       <table name="cs_rule_brands" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="brands" display-name="Brands" data-type="set" component-item-type="brand"
             column-name="brand_id" repository="/atg/commerce/catalog/ProductCatalog" category="Context">
@@ -203,6 +211,7 @@
             <attribute name="propertySortPriority" value="6" />
         </property>
       </table>
+      
       <table name="cs_rule_cats" type="multi" id-column-name="rule_id" shared-table-sequence="1">
         <property name="categories" display-name="Categories" data-type="set" component-item-type="category"
             column-name="category_id" repository="/atg/commerce/catalog/ProductCatalog" category="Context">
@@ -210,8 +219,9 @@
             <attribute name="propertySortPriority" value="5" />
         </property>
       </table>
+     
     </item-descriptor>
-
+        
     <item-descriptor display-name="Redirect Rule" name="redirectRule" super-type="rule" sub-type-value="redirectRule">
       <attribute name="GeneralPriority" value="1" />
       <attribute name="ContextPriority" value="2" />
@@ -523,6 +533,5 @@
         </property>
       </table>
     </item-descriptor>
-
-</gsa-template>    
-
+       
+</gsa-template>

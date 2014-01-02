@@ -68,6 +68,11 @@ public class RuleConstants {
     public static final String FIELD_BRAND_ID = "brandId";
 
     /**
+     * Name of  experimental field. This field should allow to set rule to an experimental
+     */
+    public static final String FIELD_EXPERIMENTAL = "experimental";
+
+    /**
      * Field that holds the boost function on boost rules
      */
     public static final String FIELD_BOOST_FUNCTION = "boostFunction";
