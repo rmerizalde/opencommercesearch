@@ -43,7 +43,7 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
  */
 class BaseController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
 
-  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[Result] = {
+  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[SimpleResult] = {
     val startTime = System.currentTimeMillis()
     val solrQuery = withPagination(withFields(query, req.getQueryString("fields")))
 
@@ -72,16 +72,14 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to delete docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to delete
    */
-  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Result = {
+  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
     update.deleteByQuery(query)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       NoContent
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete $typeName")
-    }
+    withErrorHandling(future, s"Cannot delete $typeName")
   }
 
   /**
@@ -91,33 +89,29 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to commit or rollback docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to commit or rollback
    */
-  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Result = {
+  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
     if(commit == rollback) {
-      BadRequest(Json.obj(
-        "message" -> s"commit and boolean can't have the same value."))
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"commit and boolean can't have the same value.")))
     }
     else {
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot commit $typeName")
-        }
+        withErrorHandling(future, s"Cannot commit $typeName")
       }
       else {
         update.rollback
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot rollback $typeName")
-        }
+        withErrorHandling(future, s"Cannot rollback $typeName")
       }
     }
   }

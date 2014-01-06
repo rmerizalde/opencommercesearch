@@ -19,7 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.Result
+import play.api.mvc.SimpleResult
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json, JsArray}
@@ -305,7 +305,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
   }
 
-  private def validateQueryResult(result: Result, expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  private def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -323,14 +323,14 @@ class RuleControllerSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  private def validateUpdateResult(result: Result, expectedStatus: Int, expectedLocation: String = null) = {
+  private def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  private def validateUpdateResultWithMessage(result: Result, expectedStatus: Int, expectedContent: String) = {
+  private def validateUpdateResultWithMessage(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

@@ -42,18 +42,18 @@ import javax.ws.rs.{QueryParam, PathParam}
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.convert.Wrappers.JListWrapper
 
-@Api(value = "/products", listingPath = "/api-docs/products", description = "Product API endpoints")
+@Api(value = "/products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
 
   val Score = "score"
   val categoryService = new CategoryService(solrServer)
 
-  @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiErrors(value = Array(new ApiError(code = 404, reason = "Product not found")))
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the SKU list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of SKUs", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
+  @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the SKU list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of SKUs", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def findById(
       version: Int,
@@ -65,7 +65,7 @@ object ProductController extends BaseController {
       site: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val startTime = System.currentTimeMillis()
     val fields = request.getQueryString("fields")
     val searchSkus = fields.isEmpty || fields.get.indexOf("skus") != -1 || fields.get.equals("*")
@@ -120,9 +120,7 @@ object ProductController extends BaseController {
       }
     }
 
-    Async {
-      withErrorHandling(future, s"Cannot retrieve product with id [$id]")
-    }
+    withErrorHandling(future, s"Cannot retrieve product with id [$id]")
   }
 
   /**
@@ -174,11 +172,11 @@ object ProductController extends BaseController {
     }
   }
 
-  @ApiOperation(value = "Searches products", notes = "Returns products for a given query", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Searches products", notes = "Returns products for a given query", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def search(
       version: Int,
@@ -190,7 +188,7 @@ object ProductController extends BaseController {
       site: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val startTime = System.currentTimeMillis()
     val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(q)), preview), site, request.getQueryString("fields"))
 
@@ -236,16 +234,14 @@ object ProductController extends BaseController {
       }
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot search for [$q]")
-    }
+    withErrorHandling(future, s"Cannot search for [$q]")
   }
 
-  @ApiOperation(value = "Browses brand products ", notes = "Returns products for a given brand", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Browses brand products ", notes = "Returns products for a given brand", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrand(
       version: Int,
@@ -257,18 +253,16 @@ object ProductController extends BaseController {
       brandId: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing brand $brandId")
-    Async {
-      withErrorHandling(doBrowse(version, null, site, brandId, closeout = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
-    }
+    withErrorHandling(doBrowse(version, null, site, brandId, closeout = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
   }
 
-  @ApiOperation(value = "Browses brand's category products ", notes = "Returns products for a given brand category", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Browses brand's category products ", notes = "Returns products for a given brand category", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrandCategory(
       version: Int,
@@ -283,18 +277,16 @@ object ProductController extends BaseController {
       categoryId: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing category $categoryId for brand $brandId")
-    Async {
-      withErrorHandling(doBrowse(version, categoryId, site, brandId, closeout = false, null, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
-    }
+    withErrorHandling(doBrowse(version, categoryId, site, brandId, closeout = false, null, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
   }
 
-  @ApiOperation(value = "Browses category products ", notes = "Returns products for a given category", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Browses category products ", notes = "Returns products for a given category", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def browse(
       version: Int,
@@ -310,11 +302,9 @@ object ProductController extends BaseController {
       closeout: Boolean,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing $categoryId")
-    Async {
-      withErrorHandling(doBrowse(version, categoryId, site, null, closeout, ruleFilter, preview, "category"), s"Cannot browse category [$categoryId]")
-    }
+    withErrorHandling(doBrowse(version, categoryId, site, null, closeout, ruleFilter, preview, "category"), s"Cannot browse category [$categoryId]")
   }
 
   private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, closeout: Boolean, ruleFilter: String,
@@ -398,12 +388,12 @@ object ProductController extends BaseController {
     })
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>
       val products = productList.products
       if (products.size > MaxUpdateProductBatchSize) {
-        BadRequest(Json.obj(
-          "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize"))
+        Future.successful(BadRequest(Json.obj(
+          "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize")))
       } else {
         try {
           val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
@@ -413,27 +403,24 @@ object ProductController extends BaseController {
           val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
           searchUpdate.add(skuDocs)
           val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
-          val future: Future[Result] = productFuture zip searchFuture map { case (r1, r2) =>
+          val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
             Created
           }
 
-          Async {
-            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
-          }
+          withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
         } catch {
           case e: IllegalArgumentException => {
             Logger.error(e.getMessage)
-            BadRequest(Json.obj(
-              "message" -> e.getMessage
-            ))
+            Future.successful(BadRequest(Json.obj(
+              "message" -> e.getMessage)))
           }
         }
       }
     }.recoverTotal {
       case e: JsError => {
-        BadRequest(Json.obj(
+        Future.successful(BadRequest(Json.obj(
           // @TODO figure out how to pull missing field from JsError
-          "message" -> "Missing required fields"))
+          "message" -> "Missing required fields")))
       }
 
     }
@@ -447,17 +434,16 @@ object ProductController extends BaseController {
       feedTimestamp: Long,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete categories in preview", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val update = withSearchCollection(new AsyncUpdateRequest(), preview)
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       NoContent
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
-    }
+
+    withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
   }
 
   @ApiOperation(value = "Deletes products", notes = "Deletes the given product", httpMethod = "DELETE")
@@ -468,26 +454,24 @@ object ProductController extends BaseController {
       id: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete categories in preview", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val update = withSearchCollection(new AsyncUpdateRequest(), preview)
     update.deleteByQuery("productId:" + id)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       NoContent
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete product [$id  ]")
-    }
+    withErrorHandling(future, s"Cannot delete product [$id  ]")
   }
 
-  @ApiOperation(value = "Suggests products", notes = "Returns product suggestions for given partial product title", responseClass = "org.opencommercesearch.api.models.Product", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "id,title", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Suggests products", notes = "Returns product suggestions for given partial product title", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "id,title", required = false, dataType = "string", paramType = "query")
   ))
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Partial product title is too short")))
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial product title is too short")))
   def findSuggestions(
       version: Int,
       @ApiParam(value = "Partial product title", required = true)
@@ -495,12 +479,11 @@ object ProductController extends BaseController {
       q: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withProductCollection(new SolrQuery(q), preview)
 
-    Async {
-      findSuggestionsFor(classOf[Product], "products" , solrQuery)
-    }
+
+    findSuggestionsFor(classOf[Product], "products" , solrQuery)
   }
 
   /**

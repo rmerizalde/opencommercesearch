@@ -27,6 +27,7 @@ import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
 import play.api.mvc.{Result, WithFilters, RequestHeader}
 import play.api.mvc.Results._
 import play.modules.statsd.api.StatsdFilter
+import scala.concurrent.Future
 
 
 object Global extends WithFilters(new StatsdFilter()) {
@@ -91,24 +92,24 @@ object Global extends WithFilters(new StatsdFilter()) {
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
-    ex.getCause match {
+    Future.successful(ex.getCause match {
    	  case e:IllegalArgumentException => BadRequest(e.getMessage)
    	  case other => {
         Logger.error("Unexpected error",  other)
         InternalServerError(other.getMessage)
       }
-   	}
+   	})
   }
 
-  override def onHandlerNotFound(request: RequestHeader): Result = {
-    NotFound(Json.obj(
-      "message" -> "Resource not found"))
+  override def onHandlerNotFound(request: RequestHeader) = {
+    Future.successful(NotFound(Json.obj(
+      "message" -> "Resource not found")))
   }
 
   override def onBadRequest(request: RequestHeader, error: String) = {
-    BadRequest(Json.obj(
+    Future.successful(BadRequest(Json.obj(
       "message" -> error
-    ))
+    )))
   }
 
   def getConfigString(name: String, default: String) = {

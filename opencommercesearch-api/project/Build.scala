@@ -9,16 +9,16 @@ object ApplicationBuild extends Build {
   val appName         = "opencommercesearch-api"
   val appVersion      = "0.3-SNAPSHOT"
 
-  lazy val s = Defaults.defaultSettings ++ Seq(jacoco.settings:_*)
+  lazy val s = playScalaSettings ++ Seq(jacoco.settings:_*)
 
   val appDependencies: Seq[sbt.ModuleID] = Seq(
+    cache,
     "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT",
-    "com.typesafe.play.plugins" %% "play-statsd" % "2.1.1",
+    "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
-    "com.wordnik" %% "swagger-play2" % "1.2.5"
+    "com.wordnik" %% "swagger-play2" % "1.3.2"
   )
-
 
   val main = play.Project(appName, appVersion, appDependencies, settings = s).settings(
   // @todo: publish play-solrj as maven style??

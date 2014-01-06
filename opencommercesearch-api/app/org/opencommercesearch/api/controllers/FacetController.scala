@@ -37,7 +37,7 @@ import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 
 object FacetController extends BaseController {
 
-  def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
+  def findById(version: Int, id: String, preview: Boolean) = Action.async { implicit request =>
     val query = withFacetCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
 
     query.add("q", "id:" + id)
@@ -59,12 +59,10 @@ object FacetController extends BaseController {
       }
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot retrieve facet with id [$id]")
-    }
+    withErrorHandling(future, s"Cannot retrieve facet with id [$id]")
   }
 
-  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action (parse.json) { request =>
+  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action.async (parse.json) { request =>
     Json.fromJson[Facet](request.body).map { facet =>
       try {
         val facetDoc = solrServer.binder.toSolrInputDocument(facet)
@@ -72,62 +70,58 @@ object FacetController extends BaseController {
         update.add(facetDoc)
         withFacetCollection(update, preview, request.acceptLanguages)
 
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Created.withHeaders((LOCATION, absoluteURL(routes.FacetController.findById(id), request)))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot store Facet with id [$id]")
-        }
+        withErrorHandling(future, s"Cannot store Facet with id [$id]")
       }
       catch {
         case e : BindingException =>
-          BadRequest(Json.obj(
-            "message" -> "Illegal Facet fields"))
+          Future.successful(BadRequest(Json.obj(
+            "message" -> "Illegal Facet fields")))
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
-        "message" -> "Illegal Facet fields"))
-    }
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
+        "message" -> "Illegal Facet fields")))
+    }.get
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json) { request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json) { request =>
     Json.fromJson[FacetList](request.body).map { facetList =>
       val facets = facetList.facets
       try {
         if (facets.length > MaxUpdateFacetBatchSize) {
-          BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateFacetBatchSize"))
+          Future.successful(BadRequest(Json.obj(
+            "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateFacetBatchSize")))
         } else {
           val update = withFacetCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
           facets map { facet =>
               update.add(solrServer.binder.toSolrInputDocument(facet))
           }
 
-          val future: Future[Result] = update.process(solrServer).map( response => {
+          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
             Created(Json.obj(
               "locations" -> JsArray(
                 facets map (b => Json.toJson(routes.FacetController.findById(b.id.get).url))
               )))
           })
 
-          Async {
-            withErrorHandling(future, s"Cannot store Facets with ids [${facets map (_.id.get) mkString ","}]")
-          }
+          withErrorHandling(future, s"Cannot store Facets with ids [${facets map (_.id.get) mkString ","}]")
         }
       }
       catch {
         case e : BindingException =>
           //Handle bind exceptions
-          BadRequest(Json.obj(
-            "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]"))
+          Future.successful(BadRequest(Json.obj(
+            "message" -> s"Illegal Facet fields [${facets map (_.id.get) mkString ","}]")))
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
         "message" -> "Missing required fields",
-        "detail" -> JsError.toFlatJson(e)))
-    }
+        "detail" -> JsError.toFlatJson(e))))
+    }.get
   }
 
   /**
@@ -135,10 +129,10 @@ object FacetController extends BaseController {
    * @param commit true if a commit should be done.
    * @param rollback true if a rollbac should be done.
    */
-  def commitOrRollback(preview: Boolean, commit: Boolean, rollback: Boolean) = Action { request =>
+  def commitOrRollback(preview: Boolean, commit: Boolean, rollback: Boolean) = Action.async { request =>
     if(commit == rollback) {
-      BadRequest(Json.obj(
-        "message" -> s"commit and boolean can't have the same value."))
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"commit and boolean can't have the same value.")))
     }
     else {
       val update = new AsyncUpdateRequest()
@@ -146,25 +140,21 @@ object FacetController extends BaseController {
 
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot commit facets.")
-        }
+        withErrorHandling(future, s"Cannot commit facets.")
       }
       else {
         update.rollback
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot rollback facets.")
-        }
+        withErrorHandling(future, s"Cannot rollback facets.")
       }
     }
   }
@@ -173,19 +163,17 @@ object FacetController extends BaseController {
    * Delete method that remove all facets matching a given query.
    * @param query is the query used to delete facets, default is *:*
    */
-  def deleteByQuery(preview: Boolean, query: String) = Action { request =>
+  def deleteByQuery(preview: Boolean, query: String) = Action.async { request =>
     val update = new AsyncUpdateRequest()
     withFacetCollection(update, preview, request.acceptLanguages)
 
     update.deleteByQuery(query)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       Ok (Json.obj(
         "message" -> "delete success"))
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete facets.")
-    }
+    withErrorHandling(future, s"Cannot delete facets.")
   }
 }

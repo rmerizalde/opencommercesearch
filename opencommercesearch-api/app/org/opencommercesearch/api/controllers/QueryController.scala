@@ -31,14 +31,14 @@ import javax.ws.rs.QueryParam
  *
  * @author rmerizalde
  */
-@Api(value = "/queries", listingPath = "/api-docs/queries", description = "User Query API endpoints")
+@Api(value = "/queries", basePath = "/api-docs/queries", description = "User Query API endpoints")
 object QueryController extends BaseController {
 
-  @ApiOperation(value = "Suggests user queries", notes = "Returns brand suggestions for given partial user query", responseClass = "org.opencommercesearch.api.models.UserQuery", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "userQuery", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Suggests user queries", notes = "Returns brand suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "userQuery", required = false, dataType = "string", paramType = "query")
   ))
   def findSuggestions(
       version: Int,
@@ -50,13 +50,11 @@ object QueryController extends BaseController {
       site: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action { implicit request =>
+      preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withQueryCollection(new SolrQuery(q), preview)
     solrQuery.setFields("userQuery")
     solrQuery.setFilterQueries(s"siteId:$site")
 
-    Async {
-      findSuggestionsFor(classOf[UserQuery], "queries" , solrQuery)
-    }
+    findSuggestionsFor(classOf[UserQuery], "queries" , solrQuery)
   }
 }
