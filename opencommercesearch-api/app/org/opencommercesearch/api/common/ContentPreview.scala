@@ -120,11 +120,7 @@ trait ContentPreview {
       collection = RulePreviewCollection
     }
 
-    var language: String = "en"
-    acceptLanguages.map(lang => language = lang.language)
-
-    collection = collection + "_" + language
-
+    collection = collection + "_" + language(acceptLanguages)
     collection
   }
 
@@ -143,31 +139,21 @@ trait ContentPreview {
       collection = FacetPreviewCollection
     }
 
-    var language: String = "en"
-    acceptLanguages.map(lang => language = lang.language)
-
-    collection = collection + "_" + language
-
+    collection = collection + "_" + language(acceptLanguages)
     collection
   }
 
   def country(acceptLanguages:Seq[Lang]) : String = {
     var country: String = "US"
 
-    acceptLanguages.map(lang => country = lang.country)
-    if (!SupportedLanguages.contains(country)) {
-      country = "US"
-    }
+    acceptLanguages.collectFirst { case lang if SupportedCountries.contains(lang.country) => country = lang.country }
     country
   }
 
   def language(acceptLanguages:Seq[Lang]) : String = {
     var language: String = "en"
 
-    acceptLanguages.map(lang => language = lang.language)
-    if (!SupportedLanguages.contains(language)) {
-      language = "en"
-    }
+    acceptLanguages.collectFirst { case lang if SupportedLanguages.contains(lang.language) => language = lang.language }
     language
   }
 
