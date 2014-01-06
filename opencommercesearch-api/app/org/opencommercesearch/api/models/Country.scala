@@ -23,8 +23,8 @@ import play.api.libs.json.Json
 
 case class Country(
   var code: Option[String],
-  var listPrice: Option[Float],
-  var salePrice: Option[Float],
+  var listPrice: Option[BigDecimal],
+  var salePrice: Option[BigDecimal],
   var discountPercent: Option[Int],
   var onSale: Option[Boolean],
   var stockLevel: Option[Int],

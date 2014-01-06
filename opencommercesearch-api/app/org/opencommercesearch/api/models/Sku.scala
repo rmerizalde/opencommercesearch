@@ -19,7 +19,7 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.{Json}
+import play.api.libs.json.{JsNumber, Json}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
@@ -29,7 +29,7 @@ import java.util
 import org.apache.solr.client.solrj.beans.Field
 
 import Sku._
-import org.apache.commons.lang3.StringUtils
+import java.math.{BigDecimal, RoundingMode}
 
 case class Sku(
   var id: Option[String],
@@ -56,14 +56,15 @@ case class Sku(
     this.image = Option.apply(new Image(None, Option.apply(url)))
   }
 
-
   @Field("listPrice*")
   def setListPrice(listPrices: util.Map[String, Float]) : Unit = {
     val priceMap: Map[String, Float] = listPrices
     ensureCountries(ListPrice, listPrices)
     for (countries <- this.countries) {
       for (country <- countries; code <- country.code) {
-        country.listPrice = priceMap.get(ListPrice + code)
+        for (listPrice <- priceMap.get(ListPrice + code)) {
+          country.listPrice = Some(new BigDecimal(listPrice).setScale(2, RoundingMode.HALF_EVEN))
+        }
       }
     }
   }
@@ -74,7 +75,9 @@ case class Sku(
     ensureCountries(SalePrice, salePrices)
     for (countries <- this.countries) {
       for (country <- countries; code <- country.code) {
-        country.salePrice = priceMap.get(SalePrice + code)
+        for (salePrice <- priceMap.get(SalePrice + code)) {
+          country.salePrice = Some(new BigDecimal(salePrice).setScale(2, RoundingMode.HALF_EVEN));
+        }
       }
     }
   }
