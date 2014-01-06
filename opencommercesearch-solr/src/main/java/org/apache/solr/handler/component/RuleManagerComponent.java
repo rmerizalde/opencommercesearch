@@ -57,6 +57,16 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     public static final int PAGE_SIZE = 40;
 
     /**
+     * Ranking separator used to split a ranking rule into a boost rule and a customRankingRule
+     */
+    public static final String RANKING_SEPARATOR = "|";
+    
+    /**
+     * Name of the parameter used when we split a ranking rule using the custom separator 
+     */
+    public static final String CUSTOM_RANKING_PARAM_NAME = "customRankingRule";
+    
+    /**
      * Logger instance
      */
     private static Logger logger = LoggerFactory.getLogger(RuleManagerComponent.class);
@@ -861,9 +871,25 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) {
                 for (Document rule : rules) {
                     String boostFunction = rule.get(RuleConstants.FIELD_BOOST_FUNCTION);
-
+                    
                     if (boostFunction != null) {
-                        query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                        if(StringUtils.contains(boostFunction, RANKING_SEPARATOR)) {
+                            // If the ranking rule has our custom ranking separator, split the rule by that
+                            // separator.
+                            // Set the first part of the rule as a regular boost param  in the solr query
+                            // and set the second part using the CUSTOM_BOOST_PARAM_NAME
+                            // This is useful to provide a solr expression to a custom component so that you can take advantage of
+                            // the a/b test framework to test many variations of the same expression
+                            String[] boostRules = StringUtils.split(boostFunction, RANKING_SEPARATOR);
+                            if(boostRules.length == 2) {
+                                query.add(RuleConstants.FIELD_BOOST, boostRules[0]);
+                                query.add(CUSTOM_RANKING_PARAM_NAME, boostRules[1]);
+                            } else {
+                                logger.error("Incorrect use of the '"+ RANKING_SEPARATOR + "' operator in the following ranking rule:" + boostFunction);
+                            }
+                        } else {
+                            query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                        }
                     }
                 }
             }
