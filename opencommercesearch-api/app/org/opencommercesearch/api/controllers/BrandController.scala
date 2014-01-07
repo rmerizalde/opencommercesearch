@@ -34,6 +34,7 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
+import scala.collection.convert.Wrappers.JIterableWrapper
 
 @Api(value = "/brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController {
@@ -91,7 +92,7 @@ object BrandController extends BaseController {
       if (brand.name.isEmpty || brand.logo.isEmpty) {
         Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
-        val brandDoc = brand.toDocument
+        val brandDoc = brand.toDocument(System.currentTimeMillis())
 
         brandDoc.setField("id", id)
 
@@ -201,5 +202,35 @@ object BrandController extends BaseController {
    @QueryParam("feedTimestamp")
    feedTimestamp: Long) = Action.async { request =>
     deleteByQuery("-feedTimestamp:" + feedTimestamp, withBrandCollection(new AsyncUpdateRequest(), preview), "brands")
+  }
+
+  /**
+   * Get a list of all existing brands
+   */
+  @ApiOperation(value = "Get all brands", notes = "Gets a list of all brands", response = classOf[Brand], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the brands list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of brands", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def getAllBrands(
+   version: Int,
+   @ApiParam(defaultValue="false", allowableValues="true,false", value = "Get brands in preview", required = false)
+   @QueryParam("preview")
+   preview: Boolean) = Action.async { implicit request =>
+    val startTime = System.currentTimeMillis()
+    val query = withBrandCollection(withPagination(new SolrQuery("*:*")), preview)
+    withFields(query, request.getQueryString("fields"))
+
+    val future = solrServer.query(query).map( response => {
+      Ok(Json.obj(
+        "metadata" -> Json.obj(
+          "found" -> response.getResults.getNumFound),
+          "time" -> (System.currentTimeMillis() - startTime),
+        "brands" -> Json.toJson(JIterableWrapper(solrServer.binder.getBeans(classOf[Brand], response.getResults))))
+      )
+    })
+
+    withErrorHandling(future, s"Cannot search for brands")
   }
 }
