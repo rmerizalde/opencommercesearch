@@ -35,13 +35,13 @@ import org.apache.solr.client.solrj.SolrQuery
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
 
-@Api(value = "/brands", listingPath = "/api-docs/brands", description = "Brand API endpoints")
+@Api(value = "/brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController {
 
-  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
-  @ApiErrors(value = Array(new ApiError(code = 404, reason = "Brand not found")))
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
+  @ApiResponses(Array(new ApiResponse(code = 404, message = "Brand not found")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
   ))
   def findById(
     version: Int,
@@ -50,7 +50,7 @@ object BrandController extends BaseController {
     id: String,
     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
     @QueryParam("preview")
-    preview: Boolean) = Action { implicit request =>
+    preview: Boolean) = Action.async { implicit request =>
     val query = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
 
     query.setRequestHandler(RealTimeRequestHandler)
@@ -71,17 +71,13 @@ object BrandController extends BaseController {
       }
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot retrieve brand with id [$id]")
-    }
+    withErrorHandling(future, s"Cannot retrieve brand with id [$id]")
   }
 
   @ApiOperation(value = "Creates a brand", notes = "Creates/updates the given brand", httpMethod = "PUT")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "brand", value = "Brand to create/update", required = true, dataType = "org.opencommercesearch.api.models.Brand", paramType = "body")
-  ))
-  @ApiErrors(value = Array(
-    new ApiError(code = 400, reason = "Missing required fields")
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Missing required fields")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "brand", value = "Brand to create/update", required = true, dataType = "org.opencommercesearch.api.models.Brand", paramType = "body")
   ))
   def createOrUpdate(
       version: Int,
@@ -90,10 +86,10 @@ object BrandController extends BaseController {
       id: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create the brand in preview", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action (parse.json) { request =>
+      preview: Boolean) = Action.async (parse.json) { request =>
     Json.fromJson[Brand](request.body).map { brand =>
       if (brand.name.isEmpty || brand.logo.isEmpty) {
-        BadRequest(Json.obj("message" -> "Missing required fields"))
+        Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
         val brandDoc = brand.toDocument
 
@@ -103,69 +99,65 @@ object BrandController extends BaseController {
         update.add(brandDoc)
         withBrandCollection(update, preview)
 
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot store brand with id [$id]")
-        }
+        withErrorHandling(future, s"Cannot store brand with id [$id]")
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
-        // @TODO figure out how to pull missing field from JsError
-        "message" -> "Illegal brand fields"))
-    }
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
+          // @TODO figure out how to pull missing field from JsError
+          "message" -> "Illegal brand fields")))
+    }.get
   }
 
   @ApiOperation(value = "Creates brands", notes = "Creates/updates the given brands", httpMethod = "PUT")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "brands", value = "Brands to create/update", required = true, dataType = "org.opencommercesearch.api.models.BrandList", paramType = "body")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "brands", value = "Brands to create/update", required = true, dataType = "org.opencommercesearch.api.models.BrandList", paramType = "body")
   ))
-  @ApiErrors(value = Array(
-    new ApiError(code = 400, reason = "Missing required fields"),
-    new ApiError(code = 400, reason = "Exceeded maximum number of brands that can be created at once")
+  @ApiResponses(value = Array(
+    new ApiResponse(code = 400, message = "Missing required fields"),
+    new ApiResponse(code = 400, message = "Exceeded maximum number of brands that can be created at once")
   ))
   def bulkCreateOrUpdate(
       version: Int,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create brands in preview", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+      preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 
       if (brands.length > MaxUpdateBrandBatchSize) {
-        BadRequest(Json.obj(
-          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize"))
+        Future.successful(BadRequest(Json.obj(
+          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize")))
       } else if (hasMissingFields(brands)) {
-        BadRequest(Json.obj(
-          "message" -> "Missing required fields"))
+        Future.successful(BadRequest(Json.obj(
+          "message" -> "Missing required fields")))
       } else {
         val update = withBrandCollection(new AsyncUpdateRequest(), preview)
         update.add(brandList.toDocuments)
 
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Created
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
-        }
+        withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
-        "message" -> "Missing required fields"))
-    }
+        "message" -> "Missing required fields")))
+    }.get
   }
 
-  @ApiOperation(value = "Suggests brands", notes = "Returns brand suggestions for given partial brand name", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Suggests brands", notes = "Returns brand suggestions for given partial brand name", response = classOf[Brand], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
   ))
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Partial category name is too short")))
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial category name is too short")))
   def findSuggestions(
     version: Int,
     @ApiParam(value = "Partial category name", required = true)
@@ -173,12 +165,10 @@ object BrandController extends BaseController {
     query: String,
     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
     @QueryParam("preview")
-    preview: Boolean) = Action { implicit request =>
+    preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withBrandCollection(new SolrQuery(query), preview)
 
-    Async {
-      findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
-    }
+    findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
   }
 
   /**
@@ -202,14 +192,14 @@ object BrandController extends BaseController {
    * Delete method that remove all brands not matching a given timestamp.
    */
   @ApiOperation(value = "Delete brands", notes = "Removes brands based on a given query", httpMethod = "DELETE")
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Cannot delete brands")))
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Cannot delete brands")))
   def deleteByTimestamp(
    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete brands in preview", required = false)
    @QueryParam("preview")
    preview: Boolean,
    @ApiParam(value = "The feed timestamp. All brands with a different timestamp are deleted", required = true)
    @QueryParam("feedTimestamp")
-   feedTimestamp: Long) = Action { request =>
+   feedTimestamp: Long) = Action.async { request =>
     deleteByQuery("-feedTimestamp:" + feedTimestamp, withBrandCollection(new AsyncUpdateRequest(), preview), "brands")
   }
 }

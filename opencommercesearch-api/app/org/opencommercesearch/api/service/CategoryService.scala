@@ -292,7 +292,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
      * example:
      *
      * 0/bcs 1/bcs/Men's Clothing 2/bcs/Men's Clothing/Men's Jackets 3/bcs/Men's
-     * Clothing/Men's Jackets/Men's Casual Jacekt's
+     * Clothing/Men's Jackets/Men's Casual Jacket's
      *
      * @param doc
      *            The document to set the attributes to.

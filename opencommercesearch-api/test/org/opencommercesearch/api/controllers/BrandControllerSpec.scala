@@ -29,12 +29,15 @@ import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Brand
 
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
 class BrandControllerSpec extends BaseSpec {
 
   trait Brands extends Before {
     def before = {
       solrServer = mock[AsyncSolrServer]
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns mock[MongoStorage]
     }
   }
 

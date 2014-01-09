@@ -30,6 +30,7 @@ import org.opencommercesearch.api.models.Category
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
 class CategoryControllerSpec extends BaseSpec {
 
@@ -39,6 +40,8 @@ class CategoryControllerSpec extends BaseSpec {
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
       CategoryController.categoryService.server = solrServer
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns mock[MongoStorage]
     }
   }
 

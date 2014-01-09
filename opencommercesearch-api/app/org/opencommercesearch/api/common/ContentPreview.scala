@@ -26,6 +26,8 @@ import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
+import org.jongo.MongoCollection
+import org.opencommercesearch.api.service.{StorageFactory, Storage}
 
 trait ContentPreview {
 
@@ -51,6 +53,15 @@ trait ContentPreview {
       collection = BrandPreviewCollection
     }
     collection
+  }
+
+  def withNamespace[R, T](factory: StorageFactory[T], preview: Boolean)(implicit req: Request[R]) : Storage[T] = {
+    var namespace = "public"
+    if (preview) {
+      namespace = "preview"
+    }
+    namespace += "_" + language(req.acceptLanguages)
+    factory.getInstance(namespace)
   }
 
   def withProductCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
@@ -120,11 +131,7 @@ trait ContentPreview {
       collection = RulePreviewCollection
     }
 
-    var language: String = "en"
-    acceptLanguages.map(lang => language = lang.language)
-
-    collection = collection + "_" + language
-
+    collection = collection + "_" + language(acceptLanguages)
     collection
   }
 
@@ -143,31 +150,21 @@ trait ContentPreview {
       collection = FacetPreviewCollection
     }
 
-    var language: String = "en"
-    acceptLanguages.map(lang => language = lang.language)
-
-    collection = collection + "_" + language
-
+    collection = collection + "_" + language(acceptLanguages)
     collection
   }
 
   def country(acceptLanguages:Seq[Lang]) : String = {
     var country: String = "US"
 
-    acceptLanguages.map(lang => country = lang.country)
-    if (!SupportedLanguages.contains(country)) {
-      country = "US"
-    }
+    acceptLanguages.collectFirst { case lang if SupportedCountries.contains(lang.country) => country = lang.country }
     country
   }
 
   def language(acceptLanguages:Seq[Lang]) : String = {
     var language: String = "en"
 
-    acceptLanguages.map(lang => language = lang.language)
-    if (!SupportedLanguages.contains(language)) {
-      language = "en"
-    }
+    acceptLanguages.collectFirst { case lang if SupportedLanguages.contains(lang.language) => language = lang.language }
     language
   }
 
