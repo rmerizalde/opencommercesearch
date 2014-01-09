@@ -64,24 +64,20 @@ case class Brand(var id: Option[String], var name: Option[String], var logo: Opt
   def toDocument(feedTimestamp: Long) : SolrInputDocument = {
     val doc = new SolrInputDocument()
 
-    println("id" + id.get)
-
-    if (id.isDefined) {
-      doc.setField("id", id.get)
-    }
-    if (name.isDefined) {
-      doc.setField("name", name.get)
-    }
-    if (logo.isDefined) {
-      doc.setField("logo", logo.get)
+    for(i <- id) {
+      doc.setField("id", i)
     }
 
-    if (url.isDefined) {
-      doc.setField("url", url.get)
+    for(n <- name) {
+      doc.setField("name", n)
     }
 
-    if (logo.isDefined) {
-      doc.setField("logo", logo.get)
+    for(l <- logo) {
+      doc.setField("logo", l)
+    }
+
+    for(v <- url) {
+      doc.setField("url", v)
     }
 
     doc.setField("feedTimestamp", feedTimestamp)
