@@ -19,7 +19,6 @@ import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory, StorageFactory}
 import com.mongodb.WriteResult
 import play.api.{Play, Logger}
-import org.slf4j
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -52,7 +51,6 @@ class ProductControllerSpec extends BaseSpec {
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
       storage.save(any) returns Future.successful(writeResult)
-      Play.
     }
   }
 
