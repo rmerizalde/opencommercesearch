@@ -1,6 +1,9 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
+import com.fasterxml.jackson.annotation.{JsonProperty, JsonCreator}
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
+import org.opencommercesearch.api.BigDecimalDeserializer
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -31,7 +34,20 @@ case class Country(
   var url: Option[String],
   var allowBackorder: Option[Boolean]) {
 
-  def this(code: String) = this(Option.apply(code), None, None, None, None, None, None, None)
+  @JsonCreator
+  def this() = this(None, None, None, None, None, None, None, None)
+
+  @JsonProperty("listPrice")
+  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
+  def setListPrice(listPrice: BigDecimal) : Unit = {
+    this.listPrice = Option.apply(listPrice)
+  }
+
+  @JsonProperty("salePrice")
+  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
+  def setSalePrice(salePrice: BigDecimal) : Unit = {
+    this.salePrice = Option.apply(salePrice)
+  }
 }
 
 

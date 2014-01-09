@@ -28,6 +28,7 @@ import play.api.mvc.{Result, WithFilters, RequestHeader}
 import play.api.mvc.Results._
 import play.modules.statsd.api.StatsdFilter
 import scala.concurrent.Future
+import org.opencommercesearch.api.service.{StorageFactory, MongoStorageFactory}
 
 
 object Global extends WithFilters(new StatsdFilter()) {
@@ -73,6 +74,7 @@ object Global extends WithFilters(new StatsdFilter()) {
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
+  private var _storageFactory: MongoStorageFactory = null
 
   def solrServer = {
     if (_solrServer == null) {
@@ -83,12 +85,25 @@ object Global extends WithFilters(new StatsdFilter()) {
 
   def solrServer_=(server: AsyncSolrServer) = { _solrServer = server }
 
+
+  def storageFactory =  {
+    if (_storageFactory == null) {
+      _storageFactory = new MongoStorageFactory
+      _storageFactory.setConfig(Play.current.configuration)
+      _storageFactory.setClassLoader(Play.current.classloader)
+    }
+    _storageFactory
+  }
+
+  def storageFactory_=(storageFactory: MongoStorageFactory) = { _storageFactory = storageFactory }
+
   override def onStart(app: Application) {
     Logger.info("OpenCommerceSearch API has started")
   }
 
   override def onStop(app: Application) {
     Logger.info("OpenCommerceSearch API shutdown...")
+    storageFactory.close
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {

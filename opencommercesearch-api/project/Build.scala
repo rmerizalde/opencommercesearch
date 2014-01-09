@@ -17,7 +17,15 @@ object ApplicationBuild extends Build {
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
-    "com.wordnik" %% "swagger-play2" % "1.3.2"
+    "com.wordnik" %% "swagger-play2" % "1.3.2",
+    "de.undercouch" % "bson4jackson" % "2.1.0" force(),
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.0" force(),
+    "com.fasterxml.jackson.core" % "jackson-annotations" % "2.1.0" force(),
+    "com.fasterxml.jackson.core" % "jackson-core" % "2.1.0" force(),
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.1.1",
+    "org.mongodb" % "mongo-java-driver" % "2.11.3",
+    "org.jongo" % "jongo" % "0.4"//,
+    //"uk.co.panaxiom" %% "play-jongo" % "0.6.0-jongo0.4"
   )
 
   val main = play.Project(appName, appVersion, appDependencies, settings = s).settings(

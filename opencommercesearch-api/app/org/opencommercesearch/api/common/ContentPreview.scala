@@ -26,6 +26,8 @@ import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
+import org.jongo.MongoCollection
+import org.opencommercesearch.api.service.{StorageFactory, Storage}
 
 trait ContentPreview {
 
@@ -51,6 +53,15 @@ trait ContentPreview {
       collection = BrandPreviewCollection
     }
     collection
+  }
+
+  def withNamespace[R, T](factory: StorageFactory[T], preview: Boolean)(implicit req: Request[R]) : Storage[T] = {
+    var namespace = "public"
+    if (preview) {
+      namespace = "preview"
+    }
+    namespace += "_" + language(req.acceptLanguages)
+    factory.getInstance(namespace)
   }
 
   def withProductCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {

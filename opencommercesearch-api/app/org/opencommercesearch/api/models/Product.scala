@@ -33,9 +33,11 @@ import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.api.service.CategoryService
 
 import ProductList._
+import org.jongo.marshall.jackson.oid.Id
+import com.fasterxml.jackson.annotation.JsonCreator
 
 case class Product (
-  var id: Option[String],
+  @Id var id: Option[String],
   var title: Option[String],
   var description: Option[String],
   var shortDescription: Option[String],
@@ -48,15 +50,18 @@ case class Product (
   var features: Option[Seq[Attribute]],
   var listRank: Option[Int],
   var reviewCount: Option[Int],
-  var reviewAverage: Option[Float],
-  var bayesianReviewAverage: Option[Float],
+  var reviewAverage: Option[Double],
+  var bayesianReviewAverage: Option[Double],
   // has free gift by catalog
   var hasFreeGift: Option[Map[String, Boolean]],
   var isOutOfStock: Option[Boolean],
   var categories: Option[Seq[String]],
   var skus: Option[Seq[Sku]])
 {
+  @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+
+  def getId() : String = { this.id.get }
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -138,10 +143,10 @@ case class Product (
 
   @Field("reviewAverage")
   def setReviewAverage(reviewAverage: Float) : Unit = { this.reviewAverage = Option.apply(reviewAverage) }
-
+  
   @Field("bayesianReviewAverage")
   def setBayesianReviewAverage(bayesianReviewAverage: Float) : Unit = { this.bayesianReviewAverage = Option.apply(bayesianReviewAverage) }
-  
+    
   @Field
   def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
     this.hasFreeGift = Some(JIterableWrapper(freeGifts).map( { freeGift => 

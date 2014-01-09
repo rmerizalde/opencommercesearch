@@ -19,7 +19,7 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.{JsNumber, Json}
+import play.api.libs.json.{Json}
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
@@ -38,7 +38,7 @@ case class Sku(
   var image: Option[Image],
   var countries: Option[Seq[Country]],
   var isPastSeason: Option[Boolean],
-  var colorFamily: Option[Array[String]],
+  var colorFamily: Option[String],
   var isRetail: Option[Boolean],
   var isCloseout: Option[Boolean],
   var isOutlet: Option[Boolean],
@@ -76,7 +76,7 @@ case class Sku(
     for (countries <- this.countries) {
       for (country <- countries; code <- country.code) {
         for (salePrice <- priceMap.get(SalePrice + code)) {
-          country.salePrice = Some(new BigDecimal(salePrice).setScale(2, RoundingMode.HALF_EVEN));
+          country.salePrice = Some(new BigDecimal(salePrice).setScale(2, RoundingMode.HALF_EVEN))
         }
       }
     }
@@ -122,7 +122,7 @@ case class Sku(
 
   @Field
   def setColorFamily(colorFamily: Array[String]) {
-    this.colorFamily = Option.apply(colorFamily)
+    this.colorFamily = Option.apply(colorFamily(0))
   }
   
   @Field
@@ -153,7 +153,9 @@ case class Sku(
     if (countries.isEmpty) {
       val codes = fields.map( entry => { entry._1 stripPrefix fieldName } ).to[Seq]
       countries = Some(codes.map( code => {
-        new Country(code)
+        val country = new Country()
+        country.code = Option.apply(code)
+        country
       } ))
     }
   }
