@@ -24,17 +24,16 @@ import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
-import scala.concurrent.Future
+import scala.concurrent.{Promise, Future}
 
 import java.util
 
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.service.{CategoryService}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.common.SolrDocument
 import org.apache.commons.lang3.StringUtils
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
@@ -51,8 +50,8 @@ object ProductController extends BaseController {
   @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
   @ApiImplicitParams(value = Array(
-    new ApiImplicitParam(name = "offset", value = "Offset in the SKU list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "limit", value = "Maximum number of SKUs", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    //new ApiImplicitParam(name = "offset", value = "Offset in the SKU list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    //new ApiImplicitParam(name = "limit", value = "Maximum number of SKUs", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
   ))
   def findById(
@@ -60,60 +59,33 @@ object ProductController extends BaseController {
       @ApiParam(value = "A product id", required = true)
       @PathParam("id")
       id: String,
-      @ApiParam(value = "Site to search for SKUs", required = true)
+      @ApiParam(value = "Site to search for SKUs", required = false)
       @QueryParam("site")
       site: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val startTime = System.currentTimeMillis()
-    val fields = request.getQueryString("fields")
-    var searchSkus = true;
-    
-    for (f <- fields) {
-      searchSkus = f.indexOf("skus")  != -1 || f.equals("*");
-    }
-
-    val query = withProductCollection(withFields(new SolrQuery(), fields), preview)
 
     Logger.debug(s"Query product $id")
 
-    query.set("id", id)
-    query.setRequestHandler(RealTimeRequestHandler)
+    val startTime = System.currentTimeMillis()
+    val fields = request.getQueryString("fields")
+    val storage = withNamespace(storageFactory, preview)
+    val fieldList = StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
+    var productFuture: Future[Product] = null
 
-    val productFuture = solrServer.query(query).map( response => {
-      val doc = response.getResponse.get("doc")
-      if (doc != null) {
-        solrServer.binder.getBean(classOf[Product], doc.asInstanceOf[SolrDocument])
-      } else {
-        null
-      }
-    })
-
-    val productIdQuery = s"productId:$id"
-    var skuFuture: Future[(Int, util.List[Product])] = null
-
-    if (searchSkus) {
-      val skuQuery = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(productIdQuery)), preview), site, None)
-      skuQuery.set("group", false)
-      skuQuery.setFacet(false)
-      initQueryParams(skuQuery, site, showCloseoutProducts = true, null)
-
-      skuFuture = solrServer.query(skuQuery).map( response => {
-        processSearchResults(productIdQuery, response)
-      })
+    if (site != null) {
+      productFuture = storage.findProduct(id, site, fieldList)
     } else {
-      skuFuture = Future.successful((0, null))
+      productFuture = storage.findProduct(id, fieldList)
     }
 
-    val future = productFuture zip skuFuture map { case (product, (found, products)) =>
+    val future = productFuture map { product =>
+
       if (product != null) {
-        if (products != null) {
-          product.skus = Option.apply(JIterableWrapper(products).toSeq.map( p => p.skus.get(0) ))
-        }
         Ok(Json.obj(
           "metadata" -> Json.obj(
-            "found" -> found,
+            "found" -> 1,
             "time" -> (System.currentTimeMillis() - startTime)),
           "product" -> Json.toJson(product)))
       } else {
@@ -401,9 +373,8 @@ object ProductController extends BaseController {
       } else {
         try {
           val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
-          val productUpdate = withProductCollection(new AsyncUpdateRequest(), preview)
-          productUpdate.add(productDocs)
-          val productFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
+          val storage = withNamespace(storageFactory, preview)
+          val productFuture = storage.save(products:_*)
           val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
           searchUpdate.add(skuDocs)
           val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)

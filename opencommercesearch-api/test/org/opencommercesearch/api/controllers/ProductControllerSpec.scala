@@ -3,11 +3,8 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.json.{JsError, Json}
 import play.api.test.Helpers._
 import play.api.test.{FakeRequest, FakeApplication}
-import play.api.mvc.{Result, AsyncResult}
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.SECONDS
+import scala.concurrent.{Future}
 
 import java.util
 
@@ -19,6 +16,9 @@ import org.apache.solr.common.{SolrDocumentList, SolrDocument}
 import org.opencommercesearch.api.models.{Sku, Product}
 import org.apache.solr.client.solrj.response.{Group, GroupCommand, GroupResponse, QueryResponse}
 import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory, StorageFactory}
+import com.mongodb.WriteResult
+import play.api.{Play, Logger}
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -40,11 +40,17 @@ import org.apache.solr.common.util.NamedList
 */
 
 class ProductControllerSpec extends BaseSpec {
+  val storage = mock[MongoStorage]
+
   trait Products extends Before {
     def before = {
       // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.save(any) returns Future.successful(writeResult)
     }
   }
 
@@ -54,57 +60,31 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 404 when a product is not found"  in new Products {
       running(FakeApplication()) {
-        val (productResponse, namedList) = setupQuery
-        val skuResponse = setupSkuQuery(null)
         val expectedId = "PRD1000"
-        var productQuery:SolrQuery = null
 
-        solrServer.query(any[SolrQuery]) answers { q =>
-          val query:SolrQuery = q.asInstanceOf[SolrQuery]
-          if (query.get("id") != null) {
-            productQuery = query
-            Future.successful(productResponse)
-          } else {
-            Future.successful(skuResponse)
-          }
-        }
+        storage.findProduct(anyString, anyString, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find product with id [$expectedId]")
-        productQuery.get("id") must beEqualTo(expectedId)
       }
     }
 
     "send 200 when a product is found when searching by id" in new Products {
       running(FakeApplication()) {
         val product = new Product()
-        val productResponse = setupProductQuery(product)
-        val skuResponse = setupSkuQuery(product)
-        var productQuery:SolrQuery = null
-
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
-
-
 
         val expectedSku = new Sku()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
-        solrServer.query(any[SolrQuery]) answers { q =>
-          val query:SolrQuery = q.asInstanceOf[SolrQuery]
-          if (query.get("id") != null) {
-            productQuery = query
-            Future.successful(productResponse)
-          } else {
-            Future.successful(skuResponse)
-          }
-        }
+        storage.findProduct(anyString, anyString, any) returns Future.successful(product)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
-        productQuery.get("id") must beEqualTo(expectedId)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
@@ -112,7 +92,7 @@ class ProductControllerSpec extends BaseSpec {
           product.title.get must beEqualTo(expectedTitle)
           for (skus <- product.skus) {
             for (sku <- skus) {
-              product.id.get must beEqualTo(expectedSku.id.get)
+              sku.id.get must beEqualTo(expectedSku.id.get)
             }
           }
         } recoverTotal {
@@ -460,6 +440,7 @@ class ProductControllerSpec extends BaseSpec {
                 "countries" -> Seq(Json.obj("code" -> "US"))
               ))
             )))
+
 
         val url = routes.ProductController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)

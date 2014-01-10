@@ -37,12 +37,15 @@ import org.opencommercesearch.api.models.Facet
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
 class FacetControllerSpec extends Specification with Mockito {
 
   trait Facets extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns mock[MongoStorage]
     }
   }
 
