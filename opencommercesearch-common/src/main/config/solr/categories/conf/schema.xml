@@ -42,10 +42,11 @@
    <field name="_version_"        type="long"    indexed="true"  stored="true"                   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="id"               type="string"  indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="name"             type="string"  indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="seoUrlToken"      type="string"  indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="isRuleBased"      type="boolean" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="catalogs"         type="string"  indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="parentCategories" type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="childCategories"  type="string"  indexed="false" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="parentCategories" type="string"  indexed="true" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="childCategories"  type="string"  indexed="true" stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="nameNGrams"       type="ngram"   indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="isRoot"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="isNode"           type="boolean" indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />

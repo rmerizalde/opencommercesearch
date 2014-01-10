@@ -71,7 +71,7 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None)
+        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None)
 
         namedList.get("doc") returns doc
         solrServer.binder.getBean(classOf[Category], doc) returns category
@@ -165,18 +165,22 @@ class CategoryControllerSpec extends BaseSpec {
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
-        val (expectedId, expectedName, expectedIsRuleBased) = ("1000", "A Category", true)
-        val (expectedId2, expectedName2, expectedIsRuleBased2) = ("1001", "Another Category", false)
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased) = 
+          ("1000", "A Category", "/a-category", true)
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2) = 
+          ("1001", "Another Category", "/another-category", false)
         val json = Json.obj(
           "feedTimestamp" -> 1001,
           "categories" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
               "name" -> expectedName,
+              "seoUrlToken" -> expectedSeoUrlToken,
               "isRuleBased" -> expectedIsRuleBased),
             Json.obj(
               "id" -> expectedId2,
               "name" -> expectedName2,
+              "seoUrlToken" -> expectedSeoUrlToken2,
               "isRuleBased" -> expectedIsRuleBased2)))
 
         val url = routes.CategoryController.bulkCreateOrUpdate().url
