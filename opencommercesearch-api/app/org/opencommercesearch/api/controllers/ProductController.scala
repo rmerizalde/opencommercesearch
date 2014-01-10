@@ -41,7 +41,7 @@ import javax.ws.rs.{QueryParam, PathParam}
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.convert.Wrappers.JListWrapper
 
-@Api(value = "/products", basePath = "/api-docs/products", description = "Product API endpoints")
+@Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
 
   val Score = "score"

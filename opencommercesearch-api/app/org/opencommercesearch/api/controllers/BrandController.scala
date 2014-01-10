@@ -34,8 +34,10 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
+import scala.collection.convert.Wrappers.JIterableWrapper
+import play.api.mvc.SimpleResult
 
-@Api(value = "/brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
+@Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController {
 
   @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
@@ -91,7 +93,7 @@ object BrandController extends BaseController {
       if (brand.name.isEmpty || brand.logo.isEmpty) {
         Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
-        val brandDoc = brand.toDocument
+        val brandDoc = brand.toDocument(System.currentTimeMillis())
 
         brandDoc.setField("id", id)
 
@@ -201,5 +203,112 @@ object BrandController extends BaseController {
    @QueryParam("feedTimestamp")
    feedTimestamp: Long) = Action.async { request =>
     deleteByQuery("-feedTimestamp:" + feedTimestamp, withBrandCollection(new AsyncUpdateRequest(), preview), "brands")
+  }
+
+  /**
+   * Get a list of all existing brands
+   */
+  @ApiOperation(value = "Get all brands", notes = "Gets a list of all brands", response = classOf[Brand], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the brands list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of brands", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def findAll(
+   version: Int,
+   @ApiParam(defaultValue="false", allowableValues="true,false", value = "Get brands in preview", required = false)
+   @QueryParam("preview")
+   preview: Boolean,
+   @ApiParam(allowableValues = "bcs,competitivecyclist,dogfunk", value = "Site to search for brands", required = true)
+   @QueryParam("site")
+   site: String) = Action.async { implicit request =>
+    val startTime = System.currentTimeMillis()
+    val catalogQuery = withSearchCollection(withFacetParams(withFacetPagination(new SolrQuery("*:*")), "brandId"), preview)
+    catalogQuery.addFilterQuery("categoryPath:" + site)
+    catalogQuery.setRows(0) //No document results needed
+
+    if(Logger.isDebugEnabled) {
+      Logger.debug("Searching for brand ids with query " + catalogQuery.toString)
+    }
+
+    val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
+      val facetFields = catalogResponse.getFacetFields
+      var brandInfoFuture : Future[SimpleResult] = null
+
+      if(facetFields != null) {
+        JIterableWrapper(facetFields).map( facetField => {
+          if("brandid".equals(facetField.getName.toLowerCase())) {
+            if(Logger.isDebugEnabled) {
+              Logger.debug("Got " + facetField.getValueCount + " brand ids")
+            }
+
+            if(facetField.getValueCount > 0) {
+              val ids = new StringBuilder
+
+              JIterableWrapper(facetField.getValues).map( facetValue => {
+                ids.append(facetValue.getName)
+                ids.append(",")
+              })
+
+              ids.setLength(ids.length - 1)
+
+              //Use real time get to get all fields from returned brands.
+              val query = withBrandCollection(new SolrQuery(), preview)
+              query.setRequestHandler(RealTimeRequestHandler)
+              query.add("ids", ids.toString())
+              withFields(query, request.getQueryString("fields"))
+
+              if(Logger.isDebugEnabled) {
+                Logger.debug("Getting fields from returned brands with query " + query.toString)
+              }
+
+              brandInfoFuture = solrServer.query(query).map( response => {
+
+                if(Logger.isDebugEnabled) {
+                  Logger.debug("Got " + response.getResults.getNumFound + " brand info results")
+                }
+
+                if(response.getResults.getNumFound > 0) {
+                  Ok(Json.obj(
+                    "time" -> (System.currentTimeMillis() - startTime),
+                    "brands" -> Json.toJson(JIterableWrapper(solrServer.binder.getBeans(classOf[Brand], response.getResults))))
+                  )
+                }
+                else {
+                  InternalServerError(Json.obj("message" -> "No brand info available"))
+                }
+              })
+            }
+          }
+        })
+      }
+      else {
+          Logger.debug("Got 0 brands, no facets were returned")
+      }
+
+      if(brandInfoFuture != null) {
+        withErrorHandling(brandInfoFuture, "Cannot get brands")
+      }
+      else {
+        Future(InternalServerError(Json.obj("message" -> "No brands found")))
+      }
+    })
+
+    withErrorHandling(future, "Cannot get brands")
+  }
+
+  /**
+   * Helper method to set the fields to return for each product
+   *
+   * @param query is the Solr query
+   * @param facetField is the field used for faceting
+   * @return
+   */
+  private def withFacetParams(query: SolrQuery, facetField : String) : SolrQuery = {
+    query.setFacet(true)
+      .setFacetMinCount(1)
+      .add("facet.field", facetField)
+
+    query
   }
 }
