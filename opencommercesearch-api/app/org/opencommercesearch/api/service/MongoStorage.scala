@@ -6,7 +6,7 @@ import scala.concurrent.Future
 
 import com.mongodb.{MongoClient, WriteResult}
 import com.mongodb.gridfs.GridFS
-import org.opencommercesearch.api.models.Product
+import org.opencommercesearch.api.models.{Country, Sku, Product}
 import org.jongo.Jongo
 import play.api.Logger
 
@@ -34,6 +34,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    */
   def ensureIndexes : Unit = {
     jongo.getCollection("products").ensureIndex("{skus.catalogs: 1}", "{sparse: true, name: 'sku_catalog_idx'}")
+    jongo.getCollection("products").ensureIndex("{skus.countries.code: 1}", "{sparse: true, name: 'sku_country_idx'}")
   }
 
   def close : Unit = {
@@ -41,25 +42,57 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
 
-  def findProduct(id: String, fields: Seq[String]) : Future[Product] = {
+  def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      productCollection.findOne("{_id:#}", id).projection(projection(fields)).as(classOf[Product])
+      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projection(fields)).as(classOf[Product]))
     }
   }
 
-  def findProduct(id: String, site: String, fields: Seq[String]) : Future[Product] = {
+  def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      productCollection.findOne("{_id:#, skus.catalogs:#}", id, site).projection(projection(fields)).as(classOf[Product])
+      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, country, site).projection(projection(fields)).as(classOf[Product]))
     }
+  }
+
+  /**
+   * Filters the skus by the given country
+   * @param country the country to filter by
+   * @param product the product which skus will be filtered
+   * @return the product
+   */
+  private def filterSkus(country: String, product: Product) : Product = {
+    for (skus <- product.skus) {
+      product.skus = Some(skus.filter((s: Sku) => {
+        var filteredCountries: Seq[Country] = null
+        for (countries <- s.countries) {
+          filteredCountries = countries.filter((c: Country) => country.equals(c.code.get))
+        }
+        if (filteredCountries.size > 0) {
+          s.countries = Some(filteredCountries)
+        }
+        filteredCountries.size > 0
+      }))
+    }
+    product
   }
 
   private def projection(fields: Seq[String]) : String = {
     val projection = new StringBuilder(128)
     projection.append("{")
     if (fields.size > 0) {
-      fields.foreach(projection.append(_).append(":1,"))
+      var includeSkus = false
+      fields.foreach(f => {
+        projection.append(f).append(":1,")
+        if (f.startsWith("skus.")) {
+          includeSkus = true
+        }
+      })
+      if (includeSkus) {
+        // required for filtering
+        projection.append("skus.countries.code:1,")
+      }
     } else {
       // by default hide this fields
       // @todo move to config??

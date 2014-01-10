@@ -75,9 +75,9 @@ object ProductController extends BaseController {
     var productFuture: Future[Product] = null
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, fieldList)
+      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList)
     } else {
-      productFuture = storage.findProduct(id, fieldList)
+      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList)
     }
 
     val future = productFuture map { product =>
