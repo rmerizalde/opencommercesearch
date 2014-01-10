@@ -89,8 +89,10 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
   }
 
   def close : Unit = {
-    Logger.info("Closing mongo client")
-    mongo.close()
+    if (mongo != null) {
+      Logger.info("Closing mongo client")
+      mongo.close()
+    }
   }
 
 }

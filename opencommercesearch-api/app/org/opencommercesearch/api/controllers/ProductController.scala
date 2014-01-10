@@ -24,7 +24,7 @@ import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.Future
 
 import java.util
 

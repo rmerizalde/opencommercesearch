@@ -16,9 +16,8 @@ import org.apache.solr.common.{SolrDocumentList, SolrDocument}
 import org.opencommercesearch.api.models.{Sku, Product}
 import org.apache.solr.client.solrj.response.{Group, GroupCommand, GroupResponse, QueryResponse}
 import org.apache.solr.common.util.NamedList
-import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory, StorageFactory}
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
-import play.api.{Play, Logger}
 
 /*
 * Licensed to OpenCommerceSearch under one
