@@ -27,7 +27,8 @@ import play.api.libs.json.Json
 import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.Util._
+import org.opencommercesearch.api.util.Util
+import Util._
 import org.opencommercesearch.api.models.{Brand, BrandList}
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest

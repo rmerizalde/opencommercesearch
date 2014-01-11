@@ -30,7 +30,7 @@ import play.modules.statsd.api.StatsdFilter
 import scala.concurrent.Future
 import org.opencommercesearch.api.service.{StorageFactory, MongoStorageFactory}
 import com.wordnik.swagger.converter.{OverrideConverter, ModelConverters}
-import org.opencommercesearch.api.util.BigDecimalConverter
+import org.opencommercesearch.api.util.{CountryConverter, BigDecimalConverter}
 
 
 object Global extends WithFilters(new StatsdFilter()) {
@@ -101,6 +101,7 @@ object Global extends WithFilters(new StatsdFilter()) {
 
   override def beforeStart(app: Application): Unit = {
     ModelConverters.addConverter(new BigDecimalConverter(), true)
+    ModelConverters.addConverter(new CountryConverter(), true)
   }
 
   override def onStart(app: Application) {

@@ -19,18 +19,20 @@ package org.opencommercesearch.api.util
 * under the License.
 */
 
-import com.wordnik.swagger.converter.{BaseConverter, ModelConverter, SwaggerSchemaConverter}
-import com.wordnik.swagger.model.Model
+import java.math
+
+import com.fasterxml.jackson.databind.{DeserializationContext, JsonDeserializer}
+import com.fasterxml.jackson.core.JsonParser
 
 /**
- * This converter prevents BigDecimal model properties from been rendered in the model schema.
  *
- * @author rmerizalde
  */
-class BigDecimalConverter extends ModelConverter with BaseConverter {
+class BigDecimalDeserializer extends JsonDeserializer[BigDecimal] {
 
-  def read(cls: Class[_]): Option[Model] = None
+  @Override
+  def deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext) : BigDecimal = {
+    new math.BigDecimal(jsonParser.getText)
+  }
 
-  override def ignoredClasses: Set[String] = Set("scala.math.BigDecimal", "java.math.BigDecimal")
 
 }

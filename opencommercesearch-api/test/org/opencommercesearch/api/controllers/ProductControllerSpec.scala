@@ -39,7 +39,6 @@ import com.mongodb.WriteResult
 */
 
 class ProductControllerSpec extends BaseSpec {
-  val storage = mock[MongoStorage]
 
   trait Products extends Before {
     def before = {
@@ -47,6 +46,7 @@ class ProductControllerSpec extends BaseSpec {
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
       storageFactory = mock[MongoStorageFactory]
+      val storage = mock[MongoStorage]
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
       storage.save(any) returns Future.successful(writeResult)
@@ -61,6 +61,8 @@ class ProductControllerSpec extends BaseSpec {
       running(FakeApplication()) {
         val expectedId = "PRD1000"
 
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProduct(any, any, any, any) returns Future.successful(null)
         storage.findProduct(anyString, anyString, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
@@ -80,6 +82,8 @@ class ProductControllerSpec extends BaseSpec {
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProduct(anyString, anyString, any, any) returns Future.successful(product)
         storage.findProduct(anyString, anyString, any) returns Future.successful(product)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
@@ -120,6 +124,9 @@ class ProductControllerSpec extends BaseSpec {
           productQuery = q.asInstanceOf[SolrQuery]
           Future.successful(skuResponse)
         }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
@@ -165,6 +172,9 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = false)
@@ -203,6 +213,9 @@ class ProductControllerSpec extends BaseSpec {
           productQuery = q.asInstanceOf[SolrQuery]
           Future.successful(skuResponse)
         }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = true, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -243,6 +256,9 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+
         val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isCloseout = false)
@@ -261,7 +277,7 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-    "send 200 when a product is found when browsing a brand category" in new Products {
+    "send 200 when a product is found when browsing a brand" in new Products {
       running(FakeApplication()) {
         val product = new Product()
         val sku = new Sku()
@@ -281,6 +297,9 @@ class ProductControllerSpec extends BaseSpec {
           productQuery = q.asInstanceOf[SolrQuery]
           Future.successful(skuResponse)
         }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -460,11 +479,8 @@ class ProductControllerSpec extends BaseSpec {
    */
   private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String, isCloseout: Boolean) : Unit = {
     var expected = 3
-    if (categoryId == null && brandId != null) {
-      productQuery.get("pageType") must beEqualTo("brand")
-    } else {
-      productQuery.get("pageType") must beEqualTo("category")
-    }
+
+    productQuery.get("pageType") must beEqualTo("category")
 
     if (categoryId != null) {
       expected += 1
@@ -586,12 +602,9 @@ class ProductControllerSpec extends BaseSpec {
           documentList.add(mock[SolrDocument])
           skuList.add(sku)
         }
-        solrServer.binder.getBeans(classOf[Sku], documentList) returns skuList
       }
-      solrServer.binder.getBean(classOf[Product], documentList.get(0)) returns product
       group.getResult returns documentList
       groupValues.add(group)
-
     }
 
     val groupResponse = mock[GroupResponse]

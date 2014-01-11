@@ -25,6 +25,7 @@ import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 
 import scala.concurrent.Future
+import scala.collection.JavaConversions._
 
 import java.util
 
@@ -34,12 +35,11 @@ import org.opencommercesearch.api.service.{CategoryService}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.commons.lang3.StringUtils
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
 
 import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.convert.Wrappers.JListWrapper
+import org.apache.commons.lang3.StringUtils
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -69,19 +69,16 @@ object ProductController extends BaseController {
     Logger.debug(s"Query product $id")
 
     val startTime = System.currentTimeMillis()
-    val fields = request.getQueryString("fields")
     val storage = withNamespace(storageFactory, preview)
-    val fieldList = StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
     var productFuture: Future[Product] = null
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList)
+      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList())
     } else {
-      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList)
+      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList())
     }
 
     val future = productFuture map { product =>
-
       if (product != null) {
         Ok(Json.obj(
           "metadata" -> Json.obj(
@@ -103,48 +100,41 @@ object ProductController extends BaseController {
    * Helper method to process search results
    * @param q the Solr query
    * @param response the Solr response
-   * @return a tuple with the total number of SKUs found and the list of SKUs in the response
+   * @return a tuple with the total number of products found and the list of product documents in the response
    */
-  private def processSearchResults(q: String, response: QueryResponse) : (Int, util.List[Product]) = {
+  private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product])] = {
     val groupResponse = response.getGroupResponse
     if (groupResponse != null) {
       val commands = groupResponse.getValues
 
       if (commands.size > 0) {
         val command = groupResponse.getValues.get(0)
-        val products = new util.ArrayList[Product]
+        val products = new util.ArrayList[Tuple2[String, String]]
         if ("productId".equals(command.getName)) {
           if (command.getNGroups > 0) {
             for (group <- JIterableWrapper(command.getValues)) {
               val documentList = group.getResult
-              val product = solrServer.binder.getBean(classOf[Product], documentList.get(0))
-              product.skus = Option.apply(JIterableWrapper(solrServer.binder.getBeans(classOf[Sku], documentList)).toSeq)
-              products.add(product)
+              val product  = documentList.get(0)
+              product.setField("productId", group.getGroupValue)
+              products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
-            (command.getNGroups, products)
+            val storage = withNamespace(storageFactory, true)
+            storage.findProducts(products, country(req.acceptLanguages), fieldList()).map( products => {
+              (command.getNGroups, products)
+            })
           } else {
-            (0, util.Collections.emptyList())
+            Future.successful((0, null))
           }
         } else {
           Logger.debug(s"Unexpected response found for query $q")
-          (0, null)
+          Future.successful((0, null))
         }
       } else {
         Logger.debug(s"Unexpected response found for query $q")
-        (0, null)
+        Future.successful((0, null))
       }
     } else {
-      val documentList = response.getResults
-      val products = new util.ArrayList[Product]
-
-      // @todo optimize. Each sku is wrapped into its own product. This code is only called
-      // when calling findById to parse the product skus
-      for (doc <- JIterableWrapper(documentList)) {
-        val product = solrServer.binder.getBean(classOf[Product], documentList.get(0))
-        product.skus = Option.apply(Seq(solrServer.binder.getBean(classOf[Sku], doc)))
-        products.add(product)
-      }
-      (documentList.getNumFound.toInt, products)
+      Future.successful((0, null))
     }
   }
 
@@ -166,7 +156,7 @@ object ProductController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     val startTime = System.currentTimeMillis()
-    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(q)), preview), site, request.getQueryString("fields"))
+    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery(q)), preview))
 
     Logger.debug("Searching for " + q)
     query.setFacet(true)
@@ -175,38 +165,39 @@ object ProductController extends BaseController {
     query.set("rule", true)
     initQueryParams(query, site, showCloseoutProducts = true, "search")
 
-    val future = solrServer.query(query).map( response => {
+    val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        val (found, skus) = processSearchResults(q, response)
-        if (skus != null) {
-          if (skus.size() > 0) {
-            Ok(Json.obj(
-              "metadata" -> Json.obj(
-                "found" -> found,
-                "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> Json.toJson(
-                JListWrapper(skus) map (Json.toJson(_))
-              )))
+        processSearchResults(q, response).map { case (found, products) =>
+          if (products != null) {
+            if (found > 0) {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "products" -> Json.toJson(
+                  products map (Json.toJson(_))
+                )))
+            } else {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "products" -> Json.arr()
+              ))
+            }
           } else {
-            Ok(Json.obj(
+            Logger.debug(s"Unexpected response found for query $q")
+            InternalServerError(Json.obj(
               "metadata" -> Json.obj(
-                "found" -> found,
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> Json.arr()
-            ))
+              "message" -> "Unable to execute query"))
           }
-        } else {
-          Logger.debug(s"Unexpected response found for query $q")
-          InternalServerError(Json.obj(
-            "metadata" -> Json.obj(
-              "time" -> (System.currentTimeMillis() - startTime)),
-            "message" -> "Unable to execute query"))
         }
       } else {
-        Ok(Json.obj(
+        Future.successful(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound),
-            "time" -> (System.currentTimeMillis() - startTime)))
+            "time" -> (System.currentTimeMillis() - startTime))))
       }
     })
 
@@ -231,7 +222,7 @@ object ProductController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing brand $brandId")
-    withErrorHandling(doBrowse(version, null, site, brandId, closeout = false, null, preview, "brand"), s"Cannot browse brand [$brandId]")
+    withErrorHandling(doBrowse(version, null, site, brandId, closeout = false, null, preview, "category"), s"Cannot browse brand [$brandId]")
   }
 
   @ApiOperation(value = "Browses brand's category products ", notes = "Returns products for a given brand category", response = classOf[Product], httpMethod = "GET")
@@ -286,7 +277,7 @@ object ProductController extends BaseController {
   private def doBrowse(version: Int, categoryId: String, site: String, brandId: String, closeout: Boolean, ruleFilter: String,
                        preview: Boolean, requestType: String)(implicit request: Request[AnyContent]) = {
     val startTime = System.currentTimeMillis()
-    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery("*:*")), preview), site, request.getQueryString("fields"))
+    val query = withDefaultFields(withSearchCollection(withPagination(new SolrQuery("*:*")), preview))
 
     if (ruleFilter != null) {
       // @todo handle rule based pages
@@ -305,7 +296,7 @@ object ProductController extends BaseController {
     query.setFacet(true)
     initQueryParams(query, site, showCloseoutProducts = closeout, requestType)
 
-    solrServer.query(query).map( response => {
+    solrServer.query(query).flatMap { response =>
       val groupResponse = response.getGroupResponse
 
       if (groupResponse != null) {
@@ -316,52 +307,50 @@ object ProductController extends BaseController {
 
           if ("productId".equals(command.getName)) {
             if (command.getNGroups > 0) {
-              val allProducts = new util.ArrayList[Product]
+              val products = new util.ArrayList[Tuple2[String, String]]
               for (group <- JIterableWrapper(command.getValues)) {
                 val documentList = group.getResult
-                val skus = solrServer.binder.getBeans(classOf[Sku], documentList)
-                if (skus.size() > 0) {
-                  val doc = documentList.get(0)
-                  val product = solrServer.binder.getBean(classOf[Product], doc)
-                  product.setId(doc.getFieldValue("productId").asInstanceOf[String])
-                  product.setSkus(JIterableWrapper(skus).toSeq)
-                  allProducts.add(product)
-                }
+                val product  = documentList.get(0)
+                product.setField("productId", group.getGroupValue)
+                products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
               }
-              Ok(Json.obj(
-                "metadata" -> Json.obj(
-                   "found" -> command.getNGroups.intValue(),
-                   "time" -> (System.currentTimeMillis() - startTime)),
-                "products" -> Json.toJson(
-                  JListWrapper(allProducts) map (Json.toJson(_))
-                )))
+              val storage = withNamespace(storageFactory, true)
+              storage.findProducts(products, country(request.acceptLanguages), fieldList()).map( products => {
+                Ok(Json.obj(
+                   "metadata" -> Json.obj(
+                      "found" -> command.getNGroups.intValue(),
+                      "time" -> (System.currentTimeMillis() - startTime)),
+                   "products" -> Json.toJson(
+                     products map (Json.toJson(_))
+                   )))
+              })
             } else {
-              Ok(Json.obj(
+              Future.successful(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> command.getNGroups.intValue(),
                   "time" -> (System.currentTimeMillis() - startTime)),
                 "products" -> Json.arr()
-              ))
+              )))
             }
           } else {
             Logger.debug(s"Unexpected response found for category $categoryId")
-            InternalServerError(Json.obj(
+            Future.successful(InternalServerError(Json.obj(
               "message" -> "Unable to execute query"
-            ))
+            )))
           }
         } else {
           Logger.debug(s"Unexpected response found for category $categoryId")
-          InternalServerError(Json.obj(
+          Future.successful(InternalServerError(Json.obj(
             "message" -> "Unable to execute query"
-          ))
+          )))
         }
       } else {
         Logger.debug(s"Unexpected response found for category $categoryId")
-        InternalServerError(Json.obj(
+        Future.successful(InternalServerError(Json.obj(
           "message" -> "Unable to execute query"
-        ))
+        )))
       }
-    })
+    }
   }
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
@@ -575,12 +564,10 @@ object ProductController extends BaseController {
    * Helper method to set the fields to return for each product
    *
    * @param query is the solr query
-   * @param site is the site where we are searching
-   * @param fields is the requested list of fields. If empty, use a default list of fields
    * @param request is the implicit request
    * @return
    */
-  private def withDefaultFields(query: SolrQuery, site: String, fields: Option[String])(implicit request: Request[AnyContent]) : SolrQuery = {
+  private def withDefaultFields(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
     val country_ = country(request.acceptLanguages)
     val listPrice = s"listPrice$country_"
     val salePrice =  s"salePrice$country_"
@@ -591,12 +578,6 @@ object ProductController extends BaseController {
     query.setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent")
     query.setParam("groupcollapse.ff", "isCloseout")
 
-    if (fields.isEmpty || fields.get.size <= 0) {
-      query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country_,
-         "bayesianReviewAverage", "reviews", "isPastSeason", "freeGift" + site, "image", "isCloseout", "colorFamily", "size")
-      query
-    } else {
-      withFields(query, fields)
-    }
+    query.setFields("id")
   }
 }

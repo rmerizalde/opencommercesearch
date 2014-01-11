@@ -1,5 +1,24 @@
 package org.opencommercesearch.api.service
 
+/*
+* Licensed to OpenCommerceSearch under one
+* or more contributor license agreements. See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership. OpenCommerceSearch licenses this
+* file to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License. You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied. See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
 import org.opencommercesearch.api.models.Product
 import scala.concurrent.Future
 
@@ -10,6 +29,16 @@ import scala.concurrent.Future
  */
 trait Storage[T] {
 
+  /**
+   * Finds the products with the given ids. Ids is a sequence of tuples. The first element of the tuple is the product id.
+   * The second element is an optional sku id. If the sku id is different than null, only the skus that matches the id
+   * is returned. Otherwise, returns all skus for a products
+   * @param ids is a sequence of product id/sku id tuples
+   * @param country is the country to filter by
+   * @param fields is the list of fields to return
+   * @return
+   */
+  def findProducts(ids: Seq[Tuple2[String, String]], country: String, fields: Seq[String]) : Future[Iterable[Product]]
 
   /**
    * Finds the product with the given id. Optionally, takes a list of fields to return
