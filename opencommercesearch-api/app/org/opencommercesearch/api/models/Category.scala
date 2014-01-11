@@ -21,15 +21,13 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-
 import scala.collection.convert.Wrappers.JIterableWrapper
-
-
 import java.util
-
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
+import org.jongo.marshall.jackson.oid.Id
+import com.fasterxml.jackson.annotation.JsonCreator
 
 /**
  * A category model.
@@ -43,7 +41,7 @@ import play.api.libs.functional.syntax._
  * @author rmerizalde
  */
 case class Category(
-  var id: Option[String],
+  @Id var id: Option[String],
   var name: Option[String],
   var seoUrlToken: Option[String],
   var isRuleBased: Option[Boolean],
@@ -55,13 +53,12 @@ case class Category(
    * This constructor is for lazy loaded categories
    * @param id is the id of the category to lazy load
    */
-  def this(id: Option[String]) = this(id, None, None, None, None, None, None)
+  @JsonCreator
+  def this() = this(None, None, None, None, None, None, None)
 
-  /**
-   * This constructor is intended document object binder used to load Solr documents
-   */
-  def this() = this(None)
 
+  def getId() : String = { this.id.get }
+  
   @Field
   def setId(id: String) {
     this.id = Option.apply(id)
@@ -89,12 +86,22 @@ case class Category(
 
   @Field
   def setParentCategories(parentCategories: util.Collection[String]) {
-    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => new Category(Some(id))))
+    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => 
+     {
+       val cat : Category = new Category()
+       cat.setId(id)
+       cat
+     }))
   }
 
   @Field("childCategories")
   def setChildCategories(childCategories: util.Collection[String]) {
-    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
+    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => 
+      {
+       val cat : Category = new Category()
+       cat.setId(id)
+       cat
+     }))
   }
 }
 

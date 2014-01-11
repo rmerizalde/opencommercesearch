@@ -374,7 +374,7 @@ object ProductController extends BaseController {
         try {
           val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
           val storage = withNamespace(storageFactory, preview)
-          val productFuture = storage.save(products:_*)
+          val productFuture = storage.saveProduct(products:_*)
           val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
           searchUpdate.add(skuDocs)
           val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)

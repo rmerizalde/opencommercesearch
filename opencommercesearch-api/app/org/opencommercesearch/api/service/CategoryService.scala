@@ -42,8 +42,6 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   private val MaxTries = 3
   private val MaxResults = 50
   
-  
-  
   def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
     var (query, hasNestedCategories) = 
       withNestedCategories(id,  withCategoryCollection(withFields(new SolrQuery(), fields), preview),  fields)
