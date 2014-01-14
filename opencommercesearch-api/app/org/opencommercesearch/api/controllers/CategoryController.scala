@@ -36,6 +36,8 @@ import org.apache.commons.lang3.StringUtils
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.params.SolrParams
+import org.apache.solr.client.solrj.response.UpdateResponse
+
 
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController {
@@ -55,10 +57,12 @@ object CategoryController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val future = categoryService.findById(id, preview, request.getQueryString("fields")).map(category => {
-      if (category.isDefined) {
-        Ok(Json.obj(
-          "category" -> Json.toJson(category.get)))
+    
+    val storage = withNamespace(storageFactory, preview)
+    val future = storage.findCategory(id, fieldList()).map( category => {
+      if(category != null) {
+	      Ok(Json.obj(
+	          "category" -> Json.toJson(category)))
       } else {
         Logger.debug("Category " + id + " not found")
         NotFound(Json.obj(
@@ -66,7 +70,7 @@ object CategoryController extends BaseController {
         ))
       }
     })
-
+    
     withErrorHandling(future, s"Cannot retrieve category with id [$id]")
   }
 
@@ -90,13 +94,17 @@ object CategoryController extends BaseController {
           "message" -> s"Exceeded number of categories. Maximum is $MaxUpdateCategoryBatchSize")))
       } else {
         try {
+          val storage = withNamespace(storageFactory, preview)
+          val storageFuture = storage.saveCategory(categories:_*)
+          
           val update = withCategoryCollection(new AsyncUpdateRequest(), preview)
           val docs = categoryList.toDocuments
           update.add(docs)
-
-          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+          val searchFuture: Future[UpdateResponse] = update.process(solrServer)
+          
+          val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (r1, r2) =>
             Created
-          })
+          }
 
           withErrorHandling(future, s"Cannot store categories with ids [${categories map (_.id) mkString ","}]")
       } catch {
@@ -197,30 +205,31 @@ object CategoryController extends BaseController {
         //if we have results from the product catalog collection, 
         //then generate another SOLR query object to query the brand collection. 
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
-        val brandQuery = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
-        val brandQueryStrings = JIterableWrapper(brandFacet.getValues()).map(filter => brandQuery.add("id", filter.getName()))
-        brandQuery.setRequestHandler(RealTimeRequestHandler)
+        val brandIds = JIterableWrapper(brandFacet.getValues()).map(filter =>  filter.getName)
         
-        //now we need to retrieve the actual brand objects from the brand collection
-        //TODO gsegura: once we switch to mongo, this call to solr needs to be replaced
-        solrServer.query(brandQuery).map( response => {
-              val docs = response.getResults()
-              if(docs != null) {
-                Ok(Json.obj(
-                  "metadata" -> Json.obj(
-                     "categoryId" -> id,
-                     "found" -> docs.getNumFound,
-                     "time" -> (System.currentTimeMillis() - startTime)),
-                  "brands" -> JIterableWrapper(docs).map(doc => solrServer.binder.getBean(classOf[Brand], doc))
-                ))
-              } else {
-                Logger.debug(s"No brands found for category id [$id]")
-                NotFound(Json.obj(
-                  "message" -> s"No brands available for category id [$id]"
-                ))
-              }
-            })
-            
+	    val storage = withNamespace(storageFactory, preview)
+	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {
+	
+		    //now we need to retrieve the actual brand objects from the brand collection  
+		    if(categories != null) {
+		      Ok(Json.obj(
+	                "metadata" -> Json.obj(
+	                   "categoryId" -> id,
+	                   "found" -> brandIds.size,
+	                   "time" -> (System.currentTimeMillis() - startTime)),
+	                "brands" -> Json.toJson(categories)
+	                //the categories obj is like a sql result set, it's an iterable that can only be read once
+	          ))
+		    } else {
+		      Logger.debug("Category " + id + " not found")
+		        NotFound(Json.obj(
+		          "message" -> s"Cannot find category with id [$id]"
+		      ))
+		    }
+	    })
+	    
+	    withErrorHandling(future, s"Cannot find category with id [$id]")
+
       } else {
         //if the product catalog didn't return filters for the brand facet, then return a null query
         Logger.debug(s"No brands available for category id [$id]")

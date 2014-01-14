@@ -22,22 +22,28 @@ package org.opencommercesearch.api.controllers
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
-
+import scala.concurrent.{Future}
 import org.specs2.mutable._
 import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Brand
-
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import com.mongodb.WriteResult
 
 class BrandControllerSpec extends BaseSpec {
 
+   val storage = mock[MongoStorage]
+      
   trait Brands extends Before {
     def before = {
       solrServer = mock[AsyncSolrServer]
+      
       storageFactory = mock[MongoStorageFactory]
-      storageFactory.getInstance(anyString) returns mock[MongoStorage]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveBrand(any) returns Future.successful(writeResult)
+      
     }
   }
 

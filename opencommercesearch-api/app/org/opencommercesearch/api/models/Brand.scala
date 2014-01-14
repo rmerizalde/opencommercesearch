@@ -21,12 +21,12 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
 import java.util
-
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
+import org.jongo.marshall.jackson.oid.Id
+import com.fasterxml.jackson.annotation.JsonCreator
 
 /**
  * A brand model
@@ -37,10 +37,13 @@ import org.apache.solr.client.solrj.beans.Field
  *
  * @author rmerizalde
  */
-case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String], var url: Option[String]) {
+case class Brand(@Id var id: Option[String], var name: Option[String], var logo: Option[String], var url: Option[String]) {
 
+  @JsonCreator
   def this() = this(None, None, None, None)
 
+  def getId() : String = { this.id.get }
+  
   @Field
   def setId(id: String) : Unit = {
     this.id = Option.apply(id)
