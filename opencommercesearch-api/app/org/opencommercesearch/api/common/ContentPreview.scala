@@ -26,7 +26,6 @@ import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
-import org.jongo.MongoCollection
 import org.opencommercesearch.api.service.{StorageFactory, Storage}
 
 trait ContentPreview {

@@ -32,9 +32,14 @@ public class FacetConstants {
     public static final String FIELD_ID = "id";
 
     /**
-     * Field for a facet name
+     * Field for a facet field name
      */
     public static final String FIELD_NAME = "name";
+
+    /**
+     * Field for the facet field name
+     */
+    public static final String FIELD_FIELD_NAME = "fieldName";
 
     /**
      * Field for a facet type

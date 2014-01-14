@@ -24,12 +24,10 @@ import play.api.libs.json.{Json}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
 
-import java.util
 
-import org.apache.solr.client.solrj.beans.Field
 
 import Sku._
-import java.math.{BigDecimal, RoundingMode}
+
 
 case class Sku(
   var id: Option[String],
@@ -44,123 +42,17 @@ case class Sku(
   var isOutlet: Option[Boolean],
   var size: Option[Size],
   var catalogs: Option[Seq[String]],
-  var customSort: Option[Int]) {
+  var customSort: Option[Int],
+  var listPrice: Option[BigDecimal],
+  var salePrice: Option[BigDecimal],
+  var discountPercent: Option[Int],
+  var onSale: Option[Boolean],
+  var stockLevel: Option[Int],
+  var url: Option[String],
+  var allowBackorder: Option[Boolean]) {
 
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None)
-
-  @Field
-  def setId(id: String) : Unit = { this.id = Option.apply(id) }
-
-  @Field
-  def setImage(url: String) : Unit = {
-    this.image = Option.apply(new Image(None, Option.apply(url)))
-  }
-
-  @Field("listPrice*")
-  def setListPrice(listPrices: util.Map[String, Float]) : Unit = {
-    val priceMap: Map[String, Float] = listPrices
-    ensureCountries(ListPrice, listPrices)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        for (listPrice <- priceMap.get(ListPrice + code)) {
-          country.listPrice = Some(new BigDecimal(listPrice).setScale(2, RoundingMode.HALF_EVEN))
-        }
-      }
-    }
-  }
-
-  @Field("salePrice*")
-  def setSaletPrice(salePrices: util.Map[String, Float]) : Unit = {
-    val priceMap: Map[String, Float] = salePrices
-    ensureCountries(SalePrice, salePrices)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        for (salePrice <- priceMap.get(SalePrice + code)) {
-          country.salePrice = Some(new BigDecimal(salePrice).setScale(2, RoundingMode.HALF_EVEN))
-        }
-      }
-    }
-  }
-
-  @Field("discountPercent*")
-  def setDiscountPercent(discountPercents: util.Map[String, Int]) : Unit = {
-    val discountMap: Map[String, Int] = discountPercents
-    ensureCountries(DiscountPercent, discountPercents)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.discountPercent = discountMap.get(DiscountPercent + code)
-      }
-    }
-  }
-
-  @Field("stockLevel*")
-  def setStockLevel(stockLevels: util.Map[String, Int]) : Unit = {
-    val stockMap: Map[String, Int] = stockLevels
-    ensureCountries(Stocklevel, stockLevels )
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.discountPercent = stockMap.get(Stocklevel + code)
-      }
-    }
-  }
-
-  @Field("url*")
-  def setUrl(urls: util.Map[String, String]) : Unit = {
-    val urlMap: Map[String, String] = urls
-    ensureCountries(Url, urls)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.url = urlMap.get(Url + code)
-      }
-    }
-  }
-
-  @Field("isPastSeason")
-  def setPastSeason(isPastSeason: Boolean) {
-    this.isPastSeason = Option.apply(isPastSeason)
-  }
-
-  @Field
-  def setColorFamily(colorFamily: Array[String]) {
-    this.colorFamily = Option.apply(colorFamily(0))
-  }
-  
-  @Field
-  def setSize(name: String) : Unit = {
-       this.size = Option.apply(new Size(Option.apply(name), None))
-  }
-  
-  @Field("isCloseout")
-  def setCloseout(isCloseout: Boolean) {
-    this.isCloseout = Option.apply(isCloseout)
-  }
-
-  @Field("isOutlet")
-  def setOutlet(isOutlet: Boolean) {
-    this.isOutlet = Option.apply(isOutlet)
-  }
-
-  /**
-   * Helper method to ensure the country object for this skus exist.
-   * If countries is empty it will create countries based on the suffix
-   * of the given dynamic field names.
-   *
-   * @param fieldName is the dynamic field name. Anything after the field name is considered the country code
-   * @param fields is the map between field name and values (e.g. (listPriceUS=>20.0, listPriceCA=>40)
-   * @tparam T is the type of the field value
-   */
-  private def ensureCountries[T](fieldName: String, fields: Map[String, T]) : Unit = {
-    if (countries.isEmpty) {
-      val codes = fields.map( entry => { entry._1 stripPrefix fieldName } ).to[Seq]
-      countries = Some(codes.map( code => {
-        val country = new Country()
-        country.code = Option.apply(code)
-        country
-      } ))
-    }
-  }
-
-
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      None, None, None, None)
 }
 
 object Sku {

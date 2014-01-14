@@ -42,6 +42,7 @@
    <field name="id"             type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="name"           type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="logo"           type="string" indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="url"            type="string" indexed="false" stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="nameNGrams"     type="ngram"  indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="feedTimestamp"  type="long"   indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
  </fields>

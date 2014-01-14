@@ -27,7 +27,8 @@ import play.api.libs.json.{JsError, JsArray, Json}
 import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.Util._
+import org.opencommercesearch.api.util.Util
+import Util._
 import org.opencommercesearch.api.models.{Facet, FacetList}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery

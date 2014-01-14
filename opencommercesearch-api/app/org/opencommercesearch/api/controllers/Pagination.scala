@@ -55,4 +55,38 @@ trait Pagination {
 
     query
   }
+
+  /**
+   * Adds base facet pagination based on offset and limit request params to a given Solr query.
+   * @param query The Solr query to update
+   * @param request Original request used to extract parameters
+   * @return Solr query with additional facet pagination parameters set (if any)
+   */
+  def withFacetPagination(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
+    val offset = request.getQueryString("offset")
+    val limit = request.getQueryString("limit")
+
+    if (offset.isDefined) {
+      try {
+        query.add("facet.offset", offset.get)
+      } catch {
+        case e: Throwable => // do nothing
+      }
+    } else {
+      query.add("facet.offset", "0")
+    }
+
+    if (limit.isDefined) {
+      try {
+        val l = limit.get.toInt
+        query.setFacetLimit(Math.min(MaxPaginationLimit, l))
+      } catch {
+        case e: Throwable => // do nothing
+      }
+    } else {
+      query.setFacetLimit(DefaultPaginationLimit)
+    }
+
+    query
+  }
 }

@@ -38,6 +38,7 @@
    <field name="id"               type="string"   indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="name"             type="string"   indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="type"             type="string"   indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="fieldName"        type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
    <field name="uiType"           type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="isMultiSelect"    type="boolean"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" default="false" />
