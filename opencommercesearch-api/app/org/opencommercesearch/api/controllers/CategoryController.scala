@@ -37,7 +37,7 @@ import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.params.SolrParams
 
-@Api(value = "/categories", basePath = "/api-docs/categories", description = "Category API endpoints")
+@Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController {
 
   val categoryService = new CategoryService(solrServer)

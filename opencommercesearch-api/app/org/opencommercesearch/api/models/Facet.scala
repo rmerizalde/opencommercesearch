@@ -21,6 +21,7 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json._
 import org.apache.solr.client.solrj.beans.Field
+import org.apache.solr.common.util.NamedList
 
 /**
  * Represents a single Facet
@@ -30,6 +31,7 @@ import org.apache.solr.client.solrj.beans.Field
  * @param uiType Type of UI that should be used (hidden, reviews, colors, ...)
  * @param isMultiSelect Whether or not this facet supports multi select
  * @param minBuckets Min buckets (or filters) to show. If less than this number are found, no facet should be created.
+ * @param fieldName On field facets, this is the field name.
  * @param isMixedSorting Whether or not the facet should use a mixed sorting approach.
  * @param minCount Min count per bucket. If less than this number documents are found for a bucket, the bucket should not be created.
  * @param sort Sort mechanism. Can be count (default), or by index - i.e. alphabetically.
@@ -47,6 +49,7 @@ case class Facet(
   var `type`: Option[String],
   var uiType: Option[String],
   var isMultiSelect: Option[Boolean],
+  var fieldName: Option[String],
   var minBuckets: Option[Int],
   var isMixedSorting: Option[Boolean],
   var minCount: Option[Int],
@@ -57,9 +60,10 @@ case class Facet(
   var end: Option[String],
   var gap: Option[String],
   var isHardened: Option[Boolean],
-  var queries: Option[Array[String]]) {
+  var queries: Option[Array[String]],
+  var filters: Option[Seq[Filter]]) {
 
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 
@@ -93,60 +97,107 @@ case class Facet(
   def getMinBuckets : Integer = { minBuckets.getOrElse(null).asInstanceOf[Integer] }
 
   @Field
-  def setMinBuckets(minBuckets: Integer) : Unit = {this.minBuckets = Option.apply(minBuckets) }
+  def setMinBuckets(minBuckets: Integer) : Unit = { this.minBuckets = Option.apply(minBuckets) }
+
+  def getFieldName : String = { fieldName.getOrElse(null) }
+
+  @Field
+  def setFieldName(fieldName: String) : Unit = { this.fieldName = Option.apply(fieldName) }
 
   def getIsMixedSorting : java.lang.Boolean = { isMixedSorting.getOrElse(null).asInstanceOf[java.lang.Boolean] }
 
   @Field
-  def setIsMixedSorting(isMixedSorting: Boolean) : Unit = {this.isMixedSorting = Option.apply(isMixedSorting) }
+  def setIsMixedSorting(isMixedSorting: Boolean) : Unit = { this.isMixedSorting = Option.apply(isMixedSorting) }
 
   def getMinCount : Integer = { minCount.getOrElse(null).asInstanceOf[Integer] }
 
   @Field
-  def setMinCount(minCount: Integer) : Unit = {this.minCount = Option.apply(minCount) }
+  def setMinCount(minCount: Integer) : Unit = { this.minCount = Option.apply(minCount) }
 
   def getSort : String = { sort.getOrElse(null) }
 
   @Field
-  def setSort(sort: String) : Unit = {this.sort = Option.apply(sort) }
+  def setSort(sort: String) : Unit = { this.sort = Option.apply(sort) }
 
   def getIsMissing : java.lang.Boolean = { isMissing.getOrElse(null).asInstanceOf[java.lang.Boolean] }
 
   @Field
-  def setIsMissing(isMissing: Boolean) : Unit = {this.isMissing = Option.apply(isMissing) }
+  def setIsMissing(isMissing: Boolean) : Unit = { this.isMissing = Option.apply(isMissing) }
 
   def getLimit : Integer = { limit.getOrElse(null).asInstanceOf[Integer] }
 
   @Field
-  def setLimit(limit: Integer) : Unit = {this.limit = Option.apply(limit) }
+  def setLimit(limit: Integer) : Unit = { this.limit = Option.apply(limit) }
 
   def getStart : String = { start.getOrElse(null) }
 
   @Field
-  def setStart(start: String) : Unit = {this.start = Option.apply(start) }
+  def setStart(start: String) : Unit = { this.start = Option.apply(start) }
 
   def getEnd : String = { end.getOrElse(null) }
 
   @Field
-  def setEnd(end: String) : Unit = {this.end = Option.apply(end) }
+  def setEnd(end: String) : Unit = { this.end = Option.apply(end) }
 
   def getGap : String = { gap.getOrElse(null) }
 
   @Field
-  def setGap(gap: String) : Unit = {this.gap = Option.apply(gap) }
+  def setGap(gap: String) : Unit = { this.gap = Option.apply(gap) }
 
   def getIsHardened : java.lang.Boolean = { isHardened.getOrElse(null).asInstanceOf[java.lang.Boolean] }
 
   @Field
-  def setIsHardened(isHardened: Boolean) : Unit = {this.isHardened = Option.apply(isHardened) }
+  def setIsHardened(isHardened: Boolean) : Unit = { this.isHardened = Option.apply(isHardened) }
 
   def getQueries : Array[String] = { queries.getOrElse(null) }
 
   @Field
-  def setQueries(queries: Array[String]) : Unit = {this.queries = Option.apply(queries) }
+  def setQueries(queries: Array[String]) : Unit = { this.queries = Option.apply(queries) }
 }
 
 object Facet {
+  val Name = "name"
+  val FieldName = "fieldName"
+  val MinBuckets = "minBuckets"
+  val IsMultiSelect = "isMultiSelect"
+  val IsMixedSorting = "isMixedSorting"
+  val UiType = "uiType"
+  val IsHardened = "isHardened"
+  var Start = "start"
+  val End = "end"
+  val Gap = "gap"
+  val MinCount = "minCount"
+  val Sort = "sort"
+  val IsMissing = "isMissing"
+  val Limit = "limit"
+
+  def fromDefinition(facetDefinition: NamedList[String]): Facet = {
+    val facet = new Facet
+
+    facet.name = Option.apply(facetDefinition.get(Name))
+    facet.fieldName = Option.apply(facetDefinition.get(FieldName))
+    facet.sort = Option.apply(facetDefinition.get(Sort))
+    facet.start = Option.apply(facetDefinition.get(Start))
+    facet.end = Option.apply(facetDefinition.get(End))
+    facet.gap = Option.apply(facetDefinition.get(Gap))
+    facet.uiType = Option.apply(facetDefinition.get(UiType))
+    facet.isMultiSelect = Option.apply("T".equals(facetDefinition.get(IsMultiSelect)))
+    facet.isMixedSorting = Option.apply("T".equals(facetDefinition.get(IsMixedSorting)))
+    facet.isHardened = Option.apply("T".equals(facetDefinition.get(IsHardened)))
+    facet.isMissing = Option.apply("T".equals(facetDefinition.get(IsMissing)))
+
+    val minCount = facetDefinition.get(MinCount)
+    if (minCount != null) { facet.minCount = Option.apply(minCount.toInt) }
+
+    val minBuckets = facetDefinition.get(MinBuckets)
+    facet.minBuckets = Option.apply(if (minBuckets != null) minBuckets.toInt else 2)
+
+    val limit = facetDefinition.get(Limit)
+    if (limit != null) { facet.limit = Option.apply(limit.toInt) }
+
+    facet
+  }
+
   implicit val readsFacet = Json.reads[Facet]
   implicit val writesFacet = Json.writes[Facet]
 }

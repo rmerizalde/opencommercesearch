@@ -1,4 +1,4 @@
-package org.opencommercesearch.api.service
+package org.opencommercesearch.api.util
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,37 +19,18 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import play.api.Configuration
+import com.wordnik.swagger.model.Model
+import com.wordnik.swagger.converter.{BaseConverter, ModelConverter}
 
 /**
- * A storage factory
+ * Hide countries from the schema. Countries are used for posting data only
  *
  * @author rmerizalde
  */
-trait StorageFactory[T] {
+class CountryConverter extends ModelConverter with BaseConverter {
 
-  /**
-   * Sets the configuration
-   * @param config is Play's configuration object
-   */
-  def setConfig(config: Configuration)
+  def read(cls: Class[_]): Option[Model] = None
 
-  /**
-   * Sets the class loader for the storage layer.
-   * @param classLoader is the classloader the storage should use
-   */
-  def setClassLoader(classLoader: ClassLoader)
-
-  /**
-   * Returns the storage instance for the given namespace. Each implementation can interpret this namespace differently.
-   *
-   * @param namespace is the namespace for the storage
-   * @return  the storage instance for the given namespace
-   */
-  def getInstance(namespace: String) : Storage[T]
-
-  /**
-   * Closes all storage instances created by this factory
-   */
-  def close : Unit
+  override def ignoredClasses: Set[String] = Set("org.opencommercesearch.api.models.Country")
+  override def skippedClasses: Set[String] = Set("org.opencommercesearch.api.models.Country")
 }
