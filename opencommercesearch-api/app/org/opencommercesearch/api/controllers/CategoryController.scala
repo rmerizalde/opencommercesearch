@@ -20,13 +20,11 @@ package org.opencommercesearch.api.controllers
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{SimpleResult, Action}
+import play.api.mvc._
 import play.api.libs.json.{JsError, Json}
 import play.api.Logger
-
 import scala.concurrent.Future
-
-import org.opencommercesearch.api.models.{Category, CategoryList}
+import org.opencommercesearch.api.models.{Category, Brand, CategoryList}
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
@@ -34,6 +32,12 @@ import org.opencommercesearch.api.service.CategoryService
 import com.wordnik.swagger.annotations._
 import javax.ws.rs.PathParam
 import javax.ws.rs.QueryParam
+import org.apache.commons.lang3.StringUtils
+import scala.collection.convert.Wrappers.JIterableWrapper
+import org.apache.solr.common.SolrDocument
+import org.apache.solr.common.params.SolrParams
+import org.apache.solr.client.solrj.response.UpdateResponse
+
 
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController {
@@ -53,10 +57,12 @@ object CategoryController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val future = categoryService.findById(id, preview, request.getQueryString("fields")).map(category => {
-      if (category.isDefined) {
-        Ok(Json.obj(
-          "category" -> Json.toJson(category.get)))
+    
+    val storage = withNamespace(storageFactory, preview)
+    val future = storage.findCategory(id, fieldList()).map( category => {
+      if(category != null) {
+	      Ok(Json.obj(
+	          "category" -> Json.toJson(category)))
       } else {
         Logger.debug("Category " + id + " not found")
         NotFound(Json.obj(
@@ -64,7 +70,7 @@ object CategoryController extends BaseController {
         ))
       }
     })
-
+    
     withErrorHandling(future, s"Cannot retrieve category with id [$id]")
   }
 
@@ -88,13 +94,17 @@ object CategoryController extends BaseController {
           "message" -> s"Exceeded number of categories. Maximum is $MaxUpdateCategoryBatchSize")))
       } else {
         try {
+          val storage = withNamespace(storageFactory, preview)
+          val storageFuture = storage.saveCategory(categories:_*)
+          
           val update = withCategoryCollection(new AsyncUpdateRequest(), preview)
           val docs = categoryList.toDocuments
           update.add(docs)
-
-          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+          val searchFuture: Future[UpdateResponse] = update.process(solrServer)
+          
+          val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (r1, r2) =>
             Created
-          })
+          }
 
           withErrorHandling(future, s"Cannot store categories with ids [${categories map (_.id) mkString ","}]")
       } catch {
@@ -157,4 +167,81 @@ object CategoryController extends BaseController {
 
     findSuggestionsFor(classOf[Category], "categories" , solrQuery)
   }
+
+  @ApiOperation(value = "Return all brands", notes = "Returns all brands for a given category", response = classOf[Brand], httpMethod = "GET")
+  @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def findBrandsByCategoryId(
+     version: Int,
+     @ApiParam(value = "A category id", required = true)
+     @PathParam("id")
+     id: String,
+     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+     @QueryParam("preview")
+     preview: Boolean,
+     @ApiParam(defaultValue="50", value = "Max number of brands", required = false)
+     @QueryParam("facetLimit")
+     facetLimit: Int) = Action.async { implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val catalogQuery = withSearchCollection(new SolrQuery("*:*"), preview)
+    if (StringUtils.isNotBlank(id)) {
+      //create solr query obj to query the product catalog filtering by ancestorCategoryId property and 
+      //generate a field facet by brandId for brands with at least 1 result
+      Logger.debug(s"Query brands for category Id [$id]")
+      
+      catalogQuery.addFilterQuery(s"ancestorCategoryId:$id")
+      catalogQuery.setRows(0);
+      
+      catalogQuery.setFacet(true)
+      catalogQuery.addFacetField("brandId")
+      catalogQuery.setFacetLimit(facetLimit);
+      catalogQuery.setFacetMinCount(1);
+    }
+
+    solrServer.query(catalogQuery).flatMap( categoryResponse => {
+      //query the SOLR product catalog with the query we generated in the code above.
+      val brandFacet = categoryResponse.getFacetField("brandId")
+      
+      if (brandFacet != null && brandFacet.getValueCount() > 0) {
+        //if we have results from the product catalog collection, 
+        //then generate another SOLR query object to query the brand collection. 
+        //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
+        val brandIds = JIterableWrapper(brandFacet.getValues()).map(filter =>  filter.getName)
+        
+	    val storage = withNamespace(storageFactory, preview)
+	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {
+	
+		    //now we need to retrieve the actual brand objects from the brand collection  
+		    if(categories != null) {
+		      Ok(Json.obj(
+	                "metadata" -> Json.obj(
+	                   "categoryId" -> id,
+	                   "found" -> brandIds.size,
+	                   "time" -> (System.currentTimeMillis() - startTime)),
+	                "brands" -> Json.toJson(categories)
+	                //the categories obj is like a sql result set, it's an iterable that can only be read once
+	          ))
+		    } else {
+		      Logger.debug("Category " + id + " not found")
+		        NotFound(Json.obj(
+		          "message" -> s"Cannot find category with id [$id]"
+		      ))
+		    }
+	    })
+	    
+	    withErrorHandling(future, s"Cannot find category with id [$id]")
+
+      } else {
+        //if the product catalog didn't return filters for the brand facet, then return a null query
+        Logger.debug(s"No brands available for category id [$id]")
+        Future[SimpleResult](NotFound(Json.obj(
+                "message" -> s"No brands available for category id [$id]"
+        )))
+      } 
+    })
+  }
 }
+ 

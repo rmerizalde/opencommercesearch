@@ -23,9 +23,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.Json
-
 import scala.concurrent.Future
-
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.util.Util
 import Util._
@@ -37,6 +35,7 @@ import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
 import scala.collection.convert.Wrappers.JIterableWrapper
 import play.api.mvc.SimpleResult
+import org.apache.solr.client.solrj.response.UpdateResponse
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController {
@@ -58,7 +57,7 @@ object BrandController extends BaseController {
 
     query.setRequestHandler(RealTimeRequestHandler)
     query.add("id", id)
-
+    //TODO: change this code to retrieve data from mongodb
     Logger.debug("Query brand " + id)
     val future = solrServer.query(query).map( response => {
       val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
@@ -94,6 +93,7 @@ object BrandController extends BaseController {
       if (brand.name.isEmpty || brand.logo.isEmpty) {
         Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
+        //TODO: add code to update mongodb
         val brandDoc = brand.toDocument(System.currentTimeMillis())
 
         brandDoc.setField("id", id)
@@ -138,12 +138,18 @@ object BrandController extends BaseController {
         Future.successful(BadRequest(Json.obj(
           "message" -> "Missing required fields")))
       } else {
+        
+        val storage = withNamespace(storageFactory, preview)
+        val storageFuture = storage.saveBrand(brands:_*)
+          
         val update = withBrandCollection(new AsyncUpdateRequest(), preview)
         update.add(brandList.toDocuments)
 
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
-          Created
-        })
+        val searchFuture: Future[UpdateResponse] = update.process(solrServer)
+        
+        val future: Future[SimpleResult] =  storageFuture zip searchFuture map { case (r1, r2) =>
+            Created
+        }
 
         withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
       }
@@ -231,7 +237,7 @@ object BrandController extends BaseController {
     if(Logger.isDebugEnabled) {
       Logger.debug("Searching for brand ids with query " + catalogQuery.toString)
     }
-
+    //TODO: change this code to retrieve data from mongodb
     val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
       val facetFields = catalogResponse.getFacetFields
       var brandInfoFuture : Future[SimpleResult] = null

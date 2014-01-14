@@ -22,26 +22,32 @@ package org.opencommercesearch.api.controllers
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
-
+import scala.concurrent.{Future}
 import org.specs2.mutable._
 import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Category
-
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import com.mongodb.WriteResult
 
 class CategoryControllerSpec extends BaseSpec {
 
+  val storage = mock[MongoStorage]
+  
   trait Categories extends Before {
     def before = {
       // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
       CategoryController.categoryService.server = solrServer
+      
       storageFactory = mock[MongoStorageFactory]
-      storageFactory.getInstance(anyString) returns mock[MongoStorage]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveCategory(any) returns Future.successful(writeResult)
+      
     }
   }
 
@@ -57,27 +63,24 @@ class CategoryControllerSpec extends BaseSpec {
 
     "send 404 when a category is not found"  in new Categories {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
+        
+        storage.findCategory(anyString, any) returns Future.successful(null)
         val expectedId = "1000"
 
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find category with id [$expectedId]")
       }
     }
 
     "send 200 when a category is found" in new Categories {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
-        val doc = mock[SolrDocument]
+
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None)
+        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None)
 
-        namedList.get("doc") returns doc
-        solrServer.binder.getBean(classOf[Category], doc) returns category
-
+        storage.findCategory(anyString, any) returns Future.successful(category)
+        
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
         validateQueryResult(result.get, OK, "application/json")
 
         val json = Json.parse(contentAsString(result.get))
@@ -165,18 +168,22 @@ class CategoryControllerSpec extends BaseSpec {
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
-        val (expectedId, expectedName, expectedIsRuleBased) = ("1000", "A Category", true)
-        val (expectedId2, expectedName2, expectedIsRuleBased2) = ("1001", "Another Category", false)
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased) = 
+          ("1000", "A Category", "/a-category", true)
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2) = 
+          ("1001", "Another Category", "/another-category", false)
         val json = Json.obj(
           "feedTimestamp" -> 1001,
           "categories" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
               "name" -> expectedName,
+              "seoUrlToken" -> expectedSeoUrlToken,
               "isRuleBased" -> expectedIsRuleBased),
             Json.obj(
               "id" -> expectedId2,
               "name" -> expectedName2,
+              "seoUrlToken" -> expectedSeoUrlToken2,
               "isRuleBased" -> expectedIsRuleBased2)))
 
         val url = routes.CategoryController.bulkCreateOrUpdate().url

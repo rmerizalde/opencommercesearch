@@ -23,13 +23,10 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Logger
 import play.api.cache.Cache
 import play.api.Play.current
-
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.collection.convert.Wrappers.JIterableWrapper
-
 import java.util
-
 import org.opencommercesearch.api.models.{Category, Product}
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
@@ -37,30 +34,85 @@ import org.apache.solr.common.{SolrInputDocument, SolrDocument}
 import org.opencommercesearch.api.Global.RealTimeRequestHandler
 import org.opencommercesearch.api.Global.CategoryCacheTtl
 import org.apache.commons.lang3.StringUtils
+import scala.collection.mutable.HashMap
 
 
 class CategoryService(var server: AsyncSolrServer) extends FieldList with ContentPreview {
 
   private val MaxTries = 3
-
+  private val MaxResults = 50
+  
   def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
-    val query = withCategoryCollection(withFields(new SolrQuery(), fields), preview)
-
-    query.setRequestHandler(RealTimeRequestHandler)
-    query.set("id", id)
-
-    Logger.debug("Query category " + id)
+    var (query, hasNestedCategories) = 
+      withNestedCategories(id,  withCategoryCollection(withFields(new SolrQuery(), fields), preview),  fields)
+    
+    //TODO gsegura: once we have mongo ready, change here to call it
     server.query(query).map( response => {
-      val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
-      if (doc != null) {
-        Logger.debug("Found category " + id)
-        Some(server.binder.getBean(classOf[Category], doc))
-      } else {
-        None
+      
+      if (hasNestedCategories) {
+        val docs = response.getResults
+        val lookupMap = HashMap.empty[String, SolrDocument]
+        var mainDoc :SolrDocument = null;
+        if (docs != null) {
+            JIterableWrapper(docs).foreach(
+                doc => {
+                  val currentId = doc.getFieldValue("id").toString() 
+                  lookupMap += (currentId -> doc)
+                  if( id.equals(currentId) ) {
+                    mainDoc = doc
+                  }
+                  Logger.debug("Found category " + id)
+                }
+            )
+            if(mainDoc != null) {
+                val category : Category = server.binder.getBean(classOf[Category], mainDoc)
+                addNestedCategoryNames(category.childCategories, lookupMap);
+                addNestedCategoryNames(category.parentCategories, lookupMap);
+                Logger.debug(s"Found category [$id] - has nested child categories [$hasNestedCategories]")
+                Some(category)
+            } else {
+              //failed to find the main doc
+              None
+            }
+        } else {
+          //solr docs were null
+          None
+        }
+      }
+      else {
+          val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
+          if (doc != null) {
+            Logger.debug("Found category " + id)
+            Some(server.binder.getBean(classOf[Category], doc))
+          } else {
+            None
+          }
       }
     })
   }
 
+  def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap :HashMap[String, SolrDocument] ) = {
+    for( cats <- categories) {
+      cats.foreach(
+        category => {
+          for (id <- category.id) {
+            if(lookupMap.contains(id)) {
+              val solrDocument : SolrDocument =  lookupMap(id)
+              //category.setName(solrDocument.getFieldValue("name").toString())
+              //category.setSeoUrlToken(solrDocument.getFieldValue("seoUrlToken").toString())
+              var newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
+              category.name = newDoc.name
+              category.seoUrlToken = newDoc.seoUrlToken
+              category.catalogs = newDoc.catalogs
+            } else {
+              Logger.error(s"Missing nested category id reference [$id]")
+            }
+          }
+        }
+      )
+    }
+  }
+  
   def findByIds(ids: Seq[String], preview: Boolean, fields: Option[String]) : Future[Option[Seq[Category]]] = {
     val query = withCategoryCollection(withFields(new SolrQuery(), fields), preview)
 
@@ -331,6 +383,46 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         builderIds.setLength(0)
       }
     }
+  }
+  
+  /**
+   * If the fields parameter has childCategories or parentCategories, generated a special query to retrieve the id plus
+   * documents which parentCategories or childCategories are the id.
+   * In any other case, create a real time query for the id specified
+   */
+  def withNestedCategories(id: String, query: SolrQuery, fields: Option[String]): (SolrQuery, Boolean) = {
+    var hasNestedCategories : Boolean = false
+    
+    for (f <- fields) {
+      var hasChildCategories : Boolean = fields.get.contains("childCategories")
+      var hasParentCategories : Boolean = fields.get.contains("parentCategories")
+      
+      if(hasChildCategories && hasParentCategories) {
+        query.addFilterQuery(s"id:$id OR childCategories:$id OR parentCategories:$id")
+        Logger.debug("Query category with parent and child categories. Id: " + id)
+        hasNestedCategories = true
+      } else if(hasChildCategories) {
+        query.addFilterQuery(s"id:$id OR parentCategories:$id")
+        Logger.debug("Query category with child categories. Id: " + id)
+        hasNestedCategories = true
+      } else if(hasParentCategories) {
+        query.addFilterQuery(s"id:$id OR childCategories:$id")
+        Logger.debug("Query category with parent categories. Id:  " + id)
+        hasNestedCategories = true
+      } 
+    }
+    
+    if(!hasNestedCategories) {
+      query.setRequestHandler(RealTimeRequestHandler)
+      query.set("id", id)
+      Logger.debug("Query category " + id)
+    } else {
+      query.setRows(MaxResults)
+      query.setQuery("*:*")
+    }
+    
+    
+    (query,hasNestedCategories)
   }
 
 }

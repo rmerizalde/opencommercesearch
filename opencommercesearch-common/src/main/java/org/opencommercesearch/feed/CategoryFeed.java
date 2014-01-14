@@ -56,6 +56,7 @@ public class CategoryFeed extends BaseRestFeed {
 
         category.put("id", item.getRepositoryId());
         category.put("name", item.getItemDisplayName());
+        category.put("seoUrlToken", item.getPropertyValue("seoUrlToken"));
         category.put("isRuleBased", RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName()));
         setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);

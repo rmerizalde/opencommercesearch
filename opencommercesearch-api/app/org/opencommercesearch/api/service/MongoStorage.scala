@@ -20,14 +20,16 @@ package org.opencommercesearch.api.service
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
-
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-
 import com.mongodb.{MongoClient, WriteResult}
 import com.mongodb.gridfs.GridFS
 import org.opencommercesearch.api.models.{Country, Sku, Product}
 import org.jongo.Jongo
+import org.opencommercesearch.api.models.Category
+import org.opencommercesearch.api.models.Brand
+import scala.collection.mutable.HashMap
+import play.api.Logger
 
 /**
  * A storage implementation using MongoDB
@@ -62,6 +64,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       |skus.isCloseout: 0, skus.catalogs: 0, skus.customSort: 0,
     """.stripMargin
 
+  val DefaultCategoryProject =
+    """
+      |childCategories:0, parentCategories:0, isRuleBased:0, catalogs:0
+    """.stripMargin
+  
+  val DefaultBrandProject =
+    """
+      |logo:0, url:0
+    """.stripMargin
+    
   def setJongo(jongo: Jongo) : Unit = {
     this.jongo = jongo
   }
@@ -93,7 +105,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       query.append("]}")
 
       val products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-        .projection(projection(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
+        .projection(projectionProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
       products.map(p => filterSearchProduct(country, p))
     }
   }
@@ -102,14 +114,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projection(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectionProduct(fields)).as(classOf[Product]))
     }
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projection(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectionProduct(fields)).as(classOf[Product]))
     }
   }
 
@@ -180,8 +192,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @return the projection
    */
-  private def projection(fields: Seq[String]) : String = {
-    projection(fields, 0)
+  private def projectionProduct(fields: Seq[String]) : String = {
+    projectionProduct(fields, 0)
   }
 
   /**
@@ -193,7 +205,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param skuCount indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projection(fields: Seq[String], skuCount: Int) : String = {
+  private def projectionProduct(fields: Seq[String], skuCount: Int) : String = {
     val projection = new StringBuilder(128)
     projection.append("{")
     if (fields.size > 0) {
@@ -232,12 +244,132 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.toString()
   }
 
+  private def projectionAux(fields: Seq[String], defaultFieldsToHide: String) : String = {
+    val projection = new StringBuilder(128)
+    projection.append("{")
+    if (fields.size > 0) {
+      var includeSkus = false
+      fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
+        projection.append(f).append(":1,")
+        if (f.startsWith("skus.")) {
+          includeSkus = true
+        }
+      })
+    } else {
+      projection.append(defaultFieldsToHide)
+    }
+    projection.append("}")
+    projection.toString()
+  }
+  
+  private def projectionCategory(fields: Seq[String]) : String = {    
+    projectionAux(fields, DefaultCategoryProject)
+  }
+    
+  private def projectionBrand(fields: Seq[String]) : String = {    
+    projectionAux(fields, DefaultBrandProject)
+  }
+
   def saveProduct(product: Product*) : Future[WriteResult] = {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
       product.map( p => result = productCollection.update(s"{_id: '${p.getId()}'}").upsert().merge(p) )
       result
+    }
+  }
+  
+  def saveCategory(category: Category*) : Future[WriteResult] = {
+    Future {
+      val categoryCollection = jongo.getCollection("categories")
+      var result: WriteResult = null
+      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId()}'}").upsert().merge(c) )
+      result
+    }
+  }
+  
+  def findCategory(id: String, fields: Seq[String]) : Future[Category] = {
+    Future {
+      var hasChildCategories, hasParentCategories : Boolean = false
+      for (f <- fields) {
+        hasChildCategories = fields.contains("childCategories")
+        hasParentCategories = fields.contains("parentCategories")
+      }
+      
+      val categoryCollection = jongo.getCollection("categories")
+      if(hasChildCategories && hasParentCategories) {
+        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}, { parentCategories._id:#}] }", id, id, id).projection(projectionCategory(fields)).as(classOf[Category]))
+      } else if(hasChildCategories) {
+        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { parentCategories._id:#}] }", id, id).projection(projectionCategory(fields)).as(classOf[Category]))
+      } else if(hasParentCategories) {
+        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}] }", id, id).projection(projectionCategory(fields)).as(classOf[Category]))
+      } else {
+        categoryCollection.findOne("{_id:#}", id).projection(projectionCategory(fields)).as(classOf[Category])
+      }
+    }
+  }
+  
+  def saveBrand(brand: Brand*) : Future[WriteResult] = {
+    Future {
+      val brandCollection = jongo.getCollection("brands")
+      var result: WriteResult = null
+      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId()}'}").upsert().merge(b) )
+      result
+    }
+  }
+  
+  def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
+    Future {
+      val brandCollection = jongo.getCollection("brands")
+      brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
+    }
+  }
+  
+  def findBrands(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]] = {
+    Future {
+      val brandCollection = jongo.getCollection("brands")
+      brandCollection.find("{_id:{$in:#}}", ids).projection(projectionBrand(fields)).as(classOf[Brand])
+    }
+  }
+
+  private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
+    val lookupMap = HashMap.empty[String, Category]
+        var mainDoc :Category = null;
+        if (categories != null) {
+            categories.foreach(
+                doc => {
+                  val currentId = doc.getId
+                  lookupMap += (currentId -> doc)
+                  if( id.equals(doc.getId) ) {
+                    mainDoc = doc
+                  }
+                  Logger.debug("Found category " + id)
+                }
+            )
+            if(mainDoc != null) {
+                addNestedCategoryNames(mainDoc.childCategories, lookupMap);
+                addNestedCategoryNames(mainDoc.parentCategories, lookupMap);
+            } 
+        }
+        mainDoc
+  }
+  
+  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap :HashMap[String, Category] ) = {
+    for( cats <- categories) {
+      cats.foreach(
+        category => {
+          for (id <- category.id) {
+            if(lookupMap.contains(id)) {
+              val newDoc : Category =  lookupMap(id)
+              category.name = newDoc.name
+              category.seoUrlToken = newDoc.seoUrlToken
+              category.catalogs = newDoc.catalogs
+            } else {
+              Logger.error(s"Missing nested category id reference [$id]")
+            }
+          }
+        }
+      )
     }
   }
 }
