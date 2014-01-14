@@ -55,7 +55,8 @@ public class FacetFeed extends BaseRestFeed {
         String facetType = (String) facet.getPropertyValue(FacetProperty.TYPE);
 
         facetJsonObj.put(FacetConstants.FIELD_ID, facet.getRepositoryId());
-        facetJsonObj.put(FacetConstants.FIELD_NAME, facet.getPropertyValue(FacetProperty.FIELD));
+        facetJsonObj.put(FacetConstants.FIELD_NAME, facet.getItemDisplayName());
+        facetJsonObj.put(FacetConstants.FIELD_FIELD_NAME, facet.getPropertyValue(FacetProperty.FIELD));
         facetJsonObj.put(FacetConstants.FIELD_TYPE, facetType);
         facetJsonObj.put(FacetConstants.FIELD_UI_TYPE, facet.getPropertyValue(FacetProperty.UI_TYPE));
         facetJsonObj.put(FacetConstants.FIELD_MULTISELECT, facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT));
@@ -68,7 +69,6 @@ public class FacetFeed extends BaseRestFeed {
             facetJsonObj.put(FacetConstants.FIELD_MISSING, facet.getPropertyValue(FacetProperty.MISSING));
             facetJsonObj.put(FacetConstants.FIELD_LIMIT, facet.getPropertyValue(FacetProperty.LIMIT));
         }
-
 
         if(facetType.equals(FacetConstants.FACET_TYPE_DATE) || facetType.equals(FacetConstants.FACET_TYPE_RANGE)) {
             facetJsonObj.put(FacetConstants.FIELD_START, facet.getPropertyValue(FacetProperty.START).toString());

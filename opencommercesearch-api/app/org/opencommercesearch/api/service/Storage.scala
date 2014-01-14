@@ -66,7 +66,7 @@ trait Storage[T] {
    * @param product is one or more products to store
    * @return the results of writing the last product
    */
-  def save(product: Product*) : Future[T]
+  def saveProduct(product: Product*) : Future[T]
 
   /**
    * Releases the resources used by this storage

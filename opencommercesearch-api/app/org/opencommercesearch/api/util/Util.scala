@@ -19,13 +19,112 @@ package org.opencommercesearch.api.util
 * under the License.
 */
 
-import play.api.libs.json.JsValue
-import play.api.mvc.{AnyContent, Request, Call}
+import play.api.mvc.{Request, Call}
+import java.util.{MissingResourceException, ResourceBundle}
+import org.opencommercesearch.api.common.FilterQuery
+import org.apache.commons.lang3.StringUtils
+import play.api.i18n.Messages
 
 /**
  * @todo figure out if there a way to use Call.absoluteUrl with play.api.mvc.Request
  */
 object Util {
+
+
+  val RESOURCE_CRUMB = "crumb"
+  val ResourceInRange = "inrange"
+  val ResourceBefore = "before"
+  val ResourceAfter = "after"
+
+  //val resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources.properties")
+
+  def createPath(filterQueries: Array[FilterQuery], skipFilter: FilterQuery): String = {
+    createPath(filterQueries, skipFilter, null)
+  }
+
+  def createPath(filterQueries: Array[FilterQuery], skipFilter: FilterQuery, replacementFilterQuery: String): String = {
+    if (filterQueries == null) {
+      StringUtils.EMPTY
+    } else {
+      val b = new StringBuilder()
+
+      for (filterQuery <- filterQueries) {
+        if (!filterQuery.equals(skipFilter)) {
+          b.append(filterQuery.toString).append(FilterQuery.PathSeparator)
+        } else if (replacementFilterQuery != null) {
+          b.append(replacementFilterQuery).append(FilterQuery.PathSeparator)
+        }
+      }
+      if (b.length > 0) {
+        b.setLength(b.length - 1)
+      }
+      b.toString()
+    }
+  }
+
+  private def loadResource(key: String) : String = {
+    if (Messages.isDefinedAt(key)) {
+      Messages(key)
+    } else {
+      null
+    }
+  }
+
+  def getRangeName(fieldName: String, key: String, value1: String, value2: String, defaultName: String): String = {
+    var resource: String = null
+    val resourceKey = "facet.range." + fieldName + "." + key
+
+    // First try to find if there's a specific resource for the value
+    resource = loadResource(resourceKey + "." + value1)
+    if (resource == null) {
+      resource = loadResource(resourceKey + "." + value2)
+    }
+
+    if (resource == null) {
+      resource = loadResource(resourceKey)
+    }
+
+    if (resource == null) {
+      if (defaultName != null) {
+        return defaultName
+      }
+      resource = "$[v1]-$[v2]"
+    }
+
+    var rangeName = StringUtils.replace(resource, "$[v1]", if (value1 == null) "" else value1)
+    rangeName = StringUtils.replace(rangeName, "$[v2]", if (value2 == null) "" else value2)
+    rangeName
+  }
+
+  def getRangeName(fieldName: String, expression: String): String = {
+    if (expression.startsWith("[") && expression.endsWith("]")) {
+      val parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ")
+      if (parts.length == 2) {
+        var key = ResourceInRange
+        if ("*".equals(parts(0))) {
+          key = ResourceBefore
+        } else if ("*".equals(parts(1))) {
+          key = ResourceAfter
+        }
+        return getRangeName(fieldName, key, parts(0), parts(1), null)
+      }
+    }
+    expression
+  }
+
+  def getRangeBreadCrumb(fieldName: String, expression: String): String = {
+    getRangeBreadCrumb(fieldName, expression, null)
+  }
+
+  def getRangeBreadCrumb(fieldName: String, expression: String, defaultCrumb: String): String = {
+    if (expression.startsWith("[") && expression.endsWith("]")) {
+      val parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ")
+      if (parts.length == 2) {
+        return getRangeName(fieldName, RESOURCE_CRUMB, parts(0), parts(1), defaultCrumb)
+      }
+    }
+    expression
+  }
 
   /**
    * Transform the given call to an absolute URL.

@@ -23,10 +23,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.*;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
@@ -53,7 +49,6 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.junit.matchers.JUnitMatchers.hasItem;
@@ -351,12 +346,12 @@ public class RuleManagerComponentTest {
 
                 Document facet1 = new Document();
                 facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_NAME, "fieldName1", defaultFieldType));
+                facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName1", defaultFieldType));
                 facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet2= new Document();
                 facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_NAME, "fieldName2", defaultFieldType));
+                facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName2", defaultFieldType));
                 facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 when(facetsIndexSearcher.doc(0)).thenReturn(facet1);
@@ -393,17 +388,17 @@ public class RuleManagerComponentTest {
 
                 Document facet1 = new Document();
                 facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_NAME, "fieldName1", defaultFieldType));
+                facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName1", defaultFieldType));
                 facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet2= new Document();
                 facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_NAME, "fieldName2", defaultFieldType));
+                facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName2", defaultFieldType));
                 facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet3= new Document();
                 facet3.add(new Field(FacetConstants.FIELD_ID, "facet3", defaultFieldType));
-                facet3.add(new Field(FacetConstants.FIELD_NAME, "fieldName3", defaultFieldType));
+                facet3.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName3", defaultFieldType));
                 facet3.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 when(facetsIndexSearcher.doc(0)).thenReturn(facet1);

@@ -1,0 +1,24 @@
+facet.range.salePriceUS.before=Under $$[v2]
+facet.range.salePriceUS.inrange=$$[v1]-$$[v2]
+facet.range.salePriceUS.after=$$[v1] And Up
+
+facet.range.listPriceUS.before=Under $$[v2]
+facet.range.listPriceUS.inrange=$$[v1]-$$[v2]
+facet.range.listPriceUS.after=$$[v1] And Up
+
+facet.range.stockLevelUS.before=$[v2] And Less
+facet.range.stockLevelUS.inrange=$[v1]-$[v2]
+facet.range.stockLevelUS.after=$[v1] And More
+
+facet.range.reviewAverage.before=$[v1] Stars & Up
+facet.range.reviewAverage.before.1=$[v1] Star & Up
+facet.range.reviewAverage.inrange=$[v1] Stars & Up
+facet.range.reviewAverage.inrange.1=$[v1] Star & Up
+facet.range.reviewAverage.after=$[v1] Stars & Up
+facet.range.reviewAverage.after.1=$[v1] Star & Up
+facet.range.reviewAverage.crumb.1=$[v1] Star & Up
+facet.range.reviewAverage.crumb=$[v1] Stars & Up
+
+facet.range.discountPercentUS.before=> $[v1]% Off
+facet.range.discountPercentUS.inrange=> $[v1]% Off
+facet.range.discountPercentUS.after=> $[v1]% Off

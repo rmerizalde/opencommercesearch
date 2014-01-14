@@ -28,7 +28,9 @@ import com.wordnik.swagger.converter.{BaseConverter, ModelConverter}
  * @author rmerizalde
  */
 class CountryConverter extends ModelConverter with BaseConverter {
+
   def read(cls: Class[_]): Option[Model] = None
 
+  override def ignoredClasses: Set[String] = Set("org.opencommercesearch.api.models.Country")
   override def skippedClasses: Set[String] = Set("org.opencommercesearch.api.models.Country")
 }

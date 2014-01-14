@@ -232,7 +232,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.toString()
   }
 
-  def save(product: Product*) : Future[WriteResult] = {
+  def saveProduct(product: Product*) : Future[WriteResult] = {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null

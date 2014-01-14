@@ -30,6 +30,8 @@ import org.apache.solr.common.util.NamedList;
 
 import java.util.*;
 
+import static org.opencommercesearch.FacetConstants.*;
+
 /**
  * This class provides functionality to enhance a query with facet params.
  * 
@@ -45,12 +47,16 @@ public class FacetHandler {
     static {
         ignoredFields.add("_version_");
         ignoredFields.add(FacetConstants.FIELD_ID);
+        ignoredFields.add(FacetConstants.FIELD_QUERIES);
     }
 
     /**
      * List of facets registered on this facet handler. The list is indexed by facet field name.
+     *
+     * @todo jmendez I changed this to a linked hash map to preserver insertion order. However, the rule manager
+     * doesn't seem to be loading the facets in the order define by the business user.
      */
-    private Map<String, Document> facets = new HashMap<String, Document>();
+    private Map<String, Document> facets = new LinkedHashMap<String, Document>();
 
     /**
      * Enum of valid facet types known to the facet handler.
@@ -58,7 +64,7 @@ public class FacetHandler {
     enum FacetType {
         fieldFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 String localParams = "";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -79,7 +85,7 @@ public class FacetHandler {
         },
         rangeFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 int start = facet.get(FacetConstants.FIELD_START) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_START)) : 0;
                 int end = facet.get(FacetConstants.FIELD_END) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_END)) : 0;
                 int gap = facet.get(FacetConstants.FIELD_GAP) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_GAP)) : 0;
@@ -114,7 +120,7 @@ public class FacetHandler {
         },
         queryFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 String localParams = "";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -184,7 +190,7 @@ public class FacetHandler {
      *            the facet item from the repository
      */
     public void addFacet(Document facet) {
-        String fieldName = facet.get(FacetConstants.FIELD_NAME);
+        String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
         addField(fieldName, facet);
     }
 

@@ -26,6 +26,8 @@ import play.api.libs.json.{JsError, Json}
 
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
+import scala.collection.mutable.Map
+import scala.collection.mutable.HashMap
 
 import java.util
 
@@ -40,6 +42,8 @@ import javax.ws.rs.{QueryParam, PathParam}
 
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.commons.lang3.StringUtils
+import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -88,7 +92,7 @@ object ProductController extends BaseController {
       } else {
         Logger.debug("Product " + id + " not found")
         NotFound(Json.obj(
-          "message" -> s"Cannot find product with id [$id]"
+          "messages" -> s"Cannot find product with id [$id]"
         ))
       }
     }
@@ -104,12 +108,13 @@ object ProductController extends BaseController {
    */
   private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product])] = {
     val groupResponse = response.getGroupResponse
+
     if (groupResponse != null) {
       val commands = groupResponse.getValues
 
       if (commands.size > 0) {
         val command = groupResponse.getValues.get(0)
-        val products = new util.ArrayList[Tuple2[String, String]]
+        val products = new util.ArrayList[(String, String)]
         if ("productId".equals(command.getName)) {
           if (command.getNGroups > 0) {
             for (group <- JIterableWrapper(command.getValues)) {
@@ -118,7 +123,7 @@ object ProductController extends BaseController {
               product.setField("productId", group.getGroupValue)
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
-            val storage = withNamespace(storageFactory, true)
+            val storage = withNamespace(storageFactory, preview = true)
             storage.findProducts(products, country(req.acceptLanguages), fieldList()).map( products => {
               (command.getNGroups, products)
             })
@@ -142,7 +147,8 @@ object ProductController extends BaseController {
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def search(
       version: Int,
@@ -163,7 +169,13 @@ object ProductController extends BaseController {
     query.set("siteId", site)
     query.set("pageType", "search") // category or rule
     query.set("rule", true)
+    val filterQueries = FilterQuery.parseFilterQueries(request.getQueryString("filterQueries").getOrElse(""))
     initQueryParams(query, site, showCloseoutProducts = true, "search")
+
+    //@todo jmendez remove this from here when moving filterQueries to RuleManagerComponent
+    filterQueries.foreach(fq => {
+      query.addFilterQuery(fq.toString)
+    })
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
@@ -173,7 +185,8 @@ object ProductController extends BaseController {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> (System.currentTimeMillis() - startTime),
+                  "facets" -> buildFacets(response, query, filterQueries)),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))
                 )))
@@ -208,7 +221,8 @@ object ProductController extends BaseController {
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrand(
       version: Int,
@@ -229,7 +243,8 @@ object ProductController extends BaseController {
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrandCategory(
       version: Int,
@@ -253,7 +268,8 @@ object ProductController extends BaseController {
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def browse(
       version: Int,
@@ -293,8 +309,15 @@ object ProductController extends BaseController {
       }
     }
 
+    val filterQueries = FilterQuery.parseFilterQueries(request.getQueryString("filterQueries").getOrElse(""))
+
     query.setFacet(true)
     initQueryParams(query, site, showCloseoutProducts = closeout, requestType)
+
+    //@todo jmendez remove this from here when moving filterQueries to RuleManagerComponent
+    filterQueries.foreach(fq => {
+      query.addFilterQuery(fq.toString)
+    })
 
     solrServer.query(query).flatMap { response =>
       val groupResponse = response.getGroupResponse
@@ -307,19 +330,20 @@ object ProductController extends BaseController {
 
           if ("productId".equals(command.getName)) {
             if (command.getNGroups > 0) {
-              val products = new util.ArrayList[Tuple2[String, String]]
+              val products = new util.ArrayList[(String, String)]
               for (group <- JIterableWrapper(command.getValues)) {
                 val documentList = group.getResult
                 val product  = documentList.get(0)
                 product.setField("productId", group.getGroupValue)
                 products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
               }
-              val storage = withNamespace(storageFactory, true)
+              val storage = withNamespace(storageFactory, preview = true)
               storage.findProducts(products, country(request.acceptLanguages), fieldList()).map( products => {
                 Ok(Json.obj(
                    "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
-                      "time" -> (System.currentTimeMillis() - startTime)),
+                      "time" -> (System.currentTimeMillis() - startTime),
+                      "facets" -> buildFacets(response, query, filterQueries)),
                    "products" -> Json.toJson(
                      products map (Json.toJson(_))
                    )))
@@ -353,6 +377,16 @@ object ProductController extends BaseController {
     }
   }
 
+
+  private def buildFacets(response: QueryResponse, query: SolrQuery, filterQueries: Array[FilterQuery]) : Seq[Facet] = {
+    var facetData = Seq.empty[NamedList[AnyRef]]
+
+    if (response.getResponse != null && response.getResponse.get("rule_facets") != null) {
+      facetData = response.getResponse.get("rule_facets").asInstanceOf[util.ArrayList[NamedList[AnyRef]]]
+    }
+    new FacetHandler(query, response, filterQueries, facetData).getFacets
+  }
+
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>
       val products = productList.products
@@ -363,7 +397,7 @@ object ProductController extends BaseController {
         try {
           val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
           val storage = withNamespace(storageFactory, preview)
-          val productFuture = storage.save(products:_*)
+          val productFuture = storage.saveProduct(products:_*)
           val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
           searchUpdate.add(skuDocs)
           val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)

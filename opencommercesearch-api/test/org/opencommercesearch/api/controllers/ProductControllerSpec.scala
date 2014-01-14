@@ -49,7 +49,7 @@ class ProductControllerSpec extends BaseSpec {
       val storage = mock[MongoStorage]
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
-      storage.save(any) returns Future.successful(writeResult)
+      storage.saveProduct(any) returns Future.successful(writeResult)
     }
   }
 
