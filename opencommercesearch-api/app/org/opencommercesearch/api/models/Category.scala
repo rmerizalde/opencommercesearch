@@ -88,9 +88,9 @@ case class Category(
   def setParentCategories(parentCategories: util.Collection[String]) {
     this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => 
      {
-       val cat : Category = new Category()
-       cat.setId(id)
-       cat
+       val category : Category = new Category()
+       category.setId(id)
+       category
      }))
   }
 
@@ -98,9 +98,9 @@ case class Category(
   def setChildCategories(childCategories: util.Collection[String]) {
     this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => 
       {
-       val cat : Category = new Category()
-       cat.setId(id)
-       cat
+       val category : Category = new Category()
+       category.setId(id)
+       category
      }))
   }
 }

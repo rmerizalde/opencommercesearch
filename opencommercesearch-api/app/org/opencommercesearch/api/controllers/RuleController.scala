@@ -27,13 +27,14 @@ import play.api.libs.json.{JsError, JsArray, Json}
 import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.Util._
+import org.opencommercesearch.api.util.Util
 import org.opencommercesearch.api.models.{Rule, RuleList}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
 import org.apache.solr.common.SolrDocument
+import Util._
 
 object RuleController extends BaseController {
 

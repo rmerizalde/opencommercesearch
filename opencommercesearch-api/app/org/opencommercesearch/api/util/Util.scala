@@ -1,4 +1,4 @@
-package org.opencommercesearch.api
+package org.opencommercesearch.api.util
 
 /*
 * Licensed to OpenCommerceSearch under one
