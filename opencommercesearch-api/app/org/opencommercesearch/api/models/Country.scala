@@ -3,7 +3,7 @@ package org.opencommercesearch.api.models
 import play.api.libs.json.Json
 import com.fasterxml.jackson.annotation.{JsonProperty, JsonCreator}
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import org.opencommercesearch.api.BigDecimalDeserializer
+import org.opencommercesearch.api.util.BigDecimalDeserializer
 
 /*
 * Licensed to OpenCommerceSearch under one

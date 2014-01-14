@@ -21,6 +21,7 @@ package org.opencommercesearch.api.common
 
 import play.api.mvc.{AnyContent, Controller, Request}
 import org.apache.solr.client.solrj.SolrQuery
+import org.apache.commons.lang3.StringUtils
 
 /**
  * This trait provides subclasses with functionality to parse the list
@@ -30,10 +31,24 @@ import org.apache.solr.client.solrj.SolrQuery
  */
 trait FieldList {
 
+  /**
+   * @deprecated
+   */
   def withFields(query: SolrQuery, fields: Option[String]) : SolrQuery = {
     for (f <- fields) {
       if (f.size > 0) { query.setFields(fields.get.split(','): _*) }
     }
     query
+  }
+
+  /**
+   * Return a sequence with list of fields to return
+   * @param request is the implicit request
+   * @tparam R type of the request
+   * @return a sequence with the field names
+   */
+  def fieldList[R]()(implicit request: Request[R]) : Seq[String] = {
+    val fields = request.getQueryString("fields")
+    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
   }
 }

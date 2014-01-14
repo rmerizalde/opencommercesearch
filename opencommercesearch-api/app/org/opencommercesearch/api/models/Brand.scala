@@ -28,7 +28,6 @@ import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 
-
 /**
  * A brand model
  *
@@ -38,9 +37,9 @@ import org.apache.solr.client.solrj.beans.Field
  *
  * @author rmerizalde
  */
-case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String]) {
+case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String], var url: Option[String]) {
 
-  def this() = this(None, None, None)
+  def this() = this(None, None, None, None)
 
   @Field
   def setId(id: String) : Unit = {
@@ -57,60 +56,74 @@ case class Brand(var id: Option[String], var name: Option[String], var logo: Opt
     this.logo = Option.apply(logo)
   }
 
-  def toDocument : SolrInputDocument = {
+  @Field
+  def setUrl(url: String) : Unit = {
+    this.url = Option.apply(url)
+  }
+
+  def toDocument(feedTimestamp: Long) : SolrInputDocument = {
     val doc = new SolrInputDocument()
 
-    if (id.isDefined) {
-      doc.setField("id", id.get)
+    for(i <- id) {
+      doc.setField("id", i)
     }
-    if (name.isDefined) {
-      doc.setField("name", name.get)
+
+    for(n <- name) {
+      doc.setField("name", n)
     }
-    if (logo.isDefined) {
-      doc.setField("logo", logo.get)
+
+    for(l <- logo) {
+      doc.setField("logo", l)
     }
+
+    for(v <- url) {
+      doc.setField("url", v)
+    }
+
+    doc.setField("feedTimestamp", feedTimestamp)
+
     doc
   }
 }
-
 
 object Brand {
 
   implicit val readsBrand: Reads[Brand] = (
     (__ \ "id").readNullable[String] ~
     (__ \ "name").readNullable[String] ~
-    (__ \ "logo").readNullable[String]
+    (__ \ "logo").readNullable[String] ~
+    (__ \ "url").readNullable[String]
   ) (Brand.apply _)
 
   implicit val writesBrand : Writes[Brand] = (
     (__ \ "id").writeNullable[String] ~
     (__ \ "name").writeNullable[String] ~
-    (__ \ "logo").writeNullable[String]
+    (__ \ "logo").writeNullable[String] ~
+    (__ \ "url").writeNullable[String]
   ) (unlift(Brand.unapply))
 
   def fromDocument(doc : SolrDocument) : Brand = {
     val id = doc.get("id").asInstanceOf[String]
     val name = doc.get("name").asInstanceOf[String]
     val logo = doc.get("logo").asInstanceOf[String]
+    val url = doc.get("url").asInstanceOf[String]
 
-    new Brand(Option.apply(id), Option.apply(name), Option.apply(logo))
+    new Brand(Option.apply(id), Option.apply(name), Option.apply(logo), Option.apply(url))
   }
 }
-
-
 
 /**
  * Represents a list of brands
  *
  * @param brands are the brands in the list
  */
-case class BrandList(brands: List[Brand]) {
+case class BrandList(brands: List[Brand], feedTimestamp: Long) {
 
   def toDocuments : util.List[SolrInputDocument] = {
     val docs = new util.ArrayList[SolrInputDocument](brands.length)
 
     for (brand <- brands) {
-      docs.add(brand.toDocument)
+      docs.add(brand.toDocument(feedTimestamp))
     }
     docs
   }

@@ -21,7 +21,7 @@ package org.opencommercesearch.api.controllers
 
 import play.api.test._
 import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json, JsArray}
+import play.api.libs.json.{JsError, Json}
 
 import org.specs2.mutable._
 import org.apache.solr.client.solrj.AsyncSolrServer
@@ -148,6 +148,7 @@ class BrandControllerSpec extends BaseSpec {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
+          "feedTimestamp" -> 1000,
           "brands" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
@@ -204,6 +205,7 @@ class BrandControllerSpec extends BaseSpec {
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val (expectedId2, expectedName2, expectedLogo2) = ("1001", "Another Brand", "/brands/logo2.jpg")
         val json = Json.obj(
+          "feedTimestamp" -> 1000,
           "brands" -> Json.arr(
             Json.obj(
               "id" -> expectedId,

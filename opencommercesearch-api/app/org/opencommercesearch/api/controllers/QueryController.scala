@@ -31,7 +31,7 @@ import javax.ws.rs.QueryParam
  *
  * @author rmerizalde
  */
-@Api(value = "/queries", basePath = "/api-docs/queries", description = "User Query API endpoints")
+@Api(value = "queries", basePath = "/api-docs/queries", description = "User Query API endpoints")
 object QueryController extends BaseController {
 
   @ApiOperation(value = "Suggests user queries", notes = "Returns brand suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")

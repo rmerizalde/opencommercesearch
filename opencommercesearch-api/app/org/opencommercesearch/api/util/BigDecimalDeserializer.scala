@@ -1,4 +1,4 @@
-package org.opencommercesearch.api
+package org.opencommercesearch.api.util
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,18 +19,20 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.libs.json.JsValue
-import play.api.mvc.{AnyContent, Request, Call}
+import java.math
+
+import com.fasterxml.jackson.databind.{DeserializationContext, JsonDeserializer}
+import com.fasterxml.jackson.core.JsonParser
 
 /**
- * @todo figure out if there a way to use Call.absoluteUrl with play.api.mvc.Request
+ *
  */
-object Util {
+class BigDecimalDeserializer extends JsonDeserializer[BigDecimal] {
 
-  /**
-   * Transform the given call to an absolute URL.
-   */
-  def absoluteURL[T](call: Call, request: Request[T], secure: Boolean = false) : String = {
-    s"http${if (secure) "s" else ""}://${request.host}${call.url}"
+  @Override
+  def deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext) : BigDecimal = {
+    new math.BigDecimal(jsonParser.getText)
   }
+
+
 }
