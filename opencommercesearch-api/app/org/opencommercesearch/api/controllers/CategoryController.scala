@@ -58,10 +58,8 @@ object CategoryController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     
-    val fields = request.getQueryString("fields")
     val storage = withNamespace(storageFactory, preview)
-    val fieldList = StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
-    val future = storage.findCategory(id, fieldList).map( category => {
+    val future = storage.findCategory(id, fieldList()).map( category => {
       if(category != null) {
 	      Ok(Json.obj(
 	          "category" -> Json.toJson(category)))
@@ -213,10 +211,8 @@ object CategoryController extends BaseController {
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
         val brandIds = JIterableWrapper(brandFacet.getValues()).map(filter =>  filter.getName)
         
-        val fields = request.getQueryString("fields")
 	    val storage = withNamespace(storageFactory, preview)
-	    val fieldList = StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
-	    val future = storage.findBrands(brandIds, fieldList).map( categories => {
+	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {
 	
 		    //now we need to retrieve the actual brand objects from the brand collection  
 		    if(categories != null) {
