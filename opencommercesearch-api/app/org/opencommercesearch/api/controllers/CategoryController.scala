@@ -34,8 +34,6 @@ import javax.ws.rs.PathParam
 import javax.ws.rs.QueryParam
 import org.apache.commons.lang3.StringUtils
 import scala.collection.convert.Wrappers.JIterableWrapper
-import org.apache.solr.common.SolrDocument
-import org.apache.solr.common.params.SolrParams
 import org.apache.solr.client.solrj.response.UpdateResponse
 
 
@@ -163,7 +161,8 @@ object CategoryController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withCategoryCollection(new SolrQuery(query), preview)
-    //@todo: solrQuery.addFilterQuery(s"catalogs:$site")
+    //@todo: solrQuery.addFilterQu.
+    // ery(s"catalogs:$site")
 
     findSuggestionsFor(classOf[Category], "categories" , solrQuery)
   }
@@ -193,23 +192,23 @@ object CategoryController extends BaseController {
       Logger.debug(s"Query brands for category Id [$id]")
       
       catalogQuery.addFilterQuery(s"ancestorCategoryId:$id")
-      catalogQuery.setRows(0);
+      catalogQuery.setRows(0)
       
       catalogQuery.setFacet(true)
       catalogQuery.addFacetField("brandId")
-      catalogQuery.setFacetLimit(facetLimit);
-      catalogQuery.setFacetMinCount(1);
+      catalogQuery.setFacetLimit(facetLimit)
+      catalogQuery.setFacetMinCount(1)
     }
 
     solrServer.query(catalogQuery).flatMap( categoryResponse => {
       //query the SOLR product catalog with the query we generated in the code above.
       val brandFacet = categoryResponse.getFacetField("brandId")
       
-      if (brandFacet != null && brandFacet.getValueCount() > 0) {
+      if (brandFacet != null && brandFacet.getValueCount > 0) {
         //if we have results from the product catalog collection, 
         //then generate another SOLR query object to query the brand collection. 
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
-        val brandIds = JIterableWrapper(brandFacet.getValues()).map(filter =>  filter.getName)
+        val brandIds = JIterableWrapper(brandFacet.getValues).map(filter =>  filter.getName)
         
 	    val storage = withNamespace(storageFactory, preview)
 	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {

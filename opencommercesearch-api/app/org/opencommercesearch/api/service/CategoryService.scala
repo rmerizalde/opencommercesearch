@@ -25,25 +25,31 @@ import play.api.cache.Cache
 import play.api.Play.current
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
-import scala.collection.convert.Wrappers.JIterableWrapper
 import java.util
 import org.opencommercesearch.api.models.{Category, Product}
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.common.{SolrInputDocument, SolrDocument}
-import org.opencommercesearch.api.Global.RealTimeRequestHandler
-import org.opencommercesearch.api.Global.CategoryCacheTtl
+import org.opencommercesearch.api.Global._
 import org.apache.commons.lang3.StringUtils
 import scala.collection.mutable.HashMap
+import scala.Some
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.mutable
+import play.api.libs.json.{Json, JsObject}
+import com.mongodb.WriteResult
 
-
+/**
+ * Utility class that gives category / related data and operations.
+ * @param server The Solr server used to fetch data from.
+ */
 class CategoryService(var server: AsyncSolrServer) extends FieldList with ContentPreview {
 
   private val MaxTries = 3
   private val MaxResults = 50
   
   def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
-    var (query, hasNestedCategories) = 
+    val (query, hasNestedCategories) =
       withNestedCategories(id,  withCategoryCollection(withFields(new SolrQuery(), fields), preview),  fields)
     
     //TODO gsegura: once we have mongo ready, change here to call it
@@ -52,11 +58,11 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       if (hasNestedCategories) {
         val docs = response.getResults
         val lookupMap = HashMap.empty[String, SolrDocument]
-        var mainDoc :SolrDocument = null;
+        var mainDoc :SolrDocument = null
         if (docs != null) {
             JIterableWrapper(docs).foreach(
                 doc => {
-                  val currentId = doc.getFieldValue("id").toString() 
+                  val currentId = doc.getFieldValue("id").toString
                   lookupMap += (currentId -> doc)
                   if( id.equals(currentId) ) {
                     mainDoc = doc
@@ -100,7 +106,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
               val solrDocument : SolrDocument =  lookupMap(id)
               //category.setName(solrDocument.getFieldValue("name").toString())
               //category.setSeoUrlToken(solrDocument.getFieldValue("seoUrlToken").toString())
-              var newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
+              val newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
               category.name = newDoc.name
               category.seoUrlToken = newDoc.seoUrlToken
               category.catalogs = newDoc.catalogs
@@ -167,7 +173,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
                 doc.removeField("categoryPath")
                 doc.removeField("categoryNodes")
                 doc.removeField("ancestorCategoryId")
-                Logger.info(s"Attempt number $tries to retrieve category paths for $id after exception '${ex} - ${ex.getMessage}'")
+                Logger.info(s"Attempt number $tries to retrieve category paths for $id after exception '$ex - ${ex.getMessage}'")
               } else {
                 Logger.error(s"Cannot load category paths for $id", ex)
               }
@@ -346,11 +352,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
      * 0/bcs 1/bcs/Men's Clothing 2/bcs/Men's Clothing/Men's Jackets 3/bcs/Men's
      * Clothing/Men's Jackets/Men's Casual Jacket's
      *
-     * @param doc
-     *            The document to set the attributes to.
-     * @param hierarchyCategories
-     *
-     * @param catalog
+     * @param doc The document to set the attributes to.
+     * @param hierarchyCategories The list where we store the categories
+     * @param catalog The catalog to which these categories belong to.
      *
      */
     private def generateCategoryTokens(doc: SolrInputDocument, hierarchyCategories: util.List[Category], catalog: String,
@@ -394,8 +398,8 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     var hasNestedCategories : Boolean = false
     
     for (f <- fields) {
-      var hasChildCategories : Boolean = fields.get.contains("childCategories")
-      var hasParentCategories : Boolean = fields.get.contains("parentCategories")
+      val hasChildCategories : Boolean = fields.get.contains("childCategories")
+      val hasParentCategories: Boolean = fields.get.contains("parentCategories")
       
       if(hasChildCategories && hasParentCategories) {
         query.addFilterQuery(s"id:$id OR childCategories:$id OR parentCategories:$id")
@@ -425,4 +429,38 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     (query,hasNestedCategories)
   }
 
+  def loadCategoryTaxonomy(parentCategory: String, childCategories : Seq[String], level : Int, fields : Seq[String], storage : Storage[WriteResult]) : String =  {
+    //Go to Mongo to fetch category data
+    val categoriesFuture = storage.findCategories(childCategories, fields)
+    val hierarchyMap = new mutable.HashMap[String, Seq[Category]]()
+
+    //Go over the list of categories returned by Mongo and store them in a hash
+    categoriesFuture.map(categories => {
+        categories.foreach( category => {
+            //Add this category to the map
+            hierarchyMap.put(category.getId(), category.getChildCategories())
+        })
+      }
+    )
+
+    val jsonResult = loadCategoryTaxonomyAux(parentCategory, hierarchyMap, level)
+    jsonResult.toString()
+  }
+
+  def loadCategoryTaxonomyAux(parentCategory : String, hierarchyMap : mutable.HashMap[String, Seq[Category]], level : Int) : JsObject = {
+    if(level == 0) {
+      return Json.obj()
+    }
+
+    val childCategories = hierarchyMap.get(parentCategory)
+    var partialResult = Json.obj("id" -> parentCategory)
+
+    for(childCats <-  childCategories) {
+      childCats.foreach( childCategory => {
+        partialResult ++= Json.obj("children" -> loadCategoryTaxonomyAux(childCategory.getId(), hierarchyMap, level - 1))
+      })
+    }
+
+    partialResult
+  }
 }

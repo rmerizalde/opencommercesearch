@@ -51,7 +51,6 @@ case class Category(
 
   /**
    * This constructor is for lazy loaded categories
-   * @param id is the id of the category to lazy load
    */
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None)
@@ -102,6 +101,18 @@ case class Category(
        category.setId(id)
        category
      }))
+  }
+
+  /**
+   * Get this category child categories
+   * @return A collection of child categories if any, null otherwise.
+   */
+  def getChildCategories() : Seq[Category] = {
+    if(this.childCategories != null && this.childCategories.isDefined) {
+      this.childCategories.get
+    }
+
+    null
   }
 }
 

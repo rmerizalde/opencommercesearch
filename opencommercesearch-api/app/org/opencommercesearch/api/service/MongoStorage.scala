@@ -287,7 +287,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       result
     }
   }
-  
+
   def findCategory(id: String, fields: Seq[String]) : Future[Category] = {
     Future {
       var hasChildCategories, hasParentCategories : Boolean = false
@@ -306,6 +306,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       } else {
         categoryCollection.findOne("{_id:#}", id).projection(projectionCategory(fields)).as(classOf[Category])
       }
+    }
+  }
+
+  def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]] = {
+    Future {
+        val categoryCollection = jongo.getCollection("categories")
+        categoryCollection.find("{_id:{$in:#}}", ids).projection(projectionCategory(fields)).as(classOf[Category])
     }
   }
   
@@ -338,17 +345,17 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         if (categories != null) {
             categories.foreach(
                 doc => {
-                  val currentId = doc.getId
+                  val currentId = doc.getId()
                   lookupMap += (currentId -> doc)
-                  if( id.equals(doc.getId) ) {
+                  if( id.equals(doc.getId()) ) {
                     mainDoc = doc
                   }
                   Logger.debug("Found category " + id)
                 }
             )
             if(mainDoc != null) {
-                addNestedCategoryNames(mainDoc.childCategories, lookupMap);
-                addNestedCategoryNames(mainDoc.parentCategories, lookupMap);
+                addNestedCategoryNames(mainDoc.childCategories, lookupMap)
+                addNestedCategoryNames(mainDoc.parentCategories, lookupMap)
             } 
         }
         mainDoc

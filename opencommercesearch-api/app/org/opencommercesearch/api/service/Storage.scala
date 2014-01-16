@@ -98,7 +98,14 @@ trait Storage[T] {
    * @return
    */
   def findCategory(id: String, fields: Seq[String]) : Future[Category]
-  
+
+  /**
+   * Find all given category ids.
+   * @param ids A collection of category ids to look for.
+   * @param fields List of fields that should be retrieved.
+   * @return Collection of category objects populated with storage data, based on the given ids.
+   */
+  def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]]
   
   /**
    * Finds the brand with the given id. Optionally, takes a list of fields to return
@@ -126,6 +133,6 @@ trait Storage[T] {
   /**
    * Releases the resources used by this storage
    */
-  def close : Unit
+  def close() : Unit
 
 }

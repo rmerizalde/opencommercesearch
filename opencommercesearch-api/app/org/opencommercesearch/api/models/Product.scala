@@ -25,7 +25,6 @@ import play.api.libs.json._
 import java.util
 
 import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.JavaConversions._
 
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
@@ -35,6 +34,7 @@ import org.opencommercesearch.api.service.CategoryService
 import ProductList._
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
+import org.apache.solr.common.util.NamedList
 
 case class Product (
   @Id var id: Option[String],
