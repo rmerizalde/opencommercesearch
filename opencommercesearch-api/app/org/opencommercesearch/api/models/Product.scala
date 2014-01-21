@@ -21,42 +21,40 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-
 import java.util
-
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.JavaConversions._
-
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
 import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.api.service.CategoryService
-
 import ProductList._
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+import java.math.BigDecimal
 
 case class Product (
   @Id var id: Option[String],
-  var title: Option[String],
-  var description: Option[String],
-  var shortDescription: Option[String],
-  var brand: Option[Brand],
-  var gender: Option[String],
-  var sizingChart: Option[String],
-  var detailImages: Option[Seq[Image]],
-  var bulletPoints: Option[Seq[String]],
-  var attributes: Option[Seq[Attribute]],
-  var features: Option[Seq[Attribute]],
-  var listRank: Option[Int],
-  var reviewCount: Option[Int],
-  var reviewAverage: Option[Double],
-  var bayesianReviewAverage: Option[Double],
+  @JsonProperty("title") var title: Option[String],
+  @JsonProperty("description") var description: Option[String],
+  @JsonProperty("shortDescription") var shortDescription: Option[String],
+  @JsonProperty("brand") var brand: Option[Brand],
+  @JsonProperty("gender") var gender: Option[String],
+  @JsonProperty("sizingChart") var sizingChart: Option[String],
+  @JsonProperty("detailImages") var detailImages: Option[Seq[Image]],
+  @JsonProperty("bulletPoints") var bulletPoints: Option[Seq[String]],
+  @JsonProperty("attributes") var attributes: Option[Seq[Attribute]],
+  @JsonProperty("features") var features: Option[Seq[Attribute]],
+  @JsonProperty("listRank") var listRank: Option[Int],
+  @JsonProperty("reviewCount") var reviewCount: Option[Int],
+  @JsonProperty("reviewAverage") var reviewAverage: Option[Double],
+  @JsonProperty("bayesianReviewAverage") var bayesianReviewAverage: Option[Double],
   // has free gift by catalog
-  var hasFreeGift: Option[Map[String, Boolean]],
-  var isOutOfStock: Option[Boolean],
-  var categories: Option[Seq[String]],
-  var skus: Option[Seq[Sku]])
+  @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]],
+  @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
+  @JsonProperty("categories") var categories: Option[Seq[String]],
+  @JsonProperty("skus") var skus: Option[Seq[Sku]])
 {
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
@@ -257,8 +255,8 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 doc.addField("country", code)
 
                 for (allowBackorder <- country.allowBackorder) { doc.setField("allowBackorder" + code, allowBackorder) }
-                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
-                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
+                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, new BigDecimal(listPrice)) }
+                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, new BigDecimal(salePrice)) }
                 for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
                 for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
                 for (stockLevel <- country.stockLevel)  { doc.setField("stockLevel" + code, stockLevel) }

@@ -20,37 +20,36 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json.{Json}
-
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
-
-
-
 import Sku._
-
+import com.fasterxml.jackson.annotation.JsonCreator
+import org.jongo.marshall.jackson.oid.Id
+import com.fasterxml.jackson.annotation.JsonProperty
 
 case class Sku(
-  var id: Option[String],
-  var season: Option[String],
-  var year: Option[String],
-  var image: Option[Image],
-  var countries: Option[Seq[Country]],
-  var isPastSeason: Option[Boolean],
-  var colorFamily: Option[String],
-  var isRetail: Option[Boolean],
-  var isCloseout: Option[Boolean],
-  var isOutlet: Option[Boolean],
-  var size: Option[Size],
-  var catalogs: Option[Seq[String]],
-  var customSort: Option[Int],
-  var listPrice: Option[BigDecimal],
-  var salePrice: Option[BigDecimal],
-  var discountPercent: Option[Int],
-  var onSale: Option[Boolean],
-  var stockLevel: Option[Int],
-  var url: Option[String],
-  var allowBackorder: Option[Boolean]) {
+  @Id var id: Option[String],
+  @JsonProperty("season") var season: Option[String],
+  @JsonProperty("year") var year: Option[String],
+  @JsonProperty("image") var image: Option[Image],
+  @JsonProperty("countries") var countries: Option[Seq[Country]],
+  @JsonProperty("isPastSeason") var isPastSeason: Option[Boolean],
+  @JsonProperty("colorFamily") var colorFamily: Option[String],
+  @JsonProperty("isRetail") var isRetail: Option[Boolean],
+  @JsonProperty("isCloseout") var isCloseout: Option[Boolean],
+  @JsonProperty("isOutlet") var isOutlet: Option[Boolean],
+  @JsonProperty("size") var size: Option[Size],
+  @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
+  @JsonProperty("customSort") var customSort: Option[Int],
+  @JsonProperty("listPrice") var listPrice: Option[BigDecimal],
+  @JsonProperty("salePrice") var salePrice: Option[BigDecimal],
+  @JsonProperty("discountPercent") var discountPercent: Option[Int],
+  @JsonProperty("onSale") var onSale: Option[Boolean],
+  @JsonProperty("stockLevel") var stockLevel: Option[Int],
+  @JsonProperty("url") var url: Option[String],
+  @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean]) {
 
+  @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
       None, None, None, None)
 }

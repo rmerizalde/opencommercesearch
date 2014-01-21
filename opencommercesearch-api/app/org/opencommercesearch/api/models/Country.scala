@@ -2,8 +2,6 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
 import com.fasterxml.jackson.annotation.{JsonProperty, JsonCreator}
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
-import org.opencommercesearch.api.util.BigDecimalDeserializer
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -25,29 +23,19 @@ import org.opencommercesearch.api.util.BigDecimalDeserializer
 */
 
 case class Country(
-  var code: Option[String],
-  var listPrice: Option[BigDecimal],
-  var salePrice: Option[BigDecimal],
-  var discountPercent: Option[Int],
-  var onSale: Option[Boolean],
-  var stockLevel: Option[Int],
-  var url: Option[String],
-  var allowBackorder: Option[Boolean]) {
+  @JsonProperty("code") var code: Option[String],
+  //TODO gsegura: there were issues deserializing bigdecimals, even with the @JsonDeserialize annotation
+  @JsonProperty("listPrice") var listPrice: Option[Double],
+  @JsonProperty("salePrice") var salePrice: Option[Double],
+  @JsonProperty("discountPercent") var discountPercent: Option[Int],
+  @JsonProperty("onSale") var onSale: Option[Boolean],
+  @JsonProperty("stockLevel") var stockLevel: Option[Int],
+  @JsonProperty("url") var url: Option[String],
+  @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean]) {
 
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None)
 
-  @JsonProperty("listPrice")
-  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
-  def setListPrice(listPrice: BigDecimal) : Unit = {
-    this.listPrice = Option.apply(listPrice)
-  }
-
-  @JsonProperty("salePrice")
-  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
-  def setSalePrice(salePrice: BigDecimal) : Unit = {
-    this.salePrice = Option.apply(salePrice)
-  }
 }
 
 

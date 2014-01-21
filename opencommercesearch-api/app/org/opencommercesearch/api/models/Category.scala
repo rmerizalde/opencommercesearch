@@ -28,6 +28,7 @@ import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
  * A category model.
@@ -42,12 +43,12 @@ import com.fasterxml.jackson.annotation.JsonCreator
  */
 case class Category(
   @Id var id: Option[String],
-  var name: Option[String],
-  var seoUrlToken: Option[String],
-  var isRuleBased: Option[Boolean],
-  var catalogs: Option[Seq[String]],
-  var parentCategories: Option[Seq[Category]],
-  var childCategories: Option[Seq[Category]]) {
+  @JsonProperty("name") var name: Option[String],
+  @JsonProperty("seoUrlToken") var seoUrlToken: Option[String],
+  @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
+  @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
+  @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
 
   /**
    * This constructor is for lazy loaded categories

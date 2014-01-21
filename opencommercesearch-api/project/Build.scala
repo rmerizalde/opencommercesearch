@@ -18,13 +18,13 @@ object ApplicationBuild extends Build {
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
     "com.wordnik" %% "swagger-play2" % "1.3.2",
-    "de.undercouch" % "bson4jackson" % "2.1.0" force(),
-    "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.0" force(),
-    "com.fasterxml.jackson.core" % "jackson-annotations" % "2.1.0" force(),
-    "com.fasterxml.jackson.core" % "jackson-core" % "2.1.0" force(),
-    "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.1.5",
+    "de.undercouch" % "bson4jackson" % "2.2.3" force(),
+    "com.fasterxml.jackson.core" % "jackson-databind" % "2.2.3" force(),
+    "com.fasterxml.jackson.core" % "jackson-annotations" % "2.2.3" force(),
+    "com.fasterxml.jackson.core" % "jackson-core" % "2.2.3" force(),
+    "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.2.3",
     "org.mongodb" % "mongo-java-driver" % "2.11.3",
-    "org.jongo" % "jongo" % "0.4"//,
+    "org.jongo" % "jongo" % "1.0"//,
     //"uk.co.panaxiom" %% "play-jongo" % "0.6.0-jongo0.4"
   )
 

@@ -109,9 +109,9 @@ public class FacetHandlerTest {
         addFacets();
         NamedList[] facets = facetHandler.getFacets();
         assertEquals(3, facets.length);
-        assertEquals("rangeName", facets[0].get(FacetConstants.FIELD_FIELD_NAME));
-        assertEquals("queryName", facets[1].get(FacetConstants.FIELD_FIELD_NAME));
-        assertEquals("fieldName", facets[2].get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("fieldName", facets[0].get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("rangeName", facets[1].get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("queryName", facets[2].get(FacetConstants.FIELD_FIELD_NAME));
     }
 
     private void addFacets(){

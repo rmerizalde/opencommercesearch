@@ -30,6 +30,7 @@ import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.models.Brand
 import scala.collection.mutable.HashMap
 import play.api.Logger
+import scala.math.BigDecimal
 
 /**
  * A storage implementation using MongoDB
@@ -177,8 +178,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     if (filteredCountries.size > 0) {
       val country = filteredCountries(0)
       sku.allowBackorder = country.allowBackorder
-      sku.listPrice = country.listPrice
-      sku.salePrice = country.salePrice
+      
+      for (listPrice <- country.listPrice) {
+    	sku.listPrice = Some(BigDecimal(listPrice))
+      }
+      for (salePrice <- country.salePrice) {
+    	sku.salePrice = Some(BigDecimal(salePrice))
+      } 
       sku.discountPercent = country.discountPercent
       sku.url = country.url
       sku.stockLevel = country.stockLevel
@@ -274,7 +280,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.update(s"{_id: '${p.getId()}'}").upsert().merge(p) )
+      product.map( p => result = productCollection.update(s"{_id: '${p.getId()}'}").upsert().`with`(p) )
       result
     }
   }
@@ -283,7 +289,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val categoryCollection = jongo.getCollection("categories")
       var result: WriteResult = null
-      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId()}'}").upsert().merge(c) )
+      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId()}'}").upsert().`with`(c) )
       result
     }
   }
@@ -313,7 +319,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val brandCollection = jongo.getCollection("brands")
       var result: WriteResult = null
-      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId()}'}").upsert().merge(b) )
+      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId()}'}").upsert().`with`(b) )
       result
     }
   }
