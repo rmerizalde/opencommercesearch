@@ -47,8 +47,14 @@ case class FacetHandler (
     val facetMap: Map[String, Facet] = new HashMap[String, Facet]
 
     for (facetField <- queryResponse.getFacetFields) {
-      val facet = createFacet(facetField.getName)
-
+      var facet : Option[Facet] = None
+      
+      if( facetField.getName() == "category") {
+          facet = createCategoryFacet(facetField.getName())
+      }
+      else {
+          facet = createFacet(facetField.getName)
+      }
       for (f <- facet) {
         val filters = new ArrayBuffer[Filter](facetField.getValueCount)
         val prefix: String = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
@@ -254,7 +260,21 @@ case class FacetHandler (
       null
     }
   }
-
+  
+   /**
+   * Creates a new category facet with the default facet values
+   */
+  private def createCategoryFacet(fieldName: String) : Option[Facet] = {
+    val categoryFacet = new Facet 
+    categoryFacet.name = Option.apply(fieldName)
+    categoryFacet.fieldName = Option.apply(fieldName)
+    categoryFacet.minBuckets = Option.apply(1)
+    categoryFacet.minCount = Option.apply(1)
+    categoryFacet.isMultiSelect = Option.apply(false)
+    categoryFacet.isMixedSorting = Option.apply(false)
+    Option.apply(categoryFacet)
+  }
+  
   /**
    * Creates a new facet from the given facet field definition
    */

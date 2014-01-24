@@ -175,7 +175,7 @@ public class FacetHandler {
      * @param value A Solr boolean field value.
      * @return The corresponding boolean value for the given Solr boolean field value.
      */
-    private static boolean getBooleanFromField(String value) {
+    public static boolean getBooleanFromField(String value) {
         return value != null && value.toLowerCase().equals("t");
     }
 
@@ -244,9 +244,8 @@ public class FacetHandler {
      * Gets facets as an array of named lists.
      * @return All facets registered on this handler, as an array of named lists.
      */
-    public NamedList[] getFacets() {
-        NamedList[] result = new NamedList[facets.size()];
-        int index = 0;
+    public Map<String, NamedList> getFacets() {
+        Map<String, NamedList> result = new LinkedHashMap<String, NamedList>();
         for(String fieldName : facets.keySet()) {
             NamedList<String> namedList = new NamedList<String>();
 
@@ -255,8 +254,7 @@ public class FacetHandler {
                     namedList.add(field.name(), field.stringValue());
                 }
             }
-
-            result[index++] = namedList;
+            result.put(fieldName, namedList);
         }
 
         return result;

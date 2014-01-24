@@ -171,10 +171,9 @@ object ProductController extends BaseController {
     query.set("rule", true)
     val filterQueries = FilterQuery.parseFilterQueries(request.getQueryString("filterQueries").getOrElse(""))
     initQueryParams(query, site, showCloseoutProducts = true, "search")
-
-    //@todo jmendez remove this from here when moving filterQueries to RuleManagerComponent
+    
     filterQueries.foreach(fq => {
-      query.addFilterQuery(fq.toString)
+       query.add("rule.fq", fq.toString)
     })
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
