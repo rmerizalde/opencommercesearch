@@ -36,7 +36,6 @@ import scala.collection.mutable.HashMap
 import scala.Some
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.mutable
-import play.api.libs.json.{Json, JsObject}
 import com.mongodb.WriteResult
 
 /**
@@ -47,6 +46,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
 
   private val MaxTries = 3
   private val MaxResults = 50
+  private val CategoryPathSeparator = "\\."
   
   def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
     val (query, hasNestedCategories) =
@@ -390,8 +390,8 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   }
   
   /**
-   * If the fields parameter has childCategories or parentCategories, generated a special query to retrieve the id plus
-   * documents which parentCategories or childCategories are the id.
+   * If the fields parameter has categories or parentCategories, generated a special query to retrieve the id plus
+   * documents which parentCategories or categories are the id.
    * In any other case, create a real time query for the id specified
    */
   def withNestedCategories(id: String, query: SolrQuery, fields: Option[String]): (SolrQuery, Boolean) = {
@@ -429,38 +429,91 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     (query,hasNestedCategories)
   }
 
-  def loadCategoryTaxonomy(parentCategory: String, childCategories : Seq[String], level : Int, fields : Seq[String], storage : Storage[WriteResult]) : String =  {
-    //Go to Mongo to fetch category data
-    val categoriesFuture = storage.findCategories(childCategories, fields)
-    val hierarchyMap = new mutable.HashMap[String, Seq[Category]]()
+  /**
+   * Gets data from a category from storage, plus all children up to a given level.
+   * @param parentCategoryId Category id to look for.
+   * @param categoryPaths List of category paths necessary to build up the taxonomy for the  given parent category id. For example: [site.cat1level1.cat2level2, site.cat3level1.cat4level2.cat5level3]
+   * @param maxLevels Max level on the taxonomy to drill down. If set to 1, will return the immediate children, if set to 2 will return immediate children and their corresponding children, and so on.
+   * @param fields Fields to retrieve for each category on the taxonomy. This field list is applied to the parent category and any children of it.
+   * @param storage Storage used to retrieve category data.
+   * @return The category instance for the given category id, plus all children up to the given level.
+   */
+  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String], maxLevels: Int, fields: Seq[String], storage : Storage[WriteResult]) : Future[Category] =  {
+    val childCategoriesToLookFor = new mutable.HashSet[String]
 
-    //Go over the list of categories returned by Mongo and store them in a hash
-    categoriesFuture.map(categories => {
-        categories.foreach( category => {
-            //Add this category to the map
-            hierarchyMap.put(category.getId(), category.getChildCategories())
+    categoryPaths.map(categoryPath => {
+      val indexOf = categoryPath.indexOf(parentCategoryId)
+      if(indexOf > 0) {
+        categoryPath.substring(indexOf + parentCategoryId.length).split(CategoryPathSeparator).take(maxLevels).foreach( childCategory => {
+          childCategoriesToLookFor += childCategory
         })
       }
-    )
+    })
 
-    val jsonResult = loadCategoryTaxonomyAux(parentCategory, hierarchyMap, level)
-    jsonResult.toString()
+    childCategoriesToLookFor += parentCategoryId
+
+    getTaxonomy(childCategoriesToLookFor, fields, storage).map( taxonomyMap => {
+      taxonomyMap(parentCategoryId)
+    })
   }
 
-  def loadCategoryTaxonomyAux(parentCategory : String, hierarchyMap : mutable.HashMap[String, Seq[Category]], level : Int) : JsObject = {
-    if(level == 0) {
-      return Json.obj()
+  /**
+   * Builds the category taxonomy for a given list of categories.
+   * <p/>
+   * This method hydrates each category in the given list with storage data (including information about child categories) and then builds up any relationship between the
+   * categories in the list. The input list of categories may not have any relationship between them, this method will then only return a map of categories with their corresponding data.   *
+   * For example, if you want to know the taxonomy for all categories, then pass this method a list of all existing categories.
+   * @param categories List of categories to use for building up the taxonomy
+   * @param fields List of fields to return from the storage. Notice the 'childCategories' field will be returned regardless of what the field list is.
+   * @param storage Storage used to retrieve category data.
+   * @return Map of category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
+   */
+  def getTaxonomy(categories: Iterable[String], fields: Seq[String], storage : Storage[WriteResult]) : Future[Map[String, Category]] =  {
+    val categoriesToLookFor = categories.toSet
+
+    var fieldList = fields
+    //Go to Mongo to fetch category data
+    if(!fields.isEmpty) {
+      fieldList :+= "childCategories"
     }
 
-    val childCategories = hierarchyMap.get(parentCategory)
-    var partialResult = Json.obj("id" -> parentCategory)
+    val categoriesFuture = storage.findCategories(categories, fieldList)
+    val hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
+    //Go over the list of categories returned by Mongo and store them in a hash
+    categoriesFuture.map(categoryData => {
+      categoryData.foreach( category => {
+        var taxonomyNode  = hierarchyMap(category.getId())
 
-    for(childCats <-  childCategories) {
-      childCats.foreach( childCategory => {
-        partialResult ++= Json.obj("children" -> loadCategoryTaxonomyAux(childCategory.getId(), hierarchyMap, level - 1))
+        if(taxonomyNode == null) {
+          taxonomyNode = category
+        }
+        else {
+          //TODO: Find a more maintainable way to copy this data
+          taxonomyNode.childCategories = Option(category.getChildCategories())
+          taxonomyNode.name = category.name
+          taxonomyNode.seoUrlToken = category.seoUrlToken
+        }
+
+        //Add this category to the map
+        val childCategories = category.getChildCategories().filter(childCategory => {categoriesToLookFor.contains(childCategory.getId())}).map(childCategory => {
+          val tmpNode = hierarchyMap(childCategory.getId())
+
+          if(tmpNode == null) {
+            hierarchyMap += (childCategory.getId() -> childCategory)
+            childCategory
+          }
+          else {
+            tmpNode
+          }
+        })
+
+        taxonomyNode.childCategories = Some(childCategories)
+        hierarchyMap += (category.getId() -> taxonomyNode)
       })
-    }
 
-    partialResult
+      hierarchyMap.toMap
+    })
   }
+
+
 }

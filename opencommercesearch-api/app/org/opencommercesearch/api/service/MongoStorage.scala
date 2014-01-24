@@ -85,16 +85,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   /**
    * Keep Mongo indexes to the minimum, specially if it saves a roundtrip to Solr for simple things
    */
-  def ensureIndexes : Unit = {
+  def ensureIndexes() : Unit = {
     jongo.getCollection("products").ensureIndex("{skus.catalogs: 1}", "{sparse: true, name: 'sku_catalog_idx'}")
     jongo.getCollection("products").ensureIndex("{skus.countries.code: 1}", "{sparse: true, name: 'sku_country_idx'}")
   }
 
-  def close : Unit = {
+  def close() : Unit = {
     mongo.close()
   }
 
-  def findProducts(ids: Seq[Tuple2[String, String]], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -295,7 +295,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         hasChildCategories = fields.contains("childCategories")
         hasParentCategories = fields.contains("parentCategories")
       }
-      
+
       val categoryCollection = jongo.getCollection("categories")
       if(hasChildCategories && hasParentCategories) {
         mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}, { parentCategories._id:#}] }", id, id, id).projection(projectionCategory(fields)).as(classOf[Category]))
@@ -341,7 +341,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
     val lookupMap = HashMap.empty[String, Category]
-        var mainDoc :Category = null;
+        var mainDoc: Category = null
         if (categories != null) {
             categories.foreach(
                 doc => {
@@ -361,7 +361,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         mainDoc
   }
   
-  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap :HashMap[String, Category] ) = {
+  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: HashMap[String, Category] ) = {
     for( cats <- categories) {
       cats.foreach(
         category => {

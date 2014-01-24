@@ -1,6 +1,5 @@
 package org.opencommercesearch.api.models
 
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -27,7 +26,8 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
 import org.jongo.marshall.jackson.oid.Id
-import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.{JsonCreator}
+import org.opencommercesearch.api.util.JsUtils.PathAdditions
 
 /**
  * A category model.
@@ -108,11 +108,7 @@ case class Category(
    * @return A collection of child categories if any, null otherwise.
    */
   def getChildCategories() : Seq[Category] = {
-    if(this.childCategories != null && this.childCategories.isDefined) {
-      this.childCategories.get
-    }
-
-    null
+    this.childCategories.getOrElse(Seq.empty)
   }
 }
 
@@ -134,7 +130,8 @@ object Category {
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "catalogs").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
-    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
+    //Prevent empty child lists to be written
+    (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
 }
 

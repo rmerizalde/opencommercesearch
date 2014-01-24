@@ -79,7 +79,7 @@ trait Pagination {
     if (limit.isDefined) {
       try {
         val l = limit.get.toInt
-        query.setFacetLimit(Math.min(MaxPaginationLimit, l))
+        query.setFacetLimit(l)
       } catch {
         case e: Throwable => // do nothing
       }

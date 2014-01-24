@@ -35,17 +35,20 @@ import javax.ws.rs.QueryParam
 import org.apache.commons.lang3.StringUtils
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.response.UpdateResponse
+import org.opencommercesearch.api.common.FacetQuery
+import scala.collection.JavaConversions._
 
 
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
-object CategoryController extends BaseController {
+object CategoryController extends BaseController with FacetQuery{
 
   val categoryService = new CategoryService(solrServer)
 
   @ApiOperation(value = "Searches categories", notes = "Returns category information for a given category", response = classOf[Category], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
   @ApiImplicitParams(value = Array(
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the inmediate children. If set to 2, will return inmediate children plus the children of them, and so on.", defaultValue = "1", required = false, dataType = "int", paramType = "query")
   ))
   def findById(
       version: Int,
@@ -55,17 +58,47 @@ object CategoryController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    
-    val storage = withNamespace(storageFactory, preview)
-    val future = storage.findCategory(id, fieldList()).map( category => {
-      if(category != null) {
-	      Ok(Json.obj(
-	          "category" -> Json.toJson(category)))
-      } else {
-        Logger.debug("Category " + id + " not found")
-        NotFound(Json.obj(
-          "message" -> s"Cannot find category with id [$id]"
-        ))
+
+    val startTime = System.currentTimeMillis()
+    val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
+    catalogQuery.addFilterQuery("ancestorCategoryId:" + id)
+
+    if(Logger.isDebugEnabled) {
+      Logger.debug(s"Searching for child categories for $id with query ${catalogQuery.toString}")
+    }
+
+    val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
+      val facetFields = catalogResponse.getFacetFields
+      var taxonomyFuture: Future[SimpleResult] = null
+
+      if(facetFields != null) {
+        facetFields.map( facetField => {
+          if("categorypath".equals(facetField.getName.toLowerCase)) {
+            if(Logger.isDebugEnabled) {
+              Logger.debug("Got " + facetField.getValueCount + " category ids")
+            }
+
+            val storage = withNamespace(storageFactory, preview)
+
+            if(facetField.getValueCount > 0) {
+              val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
+              val maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
+              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, fieldList(), storage).map( category => {
+                Ok(Json.obj(
+                  "metadata" -> Json.obj(
+                    "time" -> (System.currentTimeMillis() - startTime)),
+                    "category" -> category))
+              })
+            }
+          }
+        })
+      }
+
+      if(taxonomyFuture != null) {
+        withErrorHandling(taxonomyFuture, s"Cannot get data for category $id")
+      }
+      else {
+        Future(NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id")))
       }
     })
     
@@ -106,20 +139,19 @@ object CategoryController extends BaseController {
 
           withErrorHandling(future, s"Cannot store categories with ids [${categories map (_.id) mkString ","}]")
       } catch {
-          case e: IllegalArgumentException => {
+          case e: IllegalArgumentException =>
             Logger.error(e.getMessage)
             Future.successful(BadRequest(Json.obj(
               "message" -> e.getMessage
             )))
-          }
         }
       }
     }.recover {
-      case e: JsError => {
+      case e: JsError =>
         Future.successful(BadRequest(Json.obj(
           "message" -> "Missing required fields",
           "detail" -> JsError.toFlatJson(e))))
-      }
+
     }.get
   }
 
@@ -212,7 +244,6 @@ object CategoryController extends BaseController {
         
 	    val storage = withNamespace(storageFactory, preview)
 	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {
-	
 		    //now we need to retrieve the actual brand objects from the brand collection  
 		    if(categories != null) {
 		      Ok(Json.obj(
