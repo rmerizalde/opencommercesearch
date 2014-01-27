@@ -531,8 +531,9 @@ public class RuleManager<T extends SolrServer> {
             }
         }
 
-        // finally add the score field to the sorting spec. Score will be a tie breaker when other sort specs are added
+        // finally add the score and version fields to the sorting spec. These will be a tie breaker when other sort specs are added
         query.addSortField("score", ORDER.desc);
+        query.addSortField("_version_", ORDER.desc);
     }
 
     void setFilterQueries(FilterQuery[] filterQueries, String catalogId, SolrQuery query) {

@@ -132,7 +132,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         assertEquals("category:0.paulcatalog", outParams.get(CommonParams.FQ));
     }
@@ -147,7 +147,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         String[] filterQueries = outParams.getParams(CommonParams.FQ);
         assertEquals(3, filterQueries.length);
@@ -167,7 +167,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -183,7 +183,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
@@ -205,7 +205,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         assertEquals("fieldName3", outParams.get(FacetParams.FACET_FIELD));
         assertEquals("true", outParams.get(FacetParams.FACET));
@@ -223,7 +223,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
@@ -245,7 +245,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -261,7 +261,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -277,7 +277,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
