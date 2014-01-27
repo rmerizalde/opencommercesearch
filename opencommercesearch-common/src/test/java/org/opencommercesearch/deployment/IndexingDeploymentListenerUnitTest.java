@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +42,9 @@ import atg.repository.RepositoryException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import org.opencommercesearch.feed.CategoryFeed;
+import org.opencommercesearch.feed.FacetFeed;
+import org.opencommercesearch.feed.RuleFeed;
 
 public class IndexingDeploymentListenerUnitTest {
 
@@ -48,7 +52,16 @@ public class IndexingDeploymentListenerUnitTest {
     
     @Mock
     SearchServer searchServer;
-    
+
+    @Mock
+    RuleFeed ruleFeed;
+
+    @Mock
+    FacetFeed facetFeed;
+
+    @Mock
+    CategoryFeed categoryFeed;
+
     @Before
     public void setUp() throws Exception {
         initMocks(this);
@@ -58,16 +71,19 @@ public class IndexingDeploymentListenerUnitTest {
         indexingDeploymentListener.setTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor1", "searchRepo:triggerItemDescriptor2"));
         indexingDeploymentListener.setFacetsTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor3", "searchRepo:triggerItemDescriptor4"));
         indexingDeploymentListener.setRulesTriggerItemDescriptorNames(Lists.newArrayList("searchRepo:triggerItemDescriptor5", "searchRepo:triggerItemDescriptor6"));
+        indexingDeploymentListener.setCategoryTriggerItemDescriptorNames(Lists.newArrayList("productRepo:triggerItemDescriptor7", "productRepo:triggerItemDescriptor8"));
         indexingDeploymentListener.setLoggingDebug(false);
         indexingDeploymentListener.setLoggingError(false);
         indexingDeploymentListener.setLoggingInfo(false);
         indexingDeploymentListener.setLoggingTrace(false);
         indexingDeploymentListener.setLoggingWarning(false);
+        indexingDeploymentListener.setRuleFeed(ruleFeed);
+        indexingDeploymentListener.setFacetFeed(facetFeed);
+        indexingDeploymentListener.setCategoryFeed(categoryFeed);
     }
 
     @Test
-    public void testDeploymentEvent() throws RepositoryException, SearchServerException {
-        
+    public void testDeploymentEvent() throws RepositoryException, SearchServerException, IOException {
         DeploymentEvent event = mock(DeploymentEvent.class);
         when(event.getNewState()).thenReturn(1);
         
@@ -79,12 +95,13 @@ public class IndexingDeploymentListenerUnitTest {
         indexingDeploymentListener.deploymentEvent(event );
         
         verify(searchServer).onRepositoryItemChanged("searchRepo", affectedItemSet);
+        verify(facetFeed, times(0)).startFeed();
+        verify(ruleFeed, times(0)).startFeed();
+        verify(categoryFeed, times(0)).startFeed();
     }
-
 
     @Test
     public void testDeploymentEventAtLeastOneMatch() throws RepositoryException, SearchServerException {
-        
         DeploymentEvent event = mock(DeploymentEvent.class);
         when(event.getNewState()).thenReturn(1);
         
@@ -100,7 +117,6 @@ public class IndexingDeploymentListenerUnitTest {
     
     @Test
     public void testDeploymentEventNoMatch() throws RepositoryException, SearchServerException {
-        
         DeploymentEvent event = mock(DeploymentEvent.class);
         when(event.getNewState()).thenReturn(1);
         
@@ -137,5 +153,78 @@ public class IndexingDeploymentListenerUnitTest {
             fail("The exception should be captured by the class");
         }
     }
-    
+
+    @Test
+    public void testFacetsDeploymentEvent() throws RepositoryException, SearchServerException, IOException {
+        DeploymentEvent event = mock(DeploymentEvent.class);
+        when(event.getNewState()).thenReturn(1);
+
+        Map<String, Set<String>> affectedItemTypes = Maps.newHashMap();
+        when(event.getAffectedItemTypes()).thenReturn(affectedItemTypes);
+        HashSet<String> affectedItemSet = Sets.newHashSet("triggerItemDescriptor3", "triggerItemDescriptor4");
+        affectedItemTypes.put("searchRepo", affectedItemSet);
+
+        indexingDeploymentListener.deploymentEvent(event );
+
+        verify(facetFeed).startFeed();
+        verify(ruleFeed, times(0)).startFeed();
+        verify(categoryFeed, times(0)).startFeed();
+        verify(searchServer, times(0)).onRepositoryItemChanged("searchRepo", affectedItemSet);
+    }
+
+    @Test
+    public void testRulesDeploymentEvent() throws RepositoryException, SearchServerException, IOException {
+        DeploymentEvent event = mock(DeploymentEvent.class);
+        when(event.getNewState()).thenReturn(1);
+
+        Map<String, Set<String>> affectedItemTypes = Maps.newHashMap();
+        when(event.getAffectedItemTypes()).thenReturn(affectedItemTypes);
+        HashSet<String> affectedItemSet = Sets.newHashSet("triggerItemDescriptor5", "triggerItemDescriptor6");
+        affectedItemTypes.put("searchRepo", affectedItemSet);
+
+        indexingDeploymentListener.deploymentEvent(event );
+
+        verify(ruleFeed).startFeed();
+        verify(facetFeed, times(0)).startFeed();
+        verify(categoryFeed, times(0)).startFeed();
+        verify(searchServer, times(0)).onRepositoryItemChanged("searchRepo", affectedItemSet);
+     }
+
+    @Test
+    public void testCategoryDeploymentEvent() throws RepositoryException, SearchServerException, IOException {
+        DeploymentEvent event = mock(DeploymentEvent.class);
+        when(event.getNewState()).thenReturn(1);
+
+        Map<String, Set<String>> affectedItemTypes = Maps.newHashMap();
+        when(event.getAffectedItemTypes()).thenReturn(affectedItemTypes);
+        HashSet<String> affectedItemSet = Sets.newHashSet("triggerItemDescriptor7", "triggerItemDescriptor8");
+        affectedItemTypes.put("productRepo", affectedItemSet);
+
+        indexingDeploymentListener.deploymentEvent(event );
+
+        verify(categoryFeed).startFeed();
+        verify(ruleFeed, times(0)).startFeed();
+        verify(facetFeed, times(0)).startFeed();
+        verify(searchServer, times(0)).onRepositoryItemChanged("productRepo", affectedItemSet);
+    }
+
+    @Test
+    public void testAllDeploymentEvent() throws RepositoryException, SearchServerException, IOException {
+        DeploymentEvent event = mock(DeploymentEvent.class);
+        when(event.getNewState()).thenReturn(1);
+
+        Map<String, Set<String>> affectedItemTypes = Maps.newHashMap();
+        when(event.getAffectedItemTypes()).thenReturn(affectedItemTypes);
+        HashSet<String> affectedItemSet = Sets.newHashSet("triggerItemDescriptor1", "triggerItemDescriptor2", "triggerItemDescriptor3", "triggerItemDescriptor4", "triggerItemDescriptor5", "triggerItemDescriptor6");
+        affectedItemTypes.put("searchRepo", affectedItemSet);
+        affectedItemTypes.put("productRepo", Sets.newHashSet("triggerItemDescriptor7", "triggerItemDescriptor8"));
+
+        indexingDeploymentListener.deploymentEvent(event );
+
+        //Should call all just once
+        verify(categoryFeed).startFeed();
+        verify(ruleFeed).startFeed();
+        verify(facetFeed).startFeed();
+        verify(searchServer).onRepositoryItemChanged("searchRepo", affectedItemSet);
+    }
 }

@@ -61,6 +61,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private List<String> triggerItemDescriptorNames;
     private List<String> facetsTriggerItemDescriptorNames;
     private List<String> rulesTriggerItemDescriptorNames;
+    private List<String> categoryTriggerItemDescriptorNames;
     private boolean enableEvaluation;
     private EvaluationServiceSender evaluationServiceSender;
 
@@ -122,6 +123,14 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 
     public void setRulesTriggerItemDescriptorNames(List<String> rulesTriggerItemDescriptorNames) {
         this.rulesTriggerItemDescriptorNames = rulesTriggerItemDescriptorNames;
+    }
+
+    public List<String> getCategoryTriggerItemDescriptorNames() {
+        return categoryTriggerItemDescriptorNames;
+    }
+
+    public void setCategoryTriggerItemDescriptorNames(List<String> categoryTriggerItemDescriptorNames) {
+        this.categoryTriggerItemDescriptorNames = categoryTriggerItemDescriptorNames;
     }
 
     public EvaluationServiceSender getEvaluationServiceSender() {
@@ -194,15 +203,22 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                 for (Entry<String, Set<String>> entry : affectedItemTypes.entrySet()) {
                     String repositoryName = entry.getKey();
                     Set<String> itemDescriptorNames = (Set<String>) entry.getValue();
+
+                    boolean ruleRan = false;
+                    boolean facetRan = false;
+                    boolean categoryRan = false;
+                    boolean genericRan = false;
+
                     for (String itemDescriptorName : itemDescriptorNames) {
                         if (isLoggingInfo()) {
                             logInfo("Processing " + itemDescriptorName + " for repository " + repositoryName);
                         }
 
                         String descriptorName = repositoryName + ":" + itemDescriptorName;
-                        if(getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
+                        if(!ruleRan && getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
                             try {
                                 getRuleFeed().startFeed();
+                                ruleRan = true;
                             }
                             catch (Exception ex) {
                                 if(isLoggingError()) {
@@ -211,9 +227,10 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                             }
                         }
 
-                        if(getFacetsTriggerItemDescriptorNames().contains(descriptorName)) {
+                        if(!facetRan && getFacetsTriggerItemDescriptorNames().contains(descriptorName)) {
                             try {
                                 getFacetFeed().startFeed();
+                                facetRan = true;
                             }
                             catch (Exception ex) {
                                 if(isLoggingError()) {
@@ -221,24 +238,22 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
                                 }
                             }
                         }
-                        else if ((itemDescriptorName.equals("category") || itemDescriptorName.equals("ruleBasedCategory"))
-                                && repositoryName.equals("/atg/commerce/catalog/ProductCatalog")) {
+
+                        if(!categoryRan && getCategoryTriggerItemDescriptorNames().contains(descriptorName)) {
                             try {
                                 categoryFeed.startFeed();
+                                categoryRan = true;
                             } catch (Exception ex) {
                                 if (isLoggingError()) {
                                     logError("Category feed failed", ex);
                                 }
                             }
                         }
-                        else if (triggerItemDescriptorNames.contains(descriptorName) || getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
+
+                        if(!genericRan && triggerItemDescriptorNames.contains(descriptorName)) {
                             doEvaluation = true;
-                            try {
-                                notifyItemChange(repositoryName, itemDescriptorNames);
-                            } catch (Exception ex) {
-                                logError("Failed to process deployment event due unexpected error.", ex);
-                            }
-                            break;
+                            notifyItemChange(repositoryName, itemDescriptorNames);
+                            genericRan = true;
                         }
                     }
                 }
@@ -272,6 +287,12 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
         } catch (SearchServerException ex) {
             if (isLoggingError()) {
                 logError("Exception while processing deployment event for repository " + repositoryName
+                        + "with item descriptors " + itemDescriptorNames, ex);
+            }
+        }
+        catch (Exception ex) {
+            if (isLoggingError()) {
+                logError("Unexpected exception while processing deployment event for repository " + repositoryName
                         + "with item descriptors " + itemDescriptorNames, ex);
             }
         }
