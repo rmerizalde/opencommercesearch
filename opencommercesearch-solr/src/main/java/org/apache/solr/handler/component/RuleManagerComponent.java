@@ -238,7 +238,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
                 //Initialize facet manager
                 FacetHandler facetHandler = new FacetHandler();
-
+                
                 for (Map.Entry<RuleType, List<Document>> rule: rulesMap.entrySet()) {
                     RuleType type = rule.getKey();
 
@@ -782,13 +782,17 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     if(RuleConstants.COMBINE_MODE_REPLACE.equals(rule.get(RuleConstants.FIELD_COMBINE_MODE))) {
                         facetHandler.clear();
                     }
-
-                    String facetsQueryString = getQueryString(rule);
-                    if(facetsQueryString == null) {
-                        continue;
+                    
+                    String[] facetField = rule.getValues(RuleConstants.FIELD_FACET_FIELD);
+                    if(facetField != null) {
+	                    String facetsQueryString = getQueryString(rule);
+	                    if(StringUtils.isBlank(facetsQueryString)) {
+	                        continue;
+	                    }
+	                    
+	                    facetHandler.addFacet(facetField);
+	                    searchFacets(component, facetsQueryString, facetHandler);
                     }
-
-                    searchFacets(component, facetsQueryString, facetHandler);
                 }
 
                 facetHandler.setParams(ruleParams);

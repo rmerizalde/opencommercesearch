@@ -23,7 +23,6 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
-
 import org.opencommercesearch.api.models.{Facet, Filter}
 import org.opencommercesearch.api.util.Util
 import org.apache.solr.common.params.FacetParams
@@ -32,6 +31,8 @@ import org.apache.solr.client.solrj.response.{RangeFacet, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.response.FacetField.Count
 import org.apache.commons.lang3.StringUtils
+import scala.collection.mutable.LinkedHashMap
+import java.net.URLEncoder
 
 
 /**
@@ -44,8 +45,15 @@ case class FacetHandler (
   facetData: Seq[NamedList[AnyRef]]) {
 
   def getFacets : Seq[Facet] = {
-    val facetMap: Map[String, Facet] = new HashMap[String, Facet]
-
+    val facetMap: LinkedHashMap[String, Facet] = new LinkedHashMap[String, Facet]
+    
+    //To preserve the order of the facets first we need to initialize the keys of the linked hash map in the correct order
+    //from results in the solr rule_facet. Then in a second pass we'll populate the actual facet and filter values 
+    facetMap.put("category", null)
+    facetData.foreach( entry => {
+    	facetMap.put(entry.get(Facet.FieldName).toString(), null)	
+    })
+    
     for (facetField <- queryResponse.getFacetFields) {
       var facet : Option[Facet] = None
       
@@ -63,8 +71,8 @@ case class FacetHandler (
           val filterName: String = getCountName(count, prefix)
           if (!facetBlackList.contains(filterName)) {
             val filter = new Filter(Some(filterName), Some(count.getCount),
-              Some(getCountPath(count, f, filterQueries)),
-              Some(count.getAsFilterQuery),
+              Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
+              Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
               None
             )
             filter.setSelected(count.getFacetField.getName, filterName, filterQueries)
@@ -79,7 +87,8 @@ case class FacetHandler (
     queryFacets(facetMap)
 
     val sortedFacets = new ArrayBuffer[Facet](facetMap.size)
-    sortedFacets.appendAll(facetMap.values)
+    //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
+    sortedFacets.appendAll(facetMap.values.filterNot( value => null == value))
     sortedFacets.filter(facet => {
       var include = false
       for (filters <- facet.filters) {
@@ -190,8 +199,8 @@ case class FacetHandler (
     new Filter(
       Some(Util.getRangeName(fieldName, key, v1, v2, null)),
       Some(count),
-      Some(getCountPath(fieldName, filterQuery, facet)),
-      Some(filterQuery),
+      Some(URLEncoder.encode(getCountPath(fieldName, filterQuery, facet), "UTF-8")),
+      Some(URLEncoder.encode(filterQuery, "UTF-8")),
       None
     )
   }
@@ -237,8 +246,8 @@ case class FacetHandler (
             val filter = new Filter(
               Some(FilterQuery.unescapeQueryChars(Util.getRangeName(fieldName, expression))),
               Some(count),
-              Some(getCountPath(expression, filterQuery, facet)),
-              Some(filterQuery),
+              Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
+              Some(URLEncoder.encode(filterQuery, "UTF-8")),
               None)
             filter.setSelected(fieldName, expression, filterQueries)
             filters.add(filter)

@@ -313,9 +313,8 @@ object ProductController extends BaseController {
     query.setFacet(true)
     initQueryParams(query, site, showCloseoutProducts = closeout, requestType)
 
-    //@todo jmendez remove this from here when moving filterQueries to RuleManagerComponent
     filterQueries.foreach(fq => {
-      query.addFilterQuery(fq.toString)
+       query.add("rule.fq", fq.toString)
     })
 
     solrServer.query(query).flatMap { response =>

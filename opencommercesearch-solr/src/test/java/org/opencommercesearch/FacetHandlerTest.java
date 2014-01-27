@@ -113,12 +113,13 @@ public class FacetHandlerTest {
         Map<String, NamedList> facets = facetHandler.getFacets();
         assertEquals(3, facets.size());
         List<NamedList> facetList = new ArrayList<NamedList>(facets.values());
-        assertEquals("fieldName", facetList.get(0).get(FacetConstants.FIELD_FIELD_NAME));
-        assertEquals("rangeName", facetList.get(1).get(FacetConstants.FIELD_FIELD_NAME));
-        assertEquals("queryName", facetList.get(2).get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("queryName", facetList.get(0).get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("fieldName", facetList.get(1).get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("rangeName", facetList.get(2).get(FacetConstants.FIELD_FIELD_NAME));
     }
 
     private void addFacets(){
+        facetHandler.addFacet(new String[]{"queryName", "fieldName","rangeName" });
         facetHandler.addFacet(fieldFacet);
         facetHandler.addFacet(rangeFacet);
         facetHandler.addFacet(queryFacet);

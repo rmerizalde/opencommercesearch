@@ -52,12 +52,9 @@ public class FacetHandler {
 
     /**
      * List of facets registered on this facet handler. The list is indexed by facet field name.
-     *
-     * @todo jmendez I changed this to a linked hash map to preserver insertion order. However, the rule manager
-     * doesn't seem to be loading the facets in the order define by the business user.
      */
-    private Map<String, Document> facets = new LinkedHashMap<String, Document>();
-
+    private LinkedHashMap<String, Document> facets = new LinkedHashMap<String, Document>();
+    
     /**
      * Enum of valid facet types known to the facet handler.
      */
@@ -199,10 +196,25 @@ public class FacetHandler {
      */
     public void clear() {
         if (facets != null) {
-            facets.clear();
+        	facets.clear();
         }
     }
 
+    /**
+     * Helper method to keep the order that the facets should be returned.
+     * Because there could be many facet rules, the first facets added will be the ones 
+     * from the first facet rule that gets processed
+     * 
+     * @param facetFields Array that represents the order that the facets should have.
+     */
+    public void addFacet(String[] facetFields) {
+    	if(facetFields != null) {
+    		for(String facetField: facetFields) {
+    			facets.put(facetField, null);
+    		}
+    	}
+    }
+    
     /**
      * Add facet parameters to the given query.
      * @param query the query object
@@ -212,10 +224,12 @@ public class FacetHandler {
             return;
         }
 
-        for (String s : facets.keySet()) {
-            Document facet = facets.get(s);
-            FacetType type = FacetType.valueOf(facet.get(FacetConstants.FIELD_TYPE));
-            type.setParams(query, facet);
+        for (String key : facets.keySet()) {
+        	Document facet = facets.get(key);
+        	if(facet != null) {
+	            FacetType type = FacetType.valueOf(facet.get(FacetConstants.FIELD_TYPE));
+	            type.setParams(query, facet);
+        	}
         }
     }
 
@@ -228,7 +242,11 @@ public class FacetHandler {
      * @param fieldFacet the facet object
      */
     private void addField(String fieldName, Document fieldFacet) {
+        if( ! facets.containsKey(fieldName)) {
+            addFacet(new String[]{fieldName});
+        }
         facets.put(fieldName, fieldFacet);
+        
     }
 
     /**
@@ -249,12 +267,15 @@ public class FacetHandler {
         for(String fieldName : facets.keySet()) {
             NamedList<String> namedList = new NamedList<String>();
 
-            for (IndexableField field : facets.get(fieldName)) {
-                if(!ignoredFields.contains(field.name())) {
-                    namedList.add(field.name(), field.stringValue());
+            Document facet = getFacetItem(fieldName);
+            if(facet != null) {
+                for (IndexableField field : facet) {
+                    if(!ignoredFields.contains(field.name())) {
+                        namedList.add(field.name(), field.stringValue());
+                    }
                 }
+                result.put(fieldName, namedList);
             }
-            result.put(fieldName, namedList);
         }
 
         return result;
