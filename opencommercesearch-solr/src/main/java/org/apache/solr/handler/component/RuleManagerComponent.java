@@ -248,8 +248,9 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     }
                 }
 
-                //Finally add the score field to the sorting spec. Score will be a tie breaker when other sort specs are added
+                //Finally add the score and version fields to the sorting spec. These will be a tie breaker when other sort specs are added
                 augmentedParams.addSort("score", SolrQuery.ORDER.desc);
+                augmentedParams.addSort("_version_", SolrQuery.ORDER.desc);
 
                 Map<String, NamedList> facets = facetHandler.getFacets();
                 setFilterQueries(facets, requestParams, augmentedParams);

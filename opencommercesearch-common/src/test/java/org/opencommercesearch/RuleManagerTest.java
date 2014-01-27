@@ -241,7 +241,8 @@ public class RuleManagerTest {
         verify(query).getQuery();
         verify(query, times(2)).getSortFields();
         verify(query).setSortField("isToos", ORDER.asc);
-        verify(query).addSortField("score", ORDER.desc);        
+        verify(query).addSortField("score", ORDER.desc);
+        verify(query).addSortField("_version_", ORDER.desc);
         verify(query).setFacetPrefix("category", "13.jackets.");
 
         // verify the single calls to addFilterQuery
@@ -288,6 +289,7 @@ public class RuleManagerTest {
         verify(query, times(2)).getSortFields();
         verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
+        verify(query).addSortField("_version_", ORDER.desc);
         verify(query).getParams("includeRules");
         verify(query).getParams("excludeRules");
         verifyNoMoreInteractions(query);
@@ -440,6 +442,7 @@ public class RuleManagerTest {
         verify(query).addSortField("reviewAverage", ORDER.desc);
         verify(query).addSortField("reviews", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
+        verify(query).addSortField("_version_", ORDER.desc);
         verifyNoMoreInteractions(query);
     }
 
@@ -494,6 +497,7 @@ public class RuleManagerTest {
         verify(query).addSortField("reviewAverage", ORDER.desc);
         verify(query).addSortField("reviews", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
+        verify(query).addSortField("_version_", ORDER.desc);
         verifyNoMoreInteractions(query);
     }
     
@@ -505,6 +509,7 @@ public class RuleManagerTest {
         verify(query).getSortFields();
         verify(query).setSortField("isToos", ORDER.asc);
         verify(query).addSortField("score", ORDER.desc);
+        verify(query).addSortField("_version_", ORDER.desc);
         verifyNoMoreInteractions(query);
     }    
 

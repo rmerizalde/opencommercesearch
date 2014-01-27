@@ -583,6 +583,11 @@ public abstract class SearchFeed extends GenericService {
             int productCount = productRql.executeCountQuery(productView, null);
             currentErrorThreshold = (int) (productCount * getErrorThreshold());
 
+            //If error threshold is too small, don't do anything with it.
+            if(currentErrorThreshold == 0) {
+                currentErrorThreshold = productCount;
+            }
+
             if (isLoggingInfo()) {
                 logInfo("Started full feed for " + productCount + " products");
             }
