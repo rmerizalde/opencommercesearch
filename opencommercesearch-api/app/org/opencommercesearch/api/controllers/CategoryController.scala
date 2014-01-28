@@ -209,10 +209,7 @@ object CategoryController extends BaseController with FacetQuery{
      id: String,
      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
      @QueryParam("preview")
-     preview: Boolean,
-     @ApiParam(defaultValue="50", value = "Max number of brands", required = false)
-     @QueryParam("facetLimit")
-     facetLimit: Int) = Action.async { implicit request =>
+     preview: Boolean) = Action.async { implicit request =>
 
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(new SolrQuery("*:*"), preview)
