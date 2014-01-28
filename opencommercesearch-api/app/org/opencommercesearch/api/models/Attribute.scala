@@ -1,6 +1,7 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
+import com.fasterxml.jackson.annotation.JsonCreator
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -21,7 +22,10 @@ import play.api.libs.json.Json
 * under the License.
 */
 
-case class Attribute(var name: Option[String], var value: Option[String]) {}
+case class Attribute(var name: Option[String], var value: Option[String]) {
+  @JsonCreator
+  def this() = this(None, None)
+}
 
 object Attribute {
   implicit val readsAttribute = Json.reads[Attribute]

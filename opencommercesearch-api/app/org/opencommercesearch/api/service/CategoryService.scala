@@ -86,6 +86,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         }
       }
       else {
+         //TODO gsegura: there seems to be a bug with solr 4.6. The fl field is been ignored
+         // so it's only returning the default fields, which exclude the catalogs. This makes the 
+         // product feed to fail
           val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
           if (doc != null) {
             Logger.debug("Found category " + id)

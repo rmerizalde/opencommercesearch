@@ -220,14 +220,11 @@ object CategoryController extends BaseController with FacetQuery{
       //create solr query obj to query the product catalog filtering by ancestorCategoryId property and 
       //generate a field facet by brandId for brands with at least 1 result
       Logger.debug(s"Query brands for category Id [$id]")
-      
       catalogQuery.addFilterQuery(s"ancestorCategoryId:$id")
-      catalogQuery.setRows(0)
-      
-      catalogQuery.setFacet(true)
-      catalogQuery.addFacetField("brandId")
-      catalogQuery.setFacetLimit(facetLimit)
-      catalogQuery.setFacetMinCount(1)
+
+      //add to the query a field facet for brandId, with a default facet limit of 50
+      //and 0 rows in the result
+      withFieldFacet("brandId", catalogQuery)
     }
 
     solrServer.query(catalogQuery).flatMap( categoryResponse => {

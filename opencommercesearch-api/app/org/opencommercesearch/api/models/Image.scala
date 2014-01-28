@@ -20,6 +20,8 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json.Json
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
  * A image model
@@ -28,7 +30,12 @@ import play.api.libs.json.Json
  *
  * @author rmerizalde
  */
-case class Image(var title: Option[String], var url: Option[String]) {}
+case class Image(
+    @JsonProperty("title") var title: Option[String], 
+    @JsonProperty("url")var url: Option[String]) {
+  @JsonCreator
+  def this() = this(None, None)
+}
 
 object Image {    Tuple2
   implicit val readsImage = Json.reads[Image]

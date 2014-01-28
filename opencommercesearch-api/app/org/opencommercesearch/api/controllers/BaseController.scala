@@ -23,16 +23,14 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.libs.json.{Writes, Json}
-
 import scala.concurrent.Future
-
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
-
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
+import org.opencommercesearch.api.common.FacetQuery
 
 /**
  * This class provides common functionality for all controllers
@@ -41,7 +39,7 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
  *
  * @author rmerizalde
  */
-class BaseController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
 
   protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[SimpleResult] = {
     val startTime = System.currentTimeMillis()
