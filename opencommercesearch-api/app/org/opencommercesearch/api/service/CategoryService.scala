@@ -444,7 +444,14 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     categoryPaths.map(categoryPath => {
       val indexOf = categoryPath.indexOf(parentCategoryId)
       if(indexOf > 0) {
-        categoryPath.substring(indexOf + parentCategoryId.length).split(CategoryPathSeparator).take(maxLevels).foreach( childCategory => {
+        var hierarchyLevels = maxLevels + 1 //Always add one to remove unwanted level
+        // If maxLevels is -1 we want to ignore it and retrieve the whole taxonomy for parentCategoryId.
+        // This is just to make clients life easier, so they don't have to specify random high maxLevel values to get the whole taxonomy.
+        if(hierarchyLevels == 0) {
+          hierarchyLevels = Integer.MAX_VALUE
+        }
+
+        categoryPath.substring(indexOf + parentCategoryId.length).split(CategoryPathSeparator).take(hierarchyLevels).foreach( childCategory => {
           childCategoriesToLookFor += childCategory
         })
       }
@@ -473,7 +480,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
 
     var fieldList = fields
     //Go to Mongo to fetch category data
-    if(!fields.isEmpty) {
+    if(!fields.contains("childCategories")) {
       fieldList :+= "childCategories"
     }
 
@@ -514,6 +521,4 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       hierarchyMap.toMap
     })
   }
-
-
 }

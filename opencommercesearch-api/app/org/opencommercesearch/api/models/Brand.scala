@@ -54,6 +54,10 @@ case class Brand(@Id var id: Option[String], var name: Option[String], var logo:
     this.name = Option.apply(name)
   }
 
+  def getName() : String = {
+    this.name.getOrElse("")
+  }
+
   @Field
   def setLogo(logo: String) : Unit = {
     this.logo = Option.apply(logo)
@@ -62,6 +66,10 @@ case class Brand(@Id var id: Option[String], var name: Option[String], var logo:
   @Field
   def setUrl(url: String) : Unit = {
     this.url = Option.apply(url)
+  }
+
+  def getSeoUrlToken() : String = {
+    this.url.getOrElse("")
   }
 
   def toDocument(feedTimestamp: Long) : SolrInputDocument = {

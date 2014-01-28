@@ -48,7 +48,34 @@ trait FieldList {
    * @return a sequence with the field names
    */
   def fieldList[R]()(implicit request: Request[R]) : Seq[String] = {
+    fieldList(",*")
+  }
+
+  /**
+   * Return a sequence with list of fields to return, optionally specifying whether or not star ('*') is supported.
+   * @param allowStar Whether or not star ('*') is supported. If true, start will be considered a separate field. This is useful when the storage supports getting all fields.
+   * @param request is the implicit request
+   * @tparam R type of the request
+   * @return a sequence with the field names
+   */
+  def fieldList[R](allowStar : Boolean)(implicit request: Request[R]) : Seq[String] = {
+    if(allowStar) {
+      fieldList(",")
+    }
+    else {
+      fieldList()
+    }
+  }
+
+  /**
+   * Return a sequence with list of fields to return using the given field separators
+   * @param fieldSeparators String containing the field separators to use when splitting the given field names sequence.
+   * @param request is the implicit request
+   * @tparam R type of the request
+   * @return a sequence with the field names
+   */
+  private def fieldList[R](fieldSeparators : String)(implicit request: Request[R]) : Seq[String] = {
     val fields = request.getQueryString("fields")
-    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
+    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), fieldSeparators)
   }
 }

@@ -24,12 +24,13 @@ import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
 import scala.concurrent.{Future}
 import org.specs2.mutable._
-import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Brand
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
+import org.apache.solr.client.solrj.response.FacetField
 
 class BrandControllerSpec extends BaseSpec {
 
@@ -59,29 +60,30 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 404 when a brand is not found"  in new Brands {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
         val expectedId = "1000"
 
+        storage.findBrand(anyString, any) returns Future.successful(null)
+
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
+        there was one(storage).findBrand(anyString, any)
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find brand with id [$expectedId]")
       }
     }
 
     "send 200 when a brand is found" in new Brands {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
-        val doc = mock[SolrDocument]
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
 
-        namedList.get("doc") returns doc
-        doc.get("id") returns expectedId
-        doc.get("name") returns expectedName
-        doc.get("logo") returns expectedLogo
+        val brand = new Brand()
+        brand.setId(expectedId)
+        brand.setName(expectedName)
+        brand.setLogo(expectedLogo)
+        storage.findBrand(anyString, any) returns Future.successful(brand)
 
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
+
         validateQueryResult(result.get, OK, "application/json")
+        there was two(storage).findBrand(anyString, any)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "brand").validate[Brand].map { brand =>

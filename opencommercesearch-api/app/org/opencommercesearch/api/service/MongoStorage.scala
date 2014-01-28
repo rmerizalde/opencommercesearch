@@ -244,7 +244,18 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.toString()
   }
 
+  /**
+   * Creates a projection for the given list of fields (adds includes/excludes). If fields is only *, then no projection is created.
+   * @param fields Fields used to created the projection for (include fields)
+   * @param defaultFieldsToHide Fields that will be ignored from the projection (exclude fields)
+   * @return A projection to be used while querying Mongo storage.
+   */
   private def projectionAux(fields: Seq[String], defaultFieldsToHide: String) : String = {
+    //If star is provided, then return everything
+    if(fields.contains("*")) {
+      return "{}"
+    }
+
     val projection = new StringBuilder(128)
     projection.append("{")
     if (fields.size > 0) {
@@ -328,7 +339,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
     Future {
       val brandCollection = jongo.getCollection("brands")
-      brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
+      if(fields.contains("*")) {
+        Logger.debug("aaaa")
+        brandCollection.findOne("{_id:#}", id).as(classOf[Brand])
+      }
+      else {
+        Logger.debug("b")
+        brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
+      }
     }
   }
   

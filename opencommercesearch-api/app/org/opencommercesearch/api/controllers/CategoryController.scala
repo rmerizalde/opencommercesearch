@@ -48,7 +48,7 @@ object CategoryController extends BaseController with FacetQuery{
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the inmediate children. If set to 2, will return inmediate children plus the children of them, and so on.", defaultValue = "1", required = false, dataType = "int", paramType = "query")
+    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect.", defaultValue = "1", required = false, dataType = "int", paramType = "query")
   ))
   def findById(
       version: Int,
@@ -74,16 +74,14 @@ object CategoryController extends BaseController with FacetQuery{
       if(facetFields != null) {
         facetFields.map( facetField => {
           if("categorypath".equals(facetField.getName.toLowerCase)) {
-            if(Logger.isDebugEnabled) {
-              Logger.debug("Got " + facetField.getValueCount + " category ids")
-            }
+            Logger.debug(s"Got ${facetField.getValueCount} different category paths for category ${id}")
 
             val storage = withNamespace(storageFactory, preview)
 
             if(facetField.getValueCount > 0) {
               val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
               val maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
-              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, fieldList(), storage).map( category => {
+              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, fieldList(true), storage).map( category => {
                 Ok(Json.obj(
                   "metadata" -> Json.obj(
                     "time" -> (System.currentTimeMillis() - startTime)),
@@ -95,7 +93,7 @@ object CategoryController extends BaseController with FacetQuery{
       }
 
       if(taxonomyFuture != null) {
-        withErrorHandling(taxonomyFuture, s"Cannot get data for category $id")
+        withErrorHandling(taxonomyFuture, s"Cannot retrieve category with id $id")
       }
       else {
         Future(NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id")))
@@ -243,7 +241,7 @@ object CategoryController extends BaseController with FacetQuery{
         val brandIds = JIterableWrapper(brandFacet.getValues).map(filter =>  filter.getName)
         
 	    val storage = withNamespace(storageFactory, preview)
-	    val future = storage.findBrands(brandIds, fieldList()).map( categories => {
+	    val future = storage.findBrands(brandIds, fieldList(true)).map( categories => {
 		    //now we need to retrieve the actual brand objects from the brand collection  
 		    if(categories != null) {
 		      Ok(Json.obj(

@@ -68,9 +68,17 @@ case class Category(
     this.name = Option.apply(name)
   }
 
+  def getName() : String = {
+    this.name.getOrElse("")
+  }
+
   @Field
   def setSeoUrlToken(seoUrlToken: String) {
     this.seoUrlToken = Option.apply(seoUrlToken)
+  }
+
+  def getSeoUrlToken() : String = {
+    this.seoUrlToken.getOrElse("")
   }
   
   @Field("isRuleBased")
