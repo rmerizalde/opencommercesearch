@@ -37,6 +37,7 @@ case class Sku(
   var countries: Option[Seq[Country]],
   var isPastSeason: Option[Boolean],
   var colorFamily: Option[String],
+  var color: Option[String],
   var isRetail: Option[Boolean],
   var isCloseout: Option[Boolean],
   var isOutlet: Option[Boolean],
@@ -52,7 +53,7 @@ case class Sku(
   var allowBackorder: Option[Boolean]) {
 
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-      None, None, None, None)
+      None, None, None, None, None)
 }
 
 object Sku {
