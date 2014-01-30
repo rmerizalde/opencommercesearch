@@ -178,19 +178,19 @@ object ProductController extends BaseController {
    */
   private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
     val groups = ArrayBuffer[JsObject]()
-    var productSummary = groupSummary.get("productId").asInstanceOf[NamedList[Object]];
-    JIterableWrapper(productSummary).map(value => {
-      var parameterSummary = value.getValue.asInstanceOf[NamedList[Object]];
+    var productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]];
+    JIterableWrapper(productSummaries).map(processGroupSummary => {
+      var parameterSummaries = processGroupSummary.getValue.asInstanceOf[NamedList[Object]];
       val productSeq = ArrayBuffer[(String,JsValue)]()
-      JIterableWrapper(parameterSummary).map(value1 => {
-        var statSummary = value1.getValue.asInstanceOf[NamedList[Object]];
+      JIterableWrapper(parameterSummaries).map(parameterSummary => {
+        var statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]];
         val parameterSeq = ArrayBuffer[(String,JsString)]()
-        JIterableWrapper(statSummary).map(value2 => {
-          parameterSeq += ((value2.getKey, new JsString(value2.getValue.toString)))
+        JIterableWrapper(statSummaries).map(statSummary => {
+          parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
         })
-        productSeq += ((value1.getKey, new JsObject(parameterSeq)))
+        productSeq += ((parameterSummary.getKey, new JsObject(parameterSeq)))
       })
-      groups += new JsObject(ArrayBuffer[(String,JsValue)]((value.getKey, new JsObject(productSeq))))
+      groups += new JsObject(ArrayBuffer[(String,JsValue)]((processGroupSummary.getKey, new JsObject(productSeq))))
     })
     new JsArray(groups)
   }
@@ -281,7 +281,7 @@ object ProductController extends BaseController {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "groupSummary" -> processGroupSummary(groupSummary),
+                  "productSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
                   "facets" -> buildFacets(response, query, filterQueries)),
                 "products" -> Json.toJson(
@@ -292,7 +292,7 @@ object ProductController extends BaseController {
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
-                  "groupSummary" -> processGroupSummary(groupSummary),
+                  "productSummary" -> processGroupSummary(groupSummary),
                 "products" -> Json.arr()
               ))
             }
