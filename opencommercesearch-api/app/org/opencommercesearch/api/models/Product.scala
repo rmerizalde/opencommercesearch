@@ -237,6 +237,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
             for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
+            for (color <- sku.color) { doc.setField("color", color) }
             for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
 
             for (size <- sku.size) {
