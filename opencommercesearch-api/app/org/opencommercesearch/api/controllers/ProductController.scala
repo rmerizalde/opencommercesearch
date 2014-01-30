@@ -179,8 +179,8 @@ object ProductController extends BaseController {
   private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
     val groups = ArrayBuffer[JsObject]()
     var productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]];
-    JIterableWrapper(productSummaries).map(processGroupSummary => {
-      var parameterSummaries = processGroupSummary.getValue.asInstanceOf[NamedList[Object]];
+    JIterableWrapper(productSummaries).map(productSummary => {
+      var parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]];
       val productSeq = ArrayBuffer[(String,JsValue)]()
       JIterableWrapper(parameterSummaries).map(parameterSummary => {
         var statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]];
@@ -190,7 +190,7 @@ object ProductController extends BaseController {
         })
         productSeq += ((parameterSummary.getKey, new JsObject(parameterSeq)))
       })
-      groups += new JsObject(ArrayBuffer[(String,JsValue)]((processGroupSummary.getKey, new JsObject(productSeq))))
+      groups += new JsObject(ArrayBuffer[(String,JsValue)]((productSummary.getKey, new JsObject(productSeq))))
     })
     new JsArray(groups)
   }
