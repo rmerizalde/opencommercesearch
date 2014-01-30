@@ -48,7 +48,8 @@ object CategoryController extends BaseController with FacetQuery{
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect.", defaultValue = "1", required = false, dataType = "int", paramType = "query")
+    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect. A -1 value returns all taxonomy existing levels", defaultValue = "1", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "maxChildren", value = "Max leaf children to return per category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query")
   ))
   def findById(
       version: Int,
@@ -61,6 +62,7 @@ object CategoryController extends BaseController with FacetQuery{
 
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
+    catalogQuery.setFacetLimit(MaxFacetPaginationLimit)
     catalogQuery.addFilterQuery("ancestorCategoryId:" + id)
 
     if(Logger.isDebugEnabled) {
@@ -81,7 +83,8 @@ object CategoryController extends BaseController with FacetQuery{
             if(facetField.getValueCount > 0) {
               val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
               val maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
-              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, fieldList(true), storage).map( category => {
+              val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
+              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, maxChildren, fieldList(true), storage).map( category => {
                 Ok(Json.obj(
                   "metadata" -> Json.obj(
                     "time" -> (System.currentTimeMillis() - startTime)),
@@ -146,9 +149,9 @@ object CategoryController extends BaseController with FacetQuery{
       }
     }.recover {
       case e: JsError =>
+        Logger.error(s"Missing required fields ${JsError.toFlatJson(e)}")
         Future.successful(BadRequest(Json.obj(
-          "message" -> "Missing required fields",
-          "detail" -> JsError.toFlatJson(e))))
+          "message" -> "Missing required fields")))
 
     }.get
   }

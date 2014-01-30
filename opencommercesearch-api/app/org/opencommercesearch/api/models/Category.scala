@@ -30,6 +30,7 @@ import org.jongo.marshall.jackson.oid.Id
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.commons.lang.StringUtils
 
 /**
  * A category model.
@@ -57,8 +58,7 @@ case class Category(
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None)
 
-
-  def getId() : String = { this.id.get }
+  def getId : String = { this.id.get }
   
   @Field
   def setId(id: String) {
@@ -70,8 +70,8 @@ case class Category(
     this.name = Option.apply(name)
   }
 
-  def getName() : String = {
-    this.name.getOrElse("")
+  def getName : String = {
+    this.name.getOrElse(StringUtils.EMPTY)
   }
 
   @Field
@@ -79,8 +79,8 @@ case class Category(
     this.seoUrlToken = Option.apply(seoUrlToken)
   }
 
-  def getSeoUrlToken() : String = {
-    this.seoUrlToken.getOrElse("")
+  def getSeoUrlToken : String = {
+    this.seoUrlToken.getOrElse(StringUtils.EMPTY)
   }
   
   @Field("isRuleBased")
@@ -117,7 +117,7 @@ case class Category(
    * Get this category child categories
    * @return A collection of child categories if any, null otherwise.
    */
-  def getChildCategories() : Seq[Category] = {
+  def getChildCategories : Seq[Category] = {
     this.childCategories.getOrElse(Seq.empty)
   }
 }

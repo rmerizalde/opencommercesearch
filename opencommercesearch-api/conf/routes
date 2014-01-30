@@ -17,7 +17,7 @@ GET           /v1/brandcategories                                        org.ope
 # product routes
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
 GET           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
-GET           /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.findById(version: Int = 1, id: String, site: String ?= null, preview: Boolean ?= false)
+GET           /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.findById(version: Int = 1, id: String, site: String ?= null, preview: Boolean ?= false, taxonomy: Boolean ?= false)
 GET           /v1/categories/:id/products                                org.opencommercesearch.api.controllers.ProductController.browse(version: Int = 1, site: String, id: String, q: String ?= null, closeout: Boolean ?= false, preview: Boolean ?= false)
 GET           /v1/brands/:brandId/products                               org.opencommercesearch.api.controllers.ProductController.browseBrand(version: Int = 1, site: String, brandId: String, preview: Boolean ?= false)
 GET           /v1/brands/:brandId/categories/:categoryId/products        org.opencommercesearch.api.controllers.ProductController.browseBrandCategory(version: Int = 1, site: String, brandId: String, categoryId: String, preview: Boolean ?= false)

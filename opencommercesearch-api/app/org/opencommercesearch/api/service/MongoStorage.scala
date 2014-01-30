@@ -28,9 +28,9 @@ import org.opencommercesearch.api.models.{Country, Sku, Product}
 import org.jongo.Jongo
 import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.models.Brand
-import scala.collection.mutable.HashMap
 import play.api.Logger
 import scala.math.BigDecimal
+import scala.collection.mutable
 
 /**
  * A storage implementation using MongoDB
@@ -291,7 +291,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.update(s"{_id: '${p.getId()}'}").upsert().`with`(p) )
+      product.map( p => result = productCollection.update(s"{_id: '${p.getId}'}").upsert().`with`(p) )
       result
     }
   }
@@ -300,7 +300,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val categoryCollection = jongo.getCollection("categories")
       var result: WriteResult = null
-      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId()}'}").upsert().`with`(c) )
+      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId}'}").upsert().`with`(c) )
       result
     }
   }
@@ -337,7 +337,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val brandCollection = jongo.getCollection("brands")
       var result: WriteResult = null
-      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId()}'}").upsert().`with`(b) )
+      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId}'}").upsert().`with`(b) )
       result
     }
   }
@@ -364,14 +364,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
-    val lookupMap = HashMap.empty[String, Category]
+    val lookupMap = mutable.HashMap.empty[String, Category]
         var mainDoc: Category = null
         if (categories != null) {
             categories.foreach(
                 doc => {
-                  val currentId = doc.getId()
+                  val currentId = doc.getId
                   lookupMap += (currentId -> doc)
-                  if( id.equals(doc.getId()) ) {
+                  if( id.equals(doc.getId) ) {
                     mainDoc = doc
                   }
                   Logger.debug("Found category " + id)
@@ -385,7 +385,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         mainDoc
   }
   
-  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: HashMap[String, Category] ) = {
+  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: mutable.HashMap[String, Category] ) = {
     for( cats <- categories) {
       cats.foreach(
         category => {

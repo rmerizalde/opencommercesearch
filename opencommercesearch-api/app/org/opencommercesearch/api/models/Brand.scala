@@ -28,6 +28,7 @@ import org.apache.solr.client.solrj.beans.Field
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.commons.lang.StringUtils
 
 /**
  * A brand model
@@ -47,7 +48,7 @@ case class Brand(
   @JsonCreator
   def this() = this(None, None, None, None)
 
-  def getId() : String = { this.id.get }
+  def getId : String = { this.id.get }
   
   @Field
   def setId(id: String) : Unit = {
@@ -59,8 +60,8 @@ case class Brand(
     this.name = Option.apply(name)
   }
 
-  def getName() : String = {
-    this.name.getOrElse("")
+  def getName : String = {
+    this.name.getOrElse(StringUtils.EMPTY)
   }
 
   @Field
@@ -73,8 +74,8 @@ case class Brand(
     this.url = Option.apply(url)
   }
 
-  def getSeoUrlToken() : String = {
-    this.url.getOrElse("")
+  def getSeoUrlToken : String = {
+    this.url.getOrElse(StringUtils.EMPTY)
   }
 
   def toDocument(feedTimestamp: Long) : SolrInputDocument = {

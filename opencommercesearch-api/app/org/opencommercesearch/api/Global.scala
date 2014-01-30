@@ -51,7 +51,8 @@ object Global extends WithFilters(new StatsdFilter()) {
   lazy val QueryCollection = getConfigString("public.queryCollection", "autocomplete")
   lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
-  lazy val DefaultPaginationLimit = getConfigInt("maxPaginationLimit", 10)
+  lazy val DefaultPaginationLimit = getConfigInt("defaultPaginationLimit", 10)
+  lazy val MaxFacetPaginationLimit = getConfigInt("maxFacetPaginationLimit", 5000)
   lazy val MinSuggestQuerySize = getConfigInt("minSuggestQuerySize", 2)
 
   /**

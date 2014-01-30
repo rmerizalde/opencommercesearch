@@ -32,7 +32,6 @@ import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.common.{SolrInputDocument, SolrDocument}
 import org.opencommercesearch.api.Global._
 import org.apache.commons.lang3.StringUtils
-import scala.collection.mutable.HashMap
 import scala.Some
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.mutable
@@ -57,7 +56,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       
       if (hasNestedCategories) {
         val docs = response.getResults
-        val lookupMap = HashMap.empty[String, SolrDocument]
+        val lookupMap = mutable.HashMap.empty[String, SolrDocument]
         var mainDoc :SolrDocument = null
         if (docs != null) {
             JIterableWrapper(docs).foreach(
@@ -72,8 +71,8 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
             )
             if(mainDoc != null) {
                 val category : Category = server.binder.getBean(classOf[Category], mainDoc)
-                addNestedCategoryNames(category.childCategories, lookupMap);
-                addNestedCategoryNames(category.parentCategories, lookupMap);
+                addNestedCategoryNames(category.childCategories, lookupMap)
+                addNestedCategoryNames(category.parentCategories, lookupMap)
                 Logger.debug(s"Found category [$id] - has nested child categories [$hasNestedCategories]")
                 Some(category)
             } else {
@@ -100,7 +99,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     })
   }
 
-  def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap :HashMap[String, SolrDocument] ) = {
+  def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: mutable.HashMap[String, SolrDocument] ) = {
     for( cats <- categories) {
       cats.foreach(
         category => {
@@ -169,7 +168,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           generator.generate()
           return
         } catch {
-          case ex: Exception => {
+          case ex: Exception =>
             for (id <- product.id) {
               if (tries <= MaxTries) {
                 doc.removeField("category")
@@ -181,7 +180,6 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
                 Logger.error(s"Cannot load category paths for $id", ex)
               }
             }
-          }
         }
       }
     }
@@ -437,14 +435,17 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    * @param parentCategoryId Category id to look for.
    * @param categoryPaths List of category paths necessary to build up the taxonomy for the  given parent category id. For example: [site.cat1level1.cat2level2, site.cat3level1.cat4level2.cat5level3]
    * @param maxLevels Max level on the taxonomy to drill down. If set to 1, will return the immediate children, if set to 2 will return immediate children and their corresponding children, and so on.
+   * @param maxChildren Max leaf children to return. It only limits those children returned in the final level specified by maxLevels. A -1 value means all children are returned.
    * @param fields Fields to retrieve for each category on the taxonomy. This field list is applied to the parent category and any children of it.
    * @param storage Storage used to retrieve category data.
    * @return The category instance for the given category id, plus all children up to the given level.
    */
-  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String], maxLevels: Int, fields: Seq[String], storage : Storage[WriteResult]) : Future[Category] =  {
-    val childCategoriesToLookFor = new mutable.HashSet[String]
+  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String], maxLevels: Int, maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult]) : Future[Category] =  {
+    val childCategoriesCount = new mutable.HashMap[String, mutable.Set[String]]()
+    var hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
 
-    categoryPaths.map(categoryPath => {
+    //First get the list of categories we care for
+    val filteredCategoryPaths = categoryPaths.map(categoryPath => {
       val indexOf = categoryPath.indexOf(parentCategoryId)
       if(indexOf > 0) {
         var hierarchyLevels = maxLevels + 1 //Always add one to remove unwanted level
@@ -454,16 +455,80 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           hierarchyLevels = Integer.MAX_VALUE
         }
 
-        categoryPath.substring(indexOf + parentCategoryId.length).split(CategoryPathSeparator).take(hierarchyLevels).foreach( childCategory => {
-          childCategoriesToLookFor += childCategory
+        var childrenToReturn = maxChildren
+        // If maxChildren is -1 we want to ignore it and retrieve the whole list of children for parentCategoryId.
+        // This is just to make clients life easier, so they don't have to specify random high maxChildren values to get the whole list of children.
+        if(childrenToReturn == -1) {
+          childrenToReturn = Integer.MAX_VALUE
+        }
+
+        var categoryPathSplit = categoryPath.substring(indexOf).split(CategoryPathSeparator).take(hierarchyLevels)
+
+        //Ignore any category leafs that exceed the max children to return value
+        if(hierarchyLevels > 1 && categoryPathSplit.size == hierarchyLevels) {
+          val key = categoryPathSplit(categoryPathSplit.size - 2)
+          val child = categoryPathSplit(categoryPathSplit.size - 1)
+          val children = childCategoriesCount.getOrElse(key, mutable.HashSet[String]())
+
+          //Need to ensure children are unique to correctly filter by maxChildren
+          if(!children.contains(child)) {
+            children.add(child)
+            childCategoriesCount += (key -> children)
+          }
+
+          if(children.size > childrenToReturn) {
+            categoryPathSplit = categoryPathSplit.take(1)
+          }
+        }
+
+        //Store all different category ids to retrieve
+        categoryPathSplit.foreach(category => {
+          hierarchyMap += (category -> null)
         })
+
+        categoryPathSplit.drop(1) //Remove the first item, which is always the parent category
       }
-    })
+      else {
+        Array.empty[String]
+      }
+    }).filter(_.size > 0)
 
-    childCategoriesToLookFor += parentCategoryId
+    //Now hydrate the results
+    storage.findCategories(hierarchyMap.keys, fields).map(categoryData => {
+      //Fill in category data on the map
+      categoryData.foreach(category => {
+        hierarchyMap += (category.getId -> category)
+      })
 
-    getTaxonomy(childCategoriesToLookFor, fields, storage).map( taxonomyMap => {
-      taxonomyMap(parentCategoryId)
+      filteredCategoryPaths.map(filteredCategoryPath => {
+        var categoryPath = filteredCategoryPath
+        //Get the parent category from the array of categories
+        var parentCategory = hierarchyMap(parentCategoryId)
+
+        while (categoryPath.size > 0) {
+          val categoryId = categoryPath(0)
+          var category: Category = null
+
+          //Find out if the child category was already added to the parent
+          //TODO: Should childCategories on Category.scala by a set? This look up is slow.
+          parentCategory.getChildCategories.takeWhile(_ => {category == null}).map(childCat => {
+            if(childCat.getId == categoryId) {
+              category = childCat
+            }
+          })
+
+          if(category == null) {
+            //If not, then get a copy from the map
+            category = hierarchyMap(categoryId)
+            parentCategory.childCategories = Option(parentCategory.getChildCategories :+ category.copy())
+          }
+
+          parentCategory = category
+          categoryPath = categoryPath.drop(1)
+        }
+      })
+
+      hierarchyMap(parentCategoryId)
     })
   }
 
@@ -484,6 +549,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     var fieldList = fields
     //Go to Mongo to fetch category data
     if(!fields.contains("childCategories")) {
+      //TODO: this makes the default projection useless. If no fields are specified, it will only return id and childCategories on the taxonomy. Find a good way to handle this.
       fieldList :+= "childCategories"
     }
 
@@ -492,24 +558,27 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     //Go over the list of categories returned by Mongo and store them in a hash
     categoriesFuture.map(categoryData => {
       categoryData.foreach( category => {
-        var taxonomyNode  = hierarchyMap(category.getId())
+        var taxonomyNode  = hierarchyMap(category.getId)
 
         if(taxonomyNode == null) {
           taxonomyNode = category
         }
         else {
           //TODO: Find a more maintainable way to copy this data
-          taxonomyNode.childCategories = Option(category.getChildCategories())
+          taxonomyNode.childCategories = Option(category.getChildCategories)
+          taxonomyNode.parentCategories = category.parentCategories
+          taxonomyNode.isRuleBased = category.isRuleBased
+          taxonomyNode.catalogs = category.catalogs
           taxonomyNode.name = category.name
           taxonomyNode.seoUrlToken = category.seoUrlToken
         }
 
         //Add this category to the map
-        val childCategories = category.getChildCategories().filter(childCategory => {categoriesToLookFor.contains(childCategory.getId())}).map(childCategory => {
-          val tmpNode = hierarchyMap(childCategory.getId())
+        val childCategories = category.getChildCategories.filter(childCategory => {categoriesToLookFor.contains(childCategory.getId)}).map(childCategory => {
+          val tmpNode = hierarchyMap(childCategory.getId)
 
           if(tmpNode == null) {
-            hierarchyMap += (childCategory.getId() -> childCategory)
+            hierarchyMap += (childCategory.getId -> childCategory)
             childCategory
           }
           else {
@@ -518,7 +587,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         })
 
         taxonomyNode.childCategories = Some(childCategories)
-        hierarchyMap += (category.getId() -> taxonomyNode)
+        hierarchyMap += (category.getId -> taxonomyNode)
       })
 
       hierarchyMap.toMap

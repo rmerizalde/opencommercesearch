@@ -26,14 +26,12 @@ import play.api.libs.json.{JsError, Json}
 
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
 
 import java.util
 
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.service.{CategoryService}
+import org.opencommercesearch.api.service.CategoryService
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
@@ -56,19 +54,23 @@ object ProductController extends BaseController {
   @ApiImplicitParams(value = Array(
     //new ApiImplicitParam(name = "offset", value = "Offset in the SKU list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     //new ApiImplicitParam(name = "limit", value = "Maximum number of SKUs", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "categoryFields", value = "Comma delimited field list for categories. Ignored if parameter taxonomy is false.", required = false, dataType = "string", paramType = "query")
   ))
   def findById(
-      version: Int,
-      @ApiParam(value = "A product id", required = true)
-      @PathParam("id")
-      id: String,
-      @ApiParam(value = "Site to search for SKUs", required = false)
-      @QueryParam("site")
-      site: String,
-      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
-      @QueryParam("preview")
-      preview: Boolean) = Action.async { implicit request =>
+    version: Int,
+    @ApiParam(value = "A product id", required = true)
+    @PathParam("id")
+    id: String,
+    @ApiParam(value = "Site to search for SKUs", required = false)
+    @QueryParam("site")
+    site: String,
+    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+    @QueryParam("preview")
+    preview: Boolean,
+    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display category taxonomy for the product", required = false)
+    @QueryParam("preview")
+    taxonomy: Boolean) = Action.async { implicit request =>
 
     Logger.debug(s"Query product $id")
 
@@ -82,18 +84,81 @@ object ProductController extends BaseController {
       productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList())
     }
 
-    val future = productFuture map { product =>
+    val future = productFuture flatMap { product =>
       if (product != null) {
-        Ok(Json.obj(
-          "metadata" -> Json.obj(
-            "found" -> 1,
-            "time" -> (System.currentTimeMillis() - startTime)),
-          "product" -> Json.toJson(product)))
+        if(taxonomy) {
+          val catalogQuery = withSearchCollection(withFieldFacet("ancestorCategoryId", withFacetPagination(new SolrQuery("*:*"))), preview)
+          if(site != null) {
+            catalogQuery.addFilterQuery(s"categoryPath:$site")
+          }
+
+          catalogQuery.addFilterQuery("productId:" + id)
+
+          if(Logger.isDebugEnabled) {
+            Logger.debug("Searching for category ids for product with query " + catalogQuery.toString)
+          }
+
+          solrServer.query(catalogQuery).flatMap(response => {
+            val facetFields = response.getFacetFields
+            var taxonomyFuture: Future[SimpleResult] = null
+
+            if(facetFields != null) {
+              facetFields.map( facetField => {
+                if("ancestorcategoryid".equals(facetField.getName.toLowerCase)) {
+                  if(Logger.isDebugEnabled) {
+                    Logger.debug(s"Got ${facetField.getValueCount} category ids for product $id")
+                  }
+
+                  val storage = withNamespace(storageFactory, preview)
+
+                  if(facetField.getValueCount > 0) {
+                    val categoryIds = facetField.getValues.map(facetValue => {facetValue.getName})
+                    Logger.debug(s"Category ids for product $id are $categoryIds")
+
+                    val categoryFuture = categoryService.getTaxonomy(categoryIds, fieldList(allowStar = true, fieldsFieldName = "categoryFields"), storage)
+
+                    taxonomyFuture = categoryFuture.map(categoryTaxonomy => {
+                      Ok(Json.obj(
+                        "metadata" -> Json.obj(
+                          "found" -> 1,
+                          "time" -> (System.currentTimeMillis() - startTime)),
+                        "product" -> Json.toJson(product),
+                        "categories" -> Json.toJson(facetField.getValues.map( facetValue => {categoryTaxonomy(facetValue.getName)}))))
+                    })
+                  }
+                  else {
+                    Logger.debug(s"Got an empty ancestorCategoryId field facet for product $id")
+                  }
+                }
+                else {
+                  Logger.debug(s"Cannot get categories for product $id because there are no field facets in Solr response")
+                }
+              })
+            }
+            else {
+              Logger.debug(s"Got 0 categories for product $id, no facets were returned")
+            }
+
+            if(taxonomyFuture != null) {
+              withErrorHandling(taxonomyFuture, s"Found categories for brand $id, but could not resolve taxonomy")
+            }
+            else {
+              Future(NotFound(Json.obj("message" -> s"No categories found for $id")))
+            }
+          })
+        }
+        else {
+          Future(Ok(Json.obj(
+            "metadata" -> Json.obj(
+              "found" -> 1,
+              "time" -> (System.currentTimeMillis() - startTime)),
+            "product" -> Json.toJson(product))))
+        }
       } else {
         Logger.debug("Product " + id + " not found")
-        NotFound(Json.obj(
+        Future(NotFound(Json.obj(
           "messages" -> s"Cannot find product with id [$id]"
-        ))
+        )))
       }
     }
 
@@ -393,7 +458,7 @@ object ProductController extends BaseController {
           "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize")))
       } else {
         try {
-          val (productDocs, skuDocs) = productList.toDocuments(categoryService, preview)
+          val (_, skuDocs) = productList.toDocuments(categoryService, preview)
           val storage = withNamespace(storageFactory, preview)
           val productFuture = storage.saveProduct(products:_*)
           val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
@@ -405,20 +470,17 @@ object ProductController extends BaseController {
 
           withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
         } catch {
-          case e: IllegalArgumentException => {
+          case e: IllegalArgumentException =>
             Logger.error(e.getMessage)
             Future.successful(BadRequest(Json.obj(
               "message" -> e.getMessage)))
-          }
         }
       }
     }.recoverTotal {
-      case e: JsError => {
+      case e: JsError =>
         Future.successful(BadRequest(Json.obj(
           // @TODO figure out how to pull missing field from JsError
           "message" -> "Missing required fields")))
-      }
-
     }
   }
 

@@ -60,7 +60,7 @@ case class Product (
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
-  def getId() : String = { this.id.get }
+  def getId : String = { this.id.get }
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -98,12 +98,12 @@ case class Product (
   
   @Field
   def setBulletPoints(bulletPoints: util.List[String]) {
-    this.bulletPoints = Some(JIterableWrapper(bulletPoints).toSeq)
+    this.bulletPoints = Some(bulletPoints.toSeq)
   }   
   
   @Field
   def setDetailImages(detailImages: util.List[String]) {
-    this.detailImages = Some(JIterableWrapper(detailImages).map( { image => 
+    this.detailImages = Some(detailImages.map( { image =>
       val parts = StringUtils.split(image, FieldSeparator)
       if(parts.size == 1) {
           new Image(Some(StringUtils.EMPTY), Some(parts(0)))
@@ -123,7 +123,7 @@ case class Product (
   
   @Field
   def setFeatures(features: util.List[String]) {
-    this.features = Some(JIterableWrapper(features).map( { feature => 
+    this.features = Some(features.map( { feature =>
       val parts = StringUtils.split(feature, FieldSeparator)
       new Attribute(Some(parts(0)), Some(parts(1)))    
     }).toSeq)
@@ -131,7 +131,7 @@ case class Product (
   
   @Field
   def setAttributes(attributes: util.List[String]) {
-    this.features = Some(JIterableWrapper(attributes).map( { attribute => 
+    this.features = Some(attributes.map( { attribute =>
       val parts = StringUtils.split(attribute, FieldSeparator)
       new Attribute(Some(parts(0)), Some(parts(1)))    
     }).toSeq)
@@ -148,7 +148,7 @@ case class Product (
     
   @Field
   def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
-    this.hasFreeGift = Some(JIterableWrapper(freeGifts).map( { freeGift => 
+    this.hasFreeGift = Some(freeGifts.map( { freeGift =>
       val parts = StringUtils.split(freeGift, FieldSeparator)
       (parts(0), "true".equals(parts(1)))    
     }).toMap)

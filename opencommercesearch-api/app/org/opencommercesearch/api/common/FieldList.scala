@@ -42,40 +42,21 @@ trait FieldList {
   }
 
   /**
-   * Return a sequence with list of fields to return
+   * Return a sequence with list of fields to return from storage.
    * @param request is the implicit request
+   * @param allowStar Whether or not star ("*") should be allowed. If true then start ("*") is kept on the field list, otherwise is removed. By default is false.
+   * @param fieldsFieldName The fields field name to look for on the request. By default is "fields"
    * @tparam R type of the request
    * @return a sequence with the field names
    */
-  def fieldList[R]()(implicit request: Request[R]) : Seq[String] = {
-    fieldList(",*")
-  }
+  def fieldList[R](allowStar : Boolean = false, fieldsFieldName: String = "fields")(implicit request: Request[R]) : Seq[String] = {
+    val fields = request.getQueryString(fieldsFieldName)
+    var fieldSeparators = ","
 
-  /**
-   * Return a sequence with list of fields to return, optionally specifying whether or not star ('*') is supported.
-   * @param allowStar Whether or not star ('*') is supported. If true, start will be considered a separate field. This is useful when the storage supports getting all fields.
-   * @param request is the implicit request
-   * @tparam R type of the request
-   * @return a sequence with the field names
-   */
-  def fieldList[R](allowStar : Boolean)(implicit request: Request[R]) : Seq[String] = {
-    if(allowStar) {
-      fieldList(",")
+    if(!allowStar) {
+      fieldSeparators += "*"
     }
-    else {
-      fieldList()
-    }
-  }
 
-  /**
-   * Return a sequence with list of fields to return using the given field separators
-   * @param fieldSeparators String containing the field separators to use when splitting the given field names sequence.
-   * @param request is the implicit request
-   * @tparam R type of the request
-   * @return a sequence with the field names
-   */
-  private def fieldList[R](fieldSeparators : String)(implicit request: Request[R]) : Seq[String] = {
-    val fields = request.getQueryString("fields")
     StringUtils.split(fields.getOrElse(StringUtils.EMPTY), fieldSeparators)
   }
 }
