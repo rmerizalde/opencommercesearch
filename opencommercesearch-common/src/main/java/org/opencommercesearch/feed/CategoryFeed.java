@@ -24,6 +24,8 @@ import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+
+import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 
@@ -52,10 +54,16 @@ public class CategoryFeed extends BaseRestFeed {
      * @throws atg.repository.RepositoryException if item data from the list can't be read.
      */
     protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
-        JSONObject category = new JSONObject();
+    	String seoUrlToken = (String)item.getPropertyValue("seoUrlToken");
+    	if(StringUtils.isEmpty(seoUrlToken)) {
+    		return null;
+    	}
+    	
+    	JSONObject category = new JSONObject();
 
         category.put("id", item.getRepositoryId());
         category.put("name", item.getItemDisplayName());
+        category.put("seoUrlToken", seoUrlToken);
         category.put("isRuleBased", RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName()));
         setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);

@@ -1,6 +1,5 @@
 package org.opencommercesearch.api.models
 
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -21,15 +20,17 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-
 import scala.collection.convert.Wrappers.JIterableWrapper
-
-
 import java.util
-
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
+import org.jongo.marshall.jackson.oid.Id
+
+import org.opencommercesearch.api.util.JsUtils.PathAdditions
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.commons.lang.StringUtils
 
 /**
  * A category model.
@@ -43,24 +44,22 @@ import play.api.libs.functional.syntax._
  * @author rmerizalde
  */
 case class Category(
-  var id: Option[String],
-  var name: Option[String],
-  var isRuleBased: Option[Boolean],
-  var catalogs: Option[Seq[String]],
-  var parentCategories: Option[Seq[Category]],
-  var childCategories: Option[Seq[Category]]) {
+  @Id var id: Option[String],
+  @JsonProperty("name") var name: Option[String],
+  @JsonProperty("seoUrlToken") var seoUrlToken: Option[String],
+  @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
+  @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
+  @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
 
   /**
    * This constructor is for lazy loaded categories
-   * @param id is the id of the category to lazy load
    */
-  def this(id: Option[String]) = this(id, None, None, None, None, None)
+  @JsonCreator
+  def this() = this(None, None, None, None, None, None, None)
 
-  /**
-   * This constructor is intended document object binder used to load Solr documents
-   */
-  def this() = this(None)
-
+  def getId : String = { this.id.get }
+  
   @Field
   def setId(id: String) {
     this.id = Option.apply(id)
@@ -71,6 +70,19 @@ case class Category(
     this.name = Option.apply(name)
   }
 
+  def getName : String = {
+    this.name.getOrElse(StringUtils.EMPTY)
+  }
+
+  @Field
+  def setSeoUrlToken(seoUrlToken: String) {
+    this.seoUrlToken = Option.apply(seoUrlToken)
+  }
+
+  def getSeoUrlToken : String = {
+    this.seoUrlToken.getOrElse(StringUtils.EMPTY)
+  }
+  
   @Field("isRuleBased")
   def setRuleBased(isRuleBased: Boolean) {
     this.isRuleBased = Option.apply(isRuleBased)
@@ -83,12 +95,30 @@ case class Category(
 
   @Field
   def setParentCategories(parentCategories: util.Collection[String]) {
-    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => new Category(Some(id))))
+    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => 
+     {
+       val category : Category = new Category()
+       category.setId(id)
+       category
+     }))
   }
 
   @Field("childCategories")
   def setChildCategories(childCategories: util.Collection[String]) {
-    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => new Category(Some(id))))
+    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => 
+      {
+       val category : Category = new Category()
+       category.setId(id)
+       category
+     }))
+  }
+
+  /**
+   * Get this category child categories
+   * @return A collection of child categories if any, null otherwise.
+   */
+  def getChildCategories : Seq[Category] = {
+    this.childCategories.getOrElse(Seq.empty)
   }
 }
 
@@ -96,6 +126,7 @@ object Category {
   implicit val readsCategory : Reads[Category] = (
     (__ \ "id").readNullable[String] ~
     (__ \ "name").readNullable[String] ~
+    (__ \ "seoUrlToken").readNullable[String] ~
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "catalogs").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
@@ -105,10 +136,12 @@ object Category {
   implicit val writesCategory : Writes[Category] = (
     (__ \ "id").writeNullable[String] ~
     (__ \ "name").writeNullable[String] ~
+    (__ \ "seoUrlToken").writeNullable[String] ~
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "catalogs").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
-    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
+    //Prevent empty child lists to be written
+    (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
 }
 
@@ -120,11 +153,12 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
 
     for (category: Category <- categories) {
       expectedDocCount += 1
-      for (id <- category.id; name <- category.name; isRuleBased <- category.isRuleBased) {
+      for (id <- category.id; name <- category.name; seoUrlToken <- category.seoUrlToken; isRuleBased <- category.isRuleBased) {
         val doc = new SolrInputDocument()
 
         doc.setField("id", id)
         doc.setField("name", name)
+        doc.setField("seoUrlToken", seoUrlToken)
         doc.setField("isRuleBased", isRuleBased)
         doc.setField("feedTimestamp", feedTimestamp)
 

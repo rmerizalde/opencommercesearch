@@ -5,15 +5,19 @@
 # brand routes
 GET           /v1/brands/suggestions                                     org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
 GET           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
+GET           /v1/brands/:id/categories                                  org.opencommercesearch.api.controllers.BrandController.findBrandCategoriesById(version: Int = 1, id: String, preview: Boolean ?= false, site: String)
 GET           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.findAll(version: Int = 1, preview: Boolean ?= false, site: String)
 PUT           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
 DELETE        /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.deleteByTimestamp(preview: Boolean ?= false, feedTimestamp: Long)
 
+# brand categories
+GET           /v1/brandcategories                                        org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, preview: Boolean ?= false, site: String)
+
 # product routes
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
 GET           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
-GET           /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.findById(version: Int = 1, id: String, site: String ?= null, preview: Boolean ?= false)
+GET           /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.findById(version: Int = 1, id: String, site: String ?= null, preview: Boolean ?= false, taxonomy: Boolean ?= false)
 GET           /v1/categories/:id/products                                org.opencommercesearch.api.controllers.ProductController.browse(version: Int = 1, site: String, id: String, q: String ?= null, closeout: Boolean ?= false, preview: Boolean ?= false)
 GET           /v1/brands/:brandId/products                               org.opencommercesearch.api.controllers.ProductController.browseBrand(version: Int = 1, site: String, brandId: String, preview: Boolean ?= false)
 GET           /v1/brands/:brandId/categories/:categoryId/products        org.opencommercesearch.api.controllers.ProductController.browseBrandCategory(version: Int = 1, site: String, brandId: String, categoryId: String, preview: Boolean ?= false)
@@ -26,6 +30,7 @@ GET           /v1/categories/suggestions                                 org.ope
 GET           /v1/categories/:id                                         org.opencommercesearch.api.controllers.CategoryController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
 DELETE        /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean ?= false)
+GET           /v1/categories/:id/brands                                  org.opencommercesearch.api.controllers.CategoryController.findBrandsByCategoryId(version: Int = 1, id: String, preview: Boolean ?= false)
 
 # query routes
 GET           /v1/queries/suggestions                                    org.opencommercesearch.api.controllers.QueryController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)

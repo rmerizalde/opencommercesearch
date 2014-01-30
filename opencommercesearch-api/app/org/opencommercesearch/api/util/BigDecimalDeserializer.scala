@@ -19,10 +19,10 @@ package org.opencommercesearch.api.util
 * under the License.
 */
 
-import java.math
 
 import com.fasterxml.jackson.databind.{DeserializationContext, JsonDeserializer}
 import com.fasterxml.jackson.core.JsonParser
+import scala.math.BigDecimal
 
 /**
  *
@@ -31,7 +31,7 @@ class BigDecimalDeserializer extends JsonDeserializer[BigDecimal] {
 
   @Override
   def deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext) : BigDecimal = {
-    new math.BigDecimal(jsonParser.getText)
+    new scala.math.BigDecimal(new java.math.BigDecimal(jsonParser.getText))
   }
 
 

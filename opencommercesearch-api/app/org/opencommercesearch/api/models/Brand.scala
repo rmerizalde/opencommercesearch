@@ -21,12 +21,14 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-
 import java.util
-
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
+import org.jongo.marshall.jackson.oid.Id
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.commons.lang.StringUtils
 
 /**
  * A brand model
@@ -37,10 +39,17 @@ import org.apache.solr.client.solrj.beans.Field
  *
  * @author rmerizalde
  */
-case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String], var url: Option[String]) {
+case class Brand(
+   @Id var id: Option[String], 
+   @JsonProperty("name") var name: Option[String], 
+   @JsonProperty("logo") var logo: Option[String], 
+   @JsonProperty("url") var url: Option[String]) {
 
+  @JsonCreator
   def this() = this(None, None, None, None)
 
+  def getId : String = { this.id.get }
+  
   @Field
   def setId(id: String) : Unit = {
     this.id = Option.apply(id)
@@ -51,6 +60,10 @@ case class Brand(var id: Option[String], var name: Option[String], var logo: Opt
     this.name = Option.apply(name)
   }
 
+  def getName : String = {
+    this.name.getOrElse(StringUtils.EMPTY)
+  }
+
   @Field
   def setLogo(logo: String) : Unit = {
     this.logo = Option.apply(logo)
@@ -59,6 +72,10 @@ case class Brand(var id: Option[String], var name: Option[String], var logo: Opt
   @Field
   def setUrl(url: String) : Unit = {
     this.url = Option.apply(url)
+  }
+
+  def getSeoUrlToken : String = {
+    this.url.getOrElse(StringUtils.EMPTY)
   }
 
   def toDocument(feedTimestamp: Long) : SolrInputDocument = {
