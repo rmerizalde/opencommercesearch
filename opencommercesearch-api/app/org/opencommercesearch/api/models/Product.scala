@@ -141,7 +141,7 @@ case class Product (
       customerReviews = Some(new CustomerReview())
     }
     for (reviews <- customerReviews) {
-      reviews.count = Option.apply(reviewCount)
+      reviews.count = reviewCount
     }
   }
 
@@ -153,7 +153,7 @@ case class Product (
     }
 
     for (reviews <- customerReviews) {
-      reviews.average = Option.apply(reviewAverage)
+      reviews.average =reviewAverage
     }
 
   }
@@ -165,7 +165,7 @@ case class Product (
     }
 
     for (reviews <- customerReviews) {
-      reviews.bayesianAverage = Option.apply(bayesianReviewAverage)
+      reviews.bayesianAverage = bayesianReviewAverage
     }
 
   }
@@ -217,13 +217,6 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         for (features <- product.features) { setAttributes("features", productDoc, features) }
         for (attributes <- product.attributes) { setAttributes("attributes", productDoc, attributes) }
 
-        for (reviews <- product.customerReviews) {
-          for (average <- reviews.average; count <- reviews.count) {
-            productDoc.setField("reviews", count)
-            productDoc.setField("reviewAverage", average)
-          }
-        }
-
         for (sizingChart <- product.sizingChart) { productDoc.setField("sizingChart", sizingChart) }
         for (detailImages <- product.detailImages) {
           for (detailImage <- detailImages) {
@@ -274,11 +267,9 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             }
 
             for(reviews <- product.customerReviews) {
-              for (average <- reviews.average; count <- reviews.count; bayesianAverage <- reviews.bayesianAverage) {
-                doc.setField("reviews", count)
-                doc.setField("reviewAverage", average)
-                doc.setField("bayesianReviewAverage", bayesianAverage)
-              }
+                doc.setField("reviews", reviews.count)
+                doc.setField("reviewAverage", reviews.average)
+                doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
             }
 
             for (country: Country <- countries) {

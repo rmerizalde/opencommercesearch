@@ -22,10 +22,10 @@ package org.opencommercesearch.api.models
 import play.api.libs.json.{Json}
 
 case class CustomerReview(
-  var count: Option[Int],
-  var average: Option[Double],
-  var bayesianAverage: Option[Double]) {
-  def this() = this(None, None, None)
+  var count: Int,
+  var average: Double,
+  var bayesianAverage: Double) {
+  def this() = this(0, 0.0, 0.0)
 }
 
 object CustomerReview {
