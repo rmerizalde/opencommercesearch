@@ -53,4 +53,9 @@ public interface RuleManagerParams {
      * Whether or not rules debug information should be returned on the response.
      */
     public static final String DEBUG = "debugRule";
+    
+    /**
+     * Indicates if we are in a brand category page
+     */
+    public static final String BRAND_ID = "brandId";
 }

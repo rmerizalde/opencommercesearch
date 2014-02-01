@@ -175,7 +175,7 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = false, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, isOutlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = false)
         validateCommonQueryParams(productQuery)

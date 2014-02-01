@@ -571,7 +571,7 @@ public class RuleManagerComponentTest {
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
-        requestParams.add(CommonParams.FQ, "brandId:someBrand");
+        requestParams.add(RuleManagerParams.BRAND_ID, "someBrand");
 
         SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);
 
@@ -595,7 +595,7 @@ public class RuleManagerComponentTest {
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
-        requestParams.add(CommonParams.FQ, "brandId:someBrand");
+        requestParams.add(RuleManagerParams.BRAND_ID, "someBrand");
         requestParams.add(CommonParams.FQ, "isCloseout:true");
 
         SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);
