@@ -153,7 +153,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         s.size = None
         s.catalogs = None
         s.customSort = None
-        s.colorInfo = None
+        s.color = None
         s.year = None
         s.season = None
       })

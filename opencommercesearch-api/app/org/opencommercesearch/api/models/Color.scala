@@ -29,7 +29,7 @@ case class Color(
   def this() = this(None, None)
 }
 
-object ColorInfo {
+object Color {
   implicit val readsColorInfo = Json.reads[Color]
   implicit val writesColorInfo = Json.writes[Color]
 }
