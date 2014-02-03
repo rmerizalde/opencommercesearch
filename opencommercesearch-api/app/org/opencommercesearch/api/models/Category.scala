@@ -48,7 +48,9 @@ case class Category(
   @JsonProperty("name") var name: Option[String],
   @JsonProperty("seoUrlToken") var seoUrlToken: Option[String],
   @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
+  @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]],
   @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
+  @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
   @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
 
@@ -56,7 +58,7 @@ case class Category(
    * This constructor is for lazy loaded categories
    */
   @JsonCreator
-  def this() = this(None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None)
 
   def getId : String = { this.id.get }
   
@@ -83,14 +85,24 @@ case class Category(
     this.seoUrlToken.getOrElse(StringUtils.EMPTY)
   }
   
+  @Field("catalogs")
+  def setCatalogs(catalogs: util.Collection[String]) {
+    this.catalogs = Option.apply(JIterableWrapper(catalogs).toSeq)
+  }
+  
   @Field("isRuleBased")
   def setRuleBased(isRuleBased: Boolean) {
     this.isRuleBased = Option.apply(isRuleBased)
   }
+  
+  @Field("ruleFilters")
+  def setRuleFilters(ruleFilters: util.Collection[String]) {
+    this.ruleFilters = Option.apply(JIterableWrapper(ruleFilters).toSeq)
+  }
 
-  @Field("catalogs")
-  def setCatalogs(catalogs: util.Collection[String]) {
-    this.catalogs = Option.apply(JIterableWrapper(catalogs).toSeq)
+  @Field("hierarchyTokens")
+  def setCategory(hierarchyTokens: util.Collection[String]) {
+    this.hierarchyTokens = Option.apply(JIterableWrapper(hierarchyTokens).toSeq)
   }
 
   @Field
@@ -128,7 +140,9 @@ object Category {
     (__ \ "name").readNullable[String] ~
     (__ \ "seoUrlToken").readNullable[String] ~
     (__ \ "isRuleBased").readNullable[Boolean] ~
+    (__ \ "ruleFilters").readNullable[Seq[String]] ~
     (__ \ "catalogs").readNullable[Seq[String]] ~
+    (__ \ "hierarchyTokens").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
     (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
   ) (Category.apply _)
@@ -138,7 +152,9 @@ object Category {
     (__ \ "name").writeNullable[String] ~
     (__ \ "seoUrlToken").writeNullable[String] ~
     (__ \ "isRuleBased").writeNullable[Boolean] ~
+    (__ \ "ruleFilters").writeNullable[Seq[String]] ~
     (__ \ "catalogs").writeNullable[Seq[String]] ~
+    (__ \ "hierarchyTokens").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
     //Prevent empty child lists to be written
     (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
@@ -153,12 +169,11 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
 
     for (category: Category <- categories) {
       expectedDocCount += 1
-      for (id <- category.id; name <- category.name; seoUrlToken <- category.seoUrlToken; isRuleBased <- category.isRuleBased) {
+      for (id <- category.id; name <- category.name; isRuleBased <- category.isRuleBased) {
         val doc = new SolrInputDocument()
 
         doc.setField("id", id)
         doc.setField("name", name)
-        doc.setField("seoUrlToken", seoUrlToken)
         doc.setField("isRuleBased", isRuleBased)
         doc.setField("feedTimestamp", feedTimestamp)
 

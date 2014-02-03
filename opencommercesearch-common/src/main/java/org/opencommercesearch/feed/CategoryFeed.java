@@ -19,17 +19,26 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+import org.opencommercesearch.RulesBuilder;
+import org.opencommercesearch.api.ProductService;
+import org.opencommercesearch.repository.CategoryProperty;
+import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+import org.opencommercesearch.service.localeservice.FeedLocaleService;
+
 import atg.json.JSONArray;
 import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 
-import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.api.ProductService;
-import org.opencommercesearch.repository.RuleBasedCategoryProperty;
-
-import java.util.Collection;
+import com.google.common.collect.Iterables;
 
 /**
  * A feed for categories.
@@ -37,7 +46,8 @@ import java.util.Collection;
 public class CategoryFeed extends BaseRestFeed {
 
     public static String[] REQUIRED_FIELDS = { "id", "name" };
-
+    private RulesBuilder rulesBuilder;
+    private FeedLocaleService feedLocaleService;
     /**
      * Return the Endpoint for this feed
      * @return an Endpoint enum representing the endpoint for this feed
@@ -54,21 +64,68 @@ public class CategoryFeed extends BaseRestFeed {
      * @throws atg.repository.RepositoryException if item data from the list can't be read.
      */
     protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
-    	String seoUrlToken = (String)item.getPropertyValue("seoUrlToken");
-    	if(StringUtils.isEmpty(seoUrlToken)) {
-    		return null;
-    	}
-    	
-    	JSONObject category = new JSONObject();
+        String seoUrlToken = (String)item.getPropertyValue("seoUrlToken");
+        if(StringUtils.isEmpty(seoUrlToken)) {
+            return null;
+        }
+        
+        JSONObject category = new JSONObject();
 
         category.put("id", item.getRepositoryId());
         category.put("name", item.getItemDisplayName());
         category.put("seoUrlToken", seoUrlToken);
-        category.put("isRuleBased", RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName()));
+        boolean isRuleBased = RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName());
+        category.put("isRuleBased", isRuleBased);
+        if(isRuleBased) {
+            category.put("ruleFilters", buildRuleBasedCategory(item));
+        }
+        //TODO gsegura: move this calculation out of the feed into the ProductController once we provide a caching layer
+        //to access products to avoid performance issues
+        category.put("hierarchyTokens", buildHierarchyTokens(item));
         setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
         return category;
+    }
+
+    private JSONArray buildRuleBasedCategory(RepositoryItem item) {
+        JSONArray array = new JSONArray();
+        Locale[] locales = feedLocaleService.getSupportedLocales();
+        if(locales != null) {
+            for(Locale locale : locales) {
+                array.add( locale + ":" + rulesBuilder.buildRulesFilter(item.getRepositoryId(), locale));
+            }
+        }
+        return array;
+    }
+
+    private JSONArray buildHierarchyTokens(RepositoryItem category) {
+        List<String> placeHolder = new ArrayList<String>();
+        if(category != null) {
+            buildHierarchyTokensAux( category, StringUtils.EMPTY, placeHolder, 0);
+        }
+        return new JSONArray(placeHolder);
+    }
+
+    private void buildHierarchyTokensAux(RepositoryItem category, String groupedString, List<String> placeHolder, int depth) {
+        
+        Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);
+        
+        if(parentCategories == null || parentCategories.size() == 0) {
+            Set<RepositoryItem> parentCatalogs = (Set<RepositoryItem>)category.getPropertyValue(CategoryProperty.PARENT_CATALOGS);
+            if(parentCatalogs != null && parentCatalogs.size() > 0) {
+                placeHolder.add(depth + "." + Iterables.get(parentCatalogs, 0).getRepositoryId() + "." + groupedString);
+            }
+        }
+        else {
+            for(RepositoryItem parentCategory : parentCategories) {
+                if(groupedString.isEmpty()) {
+                    buildHierarchyTokensAux( parentCategory, category.getItemDisplayName(), placeHolder, depth+1);
+                } else {
+                    buildHierarchyTokensAux( parentCategory, category.getItemDisplayName()+"."+groupedString, placeHolder, depth+1);
+                }
+            }
+        }
     }
 
     private void setIdsProperty(JSONObject obj, String propertyName, Collection<RepositoryItem> items, boolean asObject) throws JSONException {
@@ -96,4 +153,21 @@ public class CategoryFeed extends BaseRestFeed {
     protected String[] getRequiredItemFields() {
         return REQUIRED_FIELDS;
     }
+
+    public RulesBuilder getRulesBuilder() {
+        return rulesBuilder;
+    }
+
+    public void setRulesBuilder(RulesBuilder rulesBuilder) {
+        this.rulesBuilder = rulesBuilder;
+    }
+
+    public FeedLocaleService getFeedLocaleService() {
+        return feedLocaleService;
+    }
+
+    public void setFeedLocaleService(FeedLocaleService feedLocaleService) {
+        this.feedLocaleService = feedLocaleService;
+    }
+    
 }
