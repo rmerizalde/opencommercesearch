@@ -22,6 +22,7 @@ package org.opencommercesearch.api.models
 import play.api.libs.json.{Json}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Map
+
 import Sku._
 import com.fasterxml.jackson.annotation.JsonCreator
 import org.jongo.marshall.jackson.oid.Id
@@ -35,6 +36,7 @@ case class Sku(
   @JsonProperty("countries") var countries: Option[Seq[Country]],
   @JsonProperty("isPastSeason") var isPastSeason: Option[Boolean],
   @JsonProperty("colorFamily") var colorFamily: Option[String],
+  @JsonProperty("color") var color: Option[String],
   @JsonProperty("isRetail") var isRetail: Option[Boolean],
   @JsonProperty("isCloseout") var isCloseout: Option[Boolean],
   @JsonProperty("isOutlet") var isOutlet: Option[Boolean],
@@ -51,7 +53,7 @@ case class Sku(
 
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-      None, None, None, None)
+      None, None, None, None, None)
 }
 
 object Sku {

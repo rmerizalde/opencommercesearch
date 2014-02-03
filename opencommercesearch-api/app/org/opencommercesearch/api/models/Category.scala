@@ -1,6 +1,5 @@
 package org.opencommercesearch.api.models
 
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -27,8 +26,11 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import play.api.libs.functional.syntax._
 import org.jongo.marshall.jackson.oid.Id
+
+import org.opencommercesearch.api.util.JsUtils.PathAdditions
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.commons.lang.StringUtils
 
 /**
  * A category model.
@@ -54,13 +56,11 @@ case class Category(
 
   /**
    * This constructor is for lazy loaded categories
-   * @param id is the id of the category to lazy load
    */
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None)
 
-
-  def getId() : String = { this.id.get }
+  def getId : String = { this.id.get }
   
   @Field
   def setId(id: String) {
@@ -72,9 +72,17 @@ case class Category(
     this.name = Option.apply(name)
   }
 
+  def getName : String = {
+    this.name.getOrElse(StringUtils.EMPTY)
+  }
+
   @Field
   def setSeoUrlToken(seoUrlToken: String) {
     this.seoUrlToken = Option.apply(seoUrlToken)
+  }
+
+  def getSeoUrlToken : String = {
+    this.seoUrlToken.getOrElse(StringUtils.EMPTY)
   }
   
   @Field("catalogs")
@@ -116,6 +124,14 @@ case class Category(
        category
      }))
   }
+
+  /**
+   * Get this category child categories
+   * @return A collection of child categories if any, null otherwise.
+   */
+  def getChildCategories : Seq[Category] = {
+    this.childCategories.getOrElse(Seq.empty)
+  }
 }
 
 object Category {
@@ -140,7 +156,8 @@ object Category {
     (__ \ "catalogs").writeNullable[Seq[String]] ~
     (__ \ "hierarchyTokens").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
-    (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
+    //Prevent empty child lists to be written
+    (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
 }
 

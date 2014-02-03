@@ -42,13 +42,21 @@ trait FieldList {
   }
 
   /**
-   * Return a sequence with list of fields to return
+   * Return a sequence with list of fields to return from storage.
    * @param request is the implicit request
+   * @param allowStar Whether or not star ("*") should be allowed. If true then start ("*") is kept on the field list, otherwise is removed. By default is false.
+   * @param fieldsFieldName The fields field name to look for on the request. By default is "fields"
    * @tparam R type of the request
    * @return a sequence with the field names
    */
-  def fieldList[R]()(implicit request: Request[R]) : Seq[String] = {
-    val fields = request.getQueryString("fields")
-    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), ",*")
+  def fieldList[R](allowStar : Boolean = false, fieldsFieldName: String = "fields")(implicit request: Request[R]) : Seq[String] = {
+    val fields = request.getQueryString(fieldsFieldName)
+    var fieldSeparators = ","
+
+    if(!allowStar) {
+      fieldSeparators += "*"
+    }
+
+    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), fieldSeparators)
   }
 }

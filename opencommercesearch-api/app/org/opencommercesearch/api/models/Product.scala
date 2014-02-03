@@ -22,8 +22,8 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json._
 import java.util
-import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.JavaConversions._
+
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
 import org.apache.commons.lang3.StringUtils
@@ -33,6 +33,7 @@ import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
+
 
 case class Product (
   @Id var id: Option[String],
@@ -59,7 +60,7 @@ case class Product (
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
-  def getId() : String = { this.id.get }
+  def getId : String = { this.id.get }
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
@@ -97,12 +98,12 @@ case class Product (
   
   @Field
   def setBulletPoints(bulletPoints: util.List[String]) {
-    this.bulletPoints = Some(JIterableWrapper(bulletPoints).toSeq)
+    this.bulletPoints = Some(bulletPoints.toSeq)
   }   
   
   @Field
   def setDetailImages(detailImages: util.List[String]) {
-    this.detailImages = Some(JIterableWrapper(detailImages).map( { image => 
+    this.detailImages = Some(detailImages.map( { image =>
       val parts = StringUtils.split(image, FieldSeparator)
       if(parts.size == 1) {
           new Image(Some(StringUtils.EMPTY), Some(parts(0)))
@@ -122,7 +123,7 @@ case class Product (
   
   @Field
   def setFeatures(features: util.List[String]) {
-    this.features = Some(JIterableWrapper(features).map( { feature => 
+    this.features = Some(features.map( { feature =>
       val parts = StringUtils.split(feature, FieldSeparator)
       new Attribute(Some(parts(0)), Some(parts(1)))    
     }).toSeq)
@@ -130,7 +131,7 @@ case class Product (
   
   @Field
   def setAttributes(attributes: util.List[String]) {
-    this.features = Some(JIterableWrapper(attributes).map( { attribute => 
+    this.features = Some(attributes.map( { attribute =>
       val parts = StringUtils.split(attribute, FieldSeparator)
       new Attribute(Some(parts(0)), Some(parts(1)))    
     }).toSeq)
@@ -147,7 +148,7 @@ case class Product (
     
   @Field
   def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
-    this.hasFreeGift = Some(JIterableWrapper(freeGifts).map( { freeGift => 
+    this.hasFreeGift = Some(freeGifts.map( { freeGift =>
       val parts = StringUtils.split(freeGift, FieldSeparator)
       (parts(0), "true".equals(parts(1)))    
     }).toMap)
@@ -236,6 +237,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
             for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
+            for (color <- sku.color) { doc.setField("color", color) }
             for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
 
             for (size <- sku.size) {

@@ -31,6 +31,7 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
+import org.apache.solr.client.solrj.response.FacetField
 
 class CategoryControllerSpec extends BaseSpec {
 
@@ -63,30 +64,51 @@ class CategoryControllerSpec extends BaseSpec {
 
     "send 404 when a category is not found"  in new Categories {
       running(FakeApplication()) {
-        
-        storage.findCategory(anyString, any) returns Future.successful(null)
+        val (queryResponse, namedList) = setupQuery
+        val doc = mock[SolrDocument]
         val expectedId = "1000"
 
+        namedList.get("doc") returns doc
+        doc.get("id") returns expectedId
+
+        storage.findCategory(anyString, any) returns Future.successful(null)
+
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find category with id [$expectedId]")
+        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot retrieve category with id $expectedId")
       }
     }
 
     "send 200 when a category is found" in new Categories {
       running(FakeApplication()) {
-
+        val (queryResponse, namedList) = setupQuery
+        val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
         val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None, None, None)
 
-        storage.findCategory(anyString, any) returns Future.successful(category)
-        
+        namedList.get("doc") returns doc
+        doc.get("id") returns expectedId
+
+        var facetFields = new java.util.LinkedList[FacetField]()
+        val facetField = new FacetField("categoryPath")
+        facetField.add("category1", 10)
+        facetField.add("category2", 10)
+
+        facetFields.add(facetField)
+
+        queryResponse.getResponse returns namedList
+        queryResponse.getFacetFields returns facetFields
+
+        val categoryResult = new Category()
+        categoryResult.setId(expectedId)
+
+        storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
+
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
         validateQueryResult(result.get, OK, "application/json")
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "category").validate[Category].map { category =>
           category.id.get must beEqualTo(expectedId)
-          category.name.get must beEqualTo(expectedName)
         } recoverTotal {
           e => failure("Invalid JSON for category: " + JsError.toFlatJson(e))
         }

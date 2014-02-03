@@ -29,11 +29,19 @@ import org.apache.solr.client.solrj.SolrQuery
  */
 trait FacetQuery {
 
-  def withFieldFacet(facetField: String, facetLimit: Int, rows:Int, query: SolrQuery) : SolrQuery = {
-    query.setRows(rows);
+  /**
+   * Sets the parameters required to do facet searches on a field.
+   * <br/><br/>
+   * This method should be called when only facets are needed (i.e. find all brands on the products catalog), not
+   * to return actual search results.
+   * @param facetField Field to facet on
+   * @param query Solr query to add new parameters to
+   * @return Solr query with necessary facet parameters
+   */
+  def withFieldFacet(facetField: String, query: SolrQuery) : SolrQuery = {
+    query.setRows(0);
     query.setFacet(true)
     query.addFacetField(facetField)
-    query.setFacetLimit(facetLimit);
     query.setFacetMinCount(1);
   }
 }

@@ -28,9 +28,9 @@ import org.opencommercesearch.api.models.{Country, Sku, Product}
 import org.jongo.Jongo
 import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.models.Brand
-import scala.collection.mutable.HashMap
 import play.api.Logger
 import scala.math.BigDecimal
+import scala.collection.mutable
 
 /**
  * A storage implementation using MongoDB
@@ -86,16 +86,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   /**
    * Keep Mongo indexes to the minimum, specially if it saves a roundtrip to Solr for simple things
    */
-  def ensureIndexes : Unit = {
+  def ensureIndexes() : Unit = {
     jongo.getCollection("products").ensureIndex("{skus.catalogs: 1}", "{sparse: true, name: 'sku_catalog_idx'}")
     jongo.getCollection("products").ensureIndex("{skus.countries.code: 1}", "{sparse: true, name: 'sku_country_idx'}")
   }
 
-  def close : Unit = {
+  def close() : Unit = {
     mongo.close()
   }
 
-  def findProducts(ids: Seq[Tuple2[String, String]], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -250,7 +250,18 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.toString()
   }
 
+  /**
+   * Creates a projection for the given list of fields (adds includes/excludes). If fields is only *, then no projection is created.
+   * @param fields Fields used to created the projection for (include fields)
+   * @param defaultFieldsToHide Fields that will be ignored from the projection (exclude fields)
+   * @return A projection to be used while querying Mongo storage.
+   */
   private def projectionAux(fields: Seq[String], defaultFieldsToHide: String) : String = {
+    //If star is provided, then return everything
+    if(fields.contains("*")) {
+      return "{}"
+    }
+
     val projection = new StringBuilder(128)
     projection.append("{")
     if (fields.size > 0) {
@@ -275,12 +286,12 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   private def projectionBrand(fields: Seq[String]) : String = {    
     projectionAux(fields, DefaultBrandProject)
   }
-    
+
   def saveProduct(product: Product*) : Future[WriteResult] = {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.update(s"{_id: '${p.getId()}'}").upsert().`with`(p) )
+      product.map( p => result = productCollection.update(s"{_id: '${p.getId}'}").upsert().`with`(p) )
       result
     }
   }
@@ -289,11 +300,11 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val categoryCollection = jongo.getCollection("categories")
       var result: WriteResult = null
-      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId()}'}").upsert().`with`(c) )
+      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId}'}").upsert().`with`(c) )
       result
     }
   }
-  
+
   def findCategory(id: String, fields: Seq[String]) : Future[Category] = {
     Future {
       var hasChildCategories, hasParentCategories : Boolean = false
@@ -301,7 +312,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         hasChildCategories = fields.contains("childCategories")
         hasParentCategories = fields.contains("parentCategories")
       }
-      
+
       val categoryCollection = jongo.getCollection("categories")
       if(hasChildCategories && hasParentCategories) {
         mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}, { parentCategories._id:#}] }", id, id, id).projection(projectionCategory(fields)).as(classOf[Category]))
@@ -314,12 +325,19 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       }
     }
   }
+
+  def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]] = {
+    Future {
+        val categoryCollection = jongo.getCollection("categories")
+        categoryCollection.find("{_id:{$in:#}}", ids).projection(projectionCategory(fields)).as(classOf[Category])
+    }
+  }
   
   def saveBrand(brand: Brand*) : Future[WriteResult] = {
     Future {
       val brandCollection = jongo.getCollection("brands")
       var result: WriteResult = null
-      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId()}'}").upsert().`with`(b) )
+      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId}'}").upsert().`with`(b) )
       result
     }
   }
@@ -327,7 +345,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
     Future {
       val brandCollection = jongo.getCollection("brands")
-      brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
+      if(fields.contains("*")) {
+        Logger.debug("aaaa")
+        brandCollection.findOne("{_id:#}", id).as(classOf[Brand])
+      }
+      else {
+        Logger.debug("b")
+        brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
+      }
     }
   }
   
@@ -339,8 +364,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
-    val lookupMap = HashMap.empty[String, Category]
-        var mainDoc :Category = null;
+    val lookupMap = mutable.HashMap.empty[String, Category]
+        var mainDoc: Category = null
         if (categories != null) {
             categories.foreach(
                 doc => {
@@ -353,14 +378,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
                 }
             )
             if(mainDoc != null) {
-                addNestedCategoryNames(mainDoc.childCategories, lookupMap);
-                addNestedCategoryNames(mainDoc.parentCategories, lookupMap);
+                addNestedCategoryNames(mainDoc.childCategories, lookupMap)
+                addNestedCategoryNames(mainDoc.parentCategories, lookupMap)
             } 
         }
         mainDoc
   }
   
-  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap :HashMap[String, Category] ) = {
+  private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: mutable.HashMap[String, Category] ) = {
     for( cats <- categories) {
       cats.foreach(
         category => {
