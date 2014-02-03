@@ -33,7 +33,7 @@ public class Sku {
     private String id;
 
     @JsonProperty
-    private String title;
+    private String displayName;
 
     @JsonProperty
     private String season;
@@ -45,7 +45,7 @@ public class Sku {
     private Image image;
 
     @JsonProperty
-    private Color color;
+    private ColorInfo colorInfo;
     
     @JsonProperty
     private Set<Country> countries;
@@ -82,12 +82,12 @@ public class Sku {
         this.id = id;
     }
     
-    public String getTitle() {
-        return title;
+    public String getDisplayName() {
+        return displayName;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
     
     public String getSeason() {
@@ -215,12 +215,12 @@ public class Sku {
         this.customSort = customSort;
     }
     
-    public Color getColor() {
-        return color;
+    public ColorInfo getColorInfo() {
+        return colorInfo;
     }
 
-    public void setColor(Color color) {
-        this.color = color;
+    public void setColorInfo(ColorInfo colorInfo) {
+        this.colorInfo = colorInfo;
     }
 
 
