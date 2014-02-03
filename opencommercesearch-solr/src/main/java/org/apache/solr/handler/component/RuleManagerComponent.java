@@ -19,6 +19,7 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -489,7 +490,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         ruleParams.addFilterQuery(getTargetFilter(reusableStringBuilder, pageType, requestParams.get(CommonParams.Q)));
         ruleParams.addFilterQuery(getCategoryFilter(reusableStringBuilder, requestParams.get(RuleManagerParams.CATEGORY_FILTER)));
         ruleParams.addFilterQuery(getSiteFilter(reusableStringBuilder, requestParams.getParams(RuleManagerParams.SITE_IDS)));
-        ruleParams.addFilterQuery(getBrandFilter(reusableStringBuilder, getBrandIdFromFilterQuery(requestParams.getParams(CommonParams.FQ))));
+        ruleParams.addFilterQuery(getBrandFilter(reusableStringBuilder, requestParams.get(RuleManagerParams.BRAND_ID)));
         ruleParams.addFilterQuery(getSubTargetFilter(reusableStringBuilder, isOutletRequest(requestParams.getParams(CommonParams.FQ))));
 
         StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
@@ -641,26 +642,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     }
 
     /**
-     * Inspects a list of filter queries to find out what the current brand id is.
-     * <p/>
-     * The current brand id comes in the filter query "brandId" for a brand earch requests.
-     * @param filterQueries Array of filter queries to inspect.
-     * @return The brand ID set on the brandId filter, null if not found.
-     */
-    private String getBrandIdFromFilterQuery(String[] filterQueries) {
-        if(filterQueries != null) {
-            for(String filterQuery : filterQueries) {
-                int index = filterQuery.indexOf(RuleConstants.FIELD_BRAND_ID + ":");
-                    if(index >= 0) {
-                        return filterQuery.substring(index + RuleConstants.FIELD_BRAND_ID.length() + 1);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Get core for facet fields.
      * @return SolrCore for facet fields, or null if not found.
      */
@@ -696,6 +677,17 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
 
+        String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
+        if(StringUtils.isNotBlank(categoryFilter)) {
+            int index = categoryFilter.indexOf(SearchConstants.CATEGORY_SEPARATOR);
+            if (index != -1) {
+                int level = Integer.parseInt(categoryFilter.substring(0, index));
+
+                categoryFilter = ++level + FilterQuery.unescapeQueryChars(categoryFilter.substring(index)) + ".";
+                ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, categoryFilter);
+            }
+        }
+        
         String[] filterQueries = requestParams.getParams("rule.fq");
         if (filterQueries == null) {
             return;
