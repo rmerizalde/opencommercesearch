@@ -71,7 +71,10 @@ public class Product {
 
     @JsonProperty
     private boolean isOutOfStock;
-
+    
+    @JsonProperty
+    private boolean isPackage;
+    
     @JsonProperty
     private Set<String> categories;
 
@@ -206,6 +209,14 @@ public class Product {
 
     public void setOutOfStock(boolean isOutOfStock) {
         this.isOutOfStock = isOutOfStock;
+    }
+
+    public boolean isPackage() {
+        return isPackage;
+    }
+
+    public void setPackage(boolean isPackage) {
+        this.isPackage = isPackage;
     }
 
     public Set<String> getCategories() {

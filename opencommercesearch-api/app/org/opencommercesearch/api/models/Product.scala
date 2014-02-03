@@ -53,10 +53,11 @@ case class Product (
   @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]],
   @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
   @JsonProperty("categories") var categories: Option[Seq[String]],
-  @JsonProperty("skus") var skus: Option[Seq[Sku]])
+  @JsonProperty("skus") var skus: Option[Seq[Sku]],
+  @JsonProperty("isPackage") var isPackage: Option[Boolean])
 {
   @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { this.id.get }
 
@@ -117,8 +118,14 @@ case class Product (
   @Field("isOutOfStock")
   def setOutOfStock(isOutOfStock: Boolean) {
     this.isOutOfStock = Option.apply(isOutOfStock)
-  }  
-  
+  }
+
+  @Field("isPackage")
+  def setPackage(isPackage: Boolean) {
+    this.isPackage = Option.apply(isPackage)
+  }
+
+
   @Field
   def setFeatures(features: util.List[String]) {
     this.features = Some(features.map( { feature =>
@@ -195,7 +202,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
     var currentDocCount = 0
 
     for (product: Product <- products) {
-      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
+      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;isPackage <- product.isPackage;
            skus <- product.skus; listRank <- product.listRank) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
@@ -206,6 +213,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           productDoc.setField("brand", brandId)
         }        
         productDoc.setField("isOutOfStock", isOutOfStock)
+        productDoc.setField("isPackage", isPackage)
         for (description <- product.description; shortDescription <- product.shortDescription) {
           productDoc.setField("description", description)
           productDoc.setField("shortDescription", shortDescription)
@@ -257,8 +265,15 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
-            for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
-            for (color <- sku.color) { doc.setField("color", color) }
+            for (displayName <- sku.displayName) { doc.setField("displayName", displayName) }
+
+            for(colorInfo <- sku.colorInfo) {
+              for(color <-colorInfo.color; colorFamily <- colorInfo.colorFamily) {
+                doc.setField("colorFamily", colorFamily)
+                doc.setField("color", color)
+              }
+            }
+
             for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
 
             for (size <- sku.size) {
