@@ -311,7 +311,7 @@ object ProductController extends BaseController {
       if (category != null && category.isRuleBased.get) {
         //set the rules expression filter query for rule based categories
         val localeKey = language(request.acceptLanguages)+"_"+country(request.acceptLanguages)
-        var ruleFilters = category.ruleFilters.getOrElse(Seq.empty[String]).filter(rule => {
+        val ruleFilters = category.ruleFilters.getOrElse(Seq.empty[String]).filter(rule => {
             rule.startsWith(localeKey)
         })
         for (rules <- ruleFilters) {
@@ -335,14 +335,18 @@ object ProductController extends BaseController {
       }
           
       if (category != null) {
-        val categoryPath = category.category.filterNot(categoryPath => categoryPath.contains(site));
-        for (category <- categoryPath) {
-          if (categoryPath.nonEmpty) {
-            val escaptedCategoryFilter = ClientUtils.escapeQueryChars(category.get(0))
-            query.add("categoryFilter", escaptedCategoryFilter)
-            if(!isRulePage) {
+        for (tokens <- category.hierarchyTokens) {
+          if (tokens.nonEmpty) {
+            val token = tokens.get(0)
+            //we need to split the first part which is the level of the tokens.
+            //i.e.  2.site.category.subcategory
+            if(token.substring(token.indexOf(".")).startsWith(site)) {
+              val escapedCategoryFilter = ClientUtils.escapeQueryChars(token)
+              query.add("categoryFilter", escapedCategoryFilter)
+              if(!isRulePage) {
                 //if we are in a rule based category, solr won't have the category indexed, so we need to avoid this request
-                query.addFilterQuery("category:" + escaptedCategoryFilter)
+                query.addFilterQuery("category:" + escapedCategoryFilter)
+              }
             }
           }
         }
@@ -360,7 +364,7 @@ object ProductController extends BaseController {
             if ("productId".equals(command.getName)) {
               if (command.getNGroups > 0) {
                 val products = new util.ArrayList[(String, String)]
-                for (group <- JIterableWrapper(command.getValues)) {
+                for (group <- command.getValues.toSeq) {
                   val documentList = group.getResult
                   val product = documentList.get(0)
                   product.setField("productId", group.getGroupValue)

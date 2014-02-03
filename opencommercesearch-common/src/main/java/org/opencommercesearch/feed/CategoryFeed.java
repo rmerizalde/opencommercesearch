@@ -79,7 +79,9 @@ public class CategoryFeed extends BaseRestFeed {
         if(isRuleBased) {
             category.put("ruleFilters", buildRuleBasedCategory(item));
         }
-        category.put("category", buildCategory(item));
+        //TODO gsegura: move this calculation out of the feed into the ProductController once we provide a caching layer
+        //to access products to avoid performance issues
+        category.put("hierarchyTokens", buildHierarchyTokens(item));
         setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
@@ -97,15 +99,15 @@ public class CategoryFeed extends BaseRestFeed {
         return array;
     }
 
-    private JSONArray buildCategory(RepositoryItem category) {
+    private JSONArray buildHierarchyTokens(RepositoryItem category) {
         List<String> placeHolder = new ArrayList<String>();
         if(category != null) {
-            buildCategoryPathAux( category, StringUtils.EMPTY, placeHolder, 0);
+            buildHierarchyTokensAux( category, StringUtils.EMPTY, placeHolder, 0);
         }
         return new JSONArray(placeHolder);
     }
 
-    private void buildCategoryPathAux(RepositoryItem category, String groupedString, List<String> placeHolder, int depth) {
+    private void buildHierarchyTokensAux(RepositoryItem category, String groupedString, List<String> placeHolder, int depth) {
         
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);
         
@@ -118,9 +120,9 @@ public class CategoryFeed extends BaseRestFeed {
         else {
             for(RepositoryItem parentCategory : parentCategories) {
                 if(groupedString.isEmpty()) {
-                    buildCategoryPathAux( parentCategory, category.getItemDisplayName(), placeHolder, depth+1);
+                    buildHierarchyTokensAux( parentCategory, category.getItemDisplayName(), placeHolder, depth+1);
                 } else {
-                    buildCategoryPathAux( parentCategory, category.getItemDisplayName()+"."+groupedString, placeHolder, depth+1);
+                    buildHierarchyTokensAux( parentCategory, category.getItemDisplayName()+"."+groupedString, placeHolder, depth+1);
                 }
             }
         }

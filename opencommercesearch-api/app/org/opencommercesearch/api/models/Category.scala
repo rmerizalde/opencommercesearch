@@ -48,7 +48,7 @@ case class Category(
   @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
   @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]],
   @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
-  @JsonProperty("category") var category: Option[Seq[String]],
+  @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
   @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
 
@@ -92,9 +92,9 @@ case class Category(
     this.ruleFilters = Option.apply(JIterableWrapper(ruleFilters).toSeq)
   }
 
-  @Field("category")
-  def setCategory(category: util.Collection[String]) {
-    this.category = Option.apply(JIterableWrapper(category).toSeq)
+  @Field("hierarchyTokens")
+  def setCategory(hierarchyTokens: util.Collection[String]) {
+    this.hierarchyTokens = Option.apply(JIterableWrapper(hierarchyTokens).toSeq)
   }
 
   @Field
@@ -126,7 +126,7 @@ object Category {
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "ruleFilters").readNullable[Seq[String]] ~
     (__ \ "catalogs").readNullable[Seq[String]] ~
-    (__ \ "category").readNullable[Seq[String]] ~
+    (__ \ "hierarchyTokens").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
     (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
   ) (Category.apply _)
@@ -138,7 +138,7 @@ object Category {
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "ruleFilters").writeNullable[Seq[String]] ~
     (__ \ "catalogs").writeNullable[Seq[String]] ~
-    (__ \ "category").writeNullable[Seq[String]] ~
+    (__ \ "hierarchyTokens").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
     (__ \ "childCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
