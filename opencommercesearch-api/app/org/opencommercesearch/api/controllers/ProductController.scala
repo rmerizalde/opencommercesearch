@@ -545,11 +545,11 @@ object ProductController extends BaseController {
     
     if(showOutletProducts) {
         if (request.getQueryString("outlet").getOrElse("false").toBoolean ) {
-            query.addFilterQuery("isCloseout:true")
+            query.addFilterQuery("isOutlet:true")
         }
     } else {
        // Hide any outlet items for non-search PLPs
-       query.addFilterQuery("isCloseout:false")
+       query.addFilterQuery("isOutlet:false")
     }
     query.addFilterQuery("isRetail:true")
     

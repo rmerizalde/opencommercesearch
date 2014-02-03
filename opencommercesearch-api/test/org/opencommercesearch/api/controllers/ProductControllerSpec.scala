@@ -13,7 +13,7 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.{Sku, Product}
+import org.opencommercesearch.api.models.{Sku, Product, Category}
 import org.apache.solr.client.solrj.response.{Group, GroupCommand, GroupResponse, QueryResponse}
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
@@ -50,6 +50,10 @@ class ProductControllerSpec extends BaseSpec {
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
       storage.saveProduct(any) returns Future.successful(writeResult)
+
+      val category = new Category()
+      category.isRuleBased = Option(false)
+      storage.findCategory(any, any) returns Future.successful(category)
     }
   }
 
@@ -175,9 +179,9 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, isOutlet = false, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -193,7 +197,57 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-    "send 200 when a product is found when browsing an closeout category" in new Products {
+    "send 200 when a product is found when browsing a rule based category" in new Products {
+      running(FakeApplication()) {
+
+        val category = new Category()
+        category.isRuleBased = Option(true)
+        category.hierarchyTokens = Option(Seq("1.mysite.cat1"))
+        category.ruleFilters = Option(Seq("en_US:(category:cat1 AND category:cat2)", "fr_CA:(category:cat1)"))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findCategory(any, any) returns Future.successful(null)
+        storage.findCategory(any, any) returns Future.successful(category)
+
+        val product = new Product()
+        val sku = new Sku()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product))
+        var productQuery:SolrQuery = null
+
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = new Sku()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
+        }
+
+        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
+        validateQueryResult(result.get, OK, "application/json")
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, ruleFilter = "category:cat1 AND category:cat2")
+        validateCommonQueryParams(productQuery)
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "product").validate[Product].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              product.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+        } recoverTotal {
+          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when a product is found when browsing an outlet category" in new Products {
       running(FakeApplication()) {
         val product = new Product()
         val sku = new Sku()
@@ -217,9 +271,9 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = true, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = true)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = true)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -261,7 +315,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isOutlet = false)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -303,7 +357,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isOutlet = false)
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -476,25 +530,31 @@ class ProductControllerSpec extends BaseSpec {
    * @param productQuery the query
    * @param categoryId an optional category id
    * @param brandId and optional brand id
+   * @param ruleFilter and optional string to that represents the filter of a rule based category
    */
-  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String, isCloseout: Boolean) : Unit = {
+  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String,
+                                        isOutlet: Boolean, ruleFilter: String = null) : Unit = {
     var expected = 3
 
     productQuery.get("pageType") must beEqualTo("category")
 
-    if (categoryId != null) {
-      expected += 1
-      productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId"
-    }
+    if (ruleFilter == null) {
+      //scenario for non rule based categories
+      if (categoryId != null) {
+        expected += 1
+        productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId"
+      }
 
-    if (brandId != null) {
+      if (brandId != null) {
+        expected += 1
+        productQuery.getFilterQueries contains s"brand:$brandId"
+      }
+    } else {
+      //scenario for rule based categories
       expected += 1
-      productQuery.getFilterQueries contains s"brand:$brandId"
-    }
-
-    if (isCloseout) {
-      expected += 1
-      productQuery.getFilterQueries contains "onsaleUS:true"
+      productQuery.getFilterQueries contains ruleFilter
+      productQuery.getBool("rulePage") must beEqualTo(true)
+      productQuery.get("q") must beEqualTo("*:*")
     }
 
     productQuery.getBool("rule", true)
@@ -502,7 +562,7 @@ class ProductControllerSpec extends BaseSpec {
     productQuery.getFilterQueries.size must beEqualTo(expected)
     productQuery.getFilterQueries contains "country:US"
     productQuery.getFilterQueries contains "isRetail:true"
-    productQuery.getFilterQueries contains s"isCloseout:$isCloseout"
+    productQuery.getFilterQueries contains s"isOutlet:$isOutlet"
   }
 
   /**

@@ -76,7 +76,7 @@ class CategoryControllerSpec extends BaseSpec {
       running(FakeApplication()) {
 
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None)
+        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None, None, None)
 
         storage.findCategory(anyString, any) returns Future.successful(category)
         
@@ -168,10 +168,10 @@ class CategoryControllerSpec extends BaseSpec {
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
-        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased) = 
-          ("1000", "A Category", "/a-category", true)
-        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2) = 
-          ("1001", "Another Category", "/another-category", false)
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
+          ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2, hierarchyTokens2) =
+          ("1001", "Another Category", "/another-category", false, Seq("1.mysite.cat1", "1.mysite.cat2"))
         val json = Json.obj(
           "feedTimestamp" -> 1001,
           "categories" -> Json.arr(
@@ -179,12 +179,15 @@ class CategoryControllerSpec extends BaseSpec {
               "id" -> expectedId,
               "name" -> expectedName,
               "seoUrlToken" -> expectedSeoUrlToken,
-              "isRuleBased" -> expectedIsRuleBased),
+              "isRuleBased" -> expectedIsRuleBased,
+              "ruleFilters" -> Seq("en_US:(filter:value)"),
+              "hierarchyTokens" -> hierarchyTokens),
             Json.obj(
               "id" -> expectedId2,
               "name" -> expectedName2,
               "seoUrlToken" -> expectedSeoUrlToken2,
-              "isRuleBased" -> expectedIsRuleBased2)))
+              "isRuleBased" -> expectedIsRuleBased2,
+              "hierarchyTokens" -> hierarchyTokens2)))
 
         val url = routes.CategoryController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
