@@ -29,6 +29,11 @@ import scala.collection.JavaConversions._
 
 import java.util
 
+import play.api.libs.json.JsArray
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsString
+import play.api.libs.json.JsValue
+
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.service.CategoryService
@@ -39,6 +44,7 @@ import com.wordnik.swagger.annotations._
 import javax.ws.rs.{QueryParam, PathParam}
 
 import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
@@ -167,12 +173,38 @@ object ProductController extends BaseController {
 
   /**
    * Helper method to process search results
+   * @param groupSummary returned by Solr
+   * @return an array for products containing its summary
+   */
+  private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
+    val groups = ArrayBuffer[JsObject]()
+    var productSummary = groupSummary.get("productId").asInstanceOf[NamedList[Object]];
+    JIterableWrapper(productSummary).map(value => {
+      var parameterSummary = value.getValue.asInstanceOf[NamedList[Object]];
+      val productSeq = ArrayBuffer[(String,JsValue)]()
+      JIterableWrapper(parameterSummary).map(value1 => {
+        var statSummary = value1.getValue.asInstanceOf[NamedList[Object]];
+        val parameterSeq = ArrayBuffer[(String,JsString)]()
+        JIterableWrapper(statSummary).map(value2 => {
+          parameterSeq += ((value2.getKey, new JsString(value2.getValue.toString)))
+        })
+        productSeq += ((value1.getKey, new JsObject(parameterSeq)))
+      })
+      groups += new JsObject(ArrayBuffer[(String,JsValue)]((value.getKey, new JsObject(productSeq))))
+    })
+    new JsArray(groups)
+  }
+
+
+  /**
+   * Helper method to process search results
    * @param q the Solr query
    * @param response the Solr response
    * @return a tuple with the total number of products found and the list of product documents in the response
    */
-  private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product])] = {
+  private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
+    val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]];
 
     if (groupResponse != null) {
       val commands = groupResponse.getValues
@@ -190,21 +222,21 @@ object ProductController extends BaseController {
             }
             val storage = withNamespace(storageFactory, preview = true)
             storage.findProducts(products, country(req.acceptLanguages), fieldList()).map( products => {
-              (command.getNGroups, products)
+              (command.getNGroups, products, groupSummary)
             })
           } else {
-            Future.successful((0, null))
+            Future.successful((0, null, null))
           }
         } else {
           Logger.debug(s"Unexpected response found for query $q")
-          Future.successful((0, null))
+          Future.successful((0, null, null))
         }
       } else {
         Logger.debug(s"Unexpected response found for query $q")
-        Future.successful((0, null))
+        Future.successful((0, null, null))
       }
     } else {
-      Future.successful((0, null))
+      Future.successful((0, null, null))
     }
   }
 
@@ -243,12 +275,13 @@ object ProductController extends BaseController {
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products) =>
+        processSearchResults(q, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
+                  "groupSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
                   "facets" -> buildFacets(response, query, filterQueries)),
                 "products" -> Json.toJson(
@@ -259,6 +292,7 @@ object ProductController extends BaseController {
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
+                  "groupSummary" -> processGroupSummary(groupSummary),
                 "products" -> Json.arr()
               ))
             }
@@ -539,8 +573,6 @@ object ProductController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withProductCollection(new SolrQuery(q), preview)
-
-
     findSuggestionsFor(classOf[Product], "products" , solrQuery)
   }
 
