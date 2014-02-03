@@ -22,14 +22,14 @@ import com.fasterxml.jackson.annotation.JsonProperty
 * specific language governing permissions and limitations
 * under the License.
 */
-case class ColorInfo(
-  @JsonProperty("color") var color: Option[String],
-  @JsonProperty("colorFamily") var colorFamily: Option[String]) {
+case class Color(
+  @JsonProperty("name") var name: Option[String],
+  @JsonProperty("family") var family: Option[String]) {
   @JsonCreator
   def this() = this(None, None)
 }
 
 object ColorInfo {
-  implicit val readsColorInfo = Json.reads[ColorInfo]
-  implicit val writesColorInfo = Json.writes[ColorInfo]
+  implicit val readsColorInfo = Json.reads[Color]
+  implicit val writesColorInfo = Json.writes[Color]
 }

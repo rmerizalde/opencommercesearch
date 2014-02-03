@@ -265,12 +265,11 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
-            for (displayName <- sku.displayName) { doc.setField("displayName", displayName) }
 
-            for(colorInfo <- sku.colorInfo) {
-              for(color <-colorInfo.color; colorFamily <- colorInfo.colorFamily) {
-                doc.setField("colorFamily", colorFamily)
-                doc.setField("color", color)
+            for(color <- sku.color) {
+              for(name <-color.name; family <- color.family) {
+                doc.setField("colorFamily", family)
+                doc.setField("color", name)
               }
             }
 
