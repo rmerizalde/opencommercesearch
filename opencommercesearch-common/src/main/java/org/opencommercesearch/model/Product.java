@@ -46,7 +46,10 @@ public class Product {
 
     @JsonProperty
     private String sizingChart;
-
+    
+    @JsonProperty
+    private CustomerReview customerReviews;
+    
     @JsonProperty
     private List<Image> detailImages;
 
@@ -62,22 +65,16 @@ public class Product {
     @JsonProperty
     private int listRank;
 
-    @JsonProperty
-    private int reviewCount;
-
-    @JsonProperty
-    private float reviewAverage;
-
-    @JsonProperty
-    private float bayesianReviewAverage;
-
     // has free gift by catalog
     @JsonProperty
     private Map<String, Boolean> hasFreeGift;
 
     @JsonProperty
     private boolean isOutOfStock;
-
+    
+    @JsonProperty
+    private boolean isPackage;
+    
     @JsonProperty
     private Set<String> categories;
 
@@ -141,6 +138,14 @@ public class Product {
         this.sizingChart = sizingChart;
     }
 
+    public CustomerReview getCustomerReviews() {
+        return customerReviews;
+    }
+
+    public void setCustomerReviews(CustomerReview customerReviews) {
+        this.customerReviews = customerReviews;
+    }
+
     public List<Image> getDetailImages() {
         return detailImages;
     }
@@ -190,30 +195,6 @@ public class Product {
         this.listRank = listRank;
     }
 
-    public int getReviewCount() {
-        return reviewCount;
-    }
-
-    public void setReviewCount(int reviewCount) {
-        this.reviewCount = reviewCount;
-    }
-
-    public float getReviewAverage() {
-        return reviewAverage;
-    }
-
-    public void setReviewAverage(float reviewAverage) {
-        this.reviewAverage = reviewAverage;
-    }
-
-    public float getBayesianReviewAverage() {
-        return bayesianReviewAverage;
-    }
-
-    public void setBayesianReviewAverage(float bayesianReviewAverage) {
-        this.bayesianReviewAverage = bayesianReviewAverage;
-    }
-
     public Map<String, Boolean> getHasFreeGift() {
         return hasFreeGift;
     }
@@ -228,6 +209,14 @@ public class Product {
 
     public void setOutOfStock(boolean isOutOfStock) {
         this.isOutOfStock = isOutOfStock;
+    }
+
+    public boolean isPackage() {
+        return isPackage;
+    }
+
+    public void setPackage(boolean isPackage) {
+        this.isPackage = isPackage;
     }
 
     public Set<String> getCategories() {

@@ -35,8 +35,8 @@ case class Sku(
   @JsonProperty("image") var image: Option[Image],
   @JsonProperty("countries") var countries: Option[Seq[Country]],
   @JsonProperty("isPastSeason") var isPastSeason: Option[Boolean],
-  @JsonProperty("colorFamily") var colorFamily: Option[String],
-  @JsonProperty("color") var color: Option[String],
+  @JsonProperty("color") var color: Option[Color],
+  @JsonProperty("title") var title: Option[java.lang.String],
   @JsonProperty("isRetail") var isRetail: Option[Boolean],
   @JsonProperty("isCloseout") var isCloseout: Option[Boolean],
   @JsonProperty("isOutlet") var isOutlet: Option[Boolean],
@@ -52,8 +52,8 @@ case class Sku(
   @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean]) {
 
   @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-      None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+      None, None, None, None)
 }
 
 object Sku {

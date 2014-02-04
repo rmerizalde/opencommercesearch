@@ -48,17 +48,16 @@ case class Product (
   @JsonProperty("attributes") var attributes: Option[Seq[Attribute]],
   @JsonProperty("features") var features: Option[Seq[Attribute]],
   @JsonProperty("listRank") var listRank: Option[Int],
-  @JsonProperty("reviewCount") var reviewCount: Option[Int],
-  @JsonProperty("reviewAverage") var reviewAverage: Option[Double],
-  @JsonProperty("bayesianReviewAverage") var bayesianReviewAverage: Option[Double],
+  @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview],
   // has free gift by catalog
   @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]],
   @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
   @JsonProperty("categories") var categories: Option[Seq[String]],
-  @JsonProperty("skus") var skus: Option[Seq[Sku]])
+  @JsonProperty("skus") var skus: Option[Seq[Sku]],
+  @JsonProperty("isPackage") var isPackage: Option[Boolean])
 {
   @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { this.id.get }
 
@@ -119,8 +118,14 @@ case class Product (
   @Field("isOutOfStock")
   def setOutOfStock(isOutOfStock: Boolean) {
     this.isOutOfStock = Option.apply(isOutOfStock)
-  }  
-  
+  }
+
+  @Field("isPackage")
+  def setPackage(isPackage: Boolean) {
+    this.isPackage = Option.apply(isPackage)
+  }
+
+
   @Field
   def setFeatures(features: util.List[String]) {
     this.features = Some(features.map( { feature =>
@@ -138,13 +143,39 @@ case class Product (
   }
   
   @Field("reviews")
-  def setReviewCount(reviewCount: Int) : Unit = { this.reviewCount = Option.apply(reviewCount) }
+  def setReviewCount(reviewCount: Int) : Unit = {
+    if(customerReviews.isEmpty) {
+      customerReviews = Some(new CustomerReview())
+    }
+    for (reviews <- customerReviews) {
+      reviews.count = reviewCount
+    }
+  }
+
 
   @Field("reviewAverage")
-  def setReviewAverage(reviewAverage: Float) : Unit = { this.reviewAverage = Option.apply(reviewAverage) }
-  
+  def setReviewAverage(reviewAverage: Float) : Unit = {
+    if(customerReviews.isEmpty) {
+      customerReviews = Some(new CustomerReview())
+    }
+
+    for (reviews <- customerReviews) {
+      reviews.average =reviewAverage
+    }
+
+  }
+
   @Field("bayesianReviewAverage")
-  def setBayesianReviewAverage(bayesianReviewAverage: Float) : Unit = { this.bayesianReviewAverage = Option.apply(bayesianReviewAverage) }
+  def setBayesianReviewAverage(bayesianReviewAverage: Float) : Unit = {
+    if(customerReviews.isEmpty) {
+      customerReviews = Some(new CustomerReview())
+    }
+
+    for (reviews <- customerReviews) {
+      reviews.bayesianAverage = bayesianReviewAverage
+    }
+
+  }
     
   @Field
   def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
@@ -171,7 +202,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
     var currentDocCount = 0
 
     for (product: Product <- products) {
-      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
+      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;isPackage <- product.isPackage;
            skus <- product.skus; listRank <- product.listRank) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
@@ -182,6 +213,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           productDoc.setField("brand", brandId)
         }        
         productDoc.setField("isOutOfStock", isOutOfStock)
+        productDoc.setField("isPackage", isPackage)
         for (description <- product.description; shortDescription <- product.shortDescription) {
           productDoc.setField("description", description)
           productDoc.setField("shortDescription", shortDescription)
@@ -192,10 +224,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         }
         for (features <- product.features) { setAttributes("features", productDoc, features) }
         for (attributes <- product.attributes) { setAttributes("attributes", productDoc, attributes) }
-        for (reviewAverage <- product.reviewAverage; reviews <- product.reviewCount) {
-          productDoc.setField("reviews", reviews)
-          productDoc.setField("reviewAverage", reviewAverage)
-        }
+
         for (sizingChart <- product.sizingChart) { productDoc.setField("sizingChart", sizingChart) }
         for (detailImages <- product.detailImages) {
           for (detailImage <- detailImages) {
@@ -236,8 +265,14 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
-            for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
-            for (color <- sku.color) { doc.setField("color", color) }
+
+            for(color <- sku.color) {
+              for(name <-color.name; family <- color.family) {
+                doc.setField("colorFamily", family)
+                doc.setField("color", name)
+              }
+            }
+
             for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
 
             for (size <- sku.size) {
@@ -245,11 +280,10 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
               for (scale <- size.scale) { doc.setField("scale", scale) }
             }
 
-            for (reviewAverage <- product.reviewAverage; bayesianReviewAverage <- product.bayesianReviewAverage;
-                 reviews <- product.reviewCount) {
-              doc.setField("reviews", reviews)
-              doc.setField("reviewAverage", reviewAverage)
-              doc.setField("bayesianReviewAverage", bayesianReviewAverage)
+            for(reviews <- product.customerReviews) {
+                doc.setField("reviews", reviews.count)
+                doc.setField("reviewAverage", reviews.average)
+                doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
             }
 
             for (country: Country <- countries) {

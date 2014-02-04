@@ -33,6 +33,9 @@ public class Sku {
     private String id;
 
     @JsonProperty
+    private String title;
+
+    @JsonProperty
     private String season;
 
     @JsonProperty
@@ -42,16 +45,13 @@ public class Sku {
     private Image image;
 
     @JsonProperty
+    private Color color;
+    
+    @JsonProperty
     private Set<Country> countries;
 
     @JsonProperty
     private boolean isPastSeason;
-
-    @JsonProperty
-    private String colorFamily;
-
-    @JsonProperty
-    private String color;
 
     @JsonProperty
     private boolean isRetail;
@@ -81,7 +81,15 @@ public class Sku {
     public void setId(String id) {
         this.id = id;
     }
+    
+    public String getTitle() {
+        return title;
+    }
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
     public String getSeason() {
         return season;
     }
@@ -117,22 +125,6 @@ public class Sku {
 
     public void setPastSeason(boolean isPastSeason) {
         this.isPastSeason = isPastSeason;
-    }
-
-    public String getColorFamily() {
-        return colorFamily;
-    }
-
-    public void setColorFamily(String colorFamily) {
-        this.colorFamily = colorFamily;
-    }
-
-    public String getColor() {
-        return color;
-    }
-
-    public void setColor(String color) {
-        this.color = color;
     }
     
     @JsonIgnore
@@ -222,5 +214,14 @@ public class Sku {
     public void setCustomSort(int customSort) {
         this.customSort = customSort;
     }
+    
+    public Color getColor() {
+        return color;
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
+    }
+
 
 }
