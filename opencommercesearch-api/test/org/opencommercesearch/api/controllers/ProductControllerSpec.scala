@@ -707,9 +707,17 @@ class ProductControllerSpec extends BaseSpec {
       groupValues.add(group)
     }
 
+    val summary = mock[NamedList[Object]]
+    val groupSummary = mock[NamedList[Object]]
+    summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary;
+
+    groupSummary.get("productId").asInstanceOf[NamedList[Object]] returns null;
+
     val groupResponse = mock[GroupResponse]
+
     groupResponse.getValues returns commandValues
     queryResponse.getGroupResponse returns groupResponse
+    queryResponse.getResponse returns summary;
     queryResponse
   }
 }

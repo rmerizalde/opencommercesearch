@@ -120,12 +120,6 @@ case class Product (
     this.isOutOfStock = Option.apply(isOutOfStock)
   }
 
-  @Field("isPackage")
-  def setPackage(isPackage: Boolean) {
-    this.isPackage = Option.apply(isPackage)
-  }
-
-
   @Field
   def setFeatures(features: util.List[String]) {
     this.features = Some(features.map( { feature =>
@@ -202,7 +196,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
     var currentDocCount = 0
 
     for (product: Product <- products) {
-      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;isPackage <- product.isPackage;
+      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
            skus <- product.skus; listRank <- product.listRank) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
@@ -213,7 +207,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           productDoc.setField("brand", brandId)
         }        
         productDoc.setField("isOutOfStock", isOutOfStock)
-        productDoc.setField("isPackage", isPackage)
+
         for (description <- product.description; shortDescription <- product.shortDescription) {
           productDoc.setField("description", description)
           productDoc.setField("shortDescription", shortDescription)
