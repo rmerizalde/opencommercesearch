@@ -53,6 +53,7 @@ class ProductControllerSpec extends BaseSpec {
 
       val category = new Category()
       category.isRuleBased = Option(false)
+      category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
     }
   }
@@ -181,7 +182,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -231,7 +232,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, ruleFilter = "category:cat1 AND category:cat2")
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, ruleFilter = "category:cat1 AND category:cat2", escapedCategoryFilter = "1.mysite.cat1")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -273,7 +274,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = true)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = true, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -315,7 +316,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isOutlet = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -353,11 +354,13 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         val storage = storageFactory.getInstance("namespace")
+        //scenario were we have only a brandId, so this api will return null
+        storage.findCategory(any, any) returns Future.successful(null)
         storage.findProducts(any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isOutlet = false)
+        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -452,7 +455,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
 
-    "send 400 when trying to bulk create products with missing fields" in new Products {
+    "send 400 when trying to bulk create products with missing sku fields" in new Products {
       running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedTitle) = ("PRD0001", "A Product")
@@ -486,6 +489,38 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(fakeRequest)
         validateFailedUpdateResult(result.get, BAD_REQUEST, "Missing required fields")
+        validateFailedUpdate(updateResponse)
+      }
+    }
+
+    "send 400 when trying to bulk create products with missing product fields" in new Products {
+      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+        val (updateResponse) = setupUpdate
+        val (expectedId, expectedTitle) = ("PRD0001", "A Product")
+        val jsonBrand = Json.obj("id" -> "1000")
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "products" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "title" -> expectedTitle,
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK")
+              ))),
+            Json.obj(
+              "id" -> (expectedId + "2"),
+              "title" -> expectedTitle,
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK")
+              )))))
+
+        val url = routes.ProductController.bulkCreateOrUpdate().url
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+
+        val result = route(fakeRequest)
+        validateFailedUpdateResult(result.get, BAD_REQUEST, "Can't save an empty sku list. Check that the required fields of the product are set")
         validateFailedUpdate(updateResponse)
       }
     }
@@ -533,7 +568,7 @@ class ProductControllerSpec extends BaseSpec {
    * @param ruleFilter and optional string to that represents the filter of a rule based category
    */
   private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String,
-                                        isOutlet: Boolean, ruleFilter: String = null) : Unit = {
+                                        isOutlet: Boolean, ruleFilter: String = null, escapedCategoryFilter: String) : Unit = {
     var expected = 3
 
     productQuery.get("pageType") must beEqualTo("category")
@@ -541,8 +576,9 @@ class ProductControllerSpec extends BaseSpec {
     if (ruleFilter == null) {
       //scenario for non rule based categories
       if (categoryId != null) {
-        expected += 1
+        expected += 2
         productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId"
+        productQuery.getFilterQueries contains "category:" + escapedCategoryFilter
       }
 
       if (brandId != null) {
@@ -556,7 +592,11 @@ class ProductControllerSpec extends BaseSpec {
       productQuery.getBool("rulePage") must beEqualTo(true)
       productQuery.get("q") must beEqualTo("*:*")
     }
-
+    
+    if (categoryId != null) {
+        productQuery.get("categoryFilter") must beEqualTo(escapedCategoryFilter)
+    }
+                
     productQuery.getBool("rule", true)
     productQuery.get("siteId", site)
     productQuery.getFilterQueries.size must beEqualTo(expected)

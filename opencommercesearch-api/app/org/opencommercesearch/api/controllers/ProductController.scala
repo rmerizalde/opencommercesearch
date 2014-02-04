@@ -407,7 +407,7 @@ object ProductController extends BaseController {
     })
 
     val storage = withNamespace(storageFactory, preview)
-    storage.findCategory(categoryId, Seq("category", "ruleFilters", "isRuleBased")).flatMap { category =>
+    storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>
       
       var isRulePage = false
       if (category != null && category.isRuleBased.get) {
@@ -442,7 +442,7 @@ object ProductController extends BaseController {
             val token = tokens.get(0)
             //we need to split the first part which is the level of the tokens.
             //i.e.  2.site.category.subcategory
-            if(token.substring(token.indexOf(".")).startsWith(site)) {
+            if(token.substring(token.indexOf(".") + 1).startsWith(site)) {
               val escapedCategoryFilter = ClientUtils.escapeQueryChars(token)
               query.add("categoryFilter", escapedCategoryFilter)
               if(!isRulePage) {
@@ -527,16 +527,21 @@ object ProductController extends BaseController {
       } else {
         try {
           val (_, skuDocs) = productList.toDocuments(categoryService, preview)
-          val storage = withNamespace(storageFactory, preview)
-          val productFuture = storage.saveProduct(products:_*)
-          val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
-          searchUpdate.add(skuDocs)
-          val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
-          val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
-            Created
-          }
+          if(skuDocs.isEmpty) {
+              Future.successful(BadRequest(Json.obj(
+              "message" -> "Can't save an empty sku list. Check that the required fields of the products are set")))
+          } else {
+            val storage = withNamespace(storageFactory, preview)
+            val productFuture = storage.saveProduct(products:_*)
+            val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
+            searchUpdate.add(skuDocs)
+            val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
+            val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
+              Created
+            }
 
-          withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+          }
         } catch {
           case e: IllegalArgumentException =>
             Logger.error(e.getMessage)
