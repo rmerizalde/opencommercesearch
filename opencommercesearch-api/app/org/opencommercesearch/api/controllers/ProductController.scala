@@ -86,9 +86,9 @@ object ProductController extends BaseController {
     var productFuture: Future[Product] = null
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList())
+      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList(allowStar = true))
     } else {
-      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList())
+      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList(allowStar = true))
     }
 
     val future = productFuture flatMap { product =>
@@ -224,7 +224,7 @@ object ProductController extends BaseController {
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
             val storage = withNamespace(storageFactory, preview = true)
-            storage.findProducts(products, country(req.acceptLanguages), fieldList()).map( products => {
+            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true)).map( products => {
               (command.getNGroups, products, groupSummary)
             })
           } else {
@@ -475,7 +475,7 @@ object ProductController extends BaseController {
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
                 val storage = withNamespace(storageFactory, preview = true)
-                storage.findProducts(products, country(request.acceptLanguages), fieldList()).map(products => {
+                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),

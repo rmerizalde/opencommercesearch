@@ -213,30 +213,36 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    */
   private def projectionProduct(fields: Seq[String], skuCount: Int) : String = {
     val projection = new StringBuilder(128)
-    projection.append("{")
-    if (fields.size > 0) {
-      var includeSkus = false
-      fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
-        projection.append(f).append(":1,")
-        if (f.startsWith("skus.")) {
-          includeSkus = true
-        }
-      })
-      if (includeSkus) {
-        // we can't use elemMatch on nested fields. The country list is small so all countries are loaded and filtered
-        // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
-        // Country properties are flatten into the sku level so the code will never be part of the response
-        projection.append("skus.countries.code:1,")
-      }
-    } else {
-      if (skuCount > 0) {
-        projection.append(DefaultSearchProjection)
-
-      } else {
-        projection.append(DefaultProductProject)
-      }
+    
+    if(fields.contains("*")) {
+      projection.append("{}")
     }
-
+    else {
+        projection.append("{")
+        if (fields.size > 0) {
+          var includeSkus = false
+          fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
+            projection.append(f).append(":1,")
+            if (f.startsWith("skus.")) {
+              includeSkus = true
+            }
+          })
+          if (includeSkus) {
+            // we can't use elemMatch on nested fields. The country list is small so all countries are loaded and filtered
+            // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
+            // Country properties are flatten into the sku level so the code will never be part of the response
+            projection.append("skus.countries.code:1,")
+          }
+        } else {
+          if (skuCount > 0) {
+            projection.append(DefaultSearchProjection)
+    
+          } else {
+            projection.append(DefaultProductProject)
+          }
+        }
+    }
+    
     if (skuCount > 0) {
       projection.append(" skus: { $elemMatch: {$or: [")
       for (x <- 1 to skuCount) {

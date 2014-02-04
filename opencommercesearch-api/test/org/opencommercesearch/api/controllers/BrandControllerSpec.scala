@@ -65,8 +65,8 @@ class BrandControllerSpec extends BaseSpec {
         storage.findBrand(anyString, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
-        there was one(storage).findBrand(anyString, any)
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find brand with id [$expectedId]")
+        there was one(storage).findBrand(anyString, any)
       }
     }
 
