@@ -246,8 +246,7 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "outlet", value = "Boolean value indicating if this is an outlet page", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def search(
       version: Int,
@@ -271,7 +270,8 @@ object ProductController extends BaseController {
     query.set("siteId", site)
     query.set("pageType", "search") // category or rule
     query.set("rule", true)
-    val filterQueries = FilterQuery.parseFilterQueries(request.getQueryString("filterQueries").getOrElse(""))
+    
+    val filterQueries = FilterQuery.parseFilterQueries(URLDecoder.decode(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
     initQueryParams(query, site, showOutletProducts = true, "search")
     
     filterQueries.foreach(fq => {
