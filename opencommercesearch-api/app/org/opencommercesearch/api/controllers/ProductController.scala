@@ -616,7 +616,7 @@ object ProductController extends BaseController {
       .set("group.facet", false)
 
     val fields = request.getQueryString("fields").getOrElse("");
-    if(fields.contains("sku")) {
+    if(fields.contains("skus")) {
       query.set("group.limit", 50)
     } else {
       query.set("group.limit", 1)
