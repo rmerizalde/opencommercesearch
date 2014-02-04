@@ -108,6 +108,18 @@
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
+
+    <fieldType name="ngram" class="solr.TextField" positionIncrementGap="100">
+     <analyzer type="index">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+       <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="25" />
+     </analyzer>
+     <analyzer type="query">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+     </analyzer>
+    </fieldType>
   </types>
 
 
@@ -184,5 +196,5 @@
   <copyField source="brand" dest="sBrand"/>
   <copyField source="brand" dest="pBrand"/>
   <copyField source="title" dest="keyword"/>
-
+  <copyField source="title" dest="titleNGrams"/>
 </schema>
