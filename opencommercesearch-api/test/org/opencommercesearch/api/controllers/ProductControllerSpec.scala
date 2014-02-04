@@ -633,16 +633,6 @@ class ProductControllerSpec extends BaseSpec {
   }
 
   /**
-   * Helper method to mock a group summary response
-   * @param products is the list of products used to build the mock response
-   * @return
-   */
-  private def setupGroupSummary(products: Seq[Product]) = {
-    val summaryResponse = mock[NamedList[Object]]
-
-  }
-
-  /**
    * Helper method to mock a group response
    * @param products is the list of products used to build the mock response
    * @return
