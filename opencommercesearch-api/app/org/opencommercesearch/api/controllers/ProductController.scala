@@ -474,7 +474,7 @@ object ProductController extends BaseController {
                   product.setField("productId", group.getGroupValue)
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
-                val storage = withNamespace(storageFactory, preview = true)
+                val storage = withNamespace(storageFactory, preview)
                 storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
