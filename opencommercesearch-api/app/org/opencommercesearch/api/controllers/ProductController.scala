@@ -631,7 +631,7 @@ object ProductController extends BaseController {
     solrQuery.setRequestHandler("suggest");
     val future: Future[SimpleResult] = solrServer.query(solrQuery).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products, groupSummary) =>
+        processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(
