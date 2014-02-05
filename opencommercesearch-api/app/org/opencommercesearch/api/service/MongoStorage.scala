@@ -31,6 +31,7 @@ import org.opencommercesearch.api.models.Brand
 import play.api.Logger
 import scala.math.BigDecimal
 import scala.collection.mutable
+import play.api.libs.json.Json
 
 /**
  * A storage implementation using MongoDB
@@ -178,13 +179,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     if (filteredCountries.size > 0) {
       val country = filteredCountries(0)
       sku.allowBackorder = country.allowBackorder
-      
-      for (listPrice <- country.listPrice) {
-    	sku.listPrice = Some(BigDecimal(listPrice))
-      }
-      for (salePrice <- country.salePrice) {
-    	sku.salePrice = Some(BigDecimal(salePrice))
-      } 
+
+      sku.listPrice = country.listPrice
+      sku.salePrice = country.salePrice
       sku.discountPercent = country.discountPercent
       sku.url = country.url
       sku.stockLevel = country.stockLevel
