@@ -86,9 +86,9 @@ object ProductController extends BaseController {
     var productFuture: Future[Product] = null
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList())
+      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList(allowStar = true))
     } else {
-      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList())
+      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList(allowStar = true))
     }
 
     val future = productFuture flatMap { product =>
@@ -205,7 +205,7 @@ object ProductController extends BaseController {
    * @param response the Solr response
    * @return a tuple with the total number of products found and the list of product documents in the response
    */
-  private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
+  private def processSearchResults[R](q: String, preview: Boolean, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
     val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]];
 
@@ -223,8 +223,8 @@ object ProductController extends BaseController {
               product.setField("productId", group.getGroupValue)
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
-            val storage = withNamespace(storageFactory, preview = true)
-            storage.findProducts(products, country(req.acceptLanguages), fieldList()).map( products => {
+            val storage = withNamespace(storageFactory, preview)
+            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true)).map( products => {
               (command.getNGroups, products, groupSummary)
             })
           } else {
@@ -248,8 +248,7 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "outlet", value = "Boolean value indicating if this is an outlet page", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
   ))
   def search(
       version: Int,
@@ -273,7 +272,8 @@ object ProductController extends BaseController {
     query.set("siteId", site)
     query.set("pageType", "search") // category or rule
     query.set("rule", true)
-    val filterQueries = FilterQuery.parseFilterQueries(request.getQueryString("filterQueries").getOrElse(""))
+    
+    val filterQueries = FilterQuery.parseFilterQueries(URLDecoder.decode(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
     initQueryParams(query, site, showOutletProducts = true, "search")
     
     filterQueries.foreach(fq => {
@@ -282,7 +282,7 @@ object ProductController extends BaseController {
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products, groupSummary) =>
+        processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(
@@ -409,7 +409,7 @@ object ProductController extends BaseController {
     })
 
     val storage = withNamespace(storageFactory, preview)
-    storage.findCategory(categoryId, Seq("category", "ruleFilters", "isRuleBased")).flatMap { category =>
+    storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>
       
       var isRulePage = false
       if (category != null && category.isRuleBased.get) {
@@ -444,7 +444,7 @@ object ProductController extends BaseController {
             val token = tokens.get(0)
             //we need to split the first part which is the level of the tokens.
             //i.e.  2.site.category.subcategory
-            if(token.substring(token.indexOf(".")).startsWith(site)) {
+            if(token.substring(token.indexOf(".") + 1).startsWith(site)) {
               val escapedCategoryFilter = ClientUtils.escapeQueryChars(token)
               query.add("categoryFilter", escapedCategoryFilter)
               if(!isRulePage) {
@@ -475,7 +475,7 @@ object ProductController extends BaseController {
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
                 val storage = withNamespace(storageFactory, preview = true)
-                storage.findProducts(products, country(request.acceptLanguages), fieldList()).map(products => {
+                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
@@ -529,16 +529,21 @@ object ProductController extends BaseController {
       } else {
         try {
           val (_, skuDocs) = productList.toDocuments(categoryService, preview)
-          val storage = withNamespace(storageFactory, preview)
-          val productFuture = storage.saveProduct(products:_*)
-          val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
-          searchUpdate.add(skuDocs)
-          val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
-          val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
-            Created
-          }
+          if (skuDocs.isEmpty) {
+              Future.successful(BadRequest(Json.obj(
+              "message" -> "Cannot store a product without skus. Check that the required fields of the products are set")))
+          } else {
+            val storage = withNamespace(storageFactory, preview)
+            val productFuture = storage.saveProduct(products:_*)
+            val searchUpdate = withSearchCollection(new AsyncUpdateRequest(), preview)
+            searchUpdate.add(skuDocs)
+            val searchFuture: Future[UpdateResponse] = searchUpdate.process(solrServer)
+            val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
+              Created
+            }
 
-          withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+          }
         } catch {
           case e: IllegalArgumentException =>
             Logger.error(e.getMessage)

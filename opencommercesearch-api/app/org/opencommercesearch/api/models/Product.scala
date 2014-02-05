@@ -285,8 +285,8 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 doc.addField("country", code)
 
                 for (allowBackorder <- country.allowBackorder) { doc.setField("allowBackorder" + code, allowBackorder) }
-                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, new BigDecimal(listPrice)) }
-                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, new BigDecimal(salePrice)) }
+                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
+                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
                 for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
                 for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
                 for (stockLevel <- country.stockLevel)  { doc.setField("stockLevel" + code, stockLevel) }

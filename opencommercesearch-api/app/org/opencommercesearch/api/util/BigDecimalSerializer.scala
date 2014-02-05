@@ -19,26 +19,18 @@ package org.opencommercesearch.api.util
 * under the License.
 */
 
-
-import com.fasterxml.jackson.databind.{SerializerProvider, DeserializationContext, JsonDeserializer}
-import com.fasterxml.jackson.core.{JsonGenerator, JsonParser}
+import com.fasterxml.jackson.databind.{SerializerProvider, JsonSerializer}
+import com.fasterxml.jackson.core.JsonGenerator
 import org.apache.commons.lang3.StringUtils
 
 /**
- * Deserilizes a String into a BigDecimal
+ * Serializes a BigDecimal object into a String
  */
-class BigDecimalDeserializer extends JsonDeserializer[Option[BigDecimal]] {
+class BigDecimalSerializer extends JsonSerializer[Option[BigDecimal]] {
 
-  override  def deserialize(jsonParser: JsonParser, deserializationContext: DeserializationContext) : Option[BigDecimal] = {
-    val str = jsonParser.getText
-    var value: Option[BigDecimal] = None
-
-    if (StringUtils.isNotBlank(str)) {
-      value = Some(BigDecimal(str))
-    }
-    value
+  override def serialize(value: Option[BigDecimal], jsonGenerator: JsonGenerator, provider: SerializerProvider) : Unit = {
+    val v = value.getOrElse(null)
+    jsonGenerator.writeString(if (v != null) v.toString() else StringUtils.EMPTY)
   }
-
-  override def getNullValue = None
 
 }
