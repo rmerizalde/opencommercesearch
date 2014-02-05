@@ -529,9 +529,9 @@ object ProductController extends BaseController {
       } else {
         try {
           val (_, skuDocs) = productList.toDocuments(categoryService, preview)
-          if(skuDocs.isEmpty) {
+          if (skuDocs.isEmpty) {
               Future.successful(BadRequest(Json.obj(
-              "message" -> "Can't save an empty sku list. Check that the required fields of the products are set")))
+              "message" -> "Cannot store a product without skus. Check that the required fields of the products are set")))
           } else {
             val storage = withNamespace(storageFactory, preview)
             val productFuture = storage.saveProduct(products:_*)
