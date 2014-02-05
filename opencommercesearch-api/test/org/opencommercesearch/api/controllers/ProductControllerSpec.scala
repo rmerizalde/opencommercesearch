@@ -520,7 +520,7 @@ class ProductControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateFailedUpdateResult(result.get, BAD_REQUEST, "Can't save an empty sku list. Check that the required fields of the products are set")
+        validateFailedUpdateResult(result.get, BAD_REQUEST, "Cannot store a product without skus. Check that the required fields of the products are set")
         validateFailedUpdate(updateResponse)
       }
     }
