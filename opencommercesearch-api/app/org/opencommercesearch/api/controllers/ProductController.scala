@@ -205,7 +205,7 @@ object ProductController extends BaseController {
    * @param response the Solr response
    * @return a tuple with the total number of products found and the list of product documents in the response
    */
-  private def processSearchResults[R](q: String, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
+  private def processSearchResults[R](q: String, preview: Boolean, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
     val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]];
 
@@ -223,7 +223,7 @@ object ProductController extends BaseController {
               product.setField("productId", group.getGroupValue)
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
-            val storage = withNamespace(storageFactory, preview = true)
+            val storage = withNamespace(storageFactory, preview)
             storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true)).map( products => {
               (command.getNGroups, products, groupSummary)
             })
@@ -282,7 +282,7 @@ object ProductController extends BaseController {
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products, groupSummary) =>
+        processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(
