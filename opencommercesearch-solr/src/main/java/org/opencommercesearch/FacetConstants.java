@@ -52,6 +52,11 @@ public class FacetConstants {
     public static final String FIELD_MULTISELECT = "isMultiSelect";
 
     /**
+     * Field that tells whether or not a facet is multi select
+     */
+    public static final String FIELD_BLACKLIST = "blackList";
+
+    /**
      * Field that specifies the min buckets for a facet (i.e. min filters)
      */
     public static final String FIELD_MIN_BUCKETS = "minBuckets";

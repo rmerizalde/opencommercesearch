@@ -19,10 +19,10 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import org.opencommercesearch.api.models.Product
+import org.opencommercesearch.api.models._
 import scala.concurrent.Future
-import org.opencommercesearch.api.models.Category
-import org.opencommercesearch.api.models.Brand
+import com.mongodb.WriteResult
+import scala.Tuple2
 
 /**
  * Represents the storage for catalog object including products, brand and categories
@@ -123,12 +123,27 @@ trait Storage[T] {
    */
   def findBrands(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]]
   
-    /**
+   /**
    * Saves the given list of brands. Returns the result of the last write
-   * @param brand is one or more brand to store
+   * @param brand is one or more brands to store
    * @return the results of writing the last brand
    */
   def saveBrand(brand: Brand*) : Future[T]
+
+  /**
+   * Saves the given list of brands. Returns the result of the last write
+   * @param facet is one or more facets to store
+   * @return the results of writing the last facet
+   */
+  def saveFacet(facet: Facet*) : Future[T]
+
+  /**
+   * Finds the facet with the given id. Optionally, takes a list of fields to return
+   * @param id is the facet id
+   * @param fields is the list of fields to return
+   * @return
+   */
+  def findFacet(id: String, fields: Seq[String]) : Future[FacetBlackList]
   
   /**
    * Releases the resources used by this storage

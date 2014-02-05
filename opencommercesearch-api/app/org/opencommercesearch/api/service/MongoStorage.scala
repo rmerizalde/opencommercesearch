@@ -24,14 +24,11 @@ import scala.concurrent.Future
 import scala.collection.JavaConversions._
 import com.mongodb.{MongoClient, WriteResult}
 import com.mongodb.gridfs.GridFS
-import org.opencommercesearch.api.models.{Country, Sku, Product}
+import org.opencommercesearch.api.models._
 import org.jongo.Jongo
-import org.opencommercesearch.api.models.Category
-import org.opencommercesearch.api.models.Brand
 import play.api.Logger
-import scala.math.BigDecimal
 import scala.collection.mutable
-import play.api.libs.json.Json
+import scala.Some
 
 /**
  * A storage implementation using MongoDB
@@ -75,7 +72,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     """
       |logo:0, url:0
     """.stripMargin
-    
+
+  val DefaultFacetProject = """""".stripMargin
+
   def setJongo(jongo: Jongo) : Unit = {
     this.jongo = jongo
   }
@@ -111,7 +110,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       products.map(p => filterSearchProduct(country, p))
     }
   }
-
 
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
@@ -290,6 +288,10 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projectionAux(fields, DefaultBrandProject)
   }
 
+  private def projectionFacet(fields: Seq[String]) : String = {
+    projectionAux(fields, DefaultFacetProject)
+  }
+
   def saveProduct(product: Product*) : Future[WriteResult] = {
     Future {
       val productCollection = jongo.getCollection("products")
@@ -348,14 +350,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
     Future {
       val brandCollection = jongo.getCollection("brands")
-      if(fields.contains("*")) {
-        Logger.debug("aaaa")
-        brandCollection.findOne("{_id:#}", id).as(classOf[Brand])
-      }
-      else {
-        Logger.debug("b")
-        brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
-      }
+      brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
     }
   }
   
@@ -363,6 +358,22 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val brandCollection = jongo.getCollection("brands")
       brandCollection.find("{_id:{$in:#}}", ids).projection(projectionBrand(fields)).as(classOf[Brand])
+    }
+  }
+
+  def saveFacet(facet: Facet*) : Future[WriteResult] = {
+    Future {
+      val facetCollection = jongo.getCollection("facets")
+      var result: WriteResult = null
+      facet.map( c => result = facetCollection.update(s"{_id: '${c.getId}'}").upsert().`with`(c) )
+      result
+    }
+  }
+
+  def findFacet(id: String, fields: Seq[String]) : Future[FacetBlackList] = {
+    Future {
+      val facetCollection = jongo.getCollection("facets")
+      facetCollection.findOne("{_id:#}", id).projection(projectionFacet(fields)).as(classOf[FacetBlackList])
     }
   }
 

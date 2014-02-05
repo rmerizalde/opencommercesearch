@@ -46,7 +46,6 @@ public class FacetHandler {
 
     static {
         ignoredFields.add("_version_");
-        ignoredFields.add(FacetConstants.FIELD_ID);
         ignoredFields.add(FacetConstants.FIELD_QUERIES);
     }
 
