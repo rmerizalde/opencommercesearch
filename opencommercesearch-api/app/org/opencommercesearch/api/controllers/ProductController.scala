@@ -281,7 +281,15 @@ object ProductController extends BaseController {
     })
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
-      if (query.getRows > 0) {
+      
+      val redirect = response.getResponse().get("redirect_url")
+      if (redirect != null && StringUtils.isNotBlank(redirect.toString())) {
+         Future.successful(Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "redirectUrl" -> redirect.toString(),
+                  "time" -> (System.currentTimeMillis() - startTime)
+         ))))
+      } else if (query.getRows > 0) {
         processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
