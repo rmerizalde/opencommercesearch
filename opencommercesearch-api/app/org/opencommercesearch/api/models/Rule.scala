@@ -65,7 +65,7 @@ case class Rule(
   // @todo jmendez: rename to url
   var redirectUrl: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 
