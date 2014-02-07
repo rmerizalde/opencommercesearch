@@ -21,8 +21,6 @@ package org.opencommercesearch.api.service
 
 import org.opencommercesearch.api.models._
 import scala.concurrent.Future
-import com.mongodb.WriteResult
-import scala.Tuple2
 
 /**
  * Represents the storage for catalog object including products, brand and categories
@@ -40,7 +38,7 @@ trait Storage[T] {
    * @param fields is the list of fields to return
    * @return
    */
-  def findProducts(ids: Seq[Tuple2[String, String]], country: String, fields: Seq[String]) : Future[Iterable[Product]]
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]]
 
   /**
    * Finds the product with the given id. Optionally, takes a list of fields to return
@@ -143,7 +141,7 @@ trait Storage[T] {
    * @param fields is the list of fields to return
    * @return
    */
-  def findFacet(id: String, fields: Seq[String]) : Future[FacetBlackList]
+  def findFacet(id: String, fields: Seq[String]) : Future[Facet]
   
   /**
    * Releases the resources used by this storage

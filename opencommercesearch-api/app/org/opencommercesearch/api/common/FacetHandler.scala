@@ -20,8 +20,6 @@ package org.opencommercesearch.api.common
 */
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Map
 import org.opencommercesearch.api.models.{Facet, Filter}
 import org.opencommercesearch.api.util.Util
 import org.apache.solr.common.params.FacetParams
@@ -30,7 +28,6 @@ import org.apache.solr.client.solrj.response.{RangeFacet, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.response.FacetField.Count
 import org.apache.commons.lang3.StringUtils
-import scala.collection.mutable.LinkedHashMap
 import java.net.URLEncoder
 import org.opencommercesearch.api.service.Storage
 import com.mongodb.WriteResult
@@ -38,7 +35,7 @@ import scala.concurrent.duration._
 import scala.Some
 import scala.concurrent.{ExecutionContext, Await}
 import ExecutionContext.Implicits.global
-
+import scala.collection.mutable
 
 /**
  * @author rmerizalde
@@ -51,27 +48,27 @@ case class FacetHandler (
   storage: Storage[WriteResult]) {
 
   def getFacets : Seq[Facet] = {
-    val facetMap: LinkedHashMap[String, Facet] = new LinkedHashMap[String, Facet]
+    val facetMap: mutable.LinkedHashMap[String, Facet] = new mutable.LinkedHashMap[String, Facet]
     
     //To preserve the order of the facets first we need to initialize the keys of the linked hash map in the correct order
     //from results in the solr rule_facet. Then in a second pass we'll populate the actual facet and filter values 
     facetMap.put("category", null)
     facetData.foreach( entry => {
-    	facetMap.put(entry.get(Facet.FieldName).toString(), null)	
+    	facetMap.put(entry.get(Facet.FieldName).toString, null)
     })
     
     for (facetField <- queryResponse.getFacetFields) {
       var facet : Option[Facet] = None
 
-      if( facetField.getName() == "category") {
-        facet = createCategoryFacet(facetField.getName())
+      if( facetField.getName == "category") {
+        facet = createCategoryFacet(facetField.getName)
       }
       else {
         facet = createFacet(facetField.getName)
       }
 
       for (f <- facet) {
-        val filters = new ArrayBuffer[Filter](facetField.getValueCount)
+        val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
         val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
         var facetBlackList: Set[String] = Set.empty
 
@@ -97,7 +94,7 @@ case class FacetHandler (
     rangeFacets(facetMap)
     queryFacets(facetMap)
 
-    val sortedFacets = new ArrayBuffer[Facet](facetMap.size)
+    val sortedFacets = new mutable.ArrayBuffer[Facet](facetMap.size)
     //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
     sortedFacets.appendAll(facetMap.values.filterNot( value => null == value))
     sortedFacets.filter(facet => {
@@ -139,12 +136,12 @@ case class FacetHandler (
     return sortedFacets*/
   }
 
-  private def rangeFacets(facetMap: Map[String, Facet]) : Unit = {
+  private def rangeFacets(facetMap: mutable.Map[String, Facet]) : Unit = {
     if (queryResponse.getFacetRanges != null) {
       for (range <- queryResponse.getFacetRanges) {
         val facet = createFacet(range.getName)
         for (f <- facet) {
-          val filters = new ArrayBuffer[Filter]()
+          val filters = new mutable.ArrayBuffer[Filter]()
 
           val beforeFilter = createBeforeFilter(range, f)
           if (beforeFilter != null) {
@@ -227,13 +224,13 @@ case class FacetHandler (
     }
   }
 
-  private def queryFacets(facetMap: Map[String, Facet]): Unit = {
+  private def queryFacets(facetMap: mutable.Map[String, Facet]): Unit = {
     val queryFacets = queryResponse.getFacetQuery
 
     if (queryFacets != null) {
       var facet: Facet = null
       var facetFieldName = StringUtils.EMPTY
-      var filters: ArrayBuffer[Filter] = null
+      var filters: mutable.ArrayBuffer[Filter] = null
 
       for (entry <- queryFacets.entrySet) {
         val count: Int = entry.getValue
@@ -248,7 +245,7 @@ case class FacetHandler (
             if (!facetFieldName.equals(fieldName)) {
               facetFieldName = fieldName
               facet = createFacet(fieldName).getOrElse(null)
-              filters = new ArrayBuffer[Filter]()
+              filters = new mutable.ArrayBuffer[Filter]()
 
               facet.filters = Some(filters)
               facetMap.put(fieldName, facet)

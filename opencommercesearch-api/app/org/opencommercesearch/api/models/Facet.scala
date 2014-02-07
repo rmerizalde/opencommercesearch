@@ -51,26 +51,27 @@ import com.fasterxml.jackson.annotation.JsonProperty
  */
 case class Facet(
   @Id var id: Option[String],
-  @JsonIgnore var name: Option[String],
-  @JsonIgnore var `type`: Option[String],
-  @JsonIgnore var uiType: Option[String],
-  @JsonIgnore var isMultiSelect: Option[Boolean],
-  @JsonIgnore var fieldName: Option[String],
-  @JsonIgnore var minBuckets: Option[Int],
-  @JsonIgnore var isMixedSorting: Option[Boolean],
-  @JsonIgnore var minCount: Option[Int],
-  @JsonIgnore var sort: Option[String],
-  @JsonIgnore var isMissing: Option[Boolean],
-  @JsonIgnore var limit: Option[Int],
-  @JsonIgnore var start: Option[String],
-  @JsonIgnore var end: Option[String],
-  @JsonIgnore var gap: Option[String],
-  @JsonIgnore var isHardened: Option[Boolean],
-  @JsonIgnore var queries: Option[Array[String]],
-  @JsonProperty("blackList") var blackList: Option[Seq[String]],
-  @JsonIgnore  var filters: Option[Seq[Filter]]) {
 
-  @JsonCreator
+  //Using both JsonIgnore and JsonProperty to convert Json to Facet properly but when converting from Facet to Json only write ID and Blacklist.
+  @JsonIgnore @JsonProperty("name") var name: Option[String],
+  @JsonIgnore @JsonProperty("type") var `type`: Option[String],
+  @JsonIgnore @JsonProperty("uiType") var uiType: Option[String],
+  @JsonIgnore @JsonProperty("isMultiSelect") var isMultiSelect: Option[Boolean],
+  @JsonIgnore @JsonProperty("fieldName") var fieldName: Option[String],
+  @JsonIgnore @JsonProperty("minBuckets") var minBuckets: Option[Int],
+  @JsonIgnore @JsonProperty("isMixedSorting") var isMixedSorting: Option[Boolean],
+  @JsonIgnore @JsonProperty("minCount") var minCount: Option[Int],
+  @JsonIgnore @JsonProperty("sort") var sort: Option[String],
+  @JsonIgnore @JsonProperty("isMissing") var isMissing: Option[Boolean],
+  @JsonIgnore @JsonProperty("limit") var limit: Option[Int],
+  @JsonIgnore @JsonProperty("start") var start: Option[String],
+  @JsonIgnore @JsonProperty("end") var end: Option[String],
+  @JsonIgnore @JsonProperty("gap") var gap: Option[String],
+  @JsonIgnore @JsonProperty("isHardened") var isHardened: Option[Boolean],
+  @JsonIgnore @JsonProperty("queries") var queries: Option[Array[String]],
+  @JsonProperty("blackList") var blackList: Option[Seq[String]],
+  @JsonIgnore @JsonProperty("filters")  var filters: Option[Seq[Filter]]) {
+
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
@@ -223,14 +224,6 @@ object Facet {
  */
 case class FacetList(facets: List[Facet]) {
 
-}
-
-/**
- * Helper class to hold facet blacklists from storage.
- * @param id The facet id
- * @param blackList The list of blacklisted values
- */
-case class FacetBlackList(@Id var id: Option[String], @JsonProperty("blackList") var blackList: Option[Seq[String]]) {
 }
 
 object FacetList {

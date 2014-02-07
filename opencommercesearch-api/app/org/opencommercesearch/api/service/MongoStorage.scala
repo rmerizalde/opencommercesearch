@@ -370,10 +370,10 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     }
   }
 
-  def findFacet(id: String, fields: Seq[String]) : Future[FacetBlackList] = {
+  def findFacet(id: String, fields: Seq[String]) : Future[Facet] = {
     Future {
       val facetCollection = jongo.getCollection("facets")
-      facetCollection.findOne("{_id:#}", id).projection(projectionFacet(fields)).as(classOf[FacetBlackList])
+      facetCollection.findOne("{_id:#}", id).projection(projectionFacet(fields)).as(classOf[Facet])
     }
   }
 
