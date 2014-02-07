@@ -43,7 +43,7 @@ object BrandController extends BaseController with FacetQuery {
 
   val categoryService = new CategoryService(solrServer)
 
-  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
+  @ApiOperation(value = "Get a brand by id", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
   @ApiResponses(Array(new ApiResponse(code = 404, message = "Brand not found")))
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")

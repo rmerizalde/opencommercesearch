@@ -33,19 +33,24 @@ import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
 import org.apache.solr.client.solrj.response.QueryResponse
 import org.apache.solr.common.util.NamedList
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.Facet
+import org.opencommercesearch.api.models.{FacetBlackList, Facet}
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import com.mongodb.WriteResult
 
 class FacetControllerSpec extends Specification with Mockito {
+
+  val storage = mock[MongoStorage]
 
   trait Facets extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
       storageFactory = mock[MongoStorageFactory]
-      storageFactory.getInstance(anyString) returns mock[MongoStorage]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveFacet(any) returns Future.successful(writeResult)
     }
   }
 
@@ -83,6 +88,9 @@ class FacetControllerSpec extends Specification with Mockito {
         val doc = mock[SolrDocument]
         val (expectedId) = ("1000")
 
+        storage.findFacet(anyString, any) returns Future.successful(new FacetBlackList(Some("1000"), Some(Seq.empty[String])))
+
+        docList.getNumFound returns 1
         docList.get(0) returns doc
         doc.get("id") returns expectedId
         doc.getFieldValue("id") returns expectedId
@@ -290,7 +298,7 @@ class FacetControllerSpec extends Specification with Mockito {
     Thread.sleep(300)
     there was one(solrServer).query(any[SolrQuery])
     there was one(queryResponse).getResults
-    there was one(docList).get(0)
+    there was atLeastOne(docList).getNumFound
   }
 
   private def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {

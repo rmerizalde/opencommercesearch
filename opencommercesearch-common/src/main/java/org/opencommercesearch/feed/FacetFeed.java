@@ -92,6 +92,19 @@ public class FacetFeed extends BaseRestFeed {
             }
         }
 
+        Set<String> blackList = (Set<String>) facet.getPropertyValue(FacetProperty.BLACKLIST);
+        if(blackList != null && blackList.size() > 0) {
+            List jsBlackList = new JSONArray();
+            for (String blackListItem : blackList) {
+                jsBlackList.add(blackListItem);
+            }
+
+            facetJsonObj.put(FacetConstants.FIELD_BLACKLIST, jsBlackList);
+        }
+        else {
+            facetJsonObj.put(FacetConstants.FIELD_BLACKLIST, new JSONArray());
+        }
+
         return facetJsonObj;
     }
 
