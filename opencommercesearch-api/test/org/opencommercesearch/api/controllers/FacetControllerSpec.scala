@@ -33,7 +33,7 @@ import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
 import org.apache.solr.client.solrj.response.QueryResponse
 import org.apache.solr.common.util.NamedList
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.{FacetBlackList, Facet}
+import org.opencommercesearch.api.models.Facet
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
@@ -88,7 +88,10 @@ class FacetControllerSpec extends Specification with Mockito {
         val doc = mock[SolrDocument]
         val (expectedId) = ("1000")
 
-        storage.findFacet(anyString, any) returns Future.successful(new FacetBlackList(Some("1000"), Some(Seq.empty[String])))
+        val facet = new Facet()
+        facet.setId("1000")
+        facet.setBlackList(Seq.empty[String])
+        storage.findFacet(anyString, any) returns Future.successful(facet)
 
         docList.getNumFound returns 1
         docList.get(0) returns doc
