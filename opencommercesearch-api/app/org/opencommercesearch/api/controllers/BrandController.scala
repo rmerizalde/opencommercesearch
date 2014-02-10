@@ -88,8 +88,8 @@ object BrandController extends BaseController with FacetQuery {
     @QueryParam("preview")
     preview: Boolean) = Action.async (parse.json) { implicit request =>
     Json.fromJson[Brand](request.body).map { brand =>
-      if (brand.name.isEmpty || brand.logo.isEmpty) {
-        Logger.error("Missing required brand fields [name] or [logo]")
+      if (brand.name.isEmpty) {
+        Logger.error("Missing required brand fields [name]")
         Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
         try {
@@ -141,7 +141,7 @@ object BrandController extends BaseController with FacetQuery {
         Future.successful(BadRequest(Json.obj(
           "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize")))
       } else if (hasMissingFields(brands)) {
-        Logger.error("Missing required brand fields [id], [name] or [logo]")
+        Logger.error("Missing required brand fields [id] or [name]")
         Future.successful(BadRequest(Json.obj(
           "message" -> "Missing required fields")))
       } else {
@@ -200,8 +200,7 @@ object BrandController extends BaseController with FacetQuery {
     while (!missingFields && brandIt.hasNext) {
       val brand = brandIt.next()
       missingFields = brand.id.isEmpty ||
-        brand.name.isEmpty ||
-        brand.logo.isEmpty
+        brand.name.isEmpty 
     }
     missingFields
   }

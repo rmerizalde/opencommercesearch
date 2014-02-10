@@ -33,7 +33,7 @@ import com.wordnik.swagger.converter.{OverrideConverter, ModelConverters}
 import org.opencommercesearch.api.util.{CountryConverter, BigDecimalConverter}
 
 
-object Global extends WithFilters(new StatsdFilter()) {
+object Global extends WithFilters(new StatsdFilter(), AccessLog) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
   lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
   lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
@@ -143,3 +143,5 @@ object Global extends WithFilters(new StatsdFilter()) {
     Play.current.configuration.getInt(name).getOrElse(default)
   }
 }
+
+
