@@ -201,7 +201,10 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
             //Check if there are any redirect rules
             if(rulesMap.containsKey(RuleType.redirectRule)) {
-                augmentedParams = new MergedSolrParams();
+                //we need a bunch of the request param default values to avoid exceptions, but to
+                //cut the rest of calculations and return only the redirect we are putting the q to be empty
+                augmentedParams = new MergedSolrParams(requestParams);
+                augmentedParams.set(CommonParams.Q, StringUtils.EMPTY);
                 List<Document> redirects = rulesMap.get(RuleType.redirectRule);
                 if(redirects != null && redirects.size() > 0) {
                     rb.rsp.add("redirect_url", redirects.get(0).get(RuleConstants.FIELD_REDIRECT_URL));

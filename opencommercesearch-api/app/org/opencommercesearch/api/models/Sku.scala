@@ -19,11 +19,8 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.{Json}
-import scala.collection.JavaConversions._
-import scala.collection.mutable.Map
+import play.api.libs.json.Json
 
-import Sku._
 import com.fasterxml.jackson.annotation.JsonCreator
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonProperty

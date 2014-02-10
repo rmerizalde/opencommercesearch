@@ -20,9 +20,6 @@ package org.opencommercesearch.api.common
 */
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
 import org.opencommercesearch.api.models.{Facet, Filter}
 import org.opencommercesearch.api.util.Util
 import org.apache.solr.common.params.FacetParams
@@ -31,9 +28,14 @@ import org.apache.solr.client.solrj.response.{RangeFacet, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.response.FacetField.Count
 import org.apache.commons.lang3.StringUtils
-import scala.collection.mutable.LinkedHashMap
 import java.net.URLEncoder
-
+import org.opencommercesearch.api.service.Storage
+import com.mongodb.WriteResult
+import scala.concurrent.duration._
+import scala.Some
+import scala.concurrent.{ExecutionContext, Await}
+import ExecutionContext.Implicits.global
+import scala.collection.mutable
 
 /**
  * @author rmerizalde
@@ -42,31 +44,37 @@ case class FacetHandler (
   query: SolrQuery,
   queryResponse: QueryResponse,
   filterQueries: Array[FilterQuery],
-  facetData: Seq[NamedList[AnyRef]]) {
+  facetData: Seq[NamedList[AnyRef]],
+  storage: Storage[WriteResult]) {
 
   def getFacets : Seq[Facet] = {
-    val facetMap: LinkedHashMap[String, Facet] = new LinkedHashMap[String, Facet]
+    val facetMap: mutable.LinkedHashMap[String, Facet] = new mutable.LinkedHashMap[String, Facet]
     
     //To preserve the order of the facets first we need to initialize the keys of the linked hash map in the correct order
     //from results in the solr rule_facet. Then in a second pass we'll populate the actual facet and filter values 
     facetMap.put("category", null)
     facetData.foreach( entry => {
-    	facetMap.put(entry.get(Facet.FieldName).toString(), null)	
+    	facetMap.put(entry.get(Facet.FieldName).toString, null)
     })
     
     for (facetField <- queryResponse.getFacetFields) {
       var facet : Option[Facet] = None
-      
-      if( facetField.getName() == "category") {
-          facet = createCategoryFacet(facetField.getName())
+
+      if( facetField.getName == "category") {
+        facet = createCategoryFacet(facetField.getName)
       }
       else {
-          facet = createFacet(facetField.getName)
+        facet = createFacet(facetField.getName)
       }
+
       for (f <- facet) {
-        val filters = new ArrayBuffer[Filter](facetField.getValueCount)
-        val prefix: String = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
-        val facetBlackList: Set[String] = getBlacklist(facetField.getName)
+        val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
+        val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
+        var facetBlackList: Set[String] = Set.empty
+
+        //If this is a category facet, then the ID will be None.
+        for(facetId <- f.id) { facetBlackList = getBlacklist(facetId) }
+
         for (count <- facetField.getValues) {
           val filterName: String = getCountName(count, prefix)
           if (!facetBlackList.contains(filterName)) {
@@ -86,7 +94,7 @@ case class FacetHandler (
     rangeFacets(facetMap)
     queryFacets(facetMap)
 
-    val sortedFacets = new ArrayBuffer[Facet](facetMap.size)
+    val sortedFacets = new mutable.ArrayBuffer[Facet](facetMap.size)
     //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
     sortedFacets.appendAll(facetMap.values.filterNot( value => null == value))
     sortedFacets.filter(facet => {
@@ -97,6 +105,7 @@ case class FacetHandler (
       include
     }).map(facet => {
       // hide fields need internally only
+      facet.id = None
       facet.fieldName = None
       facet.isHardened = None
       facet.start = None
@@ -127,12 +136,12 @@ case class FacetHandler (
     return sortedFacets*/
   }
 
-  private def rangeFacets(facetMap: Map[String, Facet]) : Unit = {
+  private def rangeFacets(facetMap: mutable.Map[String, Facet]) : Unit = {
     if (queryResponse.getFacetRanges != null) {
       for (range <- queryResponse.getFacetRanges) {
         val facet = createFacet(range.getName)
         for (f <- facet) {
-          val filters: Seq[Filter] = new ArrayBuffer()
+          val filters = new mutable.ArrayBuffer[Filter]()
 
           val beforeFilter = createBeforeFilter(range, f)
           if (beforeFilter != null) {
@@ -144,8 +153,9 @@ case class FacetHandler (
             if (prevCount == null) {
               prevCount = count
             } else {
-              filters.add(createRangeFilter(range.getName, f, Util.ResourceInRange,
-                prevCount.getValue, count.getValue, prevCount.getCount))
+              val rangeFilter = createRangeFilter(range.getName, f, Util.ResourceInRange,
+                prevCount.getValue, count.getValue, prevCount.getCount)
+              filters.add(rangeFilter)
               prevCount = count
             }
           }
@@ -214,13 +224,13 @@ case class FacetHandler (
     }
   }
 
-  private def queryFacets(facetMap: Map[String, Facet]): Unit = {
+  private def queryFacets(facetMap: mutable.Map[String, Facet]): Unit = {
     val queryFacets = queryResponse.getFacetQuery
 
     if (queryFacets != null) {
       var facet: Facet = null
       var facetFieldName = StringUtils.EMPTY
-      var filters: ArrayBuffer[Filter] = null
+      var filters: mutable.ArrayBuffer[Filter] = null
 
       for (entry <- queryFacets.entrySet) {
         val count: Int = entry.getValue
@@ -235,7 +245,7 @@ case class FacetHandler (
             if (!facetFieldName.equals(fieldName)) {
               facetFieldName = fieldName
               facet = createFacet(fieldName).getOrElse(null)
-              filters = new ArrayBuffer[Filter]()
+              filters = new mutable.ArrayBuffer[Filter]()
 
               facet.filters = Some(filters)
               facetMap.put(fieldName, facet)
@@ -274,7 +284,7 @@ case class FacetHandler (
    * Creates a new category facet with the default facet values
    */
   private def createCategoryFacet(fieldName: String) : Option[Facet] = {
-    val categoryFacet = new Facet 
+    val categoryFacet = new Facet
     categoryFacet.name = Option.apply(fieldName)
     categoryFacet.fieldName = Option.apply(fieldName)
     categoryFacet.minBuckets = Option.apply(1)
@@ -296,11 +306,21 @@ case class FacetHandler (
   }
 
   /**
-   * @todo jmendez, we need to export the blacklist in the feed. Blacklist is irrelevant to
-   *       Solr and can be written to mongo for client side filtering
+   * Get blacklist for a facet id. Values in the black list should be ignored.
    */
-  private def getBlacklist(fieldName: String) : Set[String] = {
-    Set.empty
+  private def getBlacklist(id: String) : Set[String] = {
+    val Timeout = Duration(10, SECONDS)
+
+    val future = storage.findFacet(id, Seq.empty[String]) map { facet =>
+      if(facet != null) {
+        facet.blackList.getOrElse(Seq.empty[String])
+      }
+      else {
+        Seq.empty[String]
+      }
+    }
+
+    Await.result(future, Timeout).toSet[String]
   }
 
   /**

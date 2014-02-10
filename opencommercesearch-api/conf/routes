@@ -4,15 +4,13 @@
 
 # brand routes
 GET           /v1/brands/suggestions                                     org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
+GET           /v1/brand/categories                                        org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, preview: Boolean ?= false, site: String)
 GET           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 1, id: String, preview: Boolean ?= false)
 GET           /v1/brands/:id/categories                                  org.opencommercesearch.api.controllers.BrandController.findBrandCategoriesById(version: Int = 1, id: String, preview: Boolean ?= false, site: String)
 GET           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.findAll(version: Int = 1, preview: Boolean ?= false, site: String)
 PUT           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.createOrUpdate(version: Int = 1, id: String, preview: Boolean ?= false)
 PUT           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.bulkCreateOrUpdate(version: Int = 1, preview: Boolean ?= false)
 DELETE        /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.deleteByTimestamp(preview: Boolean ?= false, feedTimestamp: Long)
-
-# brand categories
-GET           /v1/brandcategories                                        org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, preview: Boolean ?= false, site: String)
 
 # product routes
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
@@ -58,6 +56,7 @@ GET           /api-docs/categories                                       control
 GET           /api-docs/brands                                           controllers.ApiHelpController.getResource(path = "brands")
 GET           /api-docs/products                                         controllers.ApiHelpController.getResource(path = "products")
 GET           /api-docs/queries                                          controllers.ApiHelpController.getResource(path = "queries")
+GET           /api-docs/facets                                           controllers.ApiHelpController.getResource(path = "facets")
 
 GET           /images/*file                                              controllers.Assets.at(path="/public/images", file)
 GET           /assets/*file                                              controllers.Assets.at(path="/public", file)

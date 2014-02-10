@@ -43,7 +43,7 @@ object BrandController extends BaseController with FacetQuery {
 
   val categoryService = new CategoryService(solrServer)
 
-  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
+  @ApiOperation(value = "Get a brand by id", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
   @ApiResponses(Array(new ApiResponse(code = 404, message = "Brand not found")))
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
@@ -88,8 +88,8 @@ object BrandController extends BaseController with FacetQuery {
     @QueryParam("preview")
     preview: Boolean) = Action.async (parse.json) { implicit request =>
     Json.fromJson[Brand](request.body).map { brand =>
-      if (brand.name.isEmpty || brand.logo.isEmpty) {
-        Logger.error("Missing required brand fields [name] or [logo]")
+      if (brand.name.isEmpty) {
+        Logger.error("Missing required brand fields [name]")
         Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
         try {
@@ -141,7 +141,7 @@ object BrandController extends BaseController with FacetQuery {
         Future.successful(BadRequest(Json.obj(
           "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize")))
       } else if (hasMissingFields(brands)) {
-        Logger.error("Missing required brand fields [id], [name] or [logo]")
+        Logger.error("Missing required brand fields [id] or [name]")
         Future.successful(BadRequest(Json.obj(
           "message" -> "Missing required fields")))
       } else {
@@ -200,8 +200,7 @@ object BrandController extends BaseController with FacetQuery {
     while (!missingFields && brandIt.hasNext) {
       val brand = brandIt.next()
       missingFields = brand.id.isEmpty ||
-        brand.name.isEmpty ||
-        brand.logo.isEmpty
+        brand.name.isEmpty 
     }
     missingFields
   }

@@ -1,5 +1,4 @@
 package org.opencommercesearch.api.controllers
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -281,7 +280,15 @@ object ProductController extends BaseController {
     })
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
-      if (query.getRows > 0) {
+      
+      val redirect = response.getResponse().get("redirect_url")
+      if (redirect != null && StringUtils.isNotBlank(redirect.toString())) {
+         Future.successful(Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "redirectUrl" -> redirect.toString(),
+                  "time" -> (System.currentTimeMillis() - startTime)
+         ))))
+      } else if (query.getRows > 0) {
         processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
@@ -290,7 +297,7 @@ object ProductController extends BaseController {
                   "found" -> found,
                   "productSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
-                  "facets" -> buildFacets(response, query, filterQueries)),
+                  "facets" -> buildFacets(response, query, filterQueries, preview)),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))
                 )))
@@ -480,7 +487,7 @@ object ProductController extends BaseController {
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
                       "time" -> (System.currentTimeMillis() - startTime),
-                      "facets" -> buildFacets(response, query, filterQueries)),
+                      "facets" -> buildFacets(response, query, filterQueries, preview)),
                     "products" -> Json.toJson(
                       products map (Json.toJson(_)))))
                 })
@@ -510,14 +517,13 @@ object ProductController extends BaseController {
     }
   }
 
-
-  private def buildFacets(response: QueryResponse, query: SolrQuery, filterQueries: Array[FilterQuery]) : Seq[Facet] = {
+  private def buildFacets[R](response: QueryResponse, query: SolrQuery, filterQueries: Array[FilterQuery], preview: Boolean)(implicit req: Request[R]) : Seq[Facet] = {
     var facetData = Seq.empty[NamedList[AnyRef]]
 
     if (response.getResponse != null && response.getResponse.get("rule_facets") != null) {
       facetData = response.getResponse.get("rule_facets").asInstanceOf[util.ArrayList[NamedList[AnyRef]]]
     }
-    new FacetHandler(query, response, filterQueries, facetData).getFacets
+    new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory, preview)).getFacets
   }
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>

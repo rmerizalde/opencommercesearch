@@ -61,9 +61,11 @@ case class Rule(
   var facetId: Option[Array[String]],
   var boostedProducts: Option[Array[String]],
   var blockedProducts: Option[Array[String]],
-  var ruleType: Option[String]) {
+  var ruleType: Option[String],
+  // @todo jmendez: rename to url
+  var redirectUrl: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 
@@ -161,6 +163,11 @@ case class Rule(
 
   @Field
   def setRuleType(ruleType: String) : Unit = { this.ruleType = Option.apply(ruleType) }
+
+  def getUrl : String = { redirectUrl.getOrElse(null) }
+
+  @Field("redirectUrl")
+  def setUrl(url: String) : Unit = { this.redirectUrl = Option.apply(url) }
 }
 
 object Rule {
