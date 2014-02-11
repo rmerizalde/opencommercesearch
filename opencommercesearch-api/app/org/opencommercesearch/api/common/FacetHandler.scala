@@ -393,17 +393,17 @@ case class FacetHandler (
   /**
    * From the filterQueries selected by the user, generate a list of BreadCrumbs
    * to allow un-selecting a given facet.
-   * @param filterQueries an array with the filterQueries selected by the user
+   *
    * @return a list of breadcrumbs
    */
-  def getBreadCrumbs(filterQueries: Array[FilterQuery]): Seq[BreadCrumb] = {
+  def getBreadCrumbs(): Seq[BreadCrumb] = {
     var crumbs =  mutable.ArrayBuffer[BreadCrumb]()
     if (filterQueries == null || filterQueries.length == 0) {
       return crumbs
     }
     filterQueries.foreach(filterQuery => {
       if ("category".equals(filterQuery.fieldName)) {
-        crumbs.addAll(createCategoryBreadCrumb(filterQuery, filterQueries));
+        crumbs.addAll(createCategoryBreadCrumb(filterQuery));
       } else {
         val crumb = new BreadCrumb();
         crumb.setFieldName(filterQuery.fieldName)
@@ -420,10 +420,8 @@ case class FacetHandler (
    *
    * @param categoryFilterQuery
    *            the category filter query selected
-   * @param breadCrumbs
-   *            the output crumb list
    */
-  private def createCategoryBreadCrumb(categoryFilterQuery: FilterQuery, filterQueries: Array[FilterQuery]): Seq[BreadCrumb] = {
+  private def createCategoryBreadCrumb(categoryFilterQuery: FilterQuery): Seq[BreadCrumb] = {
     if (categoryFilterQuery == null) {
       return Seq.empty
     }

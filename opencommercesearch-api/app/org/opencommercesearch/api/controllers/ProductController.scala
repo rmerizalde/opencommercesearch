@@ -299,7 +299,7 @@ object ProductController extends BaseController {
                   "productSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
                   "facets" -> facetHandler.getFacets,
-                  "breadCrumbs" -> facetHandler.getBreadCrumbs(filterQueries)), 
+                  "breadCrumbs" -> facetHandler.getBreadCrumbs),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))
                 )))
@@ -491,7 +491,7 @@ object ProductController extends BaseController {
                       "found" -> command.getNGroups.intValue(),
                       "time" -> (System.currentTimeMillis() - startTime),
                       "facets" -> facetHandler.getFacets,
-                      "breadCrumbs" -> facetHandler.getBreadCrumbs(filterQueries)),
+                      "breadCrumbs" -> facetHandler.getBreadCrumbs),
                     "products" -> Json.toJson(
                       products map (Json.toJson(_)))))
                 })
