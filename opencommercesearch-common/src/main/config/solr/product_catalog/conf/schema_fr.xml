@@ -68,6 +68,19 @@
         <filter class="solr.FrenchLightStemFilterFactory" />
       </analyzer>
     </fieldType>
+
+    <fieldType name="ngram" class="solr.TextField" positionIncrementGap="100">
+     <analyzer type="index">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+       <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="25" />
+     </analyzer>
+     <analyzer type="query">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+     </analyzer>
+    </fieldType>
+
     <fieldType name="text_fr_spellcheck" class="solr.TextField" positionIncrementGap="100" autoGeneratePhraseQueries="true">
       <analyzer type="index">
         <charFilter class="solr.MappingCharFilterFactory" mapping="mapping-ISOLatin1Accent.txt" />
@@ -164,4 +177,5 @@
   <!-- other -->
   <copyField source="brand" dest="sBrand"/>
   <copyField source="title" dest="keyword"/>
+  <copyField source="title" dest="titleNGrams"/>
 </schema>

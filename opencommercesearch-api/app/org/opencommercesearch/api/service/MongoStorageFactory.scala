@@ -20,7 +20,7 @@ package org.opencommercesearch.api.service
 */
 
 import java.util.concurrent.ConcurrentHashMap
-import com.mongodb.{WriteConcern, MongoClient, MongoClientURI, WriteResult}
+import com.mongodb._
 import play.api.{Logger, Configuration}
 import org.jongo.{Jongo, Mapper}
 import com.mongodb.gridfs.GridFS
@@ -81,6 +81,8 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
           db.setWriteConcern(WriteConcern.valueOf(writeConcern))
         }
 
+        val readPreference = config.getString("jongo.defaultReadPreference").getOrElse("nearest")
+        db.setReadPreference(ReadPreference.valueOf(readPreference))
         if (uri.getUsername() != null) {
           Logger.info(s"Authenticating using username ${uri.getUsername()} for namespace $namespace")
           db.authenticate(uri.getUsername(), uri.getPassword())

@@ -83,7 +83,7 @@
   <dynamicField name="discountPercent*"  type="tint"    indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" />
   <field name="isToos"                   type="boolean" indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" sortMissingLast="true" />
   <field name="isPastSeason"             type="boolean" indexed="true" stored="true" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
-
+  <field name="titleNGrams"              type="ngram"   indexed="true" stored="true" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
   <!-- catch all ignore -->
   <dynamicField name="*" type="ignored" multiValued="true" />
 </fields>

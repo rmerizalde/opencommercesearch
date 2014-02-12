@@ -77,6 +77,15 @@
 
   <requestHandler name="/update" class="solr.UpdateRequestHandler">
   </requestHandler>
+  <!-- opencommercesearch suggest handler -->
+  <requestHandler name="/suggest" class="solr.SearchHandler">
+        <lst name="defaults">
+                <str name="echoParams">none</str>
+                <int name="rows">10</int>
+                <str name="fl">id</str>
+                <str name="df">titleNGrams</str>
+        </lst>
+  </requestHandler>
 
   <!-- ping/healthcheck -->
   <requestHandler name="/admin/ping" class="solr.PingRequestHandler">

@@ -624,8 +624,58 @@ object ProductController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val solrQuery = withProductCollection(new SolrQuery(q), preview)
-    findSuggestionsFor(classOf[Product], "products" , solrQuery)
+    val startTime = System.currentTimeMillis();
+    var query = new SolrQuery(q);
+    query.set("group", true)
+      .set("group.ngroups", true)
+      .set("group.field", "productId")
+      .set("group.facet", false)
+
+    val fields = request.getQueryString("fields").getOrElse("");
+    if(fields.contains("skus")) {
+      query.set("group.limit", 50)
+    } else {
+      query.set("group.limit", 1)
+    }
+
+    val solrQuery = withPagination(withFields(withSearchCollection(query, preview), request.getQueryString("fields")))
+    solrQuery.setRequestHandler("suggest");
+    val future: Future[SimpleResult] = solrServer.query(solrQuery).flatMap( response => {
+      if (query.getRows > 0) {
+        processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
+          if (products != null) {
+            if (found > 0) {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime),
+                "suggestions" -> Json.toJson(
+                  products map (Json.toJson(_))
+                ))))
+            } else {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "suggestions" -> Json.arr()
+              ))
+            }
+          } else {
+            Logger.debug(s"Unexpected response found for query $q")
+            InternalServerError(Json.obj(
+              "metadata" -> Json.obj(
+                "time" -> (System.currentTimeMillis() - startTime)),
+              "message" -> "Unable to execute query"))
+          }
+        }
+      } else {
+        Future.successful(Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "found" -> response.getResults.getNumFound),
+          "time" -> (System.currentTimeMillis() - startTime))))
+      }
+    })
+    withErrorHandling(future, s"Cannot search for [$q]")
   }
 
   /**
