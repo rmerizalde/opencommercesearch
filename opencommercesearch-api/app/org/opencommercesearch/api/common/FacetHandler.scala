@@ -36,6 +36,7 @@ import scala.Some
 import scala.concurrent.{ExecutionContext, Await}
 import ExecutionContext.Implicits.global
 import scala.collection.mutable
+import org.opencommercesearch.api.models.BreadCrumb
 
 /**
  * @author rmerizalde
@@ -387,5 +388,75 @@ case class FacetHandler (
     } else {
       countFilterQuery
     }
+  }
+
+  /**
+   * From the filterQueries selected by the user, generate a list of BreadCrumbs
+   * to allow un-selecting a given facet.
+   *
+   * @return a list of breadcrumbs
+   */
+  def getBreadCrumbs(): Seq[BreadCrumb] = {
+    var crumbs =  mutable.ArrayBuffer[BreadCrumb]()
+    if (filterQueries == null || filterQueries.length == 0) {
+      return crumbs
+    }
+    filterQueries.foreach(filterQuery => {
+      if ("category".equals(filterQuery.fieldName)) {
+        crumbs.addAll(createCategoryBreadCrumb(filterQuery));
+      } else {
+        val crumb = new BreadCrumb();
+        crumb.setFieldName(filterQuery.fieldName)
+        crumb.setExpression(Util.getRangeBreadCrumb(filterQuery.fieldName, filterQuery.unescapeExpression, filterQuery.unescapeExpression));
+        crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"));
+        crumbs.add(crumb);
+      }
+    })
+    crumbs
+  }
+
+  /**
+   * Creates the bread crumbs for the selected categories
+   *
+   * @param categoryFilterQuery
+   *            the category filter query selected
+   */
+  private def createCategoryBreadCrumb(categoryFilterQuery: FilterQuery): Seq[BreadCrumb] = {
+    if (categoryFilterQuery == null) {
+      return Seq.empty
+    }
+    val categories = StringUtils.split(categoryFilterQuery.expression, FilterQuery.CategorySeparator)
+    if (categories.length <= 2) {
+      return Seq.empty
+    }
+    var breadCrumbs =  mutable.ArrayBuffer[BreadCrumb]()
+    val catalogId: String = categories(1)
+    val buffer = new StringBuffer()
+    val basePath = Util.createPath(filterQueries, categoryFilterQuery)
+    var level = 1;
+    for (i <- 2 until categories.length) {
+      val crumb = new BreadCrumb()
+      val category = categories(i)
+
+      crumb.setExpression(FilterQuery.unescapeQueryChars(category))
+
+      crumb.setFieldName(categoryFilterQuery.fieldName)
+      var unselectPath: String = ""
+      if (buffer.length() > 0) {
+        unselectPath += "category:" + level + FilterQuery.CategorySeparator + catalogId + buffer.toString()
+        level = level
+      }
+
+      if (StringUtils.isNotBlank(basePath)) {
+        if (StringUtils.isNotBlank(unselectPath)) {
+          unselectPath += FilterQuery.PathSeparator
+        }
+        unselectPath += basePath
+      }
+      crumb.setPath(URLEncoder.encode(unselectPath, "UTF-8"))
+      breadCrumbs.add(crumb)
+      buffer.append(FilterQuery.CategorySeparator).append(category)
+    }
+    breadCrumbs
   }
 }

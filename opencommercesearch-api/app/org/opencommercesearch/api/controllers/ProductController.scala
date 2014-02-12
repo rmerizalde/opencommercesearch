@@ -292,12 +292,14 @@ object ProductController extends BaseController {
         processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
+              val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
               Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "productSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
-                  "facets" -> buildFacets(response, query, filterQueries, preview)),
+                  "facets" -> facetHandler.getFacets,
+                  "breadCrumbs" -> facetHandler.getBreadCrumbs),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))
                 )))
@@ -483,11 +485,13 @@ object ProductController extends BaseController {
                 }
                 val storage = withNamespace(storageFactory, preview)
                 storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
+                  val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
                       "time" -> (System.currentTimeMillis() - startTime),
-                      "facets" -> buildFacets(response, query, filterQueries, preview)),
+                      "facets" -> facetHandler.getFacets,
+                      "breadCrumbs" -> facetHandler.getBreadCrumbs),
                     "products" -> Json.toJson(
                       products map (Json.toJson(_)))))
                 })
@@ -517,14 +521,15 @@ object ProductController extends BaseController {
     }
   }
 
-  private def buildFacets[R](response: QueryResponse, query: SolrQuery, filterQueries: Array[FilterQuery], preview: Boolean)(implicit req: Request[R]) : Seq[Facet] = {
+  private def buildFacetHandler[R](response: QueryResponse, query: SolrQuery, filterQueries: Array[FilterQuery], preview: Boolean)(implicit req: Request[R]) : FacetHandler = {
     var facetData = Seq.empty[NamedList[AnyRef]]
 
     if (response.getResponse != null && response.getResponse.get("rule_facets") != null) {
       facetData = response.getResponse.get("rule_facets").asInstanceOf[util.ArrayList[NamedList[AnyRef]]]
     }
-    new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory, preview)).getFacets
+    new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory, preview))
   }
+  
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>

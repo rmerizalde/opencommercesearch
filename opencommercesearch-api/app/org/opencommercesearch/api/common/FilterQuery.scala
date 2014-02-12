@@ -62,6 +62,7 @@ object FilterQuery {
   val Seperator = ":"
   val FilterQueryParts = 2
   val PathSeparator = "|"
+  val CategorySeparator = "."
 
   def apply(filterQuery: String): FilterQuery = {
     val parts = StringUtils.split(filterQuery, Seperator, FilterQueryParts)
