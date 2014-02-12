@@ -82,12 +82,16 @@ object ProductController extends BaseController {
 
     val startTime = System.currentTimeMillis()
     val storage = withNamespace(storageFactory, preview)
-    var productFuture: Future[Product] = null
+    var productFuture: Future[Iterable[Product]] = null
+
+    val products = new util.ArrayList[(String, String)]
+    val ids:Array[String] = id.split(",")
+    ids.foreach( id => products.add((id, null)))
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList(allowStar = true))
+      productFuture = storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true), site, false)
     } else {
-      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList(allowStar = true))
+      productFuture = storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true), null, false)
     }
 
     val future = productFuture flatMap { product =>
@@ -223,7 +227,7 @@ object ProductController extends BaseController {
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
             val storage = withNamespace(storageFactory, preview)
-            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true)).map( products => {
+            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true), null, true).map( products => {
               (command.getNGroups, products, groupSummary)
             })
           } else {
@@ -484,7 +488,7 @@ object ProductController extends BaseController {
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
                 val storage = withNamespace(storageFactory, preview)
-                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
+                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true), null, true).map(products => {
                   val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
