@@ -36,9 +36,11 @@ trait Storage[T] {
    * @param ids is a sequence of product id/sku id tuples
    * @param country is the country to filter by
    * @param fields is the list of fields to return
+   * @param site is the site to search skus
+   * @param isSearch is the request from search or id
    * @return
    */
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]]
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], site:String, isSearch:Boolean) : Future[Iterable[Product]]
 
   /**
    * Finds the product with the given id. Optionally, takes a list of fields to return

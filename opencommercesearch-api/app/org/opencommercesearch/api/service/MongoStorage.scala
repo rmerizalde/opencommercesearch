@@ -95,7 +95,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     mongo.close()
   }
 
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], site:String, isSearch:Boolean) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -103,11 +103,24 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
       ids.foreach(t => query.append("{_id:#},"))
       query.setLength(query.length - 1)
-      query.append("]}")
+      query.append("]")
 
-      val products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-        .projection(projectionProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
-      products.map(p => filterSearchProduct(country, p))
+      var products:Iterable[Product] = null;
+      if(isSearch) {
+        query.append("}")
+        products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
+          .projection(projectionProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
+      } else {
+        if(site != null) {
+          query.append(", skus.catalogs:#")
+          ids.add((site, null))
+        }
+        query.append("}")
+        products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
+          .projection(projectionProduct(fields)).as(classOf[Product])
+      }
+      products.map(p => filterSearchProduct(country, p, isSearch))
+
     }
   }
 
@@ -142,19 +155,21 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     product
   }
 
-  private def filterSearchProduct(country: String, product: Product) : Product = {
+  private def filterSearchProduct(country: String, product: Product, isSearch:Boolean) : Product = {
     for (skus <- product.skus) {
       skus.foreach(s => {
         flattenCountries(country, s)
         // @todo mixing exlclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
-        s.size = None
-        s.catalogs = None
-        s.customSort = None
-        s.color = None
-        s.year = None
-        s.season = None
+        if(isSearch) {
+          s.size = None
+          s.catalogs = None
+          s.customSort = None
+          s.color = None
+          s.year = None
+          s.season = None
+        }
       })
     }
     product
