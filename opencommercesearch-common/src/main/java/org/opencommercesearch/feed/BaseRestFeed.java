@@ -511,8 +511,9 @@ public abstract class BaseRestFeed extends GenericService {
     private String errorResponseToString(Representation representation) {
         String message = "unknown exception";
         try {
-            if(representation != null && representation.getText() != null) {
-                JSONObject obj = new JSONObject(representation.getText());
+            String text = null;
+            if(representation != null && (text = representation.getText()) != null) {
+                JSONObject obj = new JSONObject(text);
                 message = obj.getString("message");
 
                 if(isLoggingDebug() && obj.has("detail")) {
