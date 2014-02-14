@@ -203,10 +203,10 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
 
     def generate() : Unit = {
       for (productCategories <- product.categories) {
-        for(productCategoryId <- productCategories) {
+        for(productCategory <- productCategories) {
           // block for the moment. Not ideal but this code is used by the feed only. Feeds use a few thread (normally one)
           // to send products
-          val c = Await.result(findCategoryById(productCategoryId), Timeout)
+          val c = Await.result(findCategoryById(productCategory.getId), Timeout)
 
           for (category <- c) {
             if (isCategoryInCatalogs(category, skuCatalogAssignments)) {

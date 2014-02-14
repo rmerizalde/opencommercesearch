@@ -135,7 +135,8 @@ class FacetControllerSpec extends Specification with Mockito {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
         val json = Json.obj(
-          "id" -> expectedId
+          "id" -> expectedId,
+          "name" -> "facet"
         )
 
         val url = routes.FacetController.createOrUpdate(expectedId).url
@@ -195,9 +196,11 @@ class FacetControllerSpec extends Specification with Mockito {
         val json = Json.obj(
           "facets" -> Json.arr(
             Json.obj(
-              "id" -> expectedId),
+              "id" -> expectedId,
+              "name" -> "facet1"),
             Json.obj(
-              "id" -> (expectedId + "2"))))
+              "id" -> (expectedId + "2"),
+              "name" -> "facet2")))
 
         val url = routes.FacetController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)

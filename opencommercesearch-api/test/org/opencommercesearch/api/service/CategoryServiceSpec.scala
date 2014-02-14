@@ -148,6 +148,7 @@ class CategoryServiceSpec extends Specification with Mockito {
 
   private def mockCategory(category: Category, categoryId: String, displayName: String, categoryCatalogs: Seq[String],
     parentCategories: Seq[Category] , isRuleBased: Boolean) : Unit = {
+    category.getId returns categoryId
     category.id returns Some(categoryId)
     category.name returns Some(displayName)
     category.catalogs returns Some(categoryCatalogs)
@@ -173,7 +174,7 @@ class CategoryServiceSpec extends Specification with Mockito {
         val categoryService = setupService()
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catSnowshoeBoots.id.get, catRulesBased.id.get))
+        product.categories returns Some(Seq(catSnowshoeBoots, catRulesBased))
 
         categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
 
@@ -220,7 +221,7 @@ class CategoryServiceSpec extends Specification with Mockito {
         val categoryService = setupService()
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catMensRainShoes.id.get, catMensRainBoots.id.get, catSnowshoeBoots.id.get))
+        product.categories returns Some(Seq(catMensRainShoes, catMensRainBoots, catSnowshoeBoots))
         categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
         
         there was one(doc).addField("category", "0.outdoorCatalog")
@@ -294,7 +295,7 @@ class CategoryServiceSpec extends Specification with Mockito {
         val categoryService = setupService()
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catSnowshoeBoots.id.get, otherCategory.id.get))
+        product.categories returns Some(Seq(catSnowshoeBoots, otherCategory))
         categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
 
         there was one(doc).addField("category", "0.outdoorCatalog")

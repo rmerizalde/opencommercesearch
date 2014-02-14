@@ -76,7 +76,7 @@ public class Product {
     private boolean isPackage;
     
     @JsonProperty
-    private Set<String> categories;
+    private Set<Category> categories;
 
     @JsonProperty
     private List<Sku> skus;
@@ -219,15 +219,15 @@ public class Product {
         this.isPackage = isPackage;
     }
 
-    public Set<String> getCategories() {
+    public Set<Category> getCategories() {
         return categories;
     }
 
-    public void addCategory(String category) {
+    public void addCategory(String categoryId) {
         if (categories == null) {
-            categories = new HashSet<String>();
+            categories = new HashSet<Category>();
         }
-        categories.add(category);
+        categories.add(new Category(categoryId));
     }
 
     public List<Sku> getSkus() {
