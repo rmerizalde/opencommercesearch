@@ -81,19 +81,9 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     private RecordProcessor<V> recordProcessor;
 
     /**
-     * Time in milliseconds when the current in memory data chunk to expire (and force a reload from the database).
+     * Time in milliseconds when the current in memory data chunk will be considered stale (and force a reload from the database).
      */
-    private AtomicLong expireTime = new AtomicLong();
-
-    /**
-     * Time in milliseconds when the current in memory data will expire.
-     */
-    private AtomicLong currentExpireTime = new AtomicLong(Long.MAX_VALUE);
-
-    /**
-     * Whether or not the current data chunk in memory will expire at some point.
-     */
-    private boolean enableExpiration = false;
+    private long expireTime = -1;
 
     public Repository getRepository() {
         return repository;
@@ -187,7 +177,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
     public V getItem(K id) {
         requestCount.incrementAndGet();
 
-        if(enableExpiration && currentExpireTime.get() <= System.currentTimeMillis()) {
+        if(expireTime > 0 && getCurrentExpireTime() != null && getCurrentExpireTime() <= System.currentTimeMillis()) {
             if(isLoggingDebug()) {
                 logDebug("Cache expired, forcing data load");
             }
@@ -276,7 +266,7 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         prepareArguments(id, offset, rowCount, stmt);
         setMinId(id);
         setMaxId(id);
-        currentExpireTime.set(System.currentTimeMillis() + expireTime.get());
+        setCurrentExpireTime(System.currentTimeMillis() + expireTime);
 
         if (stmt.execute()) {
             ResultSet rs = stmt.getResultSet();
@@ -388,27 +378,37 @@ public abstract class SequentialDataLoaderService<K extends Comparable, V> exten
         stmt.setInt(3, rowCount);
     }
 
+    /**
+     * Get the expire time for cached data.
+     * <p/>
+     *
+     * @return Time in milliseconds to wait until cached data is considered stale.
+     */
     public long getExpireTime() {
-        return expireTime.get();
+        return expireTime;
     }
 
+    /**
+     * Set the expire time for cached data.
+     * @param expireTime Time in milliseconds to wait until cached data is considered stale.
+     */
     public void setExpireTime(long expireTime) {
-        this.expireTime.set(expireTime);
+        this.expireTime = expireTime;
     }
 
-    public long getCurrentExpireTime() {
-        return currentExpireTime.get();
-    }
+    /**
+     * Get the time in milliseconds when cached data will be considered stale. This is usually the result of currentTime + expireTime.
+     * <p/>
+     * Implementers should decide how to store the current expire time (i.e. as a ThreadLocal variable or AtomicLong for scenarios with high thread concurrency).
+     * @return The time in milliseconds when cached data will be considered stale.
+     */
+    public abstract Long getCurrentExpireTime();
 
-    public void setCurrentExpireTime(long currentExpireTime) {
-        this.currentExpireTime.set(currentExpireTime);
-    }
-
-    public boolean isEnableExpiration() {
-        return enableExpiration;
-    }
-
-    public void setEnableExpiration(boolean enableExpiration) {
-        this.enableExpiration = enableExpiration;
-    }
+    /**
+     * Set the time in milliseconds when cached data should be considered stale. This will be the result of currentTime + expireTime.
+     * <p/>
+     * Implementers should decide how to store the current expire time (i.e. as a ThreadLocal variable or AtomicLong for scenarios with high thread concurrency).
+     * @param currentExpireTime  The new time in milliseconds when data will be considered stale (i.e. data was just loaded, so set a new expire time)
+     */
+    public abstract void setCurrentExpireTime(Long currentExpireTime);
 }
