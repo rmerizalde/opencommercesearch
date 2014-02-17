@@ -67,8 +67,8 @@ class ProductControllerSpec extends BaseSpec {
         val expectedId = "PRD1000"
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProduct(any, any, any, any) returns Future.successful(null)
-        storage.findProduct(anyString, anyString, any) returns Future.successful(null)
+        storage.findProducts(any, any, any, any, any) returns Future.successful(null)
+        storage.findProducts(any, any, any, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find product with id [$expectedId]")
@@ -88,16 +88,13 @@ class ProductControllerSpec extends BaseSpec {
         product.skus = Some(Seq(expectedSku))
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProduct(anyString, anyString, any, any) returns Future.successful(product)
-        storage.findProduct(anyString, anyString, any) returns Future.successful(product)
+        storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
-
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
-          product.id.get must beEqualTo(expectedId)
-          product.title.get must beEqualTo(expectedTitle)
           for (skus <- product.skus) {
             for (sku <- skus) {
               sku.id.get must beEqualTo(expectedSku.id.get)
@@ -131,7 +128,7 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
@@ -178,7 +175,7 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -228,7 +225,7 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -270,7 +267,7 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true, preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -312,7 +309,7 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         val storage = storageFactory.getInstance("namespace")
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -356,7 +353,7 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         //scenario were we have only a brandId, so this api will return null
         storage.findCategory(any, any) returns Future.successful(null)
-        storage.findProducts(any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
         val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
         validateQueryResult(result.get, OK, "application/json")
