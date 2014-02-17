@@ -19,10 +19,12 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
+import java.sql.Timestamp;
 import java.util.*;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.opencommercesearch.Utils;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Product {
@@ -81,6 +83,17 @@ public class Product {
     @JsonProperty
     private List<Sku> skus;
 
+    @JsonProperty
+    private String activationDate;
+    
+
+    public String getActivationDate() {
+        return activationDate;
+    }
+
+    public void setActivationDate(Timestamp activationDate) {
+        this.activationDate = Utils.getISO8601Date(activationDate.getTime());
+    }
 
     public String getId() {
         return id;
