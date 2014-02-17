@@ -47,7 +47,7 @@ import java.util.Map;
  * The class is thread safe. However, each thread has its on copy of the cache. This class is for feed the process
  * product catalog partitions in parallel.
  *
- * @TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
+ * TODO currently loads stock level, make it customizable so subclasses can load other inventory properties (e.g. status)
  */
 public class SequentialInMemoryInventoryManager extends SequentialDataLoaderService<String, InventoryEntry> implements InventoryManager {
 
@@ -58,6 +58,7 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
     private final ThreadLocal<String> minId = new ThreadLocal<String>();
     private final ThreadLocal<String> maxId = new ThreadLocal<String>();
     private final ThreadLocal<Map<String, InventoryEntry>> cache = new ThreadLocal<Map<String, InventoryEntry>>();
+    private final ThreadLocal<Long> currentExpireTime = new ThreadLocal<Long>();
 
     private String inventoryName = "In Memory Inventory";
 
@@ -118,6 +119,16 @@ public class SequentialInMemoryInventoryManager extends SequentialDataLoaderServ
                 return entry;
             }
         });
+    }
+
+    @Override
+    public Long getCurrentExpireTime() {
+        return currentExpireTime.get();
+    }
+
+    @Override
+    public void setCurrentExpireTime(Long currentExpireTime) {
+        this.currentExpireTime.set(currentExpireTime);
     }
 
     @Override
