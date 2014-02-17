@@ -95,7 +95,11 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     mongo.close()
   }
 
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], site:String, isSearch:Boolean) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
+    findProducts(ids, null, country, fields, isSearch)
+  }
+
+  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -105,19 +109,21 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       query.setLength(query.length - 1)
       query.append("]")
 
+      val skuCount = if (isSearch) ids.size else 0
+
       var products:Iterable[Product] = null;
       if(isSearch) {
         query.append("}")
         products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-          .projection(projectionProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
+          .projection(projectProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
       } else {
         if(site != null) {
           query.append(", skus.catalogs:#")
-          ids.add((site, null))
+          ids.add((site, ""))
         }
         query.append("}")
         products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-          .projection(projectionProduct(fields)).as(classOf[Product])
+          .projection(projectProduct(fields, skuCount)).as(classOf[Product])
       }
       products.map(p => filterSearchProduct(country, p, isSearch))
 
@@ -127,14 +133,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectionProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectionProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
@@ -208,8 +214,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @return the projection
    */
-  private def projectionProduct(fields: Seq[String]) : String = {
-    projectionProduct(fields, 0)
+  private def projectProduct(fields: Seq[String]) : String = {
+    projectProduct(fields, 0)
   }
 
   /**
@@ -221,7 +227,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param skuCount indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projectionProduct(fields: Seq[String], skuCount: Int) : String = {
+  private def projectProduct(fields: Seq[String], skuCount: Int) : String = {
     val projection = new StringBuilder(128)
     
     if(fields.contains("*")) {
