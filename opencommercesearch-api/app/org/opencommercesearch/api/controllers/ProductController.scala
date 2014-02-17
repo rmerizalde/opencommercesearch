@@ -24,8 +24,6 @@ import play.api.Logger
 import play.api.libs.json.{JsError, Json}
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
 import java.util
 
 import play.api.libs.json.JsArray
@@ -82,12 +80,13 @@ object ProductController extends BaseController {
 
     val startTime = System.currentTimeMillis()
     val storage = withNamespace(storageFactory, preview)
-    var productFuture: Future[Product] = null
+    var productFuture: Future[Iterable[Product]] = null
+    val productIds = StringUtils.split(id, ",").map(i => (i, null))
 
     if (site != null) {
-      productFuture = storage.findProduct(id, site, country(request.acceptLanguages), fieldList(allowStar = true))
+      productFuture = storage.findProducts(productIds, site, country(request.acceptLanguages), fieldList(allowStar = true), minimumFields = false)
     } else {
-      productFuture = storage.findProduct(id, country(request.acceptLanguages), fieldList(allowStar = true))
+      productFuture = storage.findProducts(productIds, country(request.acceptLanguages), fieldList(allowStar = true), minimumFields = false)
     }
 
     val future = productFuture flatMap { product =>
@@ -178,13 +177,13 @@ object ProductController extends BaseController {
    */
   private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
     val groups = ArrayBuffer[JsObject]()
-    var productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]];
+    val productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]]
     if(productSummaries != null) {
      JIterableWrapper(productSummaries).map(productSummary => {
-       var parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]];
+       val parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]]
        val productSeq = ArrayBuffer[(String,JsValue)]()
        JIterableWrapper(parameterSummaries).map(parameterSummary => {
-         var statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]];
+         val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]]
          val parameterSeq = ArrayBuffer[(String,JsString)]()
          JIterableWrapper(statSummaries).map(statSummary => {
            parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
@@ -194,7 +193,7 @@ object ProductController extends BaseController {
        groups += new JsObject(ArrayBuffer[(String,JsValue)]((productSummary.getKey, new JsObject(productSeq))))
      })
     }
-    new JsArray(groups);
+    new JsArray(groups)
   }
 
 
@@ -206,7 +205,7 @@ object ProductController extends BaseController {
    */
   private def processSearchResults[R](q: String, preview: Boolean, response: QueryResponse)(implicit req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
-    val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]];
+    val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
     if (groupResponse != null) {
       val commands = groupResponse.getValues
@@ -223,7 +222,7 @@ object ProductController extends BaseController {
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
             val storage = withNamespace(storageFactory, preview)
-            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true)).map( products => {
+            storage.findProducts(products, country(req.acceptLanguages), fieldList(allowStar = true), minimumFields = true).map( products => {
               (command.getNGroups, products, groupSummary)
             })
           } else {
@@ -281,11 +280,11 @@ object ProductController extends BaseController {
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       
-      val redirect = response.getResponse().get("redirect_url")
-      if (redirect != null && StringUtils.isNotBlank(redirect.toString())) {
+      val redirect = response.getResponse.get("redirect_url")
+      if (redirect != null && StringUtils.isNotBlank(redirect.toString)) {
          Future.successful(Ok(Json.obj(
                 "metadata" -> Json.obj(
-                  "redirectUrl" -> redirect.toString(),
+                  "redirectUrl" -> redirect.toString,
                   "time" -> (System.currentTimeMillis() - startTime)
          ))))
       } else if (query.getRows > 0) {
@@ -429,8 +428,7 @@ object ProductController extends BaseController {
         })
         for (rules <- ruleFilters) {
           if(rules.nonEmpty) {
-            val str = rules.substring(rules.indexOf(":") + 1, rules.length())
-            query.addFilterQuery(rules.substring(rules.indexOf(":") + 1, rules.length()));
+            query.addFilterQuery(rules.substring(rules.indexOf(":") + 1, rules.length()))
           }
         }
         query.setParam("rulePage", true)
@@ -484,7 +482,7 @@ object ProductController extends BaseController {
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
                 val storage = withNamespace(storageFactory, preview)
-                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true)).map(products => {
+                storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true), minimumFields = true).map(products => {
                   val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
@@ -624,14 +622,14 @@ object ProductController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val startTime = System.currentTimeMillis();
-    var query = new SolrQuery(q);
+    val startTime = System.currentTimeMillis()
+    var query = new SolrQuery(q)
     query.set("group", true)
       .set("group.ngroups", true)
       .set("group.field", "productId")
       .set("group.facet", false)
 
-    val fields = request.getQueryString("fields").getOrElse("");
+    val fields = request.getQueryString("fields").getOrElse("")
     if(fields.contains("skus")) {
       query.set("group.limit", 50)
     } else {
@@ -639,7 +637,7 @@ object ProductController extends BaseController {
     }
 
     val solrQuery = withPagination(withFields(withSearchCollection(query, preview), request.getQueryString("fields")))
-    solrQuery.setRequestHandler("suggest");
+    solrQuery.setRequestHandler("suggest")
     val future: Future[SimpleResult] = solrServer.query(solrQuery).flatMap( response => {
       if (query.getRows > 0) {
         processSearchResults(q, preview, response).map { case (found, products, groupSummary) =>

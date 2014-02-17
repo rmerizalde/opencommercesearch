@@ -29,6 +29,7 @@ import org.jongo.Jongo
 import play.api.Logger
 import scala.collection.mutable
 import scala.Some
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A storage implementation using MongoDB
@@ -95,7 +96,11 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     mongo.close()
   }
 
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String]) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
+    findProducts(ids, null, country, fields, isSearch)
+  }
+
+  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -103,25 +108,36 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
       ids.foreach(t => query.append("{_id:#},"))
       query.setLength(query.length - 1)
-      query.append("]}")
+      query.append("]")
 
-      val products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-        .projection(projectionProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
-      products.map(p => filterSearchProduct(country, p))
+      var products:Iterable[Product] = null
+      val skuCount = if (minimumFields) ids.size else 0
+      val parameters = new ArrayBuffer[Object](ids.size + 1)
+      parameters.appendAll(ids.map(t => t._1))
+
+      if(site != null) {
+        query.append(", skus.catalogs:#")
+        parameters.append(site)
+      }
+
+      query.append("}")
+      products = productCollection.find(query.toString(), parameters:_*)
+          .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null):_*).as(classOf[Product])
+      products.map(p => filterSearchProduct(country, p, minimumFields))
     }
   }
 
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectionProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectionProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
@@ -142,19 +158,21 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     product
   }
 
-  private def filterSearchProduct(country: String, product: Product) : Product = {
+  private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean) : Product = {
     for (skus <- product.skus) {
       skus.foreach(s => {
         flattenCountries(country, s)
         // @todo mixing exlclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
-        s.size = None
-        s.catalogs = None
-        s.customSort = None
-        s.color = None
-        s.year = None
-        s.season = None
+        if(minimumFields) {
+          s.size = None
+          s.catalogs = None
+          s.customSort = None
+          s.color = None
+          s.year = None
+          s.season = None
+        }
       })
     }
     product
@@ -193,8 +211,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @return the projection
    */
-  private def projectionProduct(fields: Seq[String]) : String = {
-    projectionProduct(fields, 0)
+  private def projectProduct(fields: Seq[String]) : String = {
+    projectProduct(fields, 0)
   }
 
   /**
@@ -206,7 +224,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param skuCount indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projectionProduct(fields: Seq[String], skuCount: Int) : String = {
+  private def projectProduct(fields: Seq[String], skuCount: Int) : String = {
     val projection = new StringBuilder(128)
     
     if(fields.contains("*")) {
