@@ -27,7 +27,7 @@
   <field name="ancestorCategoryId" type="string"            indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" />
   <field name="image"              type="string"            indexed="false" stored="true"  required="true"  multiValued="false" omitNorms="true" />
   <field name="brandId"            type="int"               indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" />
-  <field name="activationDate"     type="tdate"             indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
+  <field name="activationDate"     type="tdate"             indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
   <field name="gender"             type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
   <!-- boosting fields -->
   <field name="year"               type="tint"              indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="false" />

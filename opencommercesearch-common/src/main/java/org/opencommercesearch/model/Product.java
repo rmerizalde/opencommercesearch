@@ -91,8 +91,8 @@ public class Product {
         return activationDate;
     }
 
-    public void setActivationDate(Timestamp activationDate) {
-        this.activationDate = Utils.getISO8601Date(activationDate.getTime());
+    public void setActivationDate(long activationTime) {
+        this.activationDate = Utils.getISO8601Date(activationTime);
     }
 
     public String getId() {
