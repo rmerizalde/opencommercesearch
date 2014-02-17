@@ -29,6 +29,7 @@ import org.jongo.Jongo
 import play.api.Logger
 import scala.collection.mutable
 import scala.Some
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * A storage implementation using MongoDB
@@ -99,7 +100,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     findProducts(ids, null, country, fields, isSearch)
   }
 
-  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
     Future {
       val productCollection = jongo.getCollection("products")
       val query = new StringBuilder(128)
@@ -109,24 +110,20 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       query.setLength(query.length - 1)
       query.append("]")
 
-      val skuCount = if (isSearch) ids.size else 0
+      var products:Iterable[Product] = null
+      val skuCount = if (minimumFields) ids.size else 0
+      val parameters = new ArrayBuffer[Object](ids.size + 1)
+      parameters.appendAll(ids.map(t => t._1))
 
-      var products:Iterable[Product] = null;
-      if(isSearch) {
-        query.append("}")
-        products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-          .projection(projectProduct(fields, ids.size), ids.map(t => t._2):_*).as(classOf[Product])
-      } else {
-        if(site != null) {
-          query.append(", skus.catalogs:#")
-          ids.add((site, ""))
-        }
-        query.append("}")
-        products = productCollection.find(query.toString(), ids.map(t => t._1):_*)
-          .projection(projectProduct(fields, skuCount)).as(classOf[Product])
+      if(site != null) {
+        query.append(", skus.catalogs:#")
+        parameters.append(site)
       }
-      products.map(p => filterSearchProduct(country, p, isSearch))
 
+      query.append("}")
+      products = productCollection.find(query.toString(), parameters:_*)
+          .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null):_*).as(classOf[Product])
+      products.map(p => filterSearchProduct(country, p, minimumFields))
     }
   }
 
@@ -161,14 +158,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     product
   }
 
-  private def filterSearchProduct(country: String, product: Product, isSearch:Boolean) : Product = {
+  private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean) : Product = {
     for (skus <- product.skus) {
       skus.foreach(s => {
         flattenCountries(country, s)
         // @todo mixing exlclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
-        if(isSearch) {
+        if(minimumFields) {
           s.size = None
           s.catalogs = None
           s.customSort = None

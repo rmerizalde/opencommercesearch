@@ -36,10 +36,10 @@ trait Storage[T] {
    * @param ids is a sequence of product id/sku id tuples
    * @param country is the country to filter by
    * @param fields is the list of fields to return
-   * @param isSearch is the request from search or id
+   * @param minimumFields indicates if we return minimum fields
    * @return
    */
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]]
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]]
 
 
   /**
@@ -50,10 +50,10 @@ trait Storage[T] {
    * @param site is the site to search skus
    * @param country is the country to filter by
    * @param fields is the list of fields to return
-   * @param isSearch is the request from search or id
+   * @param minimumFields indicates if we return minimum fields
    * @return
    */
-  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]]
+  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]]
 
   /**
    * Finds the product with the given id. Optionally, takes a list of fields to return
