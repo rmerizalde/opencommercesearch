@@ -32,6 +32,7 @@ import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.response.FacetField
+import play.api.Logger
 
 class CategoryControllerSpec extends BaseSpec {
 
@@ -83,25 +84,23 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None, None, None, None)
+        val categoryB = new Category(Some("rootCategory"), Some(expectedName), None, None, None, Some(Seq("catalogB")), None, None, None)
+        val categoryA = new Category(Some(expectedId), Some(expectedName), None, None, None, Some(Seq("catalogA")), None, Some(Seq(categoryB)), None)
 
         namedList.get("doc") returns doc
         doc.get("id") returns expectedId
 
         var facetFields = new java.util.LinkedList[FacetField]()
         val facetField = new FacetField("categoryPath")
-        facetField.add("category1", 10)
-        facetField.add("category2", 10)
+        facetField.add("rootCategory", 10)
+        facetField.add("1000", 10)
 
         facetFields.add(facetField)
 
         queryResponse.getResponse returns namedList
         queryResponse.getFacetFields returns facetFields
 
-        val categoryResult = new Category()
-        categoryResult.setId(expectedId)
-
-        storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
+        storage.findAllCategories(any) returns Future.successful(Seq(categoryA, categoryB))
 
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
         validateQueryResult(result.get, OK, "application/json")
@@ -109,6 +108,44 @@ class CategoryControllerSpec extends BaseSpec {
         val json = Json.parse(contentAsString(result.get))
         (json \ "category").validate[Category].map { category =>
           category.id.get must beEqualTo(expectedId)
+        } recoverTotal {
+          e => failure("Invalid JSON for category: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when a category is found by site" in new Categories {
+      running(FakeApplication()) {
+        val (queryResponse, namedList) = setupQuery
+        val doc = mock[SolrDocument]
+        val (expectedId, expectedName) = ("1000", "A Category")
+        val categoryA = new Category(Some(expectedId), Some(expectedName), None, None, None, Some(Seq("catalogA")), None, Some(Seq(new Category(Some("rootCategory"), None, None, None, None, None, None, None, None))), None)
+        val categoryB = new Category(Some("rootCategory"), None, None, None, None, Some(Seq("catalogA")), None, None, Some(Seq(new Category(Some(expectedId), None, None, None, None, None, None, None, None))))
+
+        namedList.get("doc") returns doc
+        doc.get("id") returns expectedId
+
+        var facetFields = new java.util.LinkedList[FacetField]()
+        val facetField = new FacetField("categoryPath")
+        facetField.add("1000", 10)
+        facetField.add("rootCategory", 10)
+
+        facetFields.add(facetField)
+
+        queryResponse.getResponse returns namedList
+        queryResponse.getFacetFields returns facetFields
+
+        storage.findAllCategories(any) returns Future.successful(Seq(categoryA, categoryB))
+
+        val result = route(FakeRequest(GET, routes.CategoryController.findBySite("catalogA").url))
+        validateQueryResult(result.get, OK, "application/json")
+
+        val json = Json.parse(contentAsString(result.get))
+
+        (json \ "categories").validate[Seq[Category]].map { categoryList =>
+          categoryList map {category =>
+            category.id.get must beEqualTo(expectedId)
+          }
         } recoverTotal {
           e => failure("Invalid JSON for category: " + JsError.toFlatJson(e))
         }

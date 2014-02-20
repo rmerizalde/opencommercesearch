@@ -36,6 +36,7 @@ import scala.Some
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.mutable
 import com.mongodb.WriteResult
+import play.modules.statsd.api.Statsd
 
 /**
  * Utility class that gives category / related data and operations.
@@ -46,55 +47,59 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   private val MaxTries = 3
   private val MaxResults = 50
   private val CategoryPathSeparator = "\\."
-  
+  private val TaxonomyCacheKey = "AllCategoryTaxonomy"
+  private val CategoryKeyPrefix = "category."
+  private val StatsdBuildTaxonomyGraphMetric = "api.search.internal.service.buildTaxonomyGraph"
+  private val StatsdPruneTaxonomyGraphMetric = "api.search.internal.service.pruneTaxonomyGraph"
+
   def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
     val (query, hasNestedCategories) =
       withNestedCategories(id,  withCategoryCollection(withFields(new SolrQuery(), fields), preview),  fields)
-    
+
     //TODO gsegura: once we have mongo ready, change here to call it
     server.query(query).map( response => {
-      
+
       if (hasNestedCategories) {
         val docs = response.getResults
         val lookupMap = mutable.HashMap.empty[String, SolrDocument]
         var mainDoc :SolrDocument = null
         if (docs != null) {
-            JIterableWrapper(docs).foreach(
-                doc => {
-                  val currentId = doc.getFieldValue("id").toString
-                  lookupMap += (currentId -> doc)
-                  if( id.equals(currentId) ) {
-                    mainDoc = doc
-                  }
-                  Logger.debug("Found category " + id)
-                }
-            )
-            if(mainDoc != null) {
-                val category : Category = server.binder.getBean(classOf[Category], mainDoc)
-                addNestedCategoryNames(category.childCategories, lookupMap)
-                addNestedCategoryNames(category.parentCategories, lookupMap)
-                Logger.debug(s"Found category [$id] - has nested child categories [$hasNestedCategories]")
-                Some(category)
-            } else {
-              //failed to find the main doc
-              None
+          JIterableWrapper(docs).foreach(
+            doc => {
+              val currentId = doc.getFieldValue("id").toString
+              lookupMap += (currentId -> doc)
+              if( id.equals(currentId) ) {
+                mainDoc = doc
+              }
+              Logger.debug("Found category " + id)
             }
+          )
+          if(mainDoc != null) {
+            val category : Category = server.binder.getBean(classOf[Category], mainDoc)
+            addNestedCategoryNames(category.childCategories, lookupMap)
+            addNestedCategoryNames(category.parentCategories, lookupMap)
+            Logger.debug(s"Found category [$id] - has nested child categories [$hasNestedCategories]")
+            Some(category)
+          } else {
+            //failed to find the main doc
+            None
+          }
         } else {
           //solr docs were null
           None
         }
       }
       else {
-         //TODO gsegura: there seems to be a bug with solr 4.6. The fl field is been ignored
-         // so it's only returning the default fields, which exclude the catalogs. This makes the 
-         // product feed to fail
-          val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
-          if (doc != null) {
-            Logger.debug("Found category " + id)
-            Some(server.binder.getBean(classOf[Category], doc))
-          } else {
-            None
-          }
+        //TODO gsegura: there seems to be a bug with solr 4.6. The fl field is been ignored
+        // so it's only returning the default fields, which exclude the catalogs. This makes the
+        // product feed to fail
+        val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
+        if (doc != null) {
+          Logger.debug("Found category " + id)
+          Some(server.binder.getBean(classOf[Category], doc))
+        } else {
+          None
+        }
       }
     })
   }
@@ -120,7 +125,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       )
     }
   }
-  
+
   def findByIds(ids: Seq[String], preview: Boolean, fields: Option[String]) : Future[Option[Seq[Category]]] = {
     val query = withCategoryCollection(withFields(new SolrQuery(), fields), preview)
 
@@ -185,11 +190,19 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     }
   }
 
+  /**
+   * Gets the proper cache key prefix for preview collections
+   * @param preview Whether or not currently using a preview collection.
+   */
+  private def getPreviewKeyPrefix(preview: Boolean) : String = {
+    if (preview) "preview." else ""
+  }
+
   private class SkuCategoryDataGenerator(
-    val doc: SolrInputDocument,
-    val product: Product,
-    val skuCatalogAssignments: Seq[String],
-    val preview: Boolean) {
+                                          val doc: SolrInputDocument,
+                                          val product: Product,
+                                          val skuCatalogAssignments: Seq[String],
+                                          val preview: Boolean) {
 
     val Fields = Some("*")
     // use a high timeout while we block
@@ -199,7 +212,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     val tokenCache = new util.HashSet[String]
     val ancestorCache = new util.HashSet[String]
     val leafCache = new util.HashSet[String]
-    lazy val keyPrefix = "category." + (if (preview) "preview." else "")
+    lazy val keyPrefix = CategoryKeyPrefix + getPreviewKeyPrefix(preview)
 
     def generate() : Unit = {
       for (productCategories <- product.categories) {
@@ -282,20 +295,20 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
      */
     private def isCategoryInCatalogs(category: Category, catalogs: Seq[String]) : Boolean = {
 
-        if (catalogs == null || catalogs.size == 0) {
-            return false
-        }
+      if (catalogs == null || catalogs.size == 0) {
+        return false
+      }
 
-        for (categoryCatalogs <- category.catalogs) {
-          if (categoryCatalogs != null) {
-              for (categoryCatalog <- categoryCatalogs) {
-                  if (catalogs.contains(categoryCatalog)) {
-                      return true
-                  }
-              }
+      for (categoryCatalogs <- category.catalogs) {
+        if (categoryCatalogs != null) {
+          for (categoryCatalog <- categoryCatalogs) {
+            if (catalogs.contains(categoryCatalog)) {
+              return true
+            }
           }
         }
-        false
+      }
+      false
     }
 
     /**
@@ -312,7 +325,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
      *            The list of catalogs to restrict the category token generation
      */
     private def loadCategoryPathsAndAncestorIds(doc: SolrInputDocument, category: Category, hierarchyCategories: util.List[Category],
-            catalogAssignments: Seq[String], tokenCache: util.Set[String], ancestorCache: util.Set[String]) : Unit = {
+                                                catalogAssignments: Seq[String], tokenCache: util.Set[String], ancestorCache: util.Set[String]) : Unit = {
       if (category.parentCategories != null && category.parentCategories.isDefined && category.parentCategories.get.size > 0) {
         for (parentCategories <- category.parentCategories) {
           hierarchyCategories.add(0, category)
@@ -328,13 +341,13 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           hierarchyCategories.remove(0)
         }
       } else {
-          for (catalogs <- category.catalogs) {
-            for(catalog <- catalogs){
-              if(catalogAssignments.contains(catalog)){
-                generateCategoryTokens(doc, hierarchyCategories, catalog, tokenCache)
-              }
+        for (catalogs <- category.catalogs) {
+          for(catalog <- catalogs){
+            if(catalogAssignments.contains(catalog)){
+              generateCategoryTokens(doc, hierarchyCategories, catalog, tokenCache)
             }
           }
+        }
       }
 
       for (id <- category.id) {
@@ -389,7 +402,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       }
     }
   }
-  
+
   /**
    * If the fields parameter has categories or parentCategories, generated a special query to retrieve the id plus
    * documents which parentCategories or categories are the id.
@@ -397,11 +410,11 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    */
   def withNestedCategories(id: String, query: SolrQuery, fields: Option[String]): (SolrQuery, Boolean) = {
     var hasNestedCategories : Boolean = false
-    
+
     for (f <- fields) {
       val hasChildCategories : Boolean = fields.get.contains("childCategories")
       val hasParentCategories: Boolean = fields.get.contains("parentCategories")
-      
+
       if(hasChildCategories && hasParentCategories) {
         query.addFilterQuery(s"id:$id OR childCategories:$id OR parentCategories:$id")
         Logger.debug("Query category with parent and child categories. Id: " + id)
@@ -414,9 +427,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         query.addFilterQuery(s"id:$id OR childCategories:$id")
         Logger.debug("Query category with parent categories. Id:  " + id)
         hasNestedCategories = true
-      } 
+      }
     }
-    
+
     if(!hasNestedCategories) {
       query.setRequestHandler(RealTimeRequestHandler)
       query.set("id", id)
@@ -425,139 +438,177 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       query.setRows(MaxResults)
       query.setQuery("*:*")
     }
-    
-    
+
+
     (query,hasNestedCategories)
   }
 
   /**
    * Gets data from a category from storage, plus all children up to a given level.
    * @param parentCategoryId Category id to look for.
-   * @param categoryPaths List of category paths necessary to build up the taxonomy for the  given parent category id. For example: [site.cat1level1.cat2level2, site.cat3level1.cat4level2.cat5level3]
+   * @param categoryPaths List of category paths matching the given parent category. This list will be parsed to extract a list of categories that should be looked for while building the taxonomy.
    * @param maxLevels Max level on the taxonomy to drill down. If set to 1, will return the immediate children, if set to 2 will return immediate children and their corresponding children, and so on.
    * @param maxChildren Max leaf children to return. It only limits those children returned in the final level specified by maxLevels. A -1 value means all children are returned.
    * @param fields Fields to retrieve for each category on the taxonomy. This field list is applied to the parent category and any children of it.
    * @param storage Storage used to retrieve category data.
-   * @return The category instance for the given category id, plus all children up to the given level.
+   * @param preview Whether or not reading preview categories.
+   * @return The category instance for the given category id, plus all children up to the given level. Null if the parent category does not exist in storage.
    */
-  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String], maxLevels: Int, maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult]) : Future[Category] =  {
-    val childCategoriesCount = new mutable.HashMap[String, mutable.Set[String]]()
-    var hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
+  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String] = Set.empty, maxLevels: Int, maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult], preview: Boolean) : Future[Category] =  {
+    //First get the taxonomy
+    val taxonomyFuture = getTaxonomy(storage, preview)
 
-    //First get the list of categories we care for
-    val filteredCategoryPaths = categoryPaths.map(categoryPath => {
-      val indexOf = categoryPath.indexOf(parentCategoryId)
-      if(indexOf > 0) {
-        var hierarchyLevels = maxLevels + 1 //Always add one to remove unwanted level
-        // If maxLevels is -1 we want to ignore it and retrieve the whole taxonomy for parentCategoryId.
-        // This is just to make clients life easier, so they don't have to specify random high maxLevel values to get the whole taxonomy.
-        if(hierarchyLevels == 0) {
-          hierarchyLevels = Integer.MAX_VALUE
+    //Now, find the category we are looking for
+    taxonomyFuture map { taxonomy =>
+      val parentCategory = taxonomy.get(parentCategoryId)
+
+      if(parentCategory != null && parentCategory.isDefined) {
+        var categories = new mutable.HashSet[String]
+
+        categoryPaths foreach { categoryPath =>
+          categoryPath.split(CategoryPathSeparator).foreach(categories += _)
         }
 
-        var childrenToReturn = maxChildren
-        // If maxChildren is -1 we want to ignore it and retrieve the whole list of children for parentCategoryId.
-        // This is just to make clients life easier, so they don't have to specify random high maxChildren values to get the whole list of children.
-        if(childrenToReturn == -1) {
-          childrenToReturn = Integer.MAX_VALUE
-        }
-
-        var categoryPathSplit = categoryPath.substring(indexOf).split(CategoryPathSeparator).take(hierarchyLevels)
-
-        //Ignore any category leafs that exceed the max children to return value
-        if(hierarchyLevels > 1 && categoryPathSplit.size == hierarchyLevels) {
-          val key = categoryPathSplit(categoryPathSplit.size - 2)
-          val child = categoryPathSplit(categoryPathSplit.size - 1)
-          val children = childCategoriesCount.getOrElse(key, mutable.HashSet[String]())
-
-          //Need to ensure children are unique to correctly filter by maxChildren
-          if(!children.contains(child)) {
-            children.add(child)
-            childCategoriesCount += (key -> children)
-          }
-
-          if(children.size > childrenToReturn) {
-            categoryPathSplit = categoryPathSplit.take(1)
-          }
-        }
-
-        //Store all different category ids to retrieve
-        categoryPathSplit.foreach(category => {
-          hierarchyMap += (category -> null)
-        })
-
-        categoryPathSplit.drop(1) //Remove the first item, which is always the parent category
+        //Iterate over parent category children, and remove those categories that don't have stock level or exceed maxLevels/maxChildren
+        val startTime = System.currentTimeMillis()
+        val result = Category.prune(parentCategory.get, categories.toSet, maxLevels, maxChildren, addChildCategoriesField(fields))
+        Statsd.timing(StatsdPruneTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
+        result
       }
       else {
-        Array.empty[String]
+        null
       }
-    }).filter(_.size > 0)
-
-    //Now hydrate the results
-    storage.findCategories(hierarchyMap.keys, fields).map(categoryData => {
-      //Fill in category data on the map
-      categoryData.foreach(category => {
-        hierarchyMap += (category.getId -> category)
-      })
-
-      filteredCategoryPaths.map(filteredCategoryPath => {
-        var categoryPath = filteredCategoryPath
-        //Get the parent category from the array of categories
-        var parentCategory = hierarchyMap(parentCategoryId)
-
-        while (categoryPath.size > 0) {
-          val categoryId = categoryPath(0)
-          var category: Category = null
-
-          //Find out if the child category was already added to the parent
-          //TODO: Should childCategories on Category.scala by a set? This look up is slow.
-          parentCategory.getChildCategories.takeWhile(_ => {category == null}).map(childCat => {
-            if(childCat.getId == categoryId) {
-              category = childCat
-            }
-          })
-
-          if(category == null) {
-            //If not, then get a copy from the map
-            category = hierarchyMap(categoryId)
-            parentCategory.childCategories = Option(parentCategory.getChildCategories :+ category.copy())
-          }
-
-          parentCategory = category
-          categoryPath = categoryPath.drop(1)
-        }
-      })
-
-      hierarchyMap(parentCategoryId)
-    })
+    }
   }
 
   /**
-   * Builds the category taxonomy for a given list of categories.
+   * Builds the taxonomy for all existing categories.
    * <p/>
-   * This method hydrates each category in the given list with storage data (including information about child categories) and then builds up any relationship between the
-   * categories in the list. The input list of categories may not have any relationship between them, this method will then only return a map of categories with their corresponding data.   *
-   * For example, if you want to know the taxonomy for all categories, then pass this method a list of all existing categories.
-   * @param categories List of categories to use for building up the taxonomy
-   * @param fields List of fields to return from the storage. Notice the 'childCategories' field will be returned regardless of what the field list is.
-   * @param storage Storage used to retrieve category data.
-   * @return Map of category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
+   * This method will first try to find a cached version of the taxonomy. Only if not present the entire taxonomy is computed.
+   * <p/>
+   * By default, all available category fields are loaded.
+   * @param storage Storage used to look for category data.
+   * @return Map of all existing category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
    */
-  def getTaxonomy(categories: Iterable[String], fields: Seq[String], storage : Storage[WriteResult]) : Future[Map[String, Category]] =  {
-    val categoriesToLookFor = categories.toSet
+  def getTaxonomy(storage : Storage[WriteResult], preview : Boolean = false) : Future[Map[String, Category]] =  {
+    //If returning complete taxonomy, see if we already have it on cache.
+    val cachedTaxonomy = Cache.getAs[Map[String, Category]](TaxonomyCacheKey + getPreviewKeyPrefix(preview))
+    if(cachedTaxonomy.isEmpty) {
+      //Go to storage and get all existing categories. Then calculate taxonomy from them.
+      val startTime = System.currentTimeMillis()
+      val taxonomyFuture = buildTaxonomyGraph(storage.findAllCategories(Seq({"*"})))
+      Statsd.timing(StatsdBuildTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
+      taxonomyFuture map { taxonomy =>
+        val markedTaxonomy = markRootCategories(taxonomy, preview)
+        Cache.set(TaxonomyCacheKey, markedTaxonomy, CategoryCacheTtl)
+        markedTaxonomy.toMap
+      }
+    }
+    else {
+      Future(cachedTaxonomy.get)
+    }
+  }
 
-    var fieldList = fields
-    //Go to Storage to fetch category data
-    if(!fields.contains("childCategories")) {
-      //TODO: this makes the default projection useless. If no fields are specified, it will only return id and childCategories on the taxonomy. Find a good way to handle this.
-      fieldList :+= "childCategories"
+  /**
+   * Marks all root categories by scanning the provided taxonomy. Parent categories are removed from the map, and then added back with the site/catalog the belong
+   * to as key. This is necessary if you want, for example, retrieve all top level categories for a given site.
+   * @param taxonomy The taxonomy where root categories will be marked.
+   * @param preview Whether or not reading preview categories.
+   */
+  private def markRootCategories(taxonomy: mutable.Map[String, Category], preview: Boolean) : mutable.Map[String, Category] = {
+    var result = new mutable.HashMap[String, Category]()
+    taxonomy foreach { case (key, category) =>
+      //Warm category cache as needed
+      val categoryKey = CategoryKeyPrefix + getPreviewKeyPrefix(preview) + key
+      val cachedCategory = Cache.get(categoryKey)
+      if(cachedCategory == null) {
+        //Cached category expired, so re-add it to the cache.
+        Cache.set(categoryKey, category, CategoryCacheTtl)
+      }
+
+      //Check if is a root cat
+      if(category.parentCategories == null || category.parentCategories.isEmpty || category.parentCategories.get.isEmpty) {
+        //Find out if there are catalog assignments
+        for(catalogs <- category.catalogs) {
+          if(!catalogs.isEmpty) {
+            val catalog = category.catalogs.get(0)
+            if(result.contains(catalog)) {
+              Logger.error(s"Found a duplicate root category node. Previous id was ${category.getId}, new id is $key. Assuming the first one found is correct, however " +
+                s"this is an indicator of taxonomy issues on storage.")
+            }
+            else {
+              result += (catalog -> category)
+            }
+          }
+        }
+      }
+      else {
+        result += (key -> category)
+      }
     }
 
-    val categoriesFuture = storage.findCategories(categories, fieldList)
+    result
+  }
+
+  /**
+   * Builds the taxonomy for a given list of categories.
+   * <p/>
+   * This method hydrates each category in the given list with storage data (including information about child categories) and then builds up any relationship between the
+   * categories in the list. The input list of categories may not have any relationship between them, in which case this method will then only return a map of categories with their corresponding data.
+   * @param categories Input list of categories used to build the taxonomy. Final graph will only have elements from this list.
+   * @param fields List of fields to return. By default, 'childCategories' is added if not present.
+   * @param storage Storage used to look for category data.
+   * @return Mutable map of category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
+   */
+  def getTaxonomy(categories: Iterable[String], fields: Seq[String], storage : Storage[WriteResult]) : Future[mutable.Map[String, Category]] =  {
+    //Go to storage and get data for the given categories. Then calculate taxonomy from them.
+    val startTime = System.currentTimeMillis()
+    val taxonomy = buildTaxonomyGraph(storage.findCategories(categories, addChildCategoriesField(fields)), categories.toSet)
+    Statsd.timing(StatsdBuildTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
+    taxonomy
+  }
+
+  /**
+   * Helper method that adds the child categories field if needed to a given field list.
+   * @param fields List of fields to check for.
+   * @return List of fields
+   */
+  private def addChildCategoriesField(fields: Seq[String]) : Seq[String] = {
+    if(!fields.contains("childCategories")) {
+      var newFields = fields
+      //If fields was empty, then include other default fields.
+      if(newFields.isEmpty) {
+        newFields ++= Category.defaultFields
+      }
+
+      newFields :+ "childCategories"
+    }
+    else {
+      fields
+    }
+  }
+
+  /**
+   * Builds category taxonomy for the given category data. Iterates over the list building up any parent children relationship found. The result is a map
+   * that contains all category nodes, connected between them.
+   * <p/>
+   * For example, to retrieve the taxonomy for a given category. Simply look it up in the map. The returning Category instance will have all the found taxonomy data.
+   * @param categoryData Input category data necessary to build the taxonomy.
+   * @param filterCategories List of categories used to trim the response. Can be empty (no trimming will occur).
+   * @return Map of category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
+   */
+  private def buildTaxonomyGraph(categoryData: Future[Iterable[Category]], filterCategories: Set[String] = Set.empty) : Future[mutable.Map[String, Category]] =  {
     val hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
+<<<<<<< HEAD
     //Go over the list of categories returned by Storage and store them in a hash
     categoriesFuture.map(categoryData => {
       categoryData.foreach( category => {
+=======
+
+    //Go over the list of categories returned by storage and store them in a hash
+    categoryData.map(categories => {
+      categories.foreach( category => {
+>>>>>>> Category endpoint updates to support getting top level categories per site and filter queries. Caching taxonomy in memory
         var taxonomyNode  = hierarchyMap(category.getId)
 
         if(taxonomyNode == null) {
@@ -574,7 +625,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         }
 
         //Add this category to the map
-        val childCategories = category.getChildCategories.filter(childCategory => {categoriesToLookFor.contains(childCategory.getId)}).map(childCategory => {
+        val childCategories = category.getChildCategories.filter(childCategory => {filterCategories.size == 0 || filterCategories.contains(childCategory.getId)}).map(childCategory => {
           val tmpNode = hierarchyMap(childCategory.getId)
 
           if(tmpNode == null) {
@@ -590,7 +641,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         hierarchyMap += (category.getId -> taxonomyNode)
       })
 
-      hierarchyMap.toMap
+      hierarchyMap
     })
   }
 }

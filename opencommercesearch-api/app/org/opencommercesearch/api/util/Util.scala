@@ -30,7 +30,6 @@ import play.api.i18n.Messages
  */
 object Util {
 
-
   val RESOURCE_CRUMB = "crumb"
   val ResourceInRange = "inrange"
   val ResourceBefore = "before"

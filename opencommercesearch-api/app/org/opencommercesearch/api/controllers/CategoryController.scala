@@ -35,8 +35,9 @@ import javax.ws.rs.QueryParam
 import org.apache.commons.lang3.StringUtils
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.response.UpdateResponse
-import org.opencommercesearch.api.common.FacetQuery
+import org.opencommercesearch.api.common.{FilterQuery, FacetQuery}
 import scala.collection.JavaConversions._
+import java.net.URLDecoder
 
 
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
@@ -49,7 +50,8 @@ object CategoryController extends BaseController with FacetQuery{
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect. A -1 value returns all taxonomy existing levels", defaultValue = "1", required = false, dataType = "int", paramType = "query"),
-    new ApiImplicitParam(name = "maxChildren", value = "Max leaf children to return per category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query")
+    new ApiImplicitParam(name = "maxChildren", value = "Max children to return per leaf category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries for the returned categories", required = false, dataType = "string", paramType = "query")
   ))
   def findById(
       version: Int,
@@ -63,10 +65,15 @@ object CategoryController extends BaseController with FacetQuery{
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
     catalogQuery.setFacetLimit(MaxFacetPaginationLimit)
-    catalogQuery.addFilterQuery("ancestorCategoryId:" + id)
+    catalogQuery.addFilterQuery(s"ancestorCategoryId:$id")
+
+    val filterQueries = FilterQuery.parseFilterQueries(URLDecoder.decode(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
+    filterQueries.foreach(fq => {
+      catalogQuery.add("fq", fq.toString)
+    })
 
     if(Logger.isDebugEnabled) {
-      Logger.debug(s"Searching for child categories for $id with query ${catalogQuery.toString}")
+      Logger.debug(s"Searching for child categories for [$id] with query ${catalogQuery.toString}")
     }
 
     val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
@@ -76,19 +83,31 @@ object CategoryController extends BaseController with FacetQuery{
       if(facetFields != null) {
         facetFields.map( facetField => {
           if("categorypath".equals(facetField.getName.toLowerCase)) {
-            Logger.debug(s"Got ${facetField.getValueCount} different category paths for category ${id}")
+            Logger.debug(s"Got ${facetField.getValueCount} different category paths for category [$id]")
 
             val storage = withNamespace(storageFactory, preview)
 
             if(facetField.getValueCount > 0) {
               val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
-              val maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
+              var maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
+
+              //Check if we got -1 as maxLevels.
+              if(maxLevels < 0) {
+                maxLevels = Int.MaxValue
+              }
+
               val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
-              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, maxChildren, fieldList(true), storage).map( category => {
-                Ok(Json.obj(
-                  "metadata" -> Json.obj(
-                    "time" -> (System.currentTimeMillis() - startTime)),
+              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage, preview).map( category => {
+                if(category != null) {
+                  Ok(Json.obj(
+                    "metadata" -> Json.obj(
+                      "time" -> (System.currentTimeMillis() - startTime)),
                     "category" -> category))
+                }
+                else {
+                  Logger.debug(s"Category [$id] does not exist in storage")
+                  NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id"))
+                }
               })
             }
           }
@@ -102,8 +121,88 @@ object CategoryController extends BaseController with FacetQuery{
         Future(NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id")))
       }
     })
-    
+
     withErrorHandling(future, s"Cannot retrieve category with id [$id]")
+  }
+
+  @ApiOperation(value = "Searches top level categories for a given site", notes = "Returns top level category information for a given site", response = classOf[Category], httpMethod = "GET")
+  @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found for site")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect. A -1 value returns all taxonomy existing levels", defaultValue = "1", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "maxChildren", value = "Max children to return per leaf category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries for the returned categories", required = false, dataType = "string", paramType = "query")
+  ))
+  def findBySite(
+                version: Int,
+                @ApiParam(value = "Site to search", required = true)
+                @QueryParam("site")
+                site: String,
+                @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+                @QueryParam("preview")
+                preview: Boolean) = Action.async { implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
+    catalogQuery.setFacetPrefix(s"$site.")
+    catalogQuery.setFacetLimit(MaxFacetPaginationLimit)
+
+    val filterQueries = FilterQuery.parseFilterQueries(URLDecoder.decode(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
+    filterQueries.foreach(fq => {
+      catalogQuery.add("fq", fq.toString)
+    })
+
+    if(Logger.isDebugEnabled) {
+      Logger.debug(s"Searching for top level categories in site [$site] with query ${catalogQuery.toString}")
+    }
+
+    val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
+      val facetFields = catalogResponse.getFacetFields
+      var taxonomyFuture: Future[SimpleResult] = null
+
+      if(facetFields != null) {
+        facetFields.map( facetField => {
+          if("categorypath".equals(facetField.getName.toLowerCase)) {
+            Logger.debug(s"Got ${facetField.getValueCount} different category paths for site [$site]")
+
+            val storage = withNamespace(storageFactory, preview)
+
+            if(facetField.getValueCount > 0) {
+              val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
+              var maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1")) + 1  //Plus one because the root category is not returned
+
+              //Check if we got a valid maxLevels parameter.
+              if(maxLevels <= 1) {
+                maxLevels = Int.MaxValue
+              }
+
+              val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
+              taxonomyFuture = categoryService.getTaxonomyForCategory(site, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage, preview).map( category => {
+                if(category != null) {
+                  Ok(Json.obj(
+                    "metadata" -> Json.obj(
+                      "time" -> (System.currentTimeMillis() - startTime)),
+                    "categories" -> category.childCategories))
+                }
+                else {
+                  Logger.debug(s"Category [$site] does not exist in storage")
+                  NotFound(Json.obj("message" -> s"Cannot retrieve category with id $site"))
+                }
+              })
+            }
+          }
+        })
+      }
+
+      if(taxonomyFuture != null) {
+        withErrorHandling(taxonomyFuture, s"Cannot retrieve top level categories for site $site")
+      }
+      else {
+        Future(NotFound(Json.obj("message" -> s"Cannot retrieve top level categories for site $site")))
+      }
+    })
+
+    withErrorHandling(future, s"Cannot retrieve category with id [$site]")
   }
 
   @ApiOperation(value = "Creates categories", notes = "Creates/updates the given categories", httpMethod = "PUT")
@@ -194,9 +293,7 @@ object CategoryController extends BaseController with FacetQuery{
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withCategoryCollection(new SolrQuery(query), preview)
-    //@todo: solrQuery.addFilterQu.
-    // ery(s"catalogs:$site")
-
+    solrQuery.addFilterQuery(s"catalogs:$site")
     findSuggestionsFor(classOf[Category], "categories" , solrQuery)
   }
 
@@ -238,7 +335,7 @@ object CategoryController extends BaseController with FacetQuery{
         val brandIds = JIterableWrapper(brandFacet.getValues).map(filter =>  filter.getName)
         
 	    val storage = withNamespace(storageFactory, preview)
-	    val future = storage.findBrands(brandIds, fieldList(true)).map( categories => {
+	    val future = storage.findBrands(brandIds, fieldList(allowStar = true)).map( categories => {
 		    //now we need to retrieve the actual brand objects from the brand collection  
 		    if(categories != null) {
 		      Ok(Json.obj(

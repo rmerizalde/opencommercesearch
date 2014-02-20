@@ -135,6 +135,126 @@ case class Category(
 }
 
 object Category {
+  val defaultFields = Seq("id", "name", "seoUrlToken", "hierarchyTokens")
+
+  /**
+   * Creates a copy of the given category that contains only the fields specified.
+   * <p/>
+   * If fields is empty, then all existing field of the category are copied over.
+   * @param category Category to copy fields from.
+   * @param fields A list of fields to copy from the given category. If empty, all fields are copied.
+   * @return A copy of the given category with only the fields specified set.
+   */
+  def copyWithFields(category: Category, fields: Seq[String]) : Category = {
+    val copy = new Category()
+    copy.setId(category.getId)
+
+    var fieldsToCopy = defaultFields
+    if(!fields.isEmpty) {
+      fieldsToCopy = fields
+    }
+
+    val hasStar = fieldsToCopy.contains("*")
+
+    if(hasStar || fieldsToCopy.contains("name")) {
+      copy.name = category.name
+    }
+
+    if(hasStar || fieldsToCopy.contains("seoUrlToken")) {
+      copy.seoUrlToken = category.seoUrlToken
+    }
+
+    if(hasStar || fieldsToCopy.contains("isRuleBased")) {
+      copy.isRuleBased = category.isRuleBased
+    }
+
+    if(hasStar || fieldsToCopy.contains("ruleFilters")) {
+      copy.ruleFilters = category.ruleFilters
+    }
+
+    if(hasStar || fieldsToCopy.contains("catalogs")) {
+      copy.catalogs = category.catalogs
+    }
+
+    if(hasStar || fieldsToCopy.contains("hierarchyTokens")) {
+      copy.hierarchyTokens = category.hierarchyTokens
+    }
+
+    if(hasStar || fieldsToCopy.contains("parentCategories")) {
+      copy.parentCategories = category.parentCategories
+    }
+
+    if(hasStar || fieldsToCopy.contains("childCategories")) {
+      copy.childCategories = category.childCategories
+    }
+
+    return copy
+  }
+
+  /**
+   * Helper method that recursively trims the given category node.
+   * <ul>
+   * <li>Removes all categories not in the given categories set. This is used to exclude categories that don't have products in stock.
+   * <li>Removes all child categories that are not in the given depth level.
+   * <li>Returns only maxChildren category nodes on leaf nodes.
+   * <ul/>
+   * @param category The category to trim.
+   * @param categories Set of categories to return. If a child category is not on this set, is removed. If this set is empty, no filtering is done.
+   * @param depth Depth level to trim until to. If zero, returns the current category. If less than zero, returns null.
+   * @param maxChildren Max children to return on category leaves.
+   * @return The given category less all the category nodes that were trimmed following the above criteria.
+   */
+  def prune(category: Category, categories: Set[String], depth: Int, maxChildren: Int, fields: Seq[String]) : Category = {
+    if(depth >= 0) {
+      val prunedCat = copyCategory(category, fields)
+      var childCats = category.getChildCategories
+
+      childCats = childCats map { childCat =>
+        if(categories.isEmpty || categories.contains(childCat.getId)) {
+          prune(childCat, categories, depth - 1, maxChildren, fields)
+        }
+        else {
+          null
+        }
+      } filter { _ != null}
+
+      if(depth == 1 && maxChildren >= 0) {
+        childCats = childCats.take(maxChildren)
+      }
+
+      prunedCat.childCategories = Option(childCats)
+      prunedCat
+    }
+    else {
+      null
+    }
+  }
+
+  /**
+   * Returns a new category with only the fields specified. Does the same recursively for parent and child categories.
+   * <p/>
+   * If star ("*") is on the field list, then an exact copy of the given category is returned. If fields is empty, then the copy category only contains
+   * the default fields.
+   * <p/>
+   * This method ensures you have a new copy of the category data to work on.
+   * @param fields List of fields to include in the new category.
+   */
+  def copyCategory(category: Category, fields: Seq[String]) : Category = {
+    var fieldsToCopy:Seq[String] = null
+
+    if(fields.isEmpty) {
+      fieldsToCopy = defaultFields
+    }
+    else if(fields.contains("*")) {
+      fieldsToCopy = Seq.empty[String]
+    }
+    else {
+      fieldsToCopy = fields
+    }
+
+    return copyWithFields(category, fieldsToCopy)
+  }
+
   implicit val readsCategory : Reads[Category] = (
     (__ \ "id").readNullable[String] ~
     (__ \ "name").readNullable[String] ~
@@ -236,4 +356,5 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
 
 object CategoryList {
   implicit val readsCategoryList = Json.reads[CategoryList]
+  implicit val writesCategoryList = Json.writes[CategoryList]
 }

@@ -36,7 +36,7 @@ object ApplicationBuild extends Build {
     resolvers += "sonatype-releases" at "https://oss.sonatype.org/content/repositories/releases",
     organization  := "org.opencommercesearch",
     publishMavenStyle := true,
-    publishTo <<= (version) { version: String =>
+    publishTo <<= version { version: String =>
        val scalasbt = "http://repo.scala-sbt.org/scalasbt/"
        val (name, url) = if (version.contains("-SNAPSHOT"))
          ("sbt-plugin-snapshots-pub", scalasbt+"sbt-plugin-snapshots/")
@@ -48,5 +48,4 @@ object ApplicationBuild extends Build {
     jacoco.reportFormats in jacoco.Config := Seq(HTMLReport("utf-8")),
     jacoco.excludes in jacoco.Config := Seq("views*", "*Routes*", "*controllers*routes*", "*controllers*Reverse*", "*controllers*javascript*", "*controller*ref*", "*Controller")
   )
-
 }
