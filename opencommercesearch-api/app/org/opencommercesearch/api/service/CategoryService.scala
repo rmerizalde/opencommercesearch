@@ -547,7 +547,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     val categoriesToLookFor = categories.toSet
 
     var fieldList = fields
-    //Go to Mongo to fetch category data
+    //Go to Storage to fetch category data
     if(!fields.contains("childCategories")) {
       //TODO: this makes the default projection useless. If no fields are specified, it will only return id and childCategories on the taxonomy. Find a good way to handle this.
       fieldList :+= "childCategories"
@@ -555,7 +555,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
 
     val categoriesFuture = storage.findCategories(categories, fieldList)
     val hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
-    //Go over the list of categories returned by Mongo and store them in a hash
+    //Go over the list of categories returned by Storage and store them in a hash
     categoriesFuture.map(categoryData => {
       categoryData.foreach( category => {
         var taxonomyNode  = hierarchyMap(category.getId)

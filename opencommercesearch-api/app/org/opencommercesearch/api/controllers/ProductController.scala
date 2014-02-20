@@ -115,7 +115,7 @@ object ProductController extends BaseController {
 
             solrServer.query(catalogQuery).flatMap(response => {
               val facetFields = response.getFacetFields
-              var taxonomyFuture: Future[JsValue] = null
+              var taxonomyFuture: Future[Product] = null
 
               if(facetFields != null) {
                 facetFields.map( facetField => {
@@ -136,7 +136,7 @@ object ProductController extends BaseController {
 
                       taxonomyFuture = categoryFuture.map(categoryTaxonomy => {
                         product.categories = Some(facetField.getValues.map( facetValue => {categoryTaxonomy(facetValue.getName)}).toSeq)
-                        Json.toJson(product)
+                        product
                       })
                     }
                     else {
@@ -156,7 +156,7 @@ object ProductController extends BaseController {
                 taxonomyFuture
               }
               else {
-                Future(Json.toJson(StringUtils.EMPTY))
+                Future(product)
               }
             })
           }
