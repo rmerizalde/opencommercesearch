@@ -171,6 +171,55 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
+    "send 200 when a product is found when searching by query with sort options" in new Products {
+      running(FakeApplication()) {
+        val product = new Product()
+        val sku = new Sku()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product))
+        var productQuery:SolrQuery = null
+
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = new Sku()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
+        }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url + "&sort=discountPercent desc"))
+        validateQueryResult(result.get, OK, "application/json")
+        productQuery.getQuery must beEqualTo("term")
+        productQuery.getBool("rule", true)
+        productQuery.getBool("isRetail", true)
+        productQuery.getBool("isCloseout", true)
+        productQuery.getBool("onsaleUS", false)
+        productQuery.get("pageType", "search")
+        validateCommonQueryParams(productQuery)
+
+        productQuery.get("sort") must beEqualTo("discountPercentUS desc")
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "product").validate[Product].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              product.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+        } recoverTotal {
+          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
     "send 200 when a product is found when browsing a category" in new Products {
       running(FakeApplication()) {
         val product = new Product()

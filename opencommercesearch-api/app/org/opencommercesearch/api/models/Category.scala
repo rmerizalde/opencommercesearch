@@ -230,7 +230,7 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
       }
     }
 
-    return documents
+    documents
   }
 }
 

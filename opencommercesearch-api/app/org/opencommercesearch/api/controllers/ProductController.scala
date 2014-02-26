@@ -46,6 +46,7 @@ import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
 import org.apache.solr.client.solrj.util.ClientUtils
 import java.net.URLDecoder
+import org.apache.solr.client.solrj.SolrQuery.SortClause
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -264,7 +265,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query")
   ))
   def search(
       version: Int,
@@ -297,7 +299,7 @@ object ProductController extends BaseController {
     })
 
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
-      
+
       val redirect = response.getResponse.get("redirect_url")
       if (redirect != null && StringUtils.isNotBlank(redirect.toString)) {
          Future.successful(Ok(Json.obj(
@@ -353,7 +355,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrand(
       version: Int,
@@ -375,7 +378,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query")
   ))
   def browseBrandCategory(
       version: Int,
@@ -400,7 +404,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query")
+    new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query")
   ))
   def browse(
       version: Int,
@@ -545,7 +550,6 @@ object ProductController extends BaseController {
     }
     new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory, preview))
   }
-  
 
   def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>
@@ -777,25 +781,25 @@ object ProductController extends BaseController {
    * @return
    */
   private def initQuerySortParams(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
-    for (sort <- request.getQueryString("sort")) {
-      val sortSpecs = sort.split(",")
-      if (sortSpecs != null && sortSpecs.length > 0) {
-        val country_ = country(request.acceptLanguages)
-        for (sortSpec <- sortSpecs) {
-          val selectedOrder = if (sortSpec.trim.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
+    val sortParam = URLDecoder.decode(request.getQueryString("sort").getOrElse(""), "UTF-8")
+    val sortSpecs = StringUtils.split(sortParam, ",")
+    if (sortSpecs != null && sortSpecs.length > 0) {
+      val country_ = country(request.acceptLanguages)
+      for (sortSpec <- sortSpecs) {
+        val selectedOrder = if (sortSpec.trim.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
 
-          if (sortSpec.indexOf("discountPercent") != -1) {
-            query.addSort(s"discountPercent$country_", selectedOrder)
-          }
-          if (sortSpec.indexOf("reviewAverage") != -1) {
-            query.addSort("bayesianReviewAverage", selectedOrder)
-          }
-          if (sortSpec.indexOf("price") != -1) {
-            query.addSort(s"salePrice$country_", selectedOrder)
-          }
+        if (sortSpec.indexOf("discountPercent") != -1) {
+          query.addSort(s"discountPercent$country_", selectedOrder)
+        }
+        if (sortSpec.indexOf("reviewAverage") != -1) {
+          query.addSort("bayesianReviewAverage", selectedOrder)
+        }
+        if (sortSpec.indexOf("price") != -1) {
+          query.addSort(s"salePrice$country_", selectedOrder)
         }
       }
     }
+
     query
   }
 
