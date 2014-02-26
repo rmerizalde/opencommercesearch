@@ -32,8 +32,6 @@ import ProductList._
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.math.BigDecimal
-
 
 case class Product (
   @Id var id: Option[String],
@@ -52,7 +50,7 @@ case class Product (
   // has free gift by catalog
   @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]],
   @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
-  @JsonProperty("categories") var categories: Option[Seq[String]],
+  @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
   @JsonProperty("isPackage") var isPackage: Option[Boolean])
 {

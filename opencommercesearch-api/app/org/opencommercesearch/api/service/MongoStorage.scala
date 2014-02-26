@@ -30,6 +30,7 @@ import play.api.Logger
 import scala.collection.mutable
 import scala.Some
 import scala.collection.mutable.ArrayBuffer
+import org.apache.commons.lang.StringUtils
 
 /**
  * A storage implementation using MongoDB
@@ -74,7 +75,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       |logo:0, url:0
     """.stripMargin
 
-  val DefaultFacetProject = """""".stripMargin
+  val DefaultFacetProject = StringUtils.EMPTY
 
   def setJongo(jongo: Jongo) : Unit = {
     this.jongo = jongo

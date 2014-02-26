@@ -13,11 +13,15 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.{Sku, Product, Category}
-import org.apache.solr.client.solrj.response.{Group, GroupCommand, GroupResponse, QueryResponse}
+import org.opencommercesearch.api.models.{ProductList, Sku, Product, Category}
+import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
+import scala.Some
+import play.api.test.FakeApplication
+import scala.Some
+import play.api.test.FakeApplication
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -71,12 +75,18 @@ class ProductControllerSpec extends BaseSpec {
         storage.findProducts(any, any, any, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
-        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find product with id [$expectedId]")
+        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find products with ids [$expectedId]")
       }
     }
 
     "send 200 when a product is found when searching by id" in new Products {
       running(FakeApplication()) {
+        val facetResponse = setupFacetQuery()
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          Future.successful(facetResponse)
+        }
+
         val product = new Product()
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
 
@@ -91,17 +101,25 @@ class ProductControllerSpec extends BaseSpec {
         storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
+        val categoryResult = new Category()
+        categoryResult.setId("someCategory")
+
+        storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
+
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
         val json = Json.parse(contentAsString(result.get))
-        (json \ "product").validate[Product].map { product =>
+        (json \ "products").as[Seq[Product]].map { product =>
           for (skus <- product.skus) {
             for (sku <- skus) {
               sku.id.get must beEqualTo(expectedSku.id.get)
             }
           }
-        } recoverTotal {
-          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+
+          val categories = product.categories
+          categories.size must beEqualTo(1)
+          categories.get.size must beEqualTo(1)
+          categories.get(0).getId must beEqualTo("someCategory")
         }
       }
     }
@@ -624,19 +642,21 @@ class ProductControllerSpec extends BaseSpec {
 
   /**
    * Helper method to mock the response for findById calls
-   * @param product the product use to mock the response
    * @return a query response mock
    */
-  protected def setupProductQuery(product: Product) = {
+  protected def setupFacetQuery() = {
     val queryResponse = mock[QueryResponse]
-    val namedList = mock[NamedList[AnyRef]]
+    val f1 = mock[FacetField]
+    f1.getName returns "ancestorcategoryid"
+    f1.getValueCount returns 1
+    val facetValues = new java.util.ArrayList[FacetField.Count]()
+    facetValues.add(new FacetField.Count(f1, "someCategory", 90))
+    f1.getValues returns facetValues
 
-    queryResponse.getResponse returns namedList
+    val facetFields = new java.util.ArrayList[FacetField]()
+    facetFields.add(f1)
+    queryResponse.getFacetFields returns facetFields
     solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
-
-    val doc = mock[SolrDocument]
-    namedList.get("doc") returns doc
-    solrServer.binder.getBean(classOf[Product], doc) returns product
 
     queryResponse
   }
