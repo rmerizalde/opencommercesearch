@@ -52,10 +52,11 @@ case class Product (
   @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
   @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
+  @JsonProperty("activationDate") var activationDate: Option[String],
   @JsonProperty("isPackage") var isPackage: Option[Boolean])
 {
   @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { this.id.get }
 
@@ -64,6 +65,9 @@ case class Product (
 
   @Field
   def setTitle(title: String) : Unit = { this.title = Option.apply(title) }
+  
+  @Field
+  def setActivationDate(activationDate: String) : Unit = { this.activationDate = Option.apply(activationDate) }
   
   @Field
   def setDescription(description: String) : Unit = { this.description = Option.apply(description) }
@@ -195,7 +199,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
     for (product: Product <- products) {
       for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
-           skus <- product.skus; listRank <- product.listRank) {
+           skus <- product.skus; listRank <- product.listRank; activationDate <- product.activationDate) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
         var gender: String = null
@@ -203,7 +207,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         productDoc.setField("title", title)
         for (brandId <- brand.id) {
           productDoc.setField("brand", brandId)
-        }        
+        }
         productDoc.setField("isOutOfStock", isOutOfStock)
 
         for (description <- product.description; shortDescription <- product.shortDescription) {
@@ -251,6 +255,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("isRetail", isRetail)
             doc.setField("skuCount", skuCount)
             doc.setField("isCloseout", isCloseout)
+            doc.setField("activationDate", activationDate )
             for (isOutlet <- sku.isOutlet) { doc.setField("isOutlet", isOutlet) }
             for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
             if (gender != null) { doc.setField("gender", gender ) }
