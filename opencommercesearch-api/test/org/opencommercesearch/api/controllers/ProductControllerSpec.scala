@@ -468,6 +468,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK"),
                 "image" -> "/images/black.jpg",
@@ -482,6 +483,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "1" + "RED"),
                 "image" -> "/images/red.jpg",
@@ -496,6 +498,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "2" + "BLU"),
                 "image" -> "/images/blue.jpg",
@@ -533,6 +536,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK")
               ))),
@@ -542,6 +546,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK")
               )))))
@@ -603,6 +608,7 @@ class ProductControllerSpec extends BaseSpec {
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK"),
                 "image" -> "/images/black.jpg",
