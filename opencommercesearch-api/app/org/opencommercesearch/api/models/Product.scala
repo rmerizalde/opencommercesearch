@@ -199,10 +199,11 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
     for (product: Product <- products) {
       for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
-           skus <- product.skus; listRank <- product.listRank; activationDate <- product.activationDate) {
+           skus <- product.skus; listRank <- product.listRank) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
         var gender: String = null
+        var activationDate: String = null
         productDoc.setField("id", productId)
         productDoc.setField("title", title)
         for (brandId <- brand.id) {
@@ -215,6 +216,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           productDoc.setField("shortDescription", shortDescription)
         }
         for (g <- product.gender) { productDoc.setField("gender", gender = g) }
+        for (activeDate <- product.activationDate) { activationDate = activeDate }
         for (bulletPoints <- product.bulletPoints) {
           for (bulletPoint <- bulletPoints) { productDoc.addField("bulletPoints", bulletPoint)}
         }
@@ -255,10 +257,10 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             doc.setField("isRetail", isRetail)
             doc.setField("skuCount", skuCount)
             doc.setField("isCloseout", isCloseout)
-            doc.setField("activationDate", activationDate )
             for (isOutlet <- sku.isOutlet) { doc.setField("isOutlet", isOutlet) }
             for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
             if (gender != null) { doc.setField("gender", gender ) }
+            if (activationDate != null) { doc.setField("activationDate", activationDate ) }
 
             for (year <- sku.year) { doc.setField("year", year) }
             for (season <- sku.season) { doc.setField("season", season) }
