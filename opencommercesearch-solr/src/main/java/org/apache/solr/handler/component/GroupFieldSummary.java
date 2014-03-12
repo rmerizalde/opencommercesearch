@@ -2,7 +2,7 @@ package org.apache.solr.handler.component;
 
 import org.apache.solr.common.util.NamedList;
 
-public abstract class GroupFieldSummary<T> {
+abstract class GroupFieldSummary<T> {
     String groupValue;
     String fieldName;
 

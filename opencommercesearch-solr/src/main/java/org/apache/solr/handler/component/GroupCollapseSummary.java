@@ -115,7 +115,6 @@ public class GroupCollapseSummary {
     }
     
 	protected String getFieldValueFromTermVector(int docId, String fieldName) throws IOException {
-		System.out.println("coming here");
 		Terms terms = searcher.getAtomicReader().getTermVector(docId, fieldName);
 		if (terms != null) {
 			TermsEnum termsEnum = terms.iterator(null);
@@ -164,13 +163,10 @@ public class GroupCollapseSummary {
             for (Map.Entry<String, GroupFieldSummary> innerEntry : entry.getValue().entrySet()) {
             	NamedList fieldSummaryRsp = new NamedList();
                 innerEntry.getValue().addValues(fieldSummaryRsp);
-                log.warn(innerEntry.getValue()+"");
                 groupValueRsp.add(innerEntry.getKey(), fieldSummaryRsp);                   
             }
             
-            log.warn("size of colormap"+colorMap.size());
             for(Map.Entry<String, List<NamedList>> color: colorMap.entrySet()) {
-            	log.warn(color.getKey()+"\t"+color.getValue());
             	groupValueRsp.add(color.getKey(), color.getValue());
             }
             

@@ -8,7 +8,7 @@ import static org.apache.solr.handler.component.GroupCollapseComponent.COLORFAMI
 
 import org.apache.solr.common.util.NamedList;
 
-public class ColorGroupFieldSummary extends GroupFieldSummary<String> {
+class ColorGroupFieldSummary extends GroupFieldSummary<String> {
     private Set<String> colors;
 
     ColorGroupFieldSummary(String groupValue, String fieldName) {

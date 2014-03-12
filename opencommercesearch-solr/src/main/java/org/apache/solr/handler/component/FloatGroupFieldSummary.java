@@ -2,7 +2,7 @@ package org.apache.solr.handler.component;
 
 import org.apache.solr.common.util.NamedList;
 
-public class FloatGroupFieldSummary extends GroupFieldSummary<Float> {
+class FloatGroupFieldSummary extends GroupFieldSummary<Float> {
     private float min;
     private float max;
 
