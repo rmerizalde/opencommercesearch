@@ -44,8 +44,8 @@
   <field name="pBrand"             type="phonetic"                                         required="false" multiValued="false" omitNorms="true" />
   <field name="scale"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
   <field name="size"               type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-  <field name="color"              type="string"            indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
-  <field name="colorFamily"        type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
+  <field name="color"              type="string"            indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="true" omitTermFreqAndPositions="false"/>
+  <field name="colorFamily"        type="string"            indexed="true"  stored="false" required="false" multiValued="true"  omitNorms="true" termVectors="true" omitTermFreqAndPositions="false"/>
   <field name="country"            type="string"            indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" />
   <field name="isRetail"           type="boolean"           indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" default="true" />
   <field name="isCloseout"         type="boolean"           indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" default="false" />

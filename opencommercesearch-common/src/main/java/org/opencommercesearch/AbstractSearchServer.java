@@ -597,7 +597,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         String listPrice = "listPrice" + country;
         String salePrice =  "salePrice" + country;
         String discountPercent = "discountPercent" + country;
-
+        
         if(getCatalogCollection().trim().equalsIgnoreCase("catalogEvaluation")) {
             query.setFields("id", "productId", "title", "brand", "isToos", listPrice, salePrice, discountPercent, "url" + country,
                     "reviewAverage", "reviews", "isPastSeason", "freeGift" + catalog, "image","score", "isToos");
@@ -610,7 +610,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         }
 
         query.setParam(GroupCollapseParams.GROUP_COLLAPSE, true);
-        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent);
+        query.setParam(GroupCollapseParams.GROUP_COLLAPSE_FL, listPrice + "," + salePrice + "," + discountPercent+ ",color,colorFamily");
     }
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
