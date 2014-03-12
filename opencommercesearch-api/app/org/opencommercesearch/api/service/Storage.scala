@@ -113,6 +113,13 @@ trait Storage[T] {
   def findCategory(id: String, fields: Seq[String]) : Future[Category]
 
   /**
+   * Find all existing categories from storage.
+   * @param fields List of fields that should be retrieved.
+   * @return Collection of category objects populated with storage data.
+   */
+  def findAllCategories(fields: Seq[String]) : Future[Iterable[Category]]
+
+  /**
    * Find all given category ids.
    * @param ids A collection of category ids to look for.
    * @param fields List of fields that should be retrieved.

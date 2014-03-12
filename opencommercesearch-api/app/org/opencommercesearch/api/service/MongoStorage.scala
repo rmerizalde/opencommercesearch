@@ -350,6 +350,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     }
   }
 
+  def findAllCategories(fields: Seq[String]) : Future[Iterable[Category]] = {
+    Future {
+      val categoryCollection = jongo.getCollection("categories")
+      categoryCollection.find().projection(projectionCategory(fields)).as(classOf[Category])
+    }
+  }
+
   def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]] = {
     Future {
         val categoryCollection = jongo.getCollection("categories")
