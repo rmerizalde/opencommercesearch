@@ -18,7 +18,7 @@
       <str name="spellcheck.collate">true</str>
       <str name="fl">id,productId,title,brand,isToos,salePriceUS,listPriceUS,discountPercentUS,urlUS,reviewAverage,reviews,isPastSeason,freeGiftbcs,image,isCloseout</str>
       <str name="groupcollapse">true</str>
-      <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS</str>
+      <str name="groupcollapse.fl">salePriceUS,listPriceUS,discountPercentUS,color,colorFamily</str>
     </lst>
     <arr name="first-components">
    	  <str>ruleManager</str>
