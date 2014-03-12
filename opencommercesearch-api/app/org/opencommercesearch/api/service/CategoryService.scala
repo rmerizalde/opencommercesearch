@@ -599,16 +599,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    */
   private def buildTaxonomyGraph(categoryData: Future[Iterable[Category]], filterCategories: Set[String] = Set.empty) : Future[mutable.Map[String, Category]] =  {
     val hierarchyMap = new mutable.HashMap[String, Category].withDefaultValue(null)
-<<<<<<< HEAD
-    //Go over the list of categories returned by Storage and store them in a hash
-    categoriesFuture.map(categoryData => {
-      categoryData.foreach( category => {
-=======
-
     //Go over the list of categories returned by storage and store them in a hash
     categoryData.map(categories => {
       categories.foreach( category => {
->>>>>>> Category endpoint updates to support getting top level categories per site and filter queries. Caching taxonomy in memory
         var taxonomyNode  = hierarchyMap(category.getId)
 
         if(taxonomyNode == null) {
