@@ -103,51 +103,61 @@ object ProductController extends BaseController {
 
         if(includeTaxonomy) {
           val productListFuture = productList map { product =>
-            val catalogQuery = withSearchCollection(withFieldFacet("ancestorCategoryId", withFacetPagination(new SolrQuery("*:*"))), preview)
+            
+            val catalogQuery = withSearchCollection(new SolrQuery("*:*"), preview)
             if(site != null) {
               catalogQuery.addFilterQuery(s"categoryPath:$site")
             }
 
             catalogQuery.addFilterQuery(s"productId:${product.getId}")
+            catalogQuery.setFields("ancestorCategoryId")
+            catalogQuery.setRows(1);
 
             if(Logger.isDebugEnabled) {
               Logger.debug(s"Searching for category ids for product ${product.getId} with query ${catalogQuery.toString}")
             }
 
             solrServer.query(catalogQuery).flatMap(response => {
-              val facetFields = response.getFacetFields
+      
+              val docs = response.getResults
               var taxonomyFuture: Future[Product] = null
 
-              if(facetFields != null) {
-                facetFields.map( facetField => {
-                  if("ancestorcategoryid".equals(facetField.getName.toLowerCase)) {
+              if (docs != null && docs.size() > 0) {
+                val document = docs.get(0);
+                if(document.containsKey("ancestorCategoryId")) {
+                    val categoryIds = document.getFieldValues("ancestorCategoryId")
                     if(Logger.isDebugEnabled) {
-                      Logger.debug(s"Got ${facetField.getValueCount} category ids for product ${product.getId}")
+                      Logger.debug(s"Got ${categoryIds.size} category ids for product ${product.getId}")
                     }
 
                     val storage = withNamespace(storageFactory, preview)
 
-                    if(facetField.getValueCount > 0) {
-                      val categoryIds = facetField.getValues.map(facetValue => {facetValue.getName})
+                    if(categoryIds.size > 0) {
+                      //val categoryIds = ancestorCatFields.map(fieldValue => {fieldValue.toString})
                       Logger.debug(s"Category ids for product ${product.getId} are $categoryIds")
 
                       val categoryFields = fields.filter(field => {field.startsWith("categories.") || field.equals("*")}).map(field => field.replaceFirst("categories\\.", ""))
                       Logger.debug(s"Category fields are $categoryFields")
-                      val categoryFuture = categoryService.getTaxonomy(categoryIds, categoryFields, storage)
+                      val categoryFuture = categoryService.getTaxonomy(categoryIds.map(fieldValue => {fieldValue.toString}), categoryFields, storage)
 
                       taxonomyFuture = categoryFuture.map(categoryTaxonomy => {
-                        product.categories = Some(facetField.getValues.map( facetValue => {categoryTaxonomy(facetValue.getName)}).toSeq)
+                        product.categories = Some(categoryIds.map( fieldValue => {categoryTaxonomy(fieldValue.toString)}).toSeq
+                                .filter(
+                                  category =>  {
+                                        if (site != null) {
+                                          category.catalogs.getOrElse(Seq.empty).contains(site)
+                                        } else {
+                                          true
+                                        }
+                                  }
+                        ))
                         product
                       })
                     }
-                    else {
-                      Logger.debug(s"Got an empty ancestorCategoryId field facet for product $id")
-                    }
                   }
                   else {
-                    Logger.debug(s"Cannot get categories for product $id because there are no field facets in Solr response")
+                    Logger.debug(s"Cannot get categories for product $id because there are no field in Solr response")
                   }
-                })
               }
               else {
                 Logger.debug(s"Got 0 categories for product $id, no facets were returned")

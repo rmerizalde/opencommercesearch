@@ -57,6 +57,7 @@ class ProductControllerSpec extends BaseSpec {
 
       val category = new Category()
       category.isRuleBased = Option(false)
+      category.catalogs = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
     }
@@ -81,7 +82,7 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by id" in new Products {
       running(FakeApplication()) {
-        val facetResponse = setupFacetQuery()
+        val facetResponse = setupAncestorCategoryQuery()
 
         solrServer.query(any[SolrQuery]) answers { q =>
           Future.successful(facetResponse)
@@ -103,6 +104,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val categoryResult = new Category()
         categoryResult.setId("someCategory")
+        categoryResult.catalogs = Option(Seq("mysite"))
 
         storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
 
@@ -699,19 +701,19 @@ class ProductControllerSpec extends BaseSpec {
    * Helper method to mock the response for findById calls
    * @return a query response mock
    */
-  protected def setupFacetQuery() = {
+  protected def setupAncestorCategoryQuery() = {
     val queryResponse = mock[QueryResponse]
-    val f1 = mock[FacetField]
-    f1.getName returns "ancestorcategoryid"
-    f1.getValueCount returns 1
-    val facetValues = new java.util.ArrayList[FacetField.Count]()
-    facetValues.add(new FacetField.Count(f1, "someCategory", 90))
-    f1.getValues returns facetValues
+    val solrDocument = mock[SolrDocument]
 
-    val facetFields = new java.util.ArrayList[FacetField]()
-    facetFields.add(f1)
-    queryResponse.getFacetFields returns facetFields
-    solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
+    val categoryValues = new java.util.ArrayList[AnyRef]()
+    categoryValues.add("someCategory")
+
+    solrDocument.getFieldValues("ancestorCategoryId") returns categoryValues
+    solrDocument.containsKey("ancestorCategoryId") returns true
+
+    val solrDocuments = new SolrDocumentList
+    solrDocuments.add(solrDocument)
+    queryResponse.getResults returns solrDocuments
 
     queryResponse
   }
