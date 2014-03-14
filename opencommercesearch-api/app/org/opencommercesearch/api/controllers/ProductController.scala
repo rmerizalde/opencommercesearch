@@ -22,14 +22,19 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsError, Json}
-import scala.concurrent.Future
-import scala.collection.JavaConversions._
-import java.util
-
 import play.api.libs.json.JsArray
 import play.api.libs.json.JsObject
 import play.api.libs.json.JsString
 import play.api.libs.json.JsValue
+
+import java.util
+import java.net.URLDecoder
+import javax.ws.rs.{QueryParam, PathParam}
+
+import scala.concurrent.Future
+import scala.collection.JavaConversions._
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.mutable.ArrayBuffer
 
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
@@ -37,16 +42,12 @@ import org.opencommercesearch.api.service.CategoryService
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
 import org.apache.solr.client.solrj.SolrQuery
-import com.wordnik.swagger.annotations._
-import javax.ws.rs.{QueryParam, PathParam}
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
 import org.apache.solr.client.solrj.util.ClientUtils
-import java.net.URLDecoder
-import org.apache.solr.client.solrj.SolrQuery.SortClause
+
+import com.wordnik.swagger.annotations._
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -621,6 +622,9 @@ object ProductController extends BaseController {
   }
 
   @ApiOperation(value = "Deletes products", notes = "Deletes the given product", httpMethod = "DELETE")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "feedTimestamp", value = "The feed timestamp. If provided, only skus with a different timestamp are deleted", required = false, dataType = "long", paramType = "query")
+  ))
   def deleteById(
       version: Int = 1,
       @ApiParam(value = "A product id", required = false)
@@ -630,7 +634,13 @@ object ProductController extends BaseController {
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     val update = withSearchCollection(new AsyncUpdateRequest(), preview)
-    update.deleteByQuery("productId:" + id)
+    val feedTimestamp = request.getQueryString("feedTimestamp")
+
+    if (feedTimestamp.isDefined) {
+      update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
+    } else {
+      update.deleteByQuery(s"productId:$id")
+    }
 
     val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       NoContent

@@ -59,7 +59,14 @@ import static org.opencommercesearch.Utils.errorMessage;
  *
  * TODO implement default feed functionality
  */
+@SuppressWarnings("unchecked")
 public abstract class SearchFeed extends GenericService {
+    public enum FeedType {
+        FULL_FEED,
+        INCREMENTAL_FEED,
+        MANUAL_FEED
+    }
+
     private static SendQueueItem POISON_PILL = new SendQueueItem();
 
     private Repository productRepository;
@@ -157,6 +164,7 @@ public abstract class SearchFeed extends GenericService {
         return true;
     }
 
+
     public ProductService getProductService() {
         return productService;
     }
@@ -243,6 +251,14 @@ public abstract class SearchFeed extends GenericService {
         sendTaskExecutor.shutdown();
     }
 
+    /**
+     * Check if a full feed is running
+     * @return true if the full feed is running. Otherwise return false
+     */
+    public boolean isFeedRunning() {
+        return running;
+    }
+
     public void terminate() {
         running = false;
     }
@@ -254,12 +270,14 @@ public abstract class SearchFeed extends GenericService {
         private CountDownLatch endGate;
         private int offset;
         private int limit;
+        private FeedType type;
         private long feedTimestamp;
         private String name;
 
-        ProductPartitionTask(int offset, int limit, long feedTimestamp, CountDownLatch endGate) {
+        ProductPartitionTask(int offset, int limit, FeedType type, long feedTimestamp, CountDownLatch endGate) {
             this.offset = offset;
             this.limit = limit;
+            this.type = type;
             this.feedTimestamp = feedTimestamp;
             this.endGate = endGate;
             this.name = offset + " - " + (offset + limit);
@@ -289,7 +307,7 @@ public abstract class SearchFeed extends GenericService {
                         if (isProductIndexable(product)) {
                             processProduct(product, products);
                             indexedProductCount.incrementAndGet();
-                            sendProducts(products, feedTimestamp, getIndexBatchSize(), true);
+                            sendProducts(products, type, feedTimestamp, getIndexBatchSize(), true);
                         }
                         processedProductCount.incrementAndGet();
                         localProductProcessedCount++;
@@ -312,7 +330,7 @@ public abstract class SearchFeed extends GenericService {
                 }
 
                 if(!shouldStop) {
-                    sendProducts(products, feedTimestamp, 0, true);
+                    sendProducts(products, type, feedTimestamp, 0, true);
                 }
             } catch (RepositoryException ex) {
                 if (isLoggingError()) {
@@ -333,12 +351,16 @@ public abstract class SearchFeed extends GenericService {
 
     private static class SendQueueItem {
         Locale locale;
+        FeedType type;
+        long feedTimestamp;
         ProductList productList;
 
         SendQueueItem() {}
 
-        SendQueueItem(Locale locale, ProductList productList) {
+        SendQueueItem(Locale locale, FeedType type, long feedTimestamp, ProductList productList) {
             this.locale = locale;
+            this.type = type;
+            this.feedTimestamp = feedTimestamp;
             this.productList = productList;
         }
     }
@@ -363,7 +385,7 @@ public abstract class SearchFeed extends GenericService {
                         break;
                     }
 
-                    if(!sendProducts(item.locale.getLanguage(), item.productList)) {
+                    if(!sendProducts(item.locale, item.type, item.feedTimestamp, item.productList)) {
                         failedProductCount.incrementAndGet();
                     }
                 }
@@ -382,13 +404,14 @@ public abstract class SearchFeed extends GenericService {
      * Sends the products for indexing
      *
      * @param products the lists of products to be indexed
-     * @param feedTimestamp the feed timestamp
+     * @param type is the feed's type
+     * @param feedTimestamp the feed's timestamp
      * @param min the minimum size of of a product list. If the size is not met then the products are not sent
      *            for indexing
      * @param async determines if the products should be send right away or asynchronously.
      * return False if there were errors while sending the products, true otherwise.
      */
-    public boolean sendProducts(SearchFeedProducts products, long feedTimestamp, int min, boolean async) {
+    public boolean sendProducts(SearchFeedProducts products, FeedType type, long feedTimestamp, int min, boolean async) {
         for (Locale locale : products.getLocales()) {
             if (products.getSkuCount(locale) > min) {
                 List<Product> productList = products.getProducts(locale);
@@ -396,11 +419,11 @@ public abstract class SearchFeed extends GenericService {
                     if (async) {
                         List<Product> clone = new ArrayList<Product>(productList.size());
                         clone.addAll(productList);
-                        sendQueue.offer(new SendQueueItem(locale, new ProductList(clone, feedTimestamp)));
+                        sendQueue.offer(new SendQueueItem(locale, type, feedTimestamp, new ProductList(clone, feedTimestamp)));
                         //If an async call is made, this always return true.
                         return true;
                     } else {
-                        if(!sendProducts(locale.getLanguage(), new ProductList(productList, feedTimestamp))) {
+                        if(!sendProducts(locale, type, feedTimestamp, new ProductList(productList, feedTimestamp))) {
                             failedProductCount.incrementAndGet();
                             return false;
                         }
@@ -418,7 +441,7 @@ public abstract class SearchFeed extends GenericService {
      * Helper method that actually sends the products for indexing
      * @return False if there are errors sending the product, true otherwise.
      */
-    private boolean sendProducts(final String language, final ProductList productList) {
+    private boolean sendProducts(final Locale locale, final FeedType type, final long feedTimestamp, final ProductList productList) {
         try {
             final StreamRepresentation representation = new StreamRepresentation(MediaType.APPLICATION_JSON) {
                 @Override
@@ -439,7 +462,7 @@ public abstract class SearchFeed extends GenericService {
             };
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));
             final ClientInfo clientInfo = request.getClientInfo();
-            clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(language))));
+            clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
             Response response = null;
 
             try {
@@ -450,10 +473,13 @@ public abstract class SearchFeed extends GenericService {
                         logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
                                 + errorMessage(response.getEntity()) + "]");
                     }
-                    onProductsSentError(productList.getProducts());
+                    onProductsSentError(type, feedTimestamp, locale, productList.getProducts(), response);
                     return false;
                 } else {
-                    onProductsSent(response, productList.getProducts());
+                    for (Product product : productList.getProducts()) {
+                        delete(product.getId(), feedTimestamp, locale);
+                    }
+                    onProductsSent(type, feedTimestamp, locale, productList.getProducts(), response);
                     return true;
 
                 }
@@ -461,16 +487,14 @@ public abstract class SearchFeed extends GenericService {
                 if (response != null) {
                     response.release();
                 }
-                if (request != null) {
-                    request.release();
-                }
+                request.release();
             }
        }
         catch (Exception ex) {
             if (isLoggingInfo()) {
                 logInfo("Sending products [" + productsId(productList.getProducts()) + "] failed with unexpected exception", ex);
             }
-            onProductsSentError(productList.getProducts());
+            onProductsSentError(type, feedTimestamp, locale, productList.getProducts(), ex);
             return false;
         }
         finally {
@@ -482,53 +506,57 @@ public abstract class SearchFeed extends GenericService {
      * Deletes the product with the given id from index
      *
      * @param id is the id of the product to be deleted
+     * @param feedTimestamp is the feed's timestamp
      */
-    public void delete(String id) {
+    public void delete(String id, long feedTimestamp) {
         Set<String> languages = new HashSet<String>();
-         for (Locale locale : localeService.getSupportedLocales()) {
-             if (!languages.contains(locale.getLanguage())) {
-                try {
-                    final Request request = new Request(Method.DELETE, getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id));
-                    final ClientInfo clientInfo = request.getClientInfo();
-                    clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
-                    Response response = null;
 
-                    try {
-                        response = getProductService().handle(request);
+        for (Locale locale : localeService.getSupportedLocales()) {
+            if (!languages.contains(locale.getLanguage())) {
+                delete(id, feedTimestamp, locale);
+                languages.add(locale.getLanguage());
+            }
+        }
+    }
 
-                        if (isLoggingInfo()) {
-                            if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
-                                logInfo("Successfully deleted product " + id + " for " + locale.getLanguage());
-                            } else {
-                                logInfo("Deleting product " + id + " for " + locale.getLanguage() + " failed with status: " + response.getStatus());
-                            }
-                        }
-                        languages.add(locale.getLanguage());
-                    } finally {
-                        if (response != null) {
-                            response.release();
-                        }
-                        if (request != null) {
-                            request.release();
-                        }
-                    }
-                } catch (Exception ex) {
-                    if (isLoggingError()) {
-                        logError("Deleting product " + id + " failed", ex);
+    protected void delete(String id, long feedTimestamp, Locale locale) {
+        try {
+            final String endpointUrl = urlWithParameters(getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id)) + "feedTimestamp=" + feedTimestamp;
+            final Request request = new Request(Method.DELETE, endpointUrl);
+            final ClientInfo clientInfo = request.getClientInfo();
+            clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
+            Response response = null;
+
+            try {
+                response = getProductService().handle(request);
+
+                if (isLoggingInfo()) {
+                    if (response.getStatus().equals(Status.SUCCESS_NO_CONTENT)) {
+                        logInfo("Successfully deleted product " + id + " for " + locale.getLanguage() + " with feed timestamp " + feedTimestamp);
+                    } else {
+                        logInfo("Deleting product " + id + " for " + locale.getLanguage() + " failed with status: " + response.getStatus() + " with feed timestamp " + feedTimestamp);
                     }
                 }
-             }
-         }
+            } finally {
+                if (response != null) {
+                    response.release();
+                }
+                request.release();
+            }
+        } catch (Exception ex) {
+            if (isLoggingError()) {
+                logError("Deleting product " + id + " failed", ex);
+            }
+        }
     }
 
     public void delete(long feedTimestamp) {
         Set<String> languages = new HashSet<String>();
-        String endpointUrl = getProductService().getUrl4Endpoint(Endpoint.PRODUCTS);
+        String endpointUrl = urlWithParameters(getProductService().getUrl4Endpoint(Endpoint.PRODUCTS));
 
         for (Locale locale : localeService.getSupportedLocales()) {
             if (!languages.contains(locale.getLanguage())) {
                 try {
-                    endpointUrl += endpointUrl.indexOf("?") != -1? "&" : "?";
                     endpointUrl += "feedTimestamp=" + feedTimestamp;
                     final Request request = new Request(Method.DELETE, endpointUrl);
                     final ClientInfo clientInfo = request.getClientInfo();
@@ -566,6 +594,17 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
+    /**
+     * Helper method to format an endpoint Url
+     */
+    private String urlWithParameters(String url) {
+        if (url.indexOf('?') != -1) {
+            return url + '&';
+        } else {
+            return url + '?';
+        }
+    }
+
     public void startFullFeed() throws SearchServerException, RepositoryException, SQLException,
             InventoryException, InterruptedException {
         if (running){
@@ -592,9 +631,10 @@ public abstract class SearchFeed extends GenericService {
                 logInfo("Started full feed for " + productCount + " products");
             }
 
+            final FeedType type = FeedType.FULL_FEED;
             final long feedTimestamp = System.currentTimeMillis();
 
-            onFeedStarted(feedTimestamp);
+            onFeedStarted(type, feedTimestamp);
             processedProductCount.set(0);
             indexedProductCount.set(0);
             failedProductCount.set(0);
@@ -614,7 +654,7 @@ public abstract class SearchFeed extends GenericService {
                     limit += productCount - limit;
                 }
 
-                productTaskExecutor.execute(new ProductPartitionTask(offset, limit, feedTimestamp, endGate));
+                productTaskExecutor.execute(new ProductPartitionTask(offset, limit, type, feedTimestamp, endGate));
                 if (isLoggingInfo()) {
                     logInfo("Catalog partition created: " + offset + " - " + limit);
                 }
@@ -636,7 +676,7 @@ public abstract class SearchFeed extends GenericService {
             if (running) {
                 if(failedProductCount.get() < currentErrorThreshold) {
                     delete(feedTimestamp);
-                    onFeedFinished(feedTimestamp);
+                    onFeedFinished(type, feedTimestamp);
 
                     if (isLoggingInfo()) {
                         logInfo("Full feed finished in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds, "
@@ -658,7 +698,7 @@ public abstract class SearchFeed extends GenericService {
         }
     }
 
-    private String productsId(List<Product> products) {
+    protected String productsId(List<Product> products) {
         if (products == null || products.size() == 0) {
             return StringUtils.EMPTY;
         }
@@ -670,14 +710,55 @@ public abstract class SearchFeed extends GenericService {
         buffer.setLength(buffer.length() - 2);
         return buffer.toString();
     }
-    
-    protected abstract void onFeedStarted(long indexStamp);
 
-    protected abstract void onProductsSent(Response response, List<Product> productList);
+    /**
+     * Fires an event when a feed is started
+     *
+     * @param type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     */
+    protected abstract void onFeedStarted(FeedType type, long feedTimestamp);
 
-    protected abstract void onProductsSentError(List<Product> productList);
+    /**
+     * Fires an event when products are sent successfully for indexing
+     *
+     * @param type type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     * @param locale is the products locale
+     * @param productList is the indexed product list
+     * @param response is the response from the API
+     */
+    protected abstract void onProductsSent(FeedType type,  long feedTimestamp, Locale locale, List<Product> productList, Response response);
 
-    protected abstract void onFeedFinished(long indexStamp);
+    /**
+     * Fires an event when product indexing fails
+     *
+     * @param type type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     * @param locale is the products locale
+     * @param productList is the product list that couldn't be indexed
+     * @param ex is the exception that prevented to products from been indexed
+     */
+    protected abstract void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Exception ex);
+
+    /**
+     * Fires an event when product indexing fails
+     *
+     * @param type type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     * @param locale is the products locale
+     * @param productList is the product list that couldn't be indexed
+     * @param response is the response from the API
+     */
+    protected abstract void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Response response);
+
+    /**
+     * Fires an event when a feed finishes
+     *
+     * @param type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     */
+    protected abstract void onFeedFinished(FeedType type, long feedTimestamp);
 
     protected abstract void processProduct(RepositoryItem product, SearchFeedProducts products)
             throws RepositoryException, InventoryException;
@@ -758,7 +839,7 @@ public abstract class SearchFeed extends GenericService {
      *            the category to be tested
      * @param catalogs
      *            the set of categories to search in
-     * @return
+     * @return true if category is assigned to a least of of the given catalogs
      */
     private boolean isCategoryInCatalogs(RepositoryItem category, Set<RepositoryItem> catalogs) {
 
