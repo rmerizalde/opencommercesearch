@@ -403,6 +403,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     }
   }
 
+  def findFacets(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Facet]] = {
+    Future {
+      val facetCollection = jongo.getCollection("facets")
+      facetCollection.find("{_id:{$in:#}}", ids).projection(projectionFacet(fields)).as(classOf[Facet])
+    }
+  }
+
   private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
     val lookupMap = mutable.HashMap.empty[String, Category]
         var mainDoc: Category = null
