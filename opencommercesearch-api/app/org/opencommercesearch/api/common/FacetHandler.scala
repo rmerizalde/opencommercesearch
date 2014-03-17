@@ -48,16 +48,25 @@ case class FacetHandler (
   facetData: Seq[NamedList[AnyRef]],
   storage: Storage[WriteResult]) {
 
+  /**
+   * Max time to wait for facet blacklist info
+   */
+  val MaxFacetBlacklistTimeout = Duration(10, SECONDS)
+
   def getFacets : Seq[Facet] = {
     val facetMap: mutable.LinkedHashMap[String, Facet] = new mutable.LinkedHashMap[String, Facet]
     
     //To preserve the order of the facets first we need to initialize the keys of the linked hash map in the correct order
-    //from results in the solr rule_facet. Then in a second pass we'll populate the actual facet and filter values 
+    //from results in the Solr rule_facet. Then in a second pass we'll populate the actual facet and filter values
     facetMap.put("category", null)
-    facetData.foreach( entry => {
+    val facetIds = facetData map { entry =>
     	facetMap.put(entry.get(Facet.FieldName).toString, null)
-    })
-    
+      //Get the facet ID too, so we can look it up on storage to get the blacklist
+      entry.get(Facet.Id).toString
+    }
+
+    val facetBlackLists = getFacetBlacklists(facetIds)
+
     for (facetField <- queryResponse.getFacetFields) {
       var facet : Option[Facet] = None
 
@@ -74,7 +83,7 @@ case class FacetHandler (
         var facetBlackList: Set[String] = Set.empty
 
         //If this is a category facet, then the ID will be None.
-        for(facetId <- f.id) { facetBlackList = getBlacklist(facetId) }
+        for(facetId <- f.id) { facetBlackList = facetBlackLists(facetId) }
 
         for (count <- facetField.getValues) {
           val filterName: String = getCountName(count, prefix)
@@ -98,8 +107,10 @@ case class FacetHandler (
     val sortedFacets = new mutable.ArrayBuffer[Facet](facetMap.size)
     //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
     sortedFacets.appendAll(facetMap.values.filterNot( value => null == value))
+
     sortedFacets.filter(facet => {
       var include = false
+
       for (filters <- facet.filters) {
         include = filters.size >= facet.minBuckets.get
       }
@@ -307,21 +318,22 @@ case class FacetHandler (
   }
 
   /**
-   * Get blacklist for a facet id. Values in the black list should be ignored.
+   * Get blacklist for some facet ids. Values in the black list should be ignored for each facet.
+   * @param ids List of ids to return facets from
+   * @return Map of ids and facet blacklist.
    */
-  private def getBlacklist(id: String) : Set[String] = {
-    val Timeout = Duration(10, SECONDS)
-
-    val future = storage.findFacet(id, Seq.empty[String]) map { facet =>
-      if(facet != null) {
-        facet.blackList.getOrElse(Seq.empty[String])
+  private def getFacetBlacklists(ids: Seq[String]) : Map[String, Set[String]] = {
+    val future = storage.findFacets(ids, Seq.empty[String]) map { facets =>
+      if(facets != null) {
+        facets map { facet =>
+          (facet.getId, facet.getBlackList.toSet)}
       }
       else {
-        Seq.empty[String]
+        Seq.empty[(String, Set[String])]
       }
     }
 
-    Await.result(future, Timeout).toSet[String]
+    Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]]
   }
 
   /**
@@ -396,20 +408,20 @@ case class FacetHandler (
    *
    * @return a list of breadcrumbs
    */
-  def getBreadCrumbs(): Seq[BreadCrumb] = {
-    var crumbs =  mutable.ArrayBuffer[BreadCrumb]()
+  def getBreadCrumbs: Seq[BreadCrumb] = {
+    val crumbs =  mutable.ArrayBuffer[BreadCrumb]()
     if (filterQueries == null || filterQueries.length == 0) {
       return crumbs
     }
     filterQueries.foreach(filterQuery => {
       if ("category".equals(filterQuery.fieldName)) {
-        crumbs.addAll(createCategoryBreadCrumb(filterQuery));
+        crumbs.addAll(createCategoryBreadCrumb(filterQuery))
       } else {
-        val crumb = new BreadCrumb();
+        val crumb = new BreadCrumb()
         crumb.setFieldName(filterQuery.fieldName)
-        crumb.setExpression(Util.getRangeBreadCrumb(filterQuery.fieldName, filterQuery.unescapeExpression, filterQuery.unescapeExpression));
-        crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"));
-        crumbs.add(crumb);
+        crumb.setExpression(Util.getRangeBreadCrumb(filterQuery.fieldName, filterQuery.unescapeExpression, filterQuery.unescapeExpression))
+        crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"))
+        crumbs.add(crumb)
       }
     })
     crumbs
@@ -429,11 +441,11 @@ case class FacetHandler (
     if (categories.length <= 2) {
       return Seq.empty
     }
-    var breadCrumbs =  mutable.ArrayBuffer[BreadCrumb]()
+    val breadCrumbs =  mutable.ArrayBuffer[BreadCrumb]()
     val catalogId: String = categories(1)
     val buffer = new StringBuffer()
     val basePath = Util.createPath(filterQueries, categoryFilterQuery)
-    var level = 1;
+    var level = 1
     for (i <- 2 until categories.length) {
       val crumb = new BreadCrumb()
       val category = categories(i)
@@ -443,7 +455,7 @@ case class FacetHandler (
       crumb.setFieldName(categoryFilterQuery.fieldName)
       var unselectPath: String = ""
       if (buffer.length() > 0) {
-        unselectPath += "category:" + level + FilterQuery.CategorySeparator + catalogId + buffer.toString()
+        unselectPath += "category:" + level + FilterQuery.CategorySeparator + catalogId + buffer.toString
         level = level
       }
 

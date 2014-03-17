@@ -4,15 +4,17 @@ import org.specs2.mutable.Specification
 import org.specs2.mock.Mockito
 import org.mockito.Matchers
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.response.QueryResponse
+import org.apache.solr.client.solrj.response.{FacetField, QueryResponse}
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.Storage
 import com.mongodb.WriteResult
 import java.net.{URLEncoder, URLDecoder}
-import org.opencommercesearch.api.models.BreadCrumb
+import org.opencommercesearch.api.models.{Facet, BreadCrumb}
 import org.opencommercesearch.api.controllers.BaseSpec
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
+import scala.concurrent.Future
+import java.util
 
 
 /**
@@ -66,6 +68,34 @@ class FacetHandlerSpec  extends BaseSpec {
       validateBreadcrumb(response(0), "category", "category1", "brand:myBrand|colorFamily:blue")
       validateBreadcrumb(response(1), "brand", "myBrand", "category:1.mysite.category1|colorFamily:blue")
       validateBreadcrumb(response(2), "colorFamily", "blue", "category:1.mysite.category1|brand:myBrand")
+    }
+
+    "Remove facet filters when blacklisted" in {
+      val facet = new Facet()
+      facet.setId("facetId")
+      facet.setBlackList(Seq("bluee"))
+      storage.findFacets(any, any) returns Future.successful(Seq(facet))
+      val facetFields: util.List[FacetField] = new util.LinkedList[FacetField]()
+      val facetField = new FacetField("colorFamily")
+      facetField.add("blue", 34)
+      facetField.add("bluee", 1)
+      facetFields.add(facetField)
+      queryResponse.getFacetFields() returns facetFields
+
+      val rawFacetData = new NamedList[AnyRef]()
+      rawFacetData.add("name", "colorFamily")
+      rawFacetData.add("id", "facetId")
+      rawFacetData.add("fieldName", "colorFamily")
+      rawFacetData.add("minBuckets", "1")
+
+      facetHandler = new FacetHandler(solrQuery, queryResponse, Array.empty[FilterQuery], Seq(rawFacetData), storage)
+
+      val facets = facetHandler.getFacets
+
+      facets.size mustEqual 1
+      facets(0).getName mustEqual "colorFamily"
+      facets(0).filters.get.size mustEqual 1
+      facets(0).filters.get(0).name.get mustEqual "blue"
     }
   }
 

@@ -40,6 +40,7 @@ import play.api.libs.json.JsArray
 import play.api.mvc.SimpleResult
 import javax.ws.rs.{QueryParam, PathParam}
 import org.apache.solr.client.solrj.response.UpdateResponse
+import scala.collection.mutable.ListBuffer
 
 @Api(value = "facets", basePath = "/api-docs/facets", description = "Facet API endpoints.")
 object FacetController extends BaseController {
@@ -160,12 +161,17 @@ object FacetController extends BaseController {
             "message" -> s"Exceeded number of Facets. Maximum is $MaxUpdateFacetBatchSize")))
         } else {
           val update = withFacetCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
-          facets map { facet =>
-              update.add(solrServer.binder.toSolrInputDocument(facet))
+          val facetsWithBlacklist = new ListBuffer[Facet]()
+          facets foreach { facet =>
+            update.add(solrServer.binder.toSolrInputDocument(facet))
+            val blackList = facet.getBlackList
+            if(blackList != null && blackList.size > 0)
+              facetsWithBlacklist += facet
           }
 
           val storage = withNamespace(storageFactory, preview)
-          val storageFuture = storage.saveFacet(facets:_*)
+          //Store only those facets with blacklists
+          val storageFuture = storage.saveFacet(facetsWithBlacklist:_*)
           val searchFuture: Future[UpdateResponse] = update.process(solrServer)
 
           val future = storageFuture zip searchFuture map { case (storageResponse, response) =>
