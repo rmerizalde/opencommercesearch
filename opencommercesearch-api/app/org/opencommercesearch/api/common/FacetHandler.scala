@@ -332,7 +332,7 @@ case class FacetHandler (
             blackList = facet.getBlackList.toSet
           }
 
-          (facet.getId, facet.getBlackList.toSet)
+          (facet.getId, blackList)
         }
       }
       else {
