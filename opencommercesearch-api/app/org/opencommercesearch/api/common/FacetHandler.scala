@@ -87,7 +87,7 @@ case class FacetHandler (
 
         for (count <- facetField.getValues) {
           val filterName: String = getCountName(count, prefix)
-          if (!facetBlackList.contains(filterName)) {
+          if (facetBlackList == null || !facetBlackList.contains(filterName)) {
             val filter = new Filter(Some(filterName), Some(count.getCount),
               Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
               Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
@@ -326,14 +326,21 @@ case class FacetHandler (
     val future = storage.findFacets(ids, Seq.empty[String]) map { facets =>
       if(facets != null) {
         facets map { facet =>
-          (facet.getId, facet.getBlackList.toSet)}
+          var blackList = Set.empty[String]
+
+          if(facet.getBlackList != null) {
+            blackList = facet.getBlackList.toSet
+          }
+
+          (facet.getId, facet.getBlackList.toSet)
+        }
       }
       else {
         Seq.empty[(String, Set[String])]
       }
     }
 
-    Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]]
+    Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]].withDefaultValue(null)
   }
 
   /**
