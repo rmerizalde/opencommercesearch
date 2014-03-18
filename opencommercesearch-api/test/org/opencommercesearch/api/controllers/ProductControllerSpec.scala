@@ -13,11 +13,13 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.{ProductList, Sku, Product, Category}
+import org.opencommercesearch.api.models._
 import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
+import scala.Some
+import play.api.test.FakeApplication
 import scala.Some
 import play.api.test.FakeApplication
 import scala.Some
@@ -60,6 +62,11 @@ class ProductControllerSpec extends BaseSpec {
       category.catalogs = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
+
+      val facet = new Facet()
+      facet.id = Some("facetId")
+      facet.blackList = Some(Seq.empty[String])
+      storage.findFacets(any, any) returns Future.successful(Seq(facet))
     }
   }
 

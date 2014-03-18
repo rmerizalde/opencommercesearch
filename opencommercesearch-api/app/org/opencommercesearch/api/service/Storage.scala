@@ -158,12 +158,20 @@ trait Storage[T] {
   def saveFacet(facet: Facet*) : Future[T]
 
   /**
-   * Finds the facet with the given id. Optionally, takes a list of fields to return
+   * Finds a facet with the given id. Optionally, takes a list of fields to return
    * @param id is the facet id
    * @param fields is the list of fields to return
-   * @return
+   * @return Facet from storage if found
    */
   def findFacet(id: String, fields: Seq[String]) : Future[Facet]
+
+  /**
+   * Finds the facets with the given ids. Optionally, takes a list of fields to return
+   * @param ids is the list of facet ids
+   * @param fields is the list of fields to return
+   * @return List of facets from storage
+   */
+  def findFacets(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Facet]]
   
   /**
    * Releases the resources used by this storage
