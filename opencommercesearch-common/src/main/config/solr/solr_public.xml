@@ -35,16 +35,12 @@
       schema="schema_en.xml" />
     <core name="catalogPublic_fr" instanceDir="product_catalog" dataDir="${data.dir:}product_catalog/public_data_fr"
       schema="schema_fr.xml" />
-  </cores>
-  <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="rulePublic_en" instanceDir="rules" dataDir="${data.dir:}rules/public_data_en" >
       <property name="solr.env.dir" value="public" />
     </core>
     <core name="rulePublic_fr" instanceDir="rules" dataDir="${data.dir:}rules/public_data_fr">
       <property name="solr.env.dir" value="public" />
     </core>
-  </cores>
-  <cores adminPath="/admin/cores" host="${host:}" hostPort="${jetty.port:}" sharedSchema="true">
     <core name="facetPublic_en" instanceDir="facets" dataDir="${data.dir:}facets/public_data_en">
       <property name="solr.env.dir" value="public" />
     </core>

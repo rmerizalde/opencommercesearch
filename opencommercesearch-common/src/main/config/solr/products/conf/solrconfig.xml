@@ -21,21 +21,7 @@
      this file, see http://wiki.apache.org/solr/SolrConfigXml.
 -->
 <config>
-  <luceneMatchVersion>4.5</luceneMatchVersion>
-
-  <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
-  <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-clustering-\d.*\.jar" />
-  <lib dir="../../contrib/clustering/lib/" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-langid-\d.*\.jar" />
-  <lib dir="../../contrib/langid/lib/" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-velocity-\d.*\.jar" />
-  <lib dir="../../contrib/velocity/lib" regex=".*\.jar" />
-
-  <lib dir="/total/crap/dir/ignored" />
+  <luceneMatchVersion>LUCENE_CURRENT</luceneMatchVersion>
 
   <dataDir>${solr.data.dir:}</dataDir>
 

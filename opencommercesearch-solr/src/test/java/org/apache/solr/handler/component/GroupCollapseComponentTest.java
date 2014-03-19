@@ -179,6 +179,21 @@ public class GroupCollapseComponentTest {
     }
 
     @Test
+    public void testGroupCollapseNoGroups() throws IOException {
+        
+        NamedList values = mock(NamedList.class);
+        when(rsp.getValues()).thenReturn(values);
+        when(values.get("grouped")).thenReturn(null);
+        
+        when(rb.grouping()).thenReturn(true);
+        when(params.getBool(GroupCollapseParams.GROUP_COLLAPSE, false)).thenReturn(true);
+        when(params.get(GroupCollapseParams.GROUP_COLLAPSE_FL)).thenReturn("price,discount,isCloseout");
+        component.process(rb);
+        
+        verify(rsp, never()).add(anyString(), anyObject());
+    }
+    
+    @Test
     public void testGroupCollapse() throws IOException {
         when(rb.grouping()).thenReturn(true);
         when(params.getBool(GroupCollapseParams.GROUP_COLLAPSE, false)).thenReturn(true);
