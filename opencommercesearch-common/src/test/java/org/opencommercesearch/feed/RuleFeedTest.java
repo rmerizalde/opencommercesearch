@@ -270,7 +270,6 @@ public class RuleFeedTest {
             assertThat(categoryList, CoreMatchers.hasItem(token));
         }
     }
-
     @Test
     public void testRankingRuleSimpleBrandRule() throws RepositoryException, JSONException {
 
@@ -284,9 +283,9 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(brandId:88)'})),10.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((brandId:88) AND (isOutlet:false))'})),10.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
     @Test
     public void testRankingRuleSimplePercentageRule() throws RepositoryException, JSONException {
 
@@ -300,9 +299,10 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MAXIMUM_DEMOTE);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(discountPercentUS:[15 TO 100])'})),0.1,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((discountPercentUS:[15 TO 100]) AND (isOutlet:false))'})),0.1,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
+ 
     @Test
     public void testRankingRuleSimpleGenderRule() throws RepositoryException, JSONException {
 
@@ -316,9 +316,10 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE)).thenReturn("listRank");
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(gender:Boys\\')'})),listRank,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((gender:Boys\\') AND (isOutlet:false))'})),listRank,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
+    
     @Test
     public void testRankingRuleSimpleShowSaleRule() throws RepositoryException, JSONException {
 
@@ -332,9 +333,9 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_DEMOTE);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(onsaleUS:false)'})),0.5,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((onsaleUS:false) AND (isOutlet:false))'})),0.5,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
     @Test
     public void testRankingRuleSimplePastSeasonRule() throws RepositoryException, JSONException {
 
@@ -348,7 +349,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(isPastSeason:false)'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((isPastSeason:false) AND (isOutlet:false))'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
 
     @Test
@@ -364,8 +365,9 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_MEDIUM_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(isPastSeason:false AND brandId:88)'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
+        assertEquals("if(exists(query({!lucene v='((isPastSeason:false AND brandId:88) AND (isOutlet:false))'})),2.0,1.0)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
+
 
     @Test
     public void testRankingRuleSimpleKeywordRule() throws RepositoryException, JSONException {
@@ -381,10 +383,10 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_WEAK_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(keyword:this\\ is\\ a\\ big\\ weird\\ keyword\\')'})),1.5,1.0)",
+        assertEquals("if(exists(query({!lucene v='((keyword:this\\ is\\ a\\ big\\ weird\\ keyword\\') AND (isOutlet:false))'})),1.5,1.0)",
                doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
     @Test
     public void testRankingRuleNoConditions() throws RepositoryException, JSONException {
 
@@ -394,7 +396,7 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("rankingRule");
         when(testRuleItem.getPropertyValue(RankingRuleProperty.BOOST_BY)).thenReturn(RankingRuleProperty.BOOST_BY_ATTRIBUTE_VALUE);
         when(testRuleItem.getPropertyValue(RankingRuleProperty.ATTRIBUTE)).thenReturn("div(1,listRank)");
-
+        
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("div(1,listRank)", doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
@@ -413,10 +415,10 @@ public class RuleFeedTest {
         when(testRuleItem.getPropertyValue(RankingRuleProperty.STRENGTH)).thenReturn(RankingRuleProperty.STRENGTH_WEAK_BOOST);
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        assertEquals("if(exists(query({!lucene v='(brandId:88 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))'})),1.5,1.0)",
+        assertEquals("if(exists(query({!lucene v='((brandId:88 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false))) AND (isOutlet:false))'})),1.5,1.0)",
                 doc.get(RuleManager.FIELD_BOOST_FUNCTION));
     }
-
+    
     @Test
     public void testCateGoryPathRegularCategoryWithSubCategories() throws RepositoryException, JSONException {
         when(testRuleItem.getRepositoryId()).thenReturn("superduper");
