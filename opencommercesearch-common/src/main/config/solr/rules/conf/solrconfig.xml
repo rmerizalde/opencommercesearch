@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
 <!--
  Licensed to OpenCommerceSearch under one
  or more contributor license agreements. See the NOTICE file
@@ -24,24 +23,13 @@
      this file, see http://wiki.apache.org/solr/SolrConfigXml. 
 -->
 <config>
-  <luceneMatchVersion>4.5</luceneMatchVersion>
-
-  <lib dir="../../dist/" regex="apache-solr-cell-\d.*\.jar" />
-  <lib dir="../../contrib/extraction/lib" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-clustering-\d.*\.jar" />
-  <lib dir="../../contrib/clustering/lib/" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-langid-\d.*\.jar" />
-  <lib dir="../../contrib/langid/lib/" regex=".*\.jar" />
-
-  <lib dir="../../dist/" regex="apache-solr-velocity-\d.*\.jar" />
-  <lib dir="../../contrib/velocity/lib" regex=".*\.jar" />
+  <luceneMatchVersion>LUCENE_CURRENT</luceneMatchVersion>
 
   <dataDir>${solr.data.dir:}</dataDir>
 
   <directoryFactory name="DirectoryFactory"
                     class="${solr.directoryFactory:solr.StandardDirectoryFactory}"/>
+
 
   <indexConfig>
     <lockType>${solr.lockFactory:native}</lockType>
@@ -56,7 +44,8 @@
   <xi:include href="xinclude/query.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
 
-  <requestDispatcher handleSelect="false" >
+    <requestDispatcher handleSelect="false" >
+
     <requestParsers enableRemoteStreaming="true"
                     multipartUploadLimitInKB="2048000" />
 
@@ -66,10 +55,11 @@
   <requestHandler name="/replication" class="solr.ReplicationHandler" startup="lazy" />
 
   <requestHandler name="/select" class="solr.SearchHandler">
+     <!--
      <lst name="invariants">
-       <!-- TODO remove this -->
        <str name="sort">sortPriority asc,score asc,id asc</str>
      </lst>
+     -->
      <lst name="defaults">
        <str name="echoParams">none</str>
        <int name="rows">10</int>

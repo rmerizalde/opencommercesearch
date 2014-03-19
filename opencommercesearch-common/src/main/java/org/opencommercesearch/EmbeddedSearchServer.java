@@ -103,9 +103,10 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
             long startTime = System.currentTimeMillis();
 
             String configUrl = getSolrConfigUrl();
-
+            System.setProperty("jetty.testMode", "true"); 
+            
             if(getInMemoryIndex()){
-                System.setProperty("solr.directoryFactory", "org.apache.solr.core.RAMDirectoryFactory");
+                System.setProperty("solr.directoryFactory", "solr.RAMDirectoryFactory");
                 System.setProperty("solr.lockFactory", "single");
                 configUrl += ".ram";
                 if (isLoggingInfo()) {

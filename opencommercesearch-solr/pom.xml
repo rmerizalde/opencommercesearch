@@ -11,7 +11,7 @@
     <inceptionYear>2012</inceptionYear>
 
     <properties>
-        <solr.version>4.5.1</solr.version>
+        <solr.version>4.6.1</solr.version>
         <org.restlet.jee.version>2.1.1</org.restlet.jee.version>
         <junit.version>4.11</junit.version>
         <mockito.version>1.9.5</mockito.version>

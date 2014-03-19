@@ -140,6 +140,11 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
 
         namedList = (NamedList) namedList.get("grouped");
 
+        if (namedList == null) {
+            log.info("No groups found in query response");
+            return;
+        }
+        
         NamedList groupSummaryRsp = new NamedList();
 
         for (String field : rb.getGroupingSpec().getFields()) {
