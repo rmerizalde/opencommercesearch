@@ -66,7 +66,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.ENGLISH);
 
-        assertEquals("(ancestorCategoryId:ruleCategory)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.ENGLISH);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (brandId:88)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (brandId:88) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -90,7 +90,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (discountPercentUS:[15 TO 100])", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (discountPercentUS:[15 TO 100]) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -102,7 +102,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (ancestorCategoryId:cat1)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (ancestorCategoryId:cat1) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -114,8 +114,21 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (gender:male)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (gender:male) AND (isOutlet:false))", builder);
     }
+    
+    @Test
+    public void testBuildRuleWithOutlet() throws RepositoryException {
+
+        List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+        expresionList.add(mockRule("outlet", 1, "true", null));
+        mockBaseRule(productCatalog, expresionList, mock(RepositoryItem.class), "ruleCategory", true);
+
+        String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (isOutlet:true))", builder);
+    }
+
 
     @Test
     public void testBuildSimpleShowSaleRule() throws RepositoryException {
@@ -126,7 +139,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (onsaleUS:false)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (onsaleUS:false) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -138,7 +151,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (isPastSeason:false)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (isPastSeason:false) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -150,7 +163,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (salePriceUS:[25 TO 100])", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (salePriceUS:[25 TO 100]) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -162,7 +175,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (keyword:key)", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (keyword:key) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -175,7 +188,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (keyword:" + ClientUtils.escapeQueryChars(keyword) + ")", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (keyword:" + ClientUtils.escapeQueryChars(keyword) + ") AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -191,7 +204,7 @@ public class RulesBuilderTest {
 
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-        assertEquals("(ancestorCategoryId:ruleCategory) OR (brandId:88 AND (ancestorCategoryId:cat1 AND ancestorCategoryId:cat2 AND (onsaleUS:false)))", builder);
+        assertEquals("((ancestorCategoryId:ruleCategory) OR (brandId:88 AND (ancestorCategoryId:cat1 AND ancestorCategoryId:cat2 AND (onsaleUS:false))) AND (isOutlet:false))", builder);
     }
 
     @Test
@@ -211,7 +224,7 @@ public class RulesBuilderTest {
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
         assertEquals(
-                "(ancestorCategoryId:ruleCategory) OR (brandId:88 AND ancestorCategoryId:cat1 AND ancestorCategoryId:cat2 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false)))",
+                "((ancestorCategoryId:ruleCategory) OR (brandId:88 AND ancestorCategoryId:cat1 AND ancestorCategoryId:cat2 OR (brandId:77 AND onsaleUS:true AND (isPastSeason:false))) AND (isOutlet:false))",
                 builder);
     }
 
@@ -231,7 +244,7 @@ public class RulesBuilderTest {
         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
         assertEquals(
-                "(ancestorCategoryId:ruleCategory) OR (brandId:88 AND ancestorCategoryId:cat1 AND (ancestorCategoryId:cat2 OR (brandId:77 OR brandId:88) AND onsaleUS:true) AND isPastSeason:false)",
+                "((ancestorCategoryId:ruleCategory) OR (brandId:88 AND ancestorCategoryId:cat1 AND (ancestorCategoryId:cat2 OR (brandId:77 OR brandId:88) AND onsaleUS:true) AND isPastSeason:false) AND (isOutlet:false))",
                 builder);
     }
     
@@ -259,7 +272,7 @@ public class RulesBuilderTest {
          
          String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
-         assertEquals("(ancestorCategoryId:ruleCategory)",builder);
+         assertEquals("((ancestorCategoryId:ruleCategory) AND (isOutlet:false))",builder);
      }    
 
 }
