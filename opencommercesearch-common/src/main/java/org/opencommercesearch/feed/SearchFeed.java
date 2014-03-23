@@ -476,9 +476,6 @@ public abstract class SearchFeed extends GenericService {
                     onProductsSentError(type, feedTimestamp, locale, productList.getProducts(), response);
                     return false;
                 } else {
-                    for (Product product : productList.getProducts()) {
-                        delete(product.getId(), feedTimestamp, locale);
-                    }
                     onProductsSent(type, feedTimestamp, locale, productList.getProducts(), response);
                     return true;
 

@@ -33,8 +33,8 @@ import javax.ws.rs.{QueryParam, PathParam}
 
 import scala.concurrent.Future
 import scala.collection.JavaConversions._
-import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.convert.Wrappers.JIterableWrapper
 
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
@@ -175,19 +175,19 @@ object ProductController extends BaseController {
 
           //Combine all futures in a single one (wait until they all finish)
           Future.sequence(productListFuture).map(productResponse => {
-            Ok(Json.obj(
+            withCacheHeaders(Ok(Json.obj(
               "metadata" -> Json.obj(
                 "found" -> productResponse.size,
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> productResponse))
+              "products" -> productResponse)), id)
           })
         }
         else {
-          Future(Ok(Json.obj(
+          Future(withCacheHeaders(Ok(Json.obj(
             "metadata" -> Json.obj(
               "found" -> productList.size,
               "time" -> (System.currentTimeMillis() - startTime)),
-            "products" -> Json.toJson(productList))))
+            "products" -> Json.toJson(productList))), id))
         }
       } else {
         Logger.debug(s"Products with ids [$id] not found")
@@ -323,7 +323,7 @@ object ProductController extends BaseController {
           if (products != null) {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
-              Ok(Json.obj(
+              withCacheHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "productSummary" -> processGroupSummary(groupSummary),
@@ -332,7 +332,7 @@ object ProductController extends BaseController {
                   "breadCrumbs" -> facetHandler.getBreadCrumbs),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))
-                )))
+                ))), products map (_.getId))
             } else {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
@@ -344,10 +344,11 @@ object ProductController extends BaseController {
             }
           } else {
             Logger.debug(s"Unexpected response found for query $q")
-            InternalServerError(Json.obj(
+            Ok(Json.obj(
               "metadata" -> Json.obj(
+                "found" -> 0,
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "message" -> "Unable to execute query"))
+              "message" -> "No products found"))
           }
         }
       } else {
@@ -518,14 +519,16 @@ object ProductController extends BaseController {
                 val storage = withNamespace(storageFactory, preview)
                 storage.findProducts(products, country(request.acceptLanguages), fieldList(allowStar = true), minimumFields = true).map(products => {
                   val facetHandler = buildFacetHandler(response, query, filterQueries, preview)
-                  Ok(Json.obj(
+                  withCacheHeaders(Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
                       "time" -> (System.currentTimeMillis() - startTime),
                       "facets" -> facetHandler.getFacets,
                       "breadCrumbs" -> facetHandler.getBreadCrumbs),
                     "products" -> Json.toJson(
-                      products map (Json.toJson(_)))))
+                      products map (Json.toJson(_))
+                    ))
+                  ), products map (_.getId))
                 })
               } else {
                 Future.successful(Ok(Json.obj(
@@ -536,8 +539,11 @@ object ProductController extends BaseController {
               }
             } else {
               Logger.debug(s"Unexpected response found for category $categoryId")
-              Future.successful(InternalServerError(Json.obj(
-                "message" -> "Unable to execute query")))
+              Future.successful(Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> 0,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "message" -> "No products found")))
             }
           } else {
             Logger.debug(s"Unexpected response found for category $categoryId")
@@ -842,5 +848,21 @@ object ProductController extends BaseController {
     query.setParam("groupcollapse.ff", "isCloseout")
 
     query.setFields("id")
+  }
+
+  private def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
+    if (request.headers.get("X-Cache-Ids").isDefined) {
+      result.withHeaders(("X-Cache-Product-Ids", ids))
+    } else {
+      result
+    }
+  }
+
+  private def withCacheHeaders(result: SimpleResult, ids: Iterable[String])(implicit request: Request[AnyContent]) : SimpleResult = {
+    if (request.headers.get("X-Cache-Ids").isDefined) {
+      result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
+    } else {
+      result
+    }
   }
 }

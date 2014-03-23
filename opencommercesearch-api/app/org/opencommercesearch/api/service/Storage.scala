@@ -30,6 +30,11 @@ import scala.concurrent.Future
 trait Storage[T] {
 
   /**
+   * Return the product count
+   */
+  def countProducts() : Future[Long]
+
+  /**
    * Finds the products with the given ids. Ids is a sequence of tuples. The first element of the tuple is the product id.
    * The second element is an optional sku id. If the sku id is different than null, only the skus that matches the id
    * is returned. Otherwise, returns all skus for a products
@@ -40,7 +45,6 @@ trait Storage[T] {
    * @return
    */
   def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]]
-
 
   /**
    * Finds the products with the given ids. Ids is a sequence of tuples. The first element of the tuple is the product id.

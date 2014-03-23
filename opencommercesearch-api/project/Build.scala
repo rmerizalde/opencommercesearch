@@ -12,7 +12,7 @@ object ApplicationBuild extends Build {
   lazy val s = playScalaSettings ++ Seq(jacoco.settings:_*)
 
   val appDependencies: Seq[sbt.ModuleID] = Seq(
-    cache,
+    cache, filters,
     "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT",
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",

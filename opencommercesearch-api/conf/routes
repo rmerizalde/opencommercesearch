@@ -2,6 +2,10 @@
 # This file defines all application routes (Higher priority routes first)
 # ~~~~
 
+# health check
+GET           /v1/healthcheck                                            org.opencommercesearch.api.controllers.HealthCheckController.checkGet(version: Int = 1, preview: Boolean ?= false)
+HEAD          /v1/healthcheck                                            org.opencommercesearch.api.controllers.HealthCheckController.checkHead(version: Int = 1, preview: Boolean ?= false)
+
 # brand routes
 GET           /v1/brands/suggestions                                     org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, q: String, preview: Boolean ?= false)
 GET           /v1/brand/categories                                       org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, preview: Boolean ?= false, site: String)

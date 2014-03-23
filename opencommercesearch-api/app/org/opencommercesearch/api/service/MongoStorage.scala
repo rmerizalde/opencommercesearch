@@ -97,6 +97,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     mongo.close()
   }
 
+  def countProducts() : Future[Long] = {
+    Future {
+      val productCollection = jongo.getCollection("products")
+      productCollection.count()
+    }
+  }
+
   def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
     findProducts(ids, null, country, fields, isSearch)
   }

@@ -10,7 +10,7 @@ object AccessLog extends Filter {
     nextFilter(request).map { result =>
       val msg = s"method=${request.method} uri=${request.uri} remote-address=${request.remoteAddress} " +
         s"domain=${request.domain} query-string=${request.rawQueryString} " +
-        s"referer=${request.headers.get("referer").getOrElse("N/A")}" +
+        s"referer=${request.headers.get("referer").getOrElse("N/A")} " +
         s"user-agent=[${request.headers.get("user-agent").getOrElse("N/A")}]"
       play.Logger.of("accesslog").info(msg)
       result

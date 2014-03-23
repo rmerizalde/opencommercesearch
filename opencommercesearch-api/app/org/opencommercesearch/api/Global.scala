@@ -21,19 +21,21 @@ package org.opencommercesearch.api
 
 import play.api.{Play, Logger, Application}
 import play.api.libs.json.Json
+import play.filters.gzip.GzipFilter
+import play.api.mvc.{WithFilters, RequestHeader}
+import play.api.mvc.Results._
+import play.modules.statsd.api.StatsdFilter
+
+import scala.concurrent.Future
 
 import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
-import play.api.mvc.{Result, WithFilters, RequestHeader}
-import play.api.mvc.Results._
-import play.modules.statsd.api.StatsdFilter
-import scala.concurrent.Future
 import org.opencommercesearch.api.service.{StorageFactory, MongoStorageFactory}
-import com.wordnik.swagger.converter.{OverrideConverter, ModelConverters}
 import org.opencommercesearch.api.util.{CountryConverter, BigDecimalConverter}
+import com.wordnik.swagger.converter.{ ModelConverters}
 
 
-object Global extends WithFilters(new StatsdFilter(), AccessLog) {
+object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLog) {
   lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
   lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
   lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
