@@ -42,35 +42,38 @@ import static org.mockito.MockitoAnnotations.initMocks;
 
 import java.util.*;
 
-//@RunWith(MockitoJUnitRunner.class)
 public class SearchFeedTest {
 
     private SearchFeed feed = new SearchFeed() {
-        protected void cleanupDocuments(SearchServer searchServer, List<String> documentsToDelete) {
+        @Override
+        protected void onFeedStarted(FeedType type, long feedTimestamp) {
             throw new UnsupportedOperationException();
         }
 
-        protected void onFeedStarted(long indexStamp) {
+        @Override
+        protected void onProductsSent(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Response response) {
             throw new UnsupportedOperationException();
         }
 
-        protected void onFeedFinished(long indexStamp) {
+        @Override
+        protected void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Exception ex) {
             throw new UnsupportedOperationException();
         }
 
-        protected void onProductsSent(Response response, List<Product> productList) {
+        @Override
+        protected void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Response response) {
             throw new UnsupportedOperationException();
         }
 
-        protected void onProductsSentError(List<Product> productList) {
+        @Override
+        protected void onFeedFinished(FeedType type, long feedTimestamp) {
             throw new UnsupportedOperationException();
         }
 
-        protected void processProduct(RepositoryItem productItem, SearchFeedProducts products)
-                throws RepositoryException, InventoryException {
+        @Override
+        protected void processProduct(RepositoryItem product, SearchFeedProducts products) throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }
-
     };
 
     @Mock
