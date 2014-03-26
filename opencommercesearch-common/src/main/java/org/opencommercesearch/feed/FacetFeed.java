@@ -55,7 +55,7 @@ public class FacetFeed extends BaseRestFeed {
         String facetType = (String) facet.getPropertyValue(FacetProperty.TYPE);
 
         facetJsonObj.put(FacetConstants.FIELD_ID, facet.getRepositoryId());
-        facetJsonObj.put(FacetConstants.FIELD_NAME, facet.getItemDisplayName());
+        facetJsonObj.put(FacetConstants.FIELD_NAME, facet.getPropertyValue(FacetProperty.NAME));
         facetJsonObj.put(FacetConstants.FIELD_FIELD_NAME, facet.getPropertyValue(FacetProperty.FIELD));
         facetJsonObj.put(FacetConstants.FIELD_TYPE, facetType);
         facetJsonObj.put(FacetConstants.FIELD_UI_TYPE, facet.getPropertyValue(FacetProperty.UI_TYPE));
