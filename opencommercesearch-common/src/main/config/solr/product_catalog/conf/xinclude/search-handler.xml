@@ -4,7 +4,7 @@
       <str name="echoParams">none</str>
       <int name="rows">20</int>
       <str name="defType">synonym_edismax</str>
-      <str name="synonyms">true</str>
+      <str name="synonyms">false</str>
       <str name="synonyms.originalBoost">1.0</str>
       <str name="synonyms.synonymBoost">1.2</str>
       <str name="synonyms.disablePhraseQueries">true</str>
