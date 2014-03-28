@@ -378,11 +378,14 @@ object ProductController extends BaseController {
       @ApiParam(value = "Brand to browse", required = true)
       @PathParam("brandId")
       brandId: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
+      @QueryParam("outlet")
+      outlet: Boolean,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing brand $brandId")
-    withErrorHandling(doBrowse(version, null, site, brandId, isOutlet = false, preview, "category"), s"Cannot browse brand [$brandId]")
+    withErrorHandling(doBrowse(version, null, site, brandId, outlet, preview, "category"), s"Cannot browse brand [$brandId]")
   }
 
   @ApiOperation(value = "Browses brand's category products ", notes = "Returns products for a given brand category", response = classOf[Product], httpMethod = "GET")
@@ -404,11 +407,14 @@ object ProductController extends BaseController {
       @ApiParam(value = "Category to browse", required = true)
       @PathParam("categoryId")
       categoryId: String,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
+      @QueryParam("outlet")
+      outlet: Boolean,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
     Logger.debug(s"Browsing category $categoryId for brand $brandId")
-    withErrorHandling(doBrowse(version, categoryId, site, brandId, isOutlet = false, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
+    withErrorHandling(doBrowse(version, categoryId, site, brandId, outlet, preview, "category"), s"Cannot browse brand category [$brandId - $categoryId]")
   }
 
   @ApiOperation(value = "Browses category products ", notes = "Returns products for a given category", response = classOf[Product], httpMethod = "GET")
