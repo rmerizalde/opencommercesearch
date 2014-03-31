@@ -31,6 +31,8 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.opencommercesearch.api.common.FacetQuery
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.DateTimeZone
 
 /**
  * This class provides common functionality for all controllers
@@ -40,6 +42,31 @@ import org.opencommercesearch.api.common.FacetQuery
  * @author rmerizalde
  */
 class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
+
+  private val timeZoneCode = "GMT"
+
+  private val df: DateTimeFormatter =
+    DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '" + timeZoneCode + "'").withLocale(java.util.Locale.ENGLISH).withZone(DateTimeZone.forID(timeZoneCode))
+
+  protected def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
+    val lastModified = df.print(System.currentTimeMillis())
+    withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
+  }
+
+  protected def withCacheHeaders(result: SimpleResult, ids: Iterable[String])(implicit request: Request[AnyContent]) : SimpleResult = {
+    val lastModified = df.print(System.currentTimeMillis())
+    withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
+  }
+
+  private def withProductIds(result: SimpleResult, ids: String, request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids))
+    case None => result
+  }
+
+  private def withProductIds(result: SimpleResult, ids: Iterable[String], request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
+    case None => result
+  }
 
   protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[SimpleResult] = {
     val startTime = System.currentTimeMillis()

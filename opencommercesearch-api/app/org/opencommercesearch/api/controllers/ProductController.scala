@@ -849,20 +849,4 @@ object ProductController extends BaseController {
 
     query.setFields("id")
   }
-
-  private def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
-    if (request.headers.get("X-Cache-Ids").isDefined) {
-      result.withHeaders(("X-Cache-Product-Ids", ids))
-    } else {
-      result
-    }
-  }
-
-  private def withCacheHeaders(result: SimpleResult, ids: Iterable[String])(implicit request: Request[AnyContent]) : SimpleResult = {
-    if (request.headers.get("X-Cache-Ids").isDefined) {
-      result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
-    } else {
-      result
-    }
-  }
 }
