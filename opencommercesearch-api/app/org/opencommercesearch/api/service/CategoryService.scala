@@ -472,6 +472,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         //Iterate over parent category children, and remove those categories that don't have stock level or exceed maxLevels/maxChildren
         val startTime = System.currentTimeMillis()
         val result = Category.prune(parentCategory.get, categories.toSet, maxLevels, maxChildren, addChildCategoriesField(fields))
+
         Statsd.timing(StatsdPruneTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
         result
       }
@@ -492,20 +493,23 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    */
   def getTaxonomy(storage : Storage[WriteResult], preview : Boolean = false) : Future[Map[String, Category]] =  {
     //If returning complete taxonomy, see if we already have it on cache.
-    val cachedTaxonomy = Cache.getAs[Map[String, Category]](TaxonomyCacheKey + getPreviewKeyPrefix(preview))
+    val taxonomyCacheKey = TaxonomyCacheKey + getPreviewKeyPrefix(preview)
+    val cachedTaxonomy = Cache.get(taxonomyCacheKey)
     if(cachedTaxonomy.isEmpty) {
+      Logger.debug("Generating taxonomy graph")
       //Go to storage and get all existing categories. Then calculate taxonomy from them.
       val startTime = System.currentTimeMillis()
       val taxonomyFuture = buildTaxonomyGraph(storage.findAllCategories(Seq({"*"})))
       Statsd.timing(StatsdBuildTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
       taxonomyFuture map { taxonomy =>
         val markedTaxonomy = markRootCategories(taxonomy, preview)
-        Cache.set(TaxonomyCacheKey, markedTaxonomy, CategoryCacheTtl)
+        Cache.set(taxonomyCacheKey, markedTaxonomy, CategoryCacheTtl)
         markedTaxonomy.toMap
       }
     }
     else {
-      Future(cachedTaxonomy.get)
+      Logger.debug("Using cached taxonomy graph")
+      Future(cachedTaxonomy.get.asInstanceOf[mutable.HashMap[String, Category]].toMap)
     }
   }
 
