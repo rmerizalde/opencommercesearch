@@ -90,7 +90,7 @@ public class RulesBuilder extends GenericService {
         },
         OUTLET {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
-                return new StringBuilder().append("isCloseout:").append(ruleValue).toString();
+                return new StringBuilder().append("isOutlet:").append(ruleValue).toString();
             }
         },
         PRICE {
