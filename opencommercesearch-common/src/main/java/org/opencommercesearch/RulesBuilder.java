@@ -165,12 +165,10 @@ public class RulesBuilder extends GenericService {
 
     private String buildFilter(RepositoryItem category, List<RepositoryItem> ruleExpressions, Locale locale) {
         StringBuilder filter = new StringBuilder();
-        filter.append("(");
+
         if (category != null) {
             filter.append("(").append(Rule.CATEGORY.toFilter(category.getRepositoryId(), locale, productCatalog)).append(")");
         }
-        
-        boolean includeOutletItems = false;
         
         if (ruleExpressions.size() > 0) {
             if (category != null) {
@@ -209,12 +207,9 @@ public class RulesBuilder extends GenericService {
                 }
     
                 currentNestLevel = nestLevel;
-                
-                if(StringUtils.equals(ruleString, "isOutlet:true")) {
-                	includeOutletItems = true;
-                }
-                
+    
                 filter.append(ruleString);
+    
                 isFirst = false;
     
             }
@@ -224,17 +219,7 @@ public class RulesBuilder extends GenericService {
             }
             filter.append(")");
         }
-        
-        if(!includeOutletItems && (ruleExpressions.size() > 0 || category != null)) {
-        	filter.append(" AND (").append("isOutlet:false").append(")");
-        }
-        
-        filter.append(")");
-        
-        if(StringUtils.equals(filter.toString().trim(),"()")) {
-        	return StringUtils.EMPTY;
-        }
-        
+
         return filter.toString().trim();
     }
 
