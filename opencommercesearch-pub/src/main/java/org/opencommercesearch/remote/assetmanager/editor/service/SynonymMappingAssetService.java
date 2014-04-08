@@ -20,12 +20,21 @@ package org.opencommercesearch.remote.assetmanager.editor.service;
 */
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.SynonymListProperty;
 import org.opencommercesearch.repository.SynonymProperty;
 
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
+import atg.repository.Repository;
+import atg.repository.RepositoryItem;
+import atg.adapter.gsa.ChangeAwareSet;
+import atg.adapter.gsa.GSAItem;
 
 /**
  * This class is used to validate the synonym mappings created in the BCC. Solr
@@ -66,10 +75,33 @@ public class SynonymMappingAssetService extends BaseAssetService {
     //@TODO use locale for messages
     public  static final String ERROR_INVALID_SYNONYM_MAPPING = "Must a be a comma-separated list";
     public  static final String ERROR_INVALID_EXPLICIT_SYNONYM_MAPPING = "Must have a expression on each side of the arrow";
-
+    public  static final String ERROR_INSUFFICIENT_PRIVILEDGES = "you don't have privileges to create mappings for query parser synonyms";
+    
     private static final char SEPARATOR = ',';
     private static final String ARROW = "=>";
+    private static final String ROLES = "roles";
+    private static final String QUERY_PARSER_SYNONYMS = "query_parser_synonyms";
+    
+    private Set<String> allowedRoles = Collections.emptySet();
+    
+    private Repository searchRepository;
+    
+    public Repository getSearchRepository() {
+        return searchRepository;
+    }
 
+    public void setSearchRepository(Repository searchRepository) {
+        this.searchRepository = searchRepository;
+    }
+
+    public Set<String> getAllowedRoles() {
+        return allowedRoles;
+    }
+
+    public void setAllowedRoles(Set<String> allowedRoles) {
+        this.allowedRoles = allowedRoles;
+    }
+    
     /**
      * Do the mapping validation on new synonym mappings.
      */
@@ -77,6 +109,7 @@ public class SynonymMappingAssetService extends BaseAssetService {
     public void validateNewAsset(AssetEditorInfo pEditorInfo, Collection pUpdates) {
         super.validateNewAsset(pEditorInfo, pUpdates);
         PropertyUpdate mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
+        doValidateAccessPrivileges(pEditorInfo, pUpdates);
         if(mappingPropUpdate != null) {
             doValidatePropertyUpdate(pEditorInfo, mappingPropUpdate);
         }
@@ -89,11 +122,58 @@ public class SynonymMappingAssetService extends BaseAssetService {
     public void validateUpdateAsset(AssetEditorInfo pEditorInfo, Collection pUpdates) {
         super.validateUpdateAsset(pEditorInfo, pUpdates);
         PropertyUpdate mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
+        doValidateAccessPrivileges(pEditorInfo, pUpdates);
         if(mappingPropUpdate != null) {
             doValidatePropertyUpdate(pEditorInfo, mappingPropUpdate);
         }
     }
-
+    
+    protected boolean isNotPriviledged() {
+        ChangeAwareSet roles = (ChangeAwareSet) getUserProfile().getPropertyValue(ROLES);
+        boolean isNotAllowed = true;
+        if(roles != null) {
+            Iterator<GSAItem> roleIterator = roles.iterator();
+            while(roleIterator.hasNext()) {
+                if(allowedRoles.contains((String) roleIterator.next().getPropertyValue(SynonymListProperty.NAME))) {
+                    isNotAllowed = false;
+                    break;
+                }
+            }
+        }
+        return isNotAllowed;
+    }
+    
+    protected void doValidateAccessPrivileges(AssetEditorInfo editorInfo, Collection pUpdates) {
+        PropertyUpdate mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.SYNONYM_LIST, pUpdates);
+        boolean isQueryParserSynonym = false;
+        if(mappingPropUpdate != null) {
+            String fileName = "";        
+            String updatedProperty = StringUtils.defaultIfEmpty((String) mappingPropUpdate.getPropertyValue(), fileName);
+            String tokens[] = StringUtils.split(updatedProperty, '/');
+            try {
+                RepositoryItem synonym = searchRepository.getItem(tokens[tokens.length - 1], SearchRepositoryItemDescriptor.SYNONYM_LIST);
+                if(synonym != null && synonym.getPropertyValue(SynonymListProperty.FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
+                    isQueryParserSynonym = true;
+                }
+            } catch (Exception ex) {
+                if(isLoggingError()) {
+                      logError("Cannot check privileges", ex);
+                }
+            }
+        }
+        mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
+        if(mappingPropUpdate != null) {
+            RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
+            RepositoryItem synonym = (RepositoryItem) currentItem.getPropertyValue(SearchRepositoryItemDescriptor.SYNONYM_LIST);
+            if(synonym != null && synonym.getPropertyValue(SynonymListProperty.FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
+                isQueryParserSynonym = true;
+            }
+        }
+        if (isQueryParserSynonym && isNotPriviledged ()) {
+            editorInfo.getAssetService().addError(SynonymProperty.MAPPING, ERROR_INSUFFICIENT_PRIVILEDGES);
+        }
+    }
+    
     /**
      * Does the actual synonym mapping property validation.
      */
@@ -113,4 +193,5 @@ public class SynonymMappingAssetService extends BaseAssetService {
             }
         }
     }
+
 }
