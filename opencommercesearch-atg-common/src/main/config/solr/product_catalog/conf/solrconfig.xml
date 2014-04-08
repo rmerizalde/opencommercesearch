@@ -174,6 +174,7 @@
   </requestHandler>
 
   <queryParser name="synonym_edismax" class="solr.SynonymExpandingExtendedDismaxQParserPlugin">
+    <str name="alternativeQueryLimit">8</str>
     <lst name="synonymAnalyzers">
       <lst name="default">
         <lst name="tokenizer">
