@@ -19,22 +19,20 @@ package org.opencommercesearch.remote.assetmanager.editor.service;
 * under the License.
 */
 
-import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.repository.RuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.SynonymListProperty;
 import org.opencommercesearch.repository.SynonymProperty;
 
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.Repository;
 import atg.repository.RepositoryItem;
-import atg.repository.rql.RqlStatement;
 import atg.adapter.gsa.ChangeAwareSet;
 import atg.adapter.gsa.GSAItem;
 
@@ -77,16 +75,14 @@ public class SynonymMappingAssetService extends BaseAssetService {
     //@TODO use locale for messages
     public  static final String ERROR_INVALID_SYNONYM_MAPPING = "Must a be a comma-separated list";
     public  static final String ERROR_INVALID_EXPLICIT_SYNONYM_MAPPING = "Must have a expression on each side of the arrow";
-    public  static final String ERROR_INSUFFICIENT_PRIVILEDGES = "you don't have privileges to create mappings for query synonyms";
+    public  static final String ERROR_INSUFFICIENT_PRIVILEDGES = "you don't have privileges to create mappings for query parser synonyms";
     
     private static final char SEPARATOR = ',';
     private static final String ARROW = "=>";
     private static final String ROLES = "roles";
-    private static final String NAME = "name";
-    private static final String FILENAME = "fileName";
-    private static final String QUERY_PARSER_SYNONYMS = "query_synonyms";
+    private static final String QUERY_PARSER_SYNONYMS = "query_parser_synonyms";
     
-    private Set<String> allowedRoles = Collections.EMPTY_SET;
+    private Set<String> allowedRoles = Collections.emptySet();
     
     private Repository searchRepository;
     
@@ -138,7 +134,7 @@ public class SynonymMappingAssetService extends BaseAssetService {
         if(roles != null) {
             Iterator<GSAItem> roleIterator = roles.iterator();
             while(roleIterator.hasNext()) {
-                if(allowedRoles.contains((String) roleIterator.next().getPropertyValue(NAME))) {
+                if(allowedRoles.contains((String) roleIterator.next().getPropertyValue(SynonymListProperty.NAME))) {
                     isNotAllowed = false;
                     break;
                 }
@@ -154,24 +150,22 @@ public class SynonymMappingAssetService extends BaseAssetService {
             String fileName = "";        
             String updatedProperty = StringUtils.defaultIfEmpty((String) mappingPropUpdate.getPropertyValue(), fileName);
             String tokens[] = StringUtils.split(updatedProperty, '/');
-            if(tokens.length == 4) {
-                try {
-                    RepositoryItem synonym = searchRepository.getItem(tokens[3], SearchRepositoryItemDescriptor.SYNONYM_LIST);
-                    if(synonym.getPropertyValue(FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
-                        isQueryParserSynonym = true;
-                    }
-                } catch (Exception ex) {
-                    if(isLoggingError()) {
-                        logInfo("error in checking privilegs "+ex);
-                    }
+            try {
+                RepositoryItem synonym = searchRepository.getItem(tokens[tokens.length - 1], SearchRepositoryItemDescriptor.SYNONYM_LIST);
+                if(synonym != null && synonym.getPropertyValue(SynonymListProperty.FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
+                    isQueryParserSynonym = true;
                 }
-             }
+            } catch (Exception ex) {
+                if(isLoggingError()) {
+                      logError("Cannot check privileges", ex);
+                }
+            }
         }
         mappingPropUpdate = BaseAssetService.findPropertyUpdate(SynonymProperty.MAPPING, pUpdates);
         if(mappingPropUpdate != null) {
             RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
             RepositoryItem synonym = (RepositoryItem) currentItem.getPropertyValue(SearchRepositoryItemDescriptor.SYNONYM_LIST);
-            if(synonym != null && synonym.getPropertyValue(FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
+            if(synonym != null && synonym.getPropertyValue(SynonymListProperty.FILENAME).equals(QUERY_PARSER_SYNONYMS)) {
                 isQueryParserSynonym = true;
             }
         }

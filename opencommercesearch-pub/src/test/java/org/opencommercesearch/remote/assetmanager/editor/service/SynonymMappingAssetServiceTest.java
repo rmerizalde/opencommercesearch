@@ -14,6 +14,7 @@ import atg.adapter.gsa.GSAItem;
 import atg.remote.assetmanager.editor.service.AssetService;
 
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
+import org.opencommercesearch.repository.SynonymListProperty;
 import org.opencommercesearch.repository.SynonymProperty;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -57,7 +58,7 @@ import atg.userprofiling.Profile;
  * @author rmerizalde
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({BaseAssetService.class})
+@PrepareForTest({BaseAssetService.class, SynonymListProperty.class})
 public class SynonymMappingAssetServiceTest {
 
     private SynonymMappingAssetService service = new SynonymMappingAssetService();
@@ -93,6 +94,7 @@ public class SynonymMappingAssetServiceTest {
         allowedRoles.add("engineers");
         service.setAllowedRoles(allowedRoles);
         PowerMockito.mockStatic(BaseAssetService.class);
+        PowerMockito.mockStatic(SynonymListProperty.class);
     }
 
     @Test
@@ -176,7 +178,7 @@ public class SynonymMappingAssetServiceTest {
         when(profile.getPropertyValue("roles")).thenReturn(awareSet);
         PowerMockito.doReturn(propertyUpdate).when(BaseAssetService.class, "findPropertyUpdate",Mockito.eq(SynonymProperty.SYNONYM_LIST), Mockito.eq(updates));
         when(propertyUpdate.getPropertyValue()).thenReturn("assestService:/search/synonymList/QueryParser");
-        when(synonym.getPropertyValue("fileName")).thenReturn("query_synonyms");
+        when(synonym.getPropertyValue(SynonymListProperty.FILENAME)).thenReturn("query_parser_synonyms");
         when(searchRepository.getItem("QueryParser", SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(synonym);
         service.doValidateAccessPrivileges(assetEditorInfo, updates);
          verify(assetEditorInfo, Mockito.times(1));
@@ -194,7 +196,7 @@ public class SynonymMappingAssetServiceTest {
         when(assetEditorInfo.getAssetWrapper()).thenReturn(assertWrapper);
         when(assertWrapper.getAsset()).thenReturn(currItem);
         when(currItem.getPropertyValue(SearchRepositoryItemDescriptor.SYNONYM_LIST)).thenReturn(synonym);
-        when(synonym.getPropertyValue("fileName")).thenReturn("query_synonyms");
+        when(synonym.getPropertyValue(SynonymListProperty.FILENAME)).thenReturn("query_parser_synonyms");
         service.doValidateAccessPrivileges(assetEditorInfo, updates);
         verify(assetEditorInfo, Mockito.times(1));
     }
