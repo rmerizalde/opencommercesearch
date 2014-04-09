@@ -97,9 +97,6 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
         }
         Logger.info(s"Setting up indexes for namespace $namespace")
         storage.ensureIndexes
-      } else {
-        Logger.info(s"Connection already in progress, closing storage for namespace $namespace")
-        mongo.close()
       }
     }
     storage
