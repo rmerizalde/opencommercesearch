@@ -70,7 +70,7 @@
       <!-- provided -->
       <dependency>
         <groupId>org.opencommercesearch</groupId>
-        <artifactId>opencommercesearch-common</artifactId>
+        <artifactId>opencommercesearch-atg-common</artifactId>
         <version>0.3-SNAPSHOT</version>
       </dependency>
 
