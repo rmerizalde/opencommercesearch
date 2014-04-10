@@ -88,9 +88,10 @@ object SuggestionController extends BaseController {
           var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 
           for (c <- collector.collector("userQuery")) {
-            queries = c.elements().map(e => {
+            val queries = JsArray(c.elements().map(e => {
               Json.toJson(e.asInstanceOf[UserQuery])
-            })
+            }))
+            futureList += Future.successful(("queries", Json.toJsFieldJsValueWrapper(queries)))
           }
           for (c <- collector.collector("product")) {
             products = c.elements().map(e => Json.toJson(e.asInstanceOf[Product]))
@@ -99,14 +100,14 @@ object SuggestionController extends BaseController {
             val brands = c.elements().map(e => e.asInstanceOf[Brand])
 
             futureList += storage.findBrands(brands.map(b => b.getId), Seq("name", "logo", "url")).map( brands => {
-              ("brands", Json.toJsFieldJsValueWrapper(JsArray(brands.map(b => Json.toJson(b)).toSeq)))
+              ("brands", Json.toJsFieldJsValueWrapper(JsArray(brands.map(b => { b.id = None; Json.toJson(b) }).toSeq)))
             })
           }
           for (c <- collector.collector("category")) {
             val categories = c.elements().map(e => e.asInstanceOf[Category])
 
-            futureList += storage.findCategories(categories.map(b => b.getId), Seq("name", "url")).map( categories => {
-              ("categories", Json.toJsFieldJsValueWrapper(JsArray(categories.map(b => Json.toJson(b)).toSeq)))
+            futureList += storage.findCategories(categories.map(b => b.getId), Seq("name", "seoUrlToken")).map( categories => {
+              ("categories", Json.toJsFieldJsValueWrapper(JsArray(categories.map(c => { c.id = None; Json.toJson(c) }).toSeq)))
             })
           }
 
