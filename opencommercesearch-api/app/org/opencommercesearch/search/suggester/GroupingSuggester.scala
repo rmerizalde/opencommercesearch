@@ -36,17 +36,18 @@ import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
  */
 class GroupingSuggester[E <: Element](val typeToClass : Map[String, Class[_ <: Element]]) extends Suggester[E] {
 
-  protected def searchInternal(q: String, server: AsyncSolrServer): Future[Seq[E]] = {
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer): Future[Seq[E]] = {
     val query = new SolrQuery(q)
     query.setParam("collection", SuggestCollection)
       .setFields("id", "userQuery")
+      .setFilterQueries(s"siteId:$site")
       .set("group", true)
       .set("group.ngroups", false)
       .set("group.field", "type")
       .set("group.facet", false)
       .set("group.limit", 10)
       .set("defType", "edismax")
-      .set("qf", "useQuery ngrams")
+      .set("qf", "userQuery ngrams")
 
     solrServer.query(query).map( response => {
       val elements = new mutable.ListBuffer[E]

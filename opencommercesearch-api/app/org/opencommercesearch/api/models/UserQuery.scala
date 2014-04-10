@@ -29,12 +29,17 @@ import scala.annotation.meta.beanSetter
 
 case class UserQuery (var userQuery: Option[String], var count: Option[Int]) extends Element {
 
-  @(Field @beanSetter) @BeanProperty
+  @BeanProperty
   var id: Option[String] = _
 
   def this() = this(None, None)
 
   override def source = "userQuery"
+
+  @Field
+  def setId(id: String) {
+    this.id = Some(id)
+  }
 
   @Field
   def setUserQuery(userQuery: String) : Unit = {

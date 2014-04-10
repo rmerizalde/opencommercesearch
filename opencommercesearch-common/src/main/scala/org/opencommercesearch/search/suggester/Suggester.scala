@@ -28,8 +28,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
  */
 trait Suggester[E <: Element] {
 
-  def search(q: String, collector: Collector[E], server: AsyncSolrServer) : Future[Collector[E]] = {
-    searchInternal(q, server).map(elements => {
+  def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer) : Future[Collector[E]] = {
+    searchInternal(q, site, server).map(elements => {
       for (element <- elements) {
         collector.add(element, element.source)
       }
@@ -37,5 +37,5 @@ trait Suggester[E <: Element] {
     })
   }
 
-  protected def searchInternal(q: String, server: AsyncSolrServer) : Future[Seq[E]]
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer) : Future[Seq[E]]
 }

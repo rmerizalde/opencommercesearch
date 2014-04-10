@@ -76,7 +76,7 @@ object SuggestionController extends BaseController {
       groupingSuggester.typeToClass.keys.map(source => collector.add(source, new SimpleCollector[Element]) )
 
       // @todo add site
-      groupingSuggester.search(q, collector, solrServer).map(c => {
+      groupingSuggester.search(q, site, collector, solrServer).map(c => {
         if (!collector.isEmpty) {
 
           var queries: Seq[JsValue] = null
