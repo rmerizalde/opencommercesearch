@@ -21,14 +21,18 @@ package org.opencommercesearch.api.models
 
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+
 import java.util
+
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
+import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
+import org.opencommercesearch.search.Element
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.apache.commons.lang.StringUtils
 
 /**
  * A brand model
@@ -43,7 +47,7 @@ case class Brand(
    @Id var id: Option[String], 
    @JsonProperty("name") var name: Option[String], 
    @JsonProperty("logo") var logo: Option[String], 
-   @JsonProperty("url") var url: Option[String]) {
+   @JsonProperty("url") var url: Option[String]) extends Element {
 
   @JsonCreator
   def this() = this(None, None, None, None)
@@ -54,6 +58,8 @@ case class Brand(
   def setId(id: String) : Unit = {
     this.id = Option.apply(id)
   }
+
+  override def source = "brand"
 
   @Field
   def setName(name: String) : Unit = {

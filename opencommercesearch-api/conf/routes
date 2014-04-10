@@ -35,6 +35,9 @@ PUT           /v1/categories                                             org.ope
 DELETE        /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long, preview: Boolean ?= false)
 GET           /v1/categories/:id/brands                                  org.opencommercesearch.api.controllers.CategoryController.findBrandsByCategoryId(version: Int = 1, id: String, preview: Boolean ?= false)
 
+# suggestion routes
+GET           /v1/suggestions                                            org.opencommercesearch.api.controllers.SuggestionController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
+
 # query routes
 GET           /v1/queries/suggestions                                    org.opencommercesearch.api.controllers.QueryController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
 

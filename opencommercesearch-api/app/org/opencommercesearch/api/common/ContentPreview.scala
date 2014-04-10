@@ -33,8 +33,8 @@ trait ContentPreview {
   val SupportedCountries = Seq("US", "CA")
   val SupportedLanguages = Seq("en", "fr")
 
-  def withQueryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
-    query.setParam("collection", QueryCollection)
+  def withSuggestCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
+    query.setParam("collection", SuggestCollection)
   }
 
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {

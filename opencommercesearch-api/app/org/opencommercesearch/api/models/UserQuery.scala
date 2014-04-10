@@ -19,12 +19,22 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import org.apache.solr.client.solrj.beans.Field
+
 import play.api.libs.json.Json
 
-case class UserQuery (var userQuery: Option[String], var count: Option[Int]) {
+import org.apache.solr.client.solrj.beans.Field
+import org.opencommercesearch.search.Element
+import scala.beans.BeanProperty
+import scala.annotation.meta.beanSetter
+
+case class UserQuery (var userQuery: Option[String], var count: Option[Int]) extends Element {
+
+  @(Field @beanSetter) @BeanProperty
+  var id: Option[String] = _
 
   def this() = this(None, None)
+
+  override def source = "userQuery"
 
   @Field
   def setUserQuery(userQuery: String) : Unit = {

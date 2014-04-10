@@ -50,7 +50,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val ProductPublicCollection = getConfigString("public.productCollection", "productsPublic")
   lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
   lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
-  lazy val QueryCollection = getConfigString("public.queryCollection", "autocomplete")
+  lazy val SuggestCollection = getConfigString("public.suggestCollection", "autocomplete")
   lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
   lazy val DefaultPaginationLimit = getConfigInt("defaultPaginationLimit", 10)

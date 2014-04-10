@@ -34,7 +34,7 @@ import javax.ws.rs.QueryParam
 @Api(value = "queries", basePath = "/api-docs/queries", description = "User Query API endpoints")
 object QueryController extends BaseController {
 
-  @ApiOperation(value = "Suggests user queries", notes = "Returns brand suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
+  @ApiOperation(value = "Suggests user queries", notes = "Returns query suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
@@ -51,7 +51,7 @@ object QueryController extends BaseController {
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
       preview: Boolean) = Action.async { implicit request =>
-    val solrQuery = withQueryCollection(new SolrQuery(q), preview)
+    val solrQuery = withSuggestCollection(new SolrQuery(q), preview)
     solrQuery.setFields("userQuery")
     solrQuery.setFilterQueries(s"siteId:$site")
 

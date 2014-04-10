@@ -28,6 +28,7 @@ import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
 import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.search.Element
 import ProductList._
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonCreator
@@ -53,7 +54,7 @@ case class Product (
   @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
   @JsonProperty("activationDate") var activationDate: Option[String],
-  @JsonProperty("isPackage") var isPackage: Option[Boolean])
+  @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends Element
 {
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
@@ -62,6 +63,8 @@ case class Product (
 
   @Field
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
+
+  override def source = "product"
 
   @Field
   def setTitle(title: String) : Unit = { this.title = Option.apply(title) }

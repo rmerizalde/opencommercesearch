@@ -20,17 +20,21 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import scala.collection.convert.Wrappers.JIterableWrapper
+import play.api.libs.functional.syntax._
 import java.util
+
+import scala.collection.convert.Wrappers.JIterableWrapper
+
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
-import play.api.libs.functional.syntax._
+import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
-
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
+import org.opencommercesearch.search.Element
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.apache.commons.lang.StringUtils
+
 
 /**
  * A category model.
@@ -52,7 +56,7 @@ case class Category(
   @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
   @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
-  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends Element {
 
   /**
    * This constructor is for lazy loaded categories
@@ -66,6 +70,8 @@ case class Category(
   def setId(id: String) {
     this.id = Option.apply(id)
   }
+
+  override def source = "category"
 
   @Field
   def setName(name: String) {
