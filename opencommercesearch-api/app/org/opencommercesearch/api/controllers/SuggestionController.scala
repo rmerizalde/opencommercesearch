@@ -21,9 +21,10 @@ package org.opencommercesearch.api.controllers
 
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
-import play.api.libs.json.{JsValue, JsNull, Json, JsObject}
+import play.api.libs.json.{JsArray, JsValue, Json}
 
 import scala.concurrent.Future
+import scala.collection.mutable
 
 import javax.ws.rs.QueryParam
 
@@ -76,13 +77,15 @@ object SuggestionController extends BaseController {
       groupingSuggester.typeToClass.keys.map(source => collector.add(source, new SimpleCollector[Element]) )
 
       // @todo add site
-      groupingSuggester.search(q, site, collector, solrServer).map(c => {
+      groupingSuggester.search(q, site, collector, solrServer).flatMap(c => {
         if (!collector.isEmpty) {
 
           var queries: Seq[JsValue] = null
           var products: Seq[JsValue] = null
           var brands: Seq[JsValue] = null
           var categories: Seq[JsValue] = null
+          val storage = withNamespace(storageFactory, preview)
+          var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 
           for (c <- collector.collector("userQuery")) {
             queries = c.elements().map(e => {
@@ -93,29 +96,33 @@ object SuggestionController extends BaseController {
             products = c.elements().map(e => Json.toJson(e.asInstanceOf[Product]))
           }
           for (c <- collector.collector("brand")) {
-            brands = c.elements().map(e => Json.toJson(e.asInstanceOf[Brand]))
+            val brands = c.elements().map(e => e.asInstanceOf[Brand])
+
+            futureList += storage.findBrands(brands.map(b => b.getId), Seq("name", "logo", "url")).map( brands => {
+              ("brands", Json.toJsFieldJsValueWrapper(JsArray(brands.map(b => Json.toJson(b)).toSeq)))
+            })
           }
           for (c <- collector.collector("category")) {
             categories = c.elements().map(e => Json.toJson(e.asInstanceOf[Category]))
           }
 
-          Ok(Json.obj(
-           "metadata" -> Json.obj(
-              "found" -> collector.size(),
-              "time" -> (System.currentTimeMillis() - startTime)),
-            "suggestions" -> Json.obj(
-              "queries" -> queries,
-              "products" -> products,
-              "brands" -> brands,
-              "categories" -> categories
-            )
-          ))
+
+          Future.sequence(futureList).map( results => {
+            Ok(Json.obj(
+              "metadata" -> Json.obj(
+                 "found" -> collector.size(),
+                 "time" -> (System.currentTimeMillis() - startTime)),
+               "suggestions" -> Json.obj(
+                 results:_*
+               )
+             ))
+          })
         } else {
-          Ok(Json.obj(
+          Future.successful(Ok(Json.obj(
            "metadata" -> Json.obj(
               "found" -> 0,
               "time" -> (System.currentTimeMillis() - startTime))
-         ))
+          )))
         }
       })
     }
