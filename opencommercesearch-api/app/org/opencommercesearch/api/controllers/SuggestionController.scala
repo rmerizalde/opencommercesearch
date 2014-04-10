@@ -103,7 +103,11 @@ object SuggestionController extends BaseController {
             })
           }
           for (c <- collector.collector("category")) {
-            categories = c.elements().map(e => Json.toJson(e.asInstanceOf[Category]))
+            val categories = c.elements().map(e => e.asInstanceOf[Category])
+
+            futureList += storage.findCategories(categories.map(b => b.getId), Seq("name", "url")).map( categories => {
+              ("categories", Json.toJsFieldJsValueWrapper(JsArray(categories.map(b => Json.toJson(b)).toSeq)))
+            })
           }
 
 
