@@ -33,6 +33,11 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.opencommercesearch.api.common.FacetQuery
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.DateTimeZone
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.api.I18n._
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.Some
+import play.api.mvc.SimpleResult
 
 /**
  * This class provides common functionality for all controllers
@@ -140,4 +145,31 @@ class BaseController extends Controller with ContentPreview with FieldList with 
       }
     }
   }
+
+  object ContextAction {
+    /**
+     * Action composition for async actions that require a context and request
+     *
+     * @param block the action code
+     * @return a future SimpleResult
+     */
+    final def async(block: Context => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = async(BodyParsers.parse.anyContent)(block)
+
+    /**
+     * Action composition for async actions that require a context and request
+     * @param bodyParser is the body parser
+     * @param block the action code
+     * @tparam A is the content type
+     * @return
+     */
+    final def async[A](bodyParser: BodyParser[A])(block: Context => Request[A] => Future[SimpleResult]): Action[A] = Action.async(bodyParser) { implicit request =>
+      val preview = request.getQueryString("preview").getOrElse(false)
+      val context = Context("false".equals(preview), language())
+
+      block(context)(request)
+    }
+  }
+
+
+
 }

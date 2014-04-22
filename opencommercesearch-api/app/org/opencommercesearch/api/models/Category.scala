@@ -73,6 +73,8 @@ case class Category(
 
   override def source = "category"
 
+  override def toJson : JsValue = Json.toJson(this)
+
   @Field
   def setName(name: String) {
     this.name = Option.apply(name)

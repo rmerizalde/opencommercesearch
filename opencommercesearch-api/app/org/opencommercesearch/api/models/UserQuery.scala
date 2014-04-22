@@ -20,12 +20,12 @@ package org.opencommercesearch.api.models
 */
 
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, JsValue}
+
+import scala.beans.BeanProperty
 
 import org.apache.solr.client.solrj.beans.Field
 import org.opencommercesearch.search.Element
-import scala.beans.BeanProperty
-import scala.annotation.meta.beanSetter
 
 case class UserQuery (var userQuery: Option[String], var count: Option[Int]) extends Element {
 
@@ -35,6 +35,8 @@ case class UserQuery (var userQuery: Option[String], var count: Option[Int]) ext
   def this() = this(None, None)
 
   override def source = "userQuery"
+
+  override def toJson : JsValue = { Json.toJson(this) }
 
   @Field
   def setId(id: String) {

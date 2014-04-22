@@ -1,5 +1,7 @@
 package org.opencommercesearch.search
 
+import play.api.libs.json.JsValue
+
 /*
 * Licensed to the Apache Software Foundation (ASF) under one or more
 * contributor license agreements. See the NOTICE file distributed with
@@ -32,5 +34,10 @@ trait Element {
   /**
    * @return the source of the element
    */
-  def source: String
+  def source : String
+
+  /**
+   * @return the JSON representation of this element
+   */
+  def toJson : JsValue
 }

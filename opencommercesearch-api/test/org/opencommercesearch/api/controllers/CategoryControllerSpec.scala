@@ -32,7 +32,6 @@ import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.response.FacetField
-import play.api.Logger
 
 class CategoryControllerSpec extends BaseSpec {
 
@@ -157,7 +156,7 @@ class CategoryControllerSpec extends BaseSpec {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
 
-        val url = routes.CategoryController.bulkCreateOrUpdate(false).url
+        val url = routes.CategoryController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 

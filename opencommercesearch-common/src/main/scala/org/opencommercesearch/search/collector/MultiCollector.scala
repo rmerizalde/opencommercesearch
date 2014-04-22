@@ -20,6 +20,8 @@ package org.opencommercesearch.search.collector
 import org.opencommercesearch.search.Element
 
 /**
+ * Trait for collector with multiple suggestion sources
+ *
  * @author rmerizalde
  */
 trait MultiCollector[E <: Element] extends Collector[E] {

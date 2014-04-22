@@ -96,7 +96,6 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brand is created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
           "id" -> expectedId,
@@ -110,7 +109,6 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED, url)
       }
     }
@@ -207,7 +205,6 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brands are created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val (expectedId2, expectedName2, expectedLogo2) = ("1001", "Another Brand", "/brands/logo2.jpg")
         val json = Json.obj(
@@ -228,7 +225,6 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED)
       }
     }

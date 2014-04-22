@@ -61,6 +61,8 @@ case class Brand(
 
   override def source = "brand"
 
+  override def toJson : JsValue = Json.toJson(this)
+
   @Field
   def setName(name: String) : Unit = {
     this.name = Option.apply(name)

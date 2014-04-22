@@ -27,10 +27,12 @@ import scala.collection.JavaConversions._
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.SolrInputDocument
 import org.apache.commons.lang3.StringUtils
+import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.search.Element
 import ProductList._
 import org.jongo.marshall.jackson.oid.Id
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
@@ -65,6 +67,8 @@ case class Product (
   def setId(id: String) : Unit = { this.id = Option.apply(id) }
 
   override def source = "product"
+
+  override def toJson : JsValue = { Json.toJson(this) }
 
   @Field
   def setTitle(title: String) : Unit = { this.title = Option.apply(title) }
@@ -193,7 +197,7 @@ object Product {
 }
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
-  def toDocuments(service: CategoryService, preview: Boolean) : (util.List[SolrInputDocument], util.List[SolrInputDocument]) = {
+  def toDocuments(service: CategoryService)(implicit context: Context) : (util.List[SolrInputDocument], util.List[SolrInputDocument]) = {
     val productDocuments = new util.ArrayList[SolrInputDocument](products.size)
     val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
 
@@ -275,7 +279,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
               }
             }
 
-            for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
+            for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs) }
 
             for (size <- sku.size) {
               for (sizeName <- size.name) { doc.setField("size", sizeName) }

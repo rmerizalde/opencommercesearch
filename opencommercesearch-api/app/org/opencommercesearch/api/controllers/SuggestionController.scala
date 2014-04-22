@@ -20,51 +20,54 @@ package org.opencommercesearch.api.controllers
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.Play
 import play.api.mvc._
-import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.collection.mutable
 
-import javax.ws.rs.QueryParam
-
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.search.suggester.GroupingSuggester
+import org.opencommercesearch.api.I18n._
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.MultiSuggester
 import org.opencommercesearch.search.Element
-import org.opencommercesearch.api.models.{Product, Brand, Category, UserQuery}
-
-import com.wordnik.swagger.annotations._
 import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
 
-
+//import com.wordnik.swagger.annotations._
 
 /**
  * The controller for generic suggestions
  *
  * @author rmerizalde
  */
-@Api(value = "suggestions", basePath = "/api-docs/suggestions", description = "Suggestion API endpoints")
+//@Api(value = "suggestions", basePath = "/api-docs/suggestions", description = "Suggestion API endpoints")
 object SuggestionController extends BaseController {
 
-  val groupingSuggester = new GroupingSuggester[Element](Map(
-    ("brand" -> classOf[Brand]),
-    ("product" -> classOf[Product]),
-    ("category" -> classOf[Category]),
-    ("userQuery" -> classOf[UserQuery])
-  ))
+  val suggester = new MultiSuggester
 
-  @ApiOperation(value = "Suggests user queries, products, categories, brands, etc.", notes = "Returns suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
+  /**
+   * @param source is the collector source
+   * @return return the capacity for the collector source
+   */
+  private def collectorCapacity(source: String) : Int = {
+    Play.current.configuration.getInt(s"suggester.$source.collector.capacity").getOrElse(SimpleCollector.DefaultCapacity)
+  }
+
+  //@ApiOperation(value = "Suggests user queries, products, categories, brands, etc.", notes = "Returns suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
+  //@ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial product title is too short")))
   def findSuggestions(
      version: Int,
-     @ApiParam(value = "Partial user query", required = true)
-     @QueryParam("q")
+     //@ApiParam(value = "Partial user query", required = true)
+     //@QueryParam("q")
      q: String,
-     @ApiParam(value = "Site to search for suggestions", required = true)
-     @QueryParam("site")
+     //@ApiParam(value = "Site to search for suggestions", required = true)
+     //@QueryParam("site")
      site: String,
-     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
-     @QueryParam("preview")
+     //@ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+     //@QueryParam("preview")
      preview: Boolean) = Action.async { implicit request =>
+
 
 
     if (q == null || q.length < 2) {
@@ -72,43 +75,19 @@ object SuggestionController extends BaseController {
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
       )))
     } else {
+      implicit val context = Context(preview, language)
       val startTime = System.currentTimeMillis()
       val collector = new MultiSourceCollector[Element]
-      groupingSuggester.typeToClass.keys.map(source => collector.add(source, new SimpleCollector[Element]) )
+      suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )
 
-      // @todo add site
-      groupingSuggester.search(q, site, collector, solrServer).flatMap(c => {
+      suggester.search(q, site, collector, solrServer).flatMap(c => {
         if (!collector.isEmpty) {
-
-          var queries: Seq[JsValue] = null
-          var products: Seq[JsValue] = null
-          var brands: Seq[JsValue] = null
-          var categories: Seq[JsValue] = null
-          val storage = withNamespace(storageFactory, preview)
           var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 
-          for (c <- collector.collector("userQuery")) {
-            val queries = JsArray(c.elements().map(e => {
-              Json.toJson(e.asInstanceOf[UserQuery])
-            }))
-            futureList += Future.successful(("queries", Json.toJsFieldJsValueWrapper(queries)))
-          }
-          for (c <- collector.collector("product")) {
-            products = c.elements().map(e => Json.toJson(e.asInstanceOf[Product]))
-          }
-          for (c <- collector.collector("brand")) {
-            val brands = c.elements().map(e => e.asInstanceOf[Brand])
-
-            futureList += storage.findBrands(brands.map(b => b.getId), Seq("name", "logo", "url")).map( brands => {
-              ("brands", Json.toJsFieldJsValueWrapper(JsArray(brands.map(b => { b.id = None; Json.toJson(b) }).toSeq)))
-            })
-          }
-          for (c <- collector.collector("category")) {
-            val categories = c.elements().map(e => e.asInstanceOf[Category])
-
-            futureList += storage.findCategories(categories.map(b => b.getId), Seq("name", "seoUrlToken")).map( categories => {
-              ("categories", Json.toJsFieldJsValueWrapper(JsArray(categories.map(c => { c.id = None; Json.toJson(c) }).toSeq)))
-            })
+          for (source <- collector.sources) {
+            for (c <- collector.collector(source)) {
+              futureList += Future.successful(suggester.responseName(source) -> c.elements().map(e => e.toJson))
+            }
           }
 
 

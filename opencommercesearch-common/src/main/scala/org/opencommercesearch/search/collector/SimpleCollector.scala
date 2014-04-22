@@ -31,7 +31,7 @@ class SimpleCollector[E <: Element](val capacity: Int) extends Collector[E] {
 
   override def isEmpty: Boolean = elementList.isEmpty
 
-  override def canStop: Boolean = false
+  override def canStop: Boolean = size() >= capacity
 
   override def add(element: E, source: String): Boolean = {
     if (elementList.size < capacity) {

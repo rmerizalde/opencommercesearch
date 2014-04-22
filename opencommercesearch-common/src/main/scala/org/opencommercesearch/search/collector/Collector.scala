@@ -20,6 +20,8 @@ package org.opencommercesearch.search.collector
 import org.opencommercesearch.search.Element
 
 /**
+ * Trait for suggestion collectors
+ *
  * @author rmerizalde
  */
 trait Collector[E <: Element] {

@@ -4,7 +4,6 @@ version := "0.3-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
-// @todo (rmerizalde): refactor play-solrj to be scala-solrj
 libraryDependencies += "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT" % "provided"
 
 resolvers ++= Seq(

@@ -27,12 +27,14 @@ import scala.concurrent.Future
 import org.specs2.mutable._
 import org.specs2.mock.Mockito
 import org.mockito.Matchers
+import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.models.{Category, Product}
 import org.apache.solr.common.{SolrDocument, SolrInputDocument}
 import org.apache.solr.common.util.NamedList
 import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.response.QueryResponse
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import play.api.i18n.Lang
 
 class CategoryServiceSpec extends Specification with Mockito {
   private val catalogOutdoor:String = "outdoorCatalog"
@@ -50,6 +52,7 @@ class CategoryServiceSpec extends Specification with Mockito {
   private val catSnowshoeFootwear = mock[Category]
   private val catSnowshoeBoots = mock[Category]
   private val categoryCatalogs = Seq(catalogOutdoor)
+  private val lang = new Lang("en", "US")
 
   val otherCatalog = "otherCatalog"
   val rootOtherCategory = mock[Category]
@@ -172,11 +175,12 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
         product.categories returns Some(Seq(catSnowshoeBoots, catRulesBased))
 
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
 
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Snowshoe")
@@ -219,10 +223,11 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
         product.categories returns Some(Seq(catMensRainShoes, catMensRainBoots, catSnowshoeBoots))
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
         
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Shoes & Footwear")
@@ -293,10 +298,11 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
         product.categories returns Some(Seq(catSnowshoeBoots, otherCategory))
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
 
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Snowshoe")

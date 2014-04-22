@@ -17,25 +17,64 @@ package org.opencommercesearch.search.suggester
 * limitations under the License.
 */
 
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+
+import scala.concurrent.Future
+
+import org.apache.solr.client.solrj.AsyncSolrServer
 import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.Collector
-import org.apache.solr.client.solrj.{AsyncSolrServer}
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.opencommercesearch.common.Context
 
 /**
+ * A trait for a search suggester
+ *
  * @author rmerizalde
  */
 trait Suggester[E <: Element] {
 
-  def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer) : Future[Collector[E]] = {
+  /**
+   * Optionally, suggesters can customize the response name for a given collector source. For example, mapping a source called
+   * 'userQuery' to 'queries'
+   * @param source
+   * @return the response name for the given collector source
+   */
+  def responseName(source: String) : String = source
+
+  /**
+   * @return the sources for this suggester
+   */
+  def sources() : Set[String]
+
+  /**
+   * Searches and collects suggestions
+   *
+   * @param q is the suggestion query
+   * @param site is the site to search in
+   * @param collector is the suggestion collector
+   * @param server is the server used to execute the search
+   * @param context is the search context
+   * @return a future with the given collector
+   */
+  def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer)(implicit context : Context) : Future[Collector[E]] = {
     searchInternal(q, site, server).map(elements => {
       for (element <- elements) {
-        collector.add(element, element.source)
+        if (element != null) {
+          collector.add(element, element.source)
+        }
       }
       collector
     })
   }
 
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer) : Future[Seq[E]]
+  /**
+   * Internal search to return the suggestion elements
+   *
+   * @param q is the suggestion query
+   * @param site is the site to search in
+   * @param server is the server used to execute the search
+   * @param context is the search context
+   * @return all suggestion elements
+   */
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]]
 }
