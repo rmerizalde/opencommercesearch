@@ -500,6 +500,7 @@ object ProductController extends BaseController {
 
       solrServer.query(query).flatMap { response =>
         val groupResponse = response.getGroupResponse
+        val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
         if (groupResponse != null) {
           val commands = groupResponse.getValues
@@ -522,6 +523,7 @@ object ProductController extends BaseController {
                   withCacheHeaders(Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
+                      "productSummary" -> processGroupSummary(groupSummary),
                       "time" -> (System.currentTimeMillis() - startTime),
                       "facets" -> facetHandler.getFacets,
                       "breadCrumbs" -> facetHandler.getBreadCrumbs),
