@@ -78,12 +78,12 @@
  <fields>
 
    <field name="_version_"      type="long"            indexed="true"  stored="true"                   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="id"             type="int"             indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="id"             type="string"          indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="userQuery"      type="edgengram"       indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="ngrams"         type="ngram"           indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="ngrams"         type="ngram"           indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="userQuerySpell" type="normalizedQuery" indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="type"           type="string"          indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="siteId"         type="string"          indexed="true"  stored="true"  required="true"  multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="type"           type="string"          indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" default="userQuery"/>
+   <field name="siteId"         type="string"          indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    <field name="feedTimestamp"  type="long"            indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
    <!-- todo, count doesn't need to be stored -->

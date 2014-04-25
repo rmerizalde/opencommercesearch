@@ -68,8 +68,6 @@ object SuggestionController extends BaseController {
      //@QueryParam("preview")
      preview: Boolean) = Action.async { implicit request =>
 
-
-
     if (q == null || q.length < 2) {
       Future.successful(BadRequest(Json.obj(
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
@@ -90,7 +88,6 @@ object SuggestionController extends BaseController {
             }
           }
 
-
           Future.sequence(futureList).map( results => {
             Ok(Json.obj(
               "metadata" -> Json.obj(
@@ -110,9 +107,6 @@ object SuggestionController extends BaseController {
         }
       })
     }
-
-
-
   }
 }
 

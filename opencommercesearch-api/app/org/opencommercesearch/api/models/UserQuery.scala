@@ -52,7 +52,6 @@ case class UserQuery (var userQuery: Option[String], var count: Option[Int]) ext
   def setCount(count: Int) : Unit = {
     this.count = Option.apply(count)
   }
-
 }
 
 object UserQuery {

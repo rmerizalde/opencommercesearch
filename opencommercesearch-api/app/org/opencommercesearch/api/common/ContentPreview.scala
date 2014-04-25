@@ -38,6 +38,11 @@ trait ContentPreview {
     query.setParam("collection", SuggestCollection)
   }
 
+  def withSuggestCollection[T <: AbstractUpdateRequest](request: T) : T = {
+    request.setParam("collection", SuggestCollection)
+    request
+  }
+
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
     query.setParam("collection", getBrandCollection(preview))
   }

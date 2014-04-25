@@ -19,13 +19,13 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import java.util.concurrent.ConcurrentHashMap
 import com.mongodb._
 import play.api.{Logger, Configuration}
 import org.jongo.{Jongo, Mapper}
 import com.mongodb.gridfs.GridFS
 import org.jongo.marshall.jackson.JacksonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import scala.collection.mutable
 
 /**
  * MongoDB storage factory implementation
@@ -34,7 +34,7 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
  */
 class MongoStorageFactory extends StorageFactory[WriteResult] {
 
-  val storages = new ConcurrentHashMap[String, MongoStorage]()
+  val storages = new mutable.HashMap[String, MongoStorage]().withDefaultValue(null)
   var mongo: MongoClient = null
   var config: Configuration = null
   var classLoader: ClassLoader = null
@@ -55,23 +55,25 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
    */
   def getInstance(namespace: String) : MongoStorage = {
     val databaseName =  namespace
-    var storage = storages.get(databaseName)
 
-    if (storage == null) {
-      Logger.info(s"Setting up storage for namespace $namespace")
+    synchronized {
+      var storage = storages(databaseName)
 
-      val jongoUri = config.getString("jongo.uri").getOrElse("mongodb://127.0.0.1:27017/")
-      val uri = new MongoClientURI(jongoUri)
+      if (storage == null) {
+        Logger.info(s"Setting up storage for namespace $namespace")
 
-      this.synchronized {
-        if (mongo == null) {
-          Logger.info(s"Initializing mongo client singleton for namespace $namespace with URI $jongoUri")
-          mongo = new MongoClient(uri)
+        val jongoUri = config.getString("jongo.uri").getOrElse("mongodb://127.0.0.1:27017/")
+        val uri = new MongoClientURI(jongoUri)
+
+        this.synchronized {
+          if (mongo == null) {
+            Logger.info(s"Initializing mongo client singleton for namespace $namespace with URI $jongoUri")
+            mongo = new MongoClient(uri)
+          }
         }
-      }
 
-      storage = new MongoStorage(mongo)
-      if (storages.putIfAbsent(databaseName, storage) == null) {
+        storage = new MongoStorage(mongo)
+
         Logger.info(s"Creating database for $namespace")
         val db = mongo.getDB(databaseName)
 
@@ -98,8 +100,8 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
         Logger.info(s"Setting up indexes for namespace $namespace")
         storage.ensureIndexes
       }
+      storage
     }
-    storage
   }
 
   private def createMapper() : Mapper = {

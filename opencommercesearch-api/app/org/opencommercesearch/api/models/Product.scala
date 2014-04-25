@@ -35,6 +35,7 @@ import org.jongo.marshall.jackson.oid.Id
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.opencommercesearch.search.suggester.Suggestion
 
 case class Product (
   @Id var id: Option[String],
@@ -56,7 +57,7 @@ case class Product (
   @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
   @JsonProperty("activationDate") var activationDate: Option[String],
-  @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends Element
+  @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends Element with Suggestion
 {
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
@@ -155,7 +156,6 @@ case class Product (
     }
   }
 
-
   @Field("reviewAverage")
   def setReviewAverage(reviewAverage: Float) : Unit = {
     if(customerReviews.isEmpty) {
@@ -187,13 +187,29 @@ case class Product (
       (parts(0), "true".equals(parts(1)))    
     }).toMap)
   }
-          
+
+  def getNgramText : String = {
+    this.title.getOrElse(StringUtils.EMPTY)
+  }
+
+  def getType : String = {
+    "product"
+  }
+
+  def getSites : Seq[String] = {
+    val skus = this.skus.getOrElse(Seq.empty[Sku])
+    skus.foldRight(Set.empty[String]) {
+      (iterable, accum) =>
+        accum ++ iterable.catalogs.getOrElse(Seq.empty[String])
+    }.toSeq
+  }
 }
 
 object Product {
 
   implicit val readsProduct = Json.reads[Product]
   implicit val writesProduct = Json.writes[Product]
+
 }
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
@@ -248,7 +264,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           } 
         }        
         productDocuments.add(productDoc)
-        var skuCount = skus.size;
+        val skuCount = skus.size
         for (sku: Sku <- skus) {
           for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                isCloseout <- sku.isCloseout; countries <- sku.countries) {
