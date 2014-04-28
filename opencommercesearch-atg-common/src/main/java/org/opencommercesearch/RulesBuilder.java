@@ -101,6 +101,11 @@ public class RulesBuilder extends GenericService {
                 return new StringBuilder().append("salePrice").append(locale.getCountry()).append(":[").append(min+" TO "+max).append("]").toString();
             }
         },
+        ACTIVATION_DATE {
+            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
+                return new StringBuilder().append("activationDate:").append("[NOW-").append(ruleValue).append("DAY/DAY TO NOW]").toString();
+            }
+        },
         KEYWORD {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
                 return new StringBuilder().append("keyword:").append(ClientUtils.escapeQueryChars(ruleValue)).toString();
