@@ -103,7 +103,7 @@ public class RulesBuilder extends GenericService {
         },
         ACTIVATION_DATE {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
-                return new StringBuilder().append("activationDate:").append("[NOW-").append(ruleValue).append("DAY/DAY TO NOW]").toString();
+                return new StringBuilder().append("activationDate:").append("[NOW-").append(ruleValue).append("DAY/DAY TO NOW/DAY]").toString();
             }
         },
         KEYWORD {
