@@ -33,14 +33,12 @@ import javax.ws.rs.QueryParam
 
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.response.UpdateResponse
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.I18n._
 import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.common.FacetQuery
 import org.opencommercesearch.api.models.{Category, Brand, CategoryList}
 import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.Suggestion
 
 import com.wordnik.swagger.annotations._
 
@@ -224,9 +222,10 @@ object CategoryController extends BaseController with FacetQuery {
           val update = withCategoryCollection(new AsyncUpdateRequest())
           val docs = categoryList.toDocuments
           update.add(docs)
-          val searchFuture: Future[UpdateResponse] = update.process(solrServer)
-          
-          val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (r1, r2) =>
+          val catalogUpdateFuture = update.process(solrServer)
+          val suggestionUpdateFuture = Suggestion.addToIndex(categories)
+
+          val future = Future.sequence(List[Future[Any]](storageFuture, catalogUpdateFuture, suggestionUpdateFuture)) map { result =>
             Created
           }
 
@@ -286,6 +285,7 @@ object CategoryController extends BaseController with FacetQuery {
       site: String) = ContextAction.async { implicit context => implicit request =>
     val solrQuery = withCategoryCollection(new SolrQuery(query))
     solrQuery.addFilterQuery(s"catalogs:$site")
+
     findSuggestionsFor(classOf[Category], "categories" , solrQuery)
   }
 

@@ -59,7 +59,7 @@ class ProductControllerSpec extends BaseSpec {
 
       val category = new Category()
       category.isRuleBased = Option(false)
-      category.catalogs = Option(Seq("mysite"))
+      category.sites = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
 
@@ -111,7 +111,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val categoryResult = new Category()
         categoryResult.setId("someCategory")
-        categoryResult.catalogs = Option(Seq("mysite"))
+        categoryResult.sites = Option(Seq("mysite"))
 
         storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
 

@@ -39,7 +39,7 @@ import scala.collection.mutable.ArrayBuffer
 
 
 /**
- * Suggests elements from the catalog. The elements include brands, categories and products. Aditionally, the suggester
+ * Suggests elements from the catalog. The elements include brands, categories and products. Additionally, the suggester
  * returns popular user queries. Suggestions come from the autocomplete collection and are based on ngrams on the brand name,
  * category name and product title. User queries used edge ngrams.
  *

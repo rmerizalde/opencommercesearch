@@ -32,11 +32,12 @@ import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.response.FacetField
+import org.opencommercesearch.search.suggester.Suggestion
 
 class CategoryControllerSpec extends BaseSpec {
 
   val storage = mock[MongoStorage]
-  
+
   trait Categories extends Before {
     def before = {
       // @todo: use di
@@ -258,6 +259,4 @@ class CategoryControllerSpec extends BaseSpec {
       }
     }
   }
-
-
 }

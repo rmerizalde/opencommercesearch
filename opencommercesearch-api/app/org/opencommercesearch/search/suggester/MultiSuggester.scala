@@ -30,8 +30,8 @@ import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.Collector
 
 /**
- * Suggests elements any type of element. By default, it uses the catalog suggester only. Other suggester
- * can be plugged in via configuration properties
+ * Suggests any type of element. By default, it only uses the catalog suggester. Other suggesters
+ * can be plugged in via configuration properties.
  *
  * @author rmerizalde
  */
@@ -45,7 +45,7 @@ class MultiSuggester extends Suggester[Element] {
     val multiElementSuggester = new CatalogSuggester[Element]
     suggesters = suggesters :+ multiElementSuggester
 
-    // plug other suggester from the config here
+    // plug other suggesters from the config here
 
     allSources = suggesters.foldLeft(allSources)(_ ++ _.sources())
   }

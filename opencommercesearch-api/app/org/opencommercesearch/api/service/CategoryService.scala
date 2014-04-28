@@ -117,7 +117,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
               val newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
               category.name = newDoc.name
               category.seoUrlToken = newDoc.seoUrlToken
-              category.catalogs = newDoc.catalogs
+              category.sites = newDoc.sites
             } else {
               Logger.error(s"Missing nested category id reference [$id]")
             }
@@ -300,10 +300,10 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         return false
       }
 
-      for (categoryCatalogs <- category.catalogs) {
-        if (categoryCatalogs != null) {
-          for (categoryCatalog <- categoryCatalogs) {
-            if (catalogs.contains(categoryCatalog)) {
+      for (categorySites <- category.sites) {
+        if (categorySites != null) {
+          for (categorySite <- categorySites) {
+            if (catalogs.contains(categorySite)) {
               return true
             }
           }
@@ -342,10 +342,10 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           hierarchyCategories.remove(0)
         }
       } else {
-        for (catalogs <- category.catalogs) {
-          for(catalog <- catalogs){
-            if(catalogAssignments.contains(catalog)){
-              generateCategoryTokens(doc, hierarchyCategories, catalog, tokenCache)
+        for (sites <- category.sites) {
+          for(site <- sites){
+            if(catalogAssignments.contains(site)){
+              generateCategoryTokens(doc, hierarchyCategories, site, tokenCache)
             }
           }
         }
@@ -534,15 +534,15 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       //Check if is a root cat
       if(category.parentCategories == null || category.parentCategories.isEmpty || category.parentCategories.get.isEmpty) {
         //Find out if there are catalog assignments
-        for(catalogs <- category.catalogs) {
-          if(!catalogs.isEmpty) {
-            val catalog = category.catalogs.get(0)
-            if(result.contains(catalog)) {
+        for(sites <- category.sites) {
+          if(!sites.isEmpty) {
+            val site = category.sites.get(0)
+            if(result.contains(site)) {
               Logger.error(s"Found a duplicate root category node. Previous id was ${category.getId}, new id is $key. Assuming the first one found is correct, however " +
                 s"this is an indicator of taxonomy issues on storage.")
             }
             else {
-              result += (catalog -> category)
+              result += (site -> category)
             }
           }
         }
@@ -617,7 +617,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           taxonomyNode.childCategories = Option(category.getChildCategories)
           taxonomyNode.parentCategories = category.parentCategories
           taxonomyNode.isRuleBased = category.isRuleBased
-          taxonomyNode.catalogs = category.catalogs
+          taxonomyNode.sites = category.sites
           taxonomyNode.name = category.name
           taxonomyNode.seoUrlToken = category.seoUrlToken
         }

@@ -61,30 +61,44 @@
        <filter class="solr.LowerCaseFilterFactory"/>
      </analyzer>
     </fieldType>
- </types>
 
+    <fieldType name="ngram" class="solr.TextField" positionIncrementGap="100">
+     <analyzer type="index">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+       <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="25" />
+     </analyzer>
+     <analyzer type="query">
+       <tokenizer class="solr.KeywordTokenizerFactory"/>
+       <filter class="solr.LowerCaseFilterFactory"/>
+     </analyzer>
+    </fieldType>
+ </types>
 
  <fields>
 
-   <field name="_version_"      type="long"            indexed="true"  stored="true"                  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="id"             type="int"             indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
-   <field name="userQuery"      type="edgengram"       indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="userQuerySpell" type="normalizedQuery" indexed="true"  stored="false" required="true" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="siteId"         type="string"          indexed="true"  stored="true"  required="true" multiValued="false" omitNorms="true"  termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />   
+   <field name="_version_"      type="long"            indexed="true"  stored="true"                   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="id"             type="string"          indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
+   <field name="userQuery"      type="edgengram"       indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="ngrams"         type="ngram"           indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="userQuerySpell" type="normalizedQuery" indexed="true"  stored="false" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="type"           type="string"          indexed="true"  stored="true"  required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" default="userQuery"/>
+   <field name="siteId"         type="string"          indexed="true"  stored="true"  required="false" multiValued="true"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="feedTimestamp"  type="long"            indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
 
    <!-- todo, count doesn't need to be stored -->
-   <field name="count"          type="int"             indexed="true"  stored="true" required="true"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="revenue"        type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="orders"         type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="instances"      type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="visits"         type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="units"          type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="carts"          type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="checkout"       type="int"             indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="extendedDataTimestamp" type="string"   indexed="true"  stored="true" required="false"  multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />   
+   <field name="count"          type="int"             indexed="true"  stored="true" required="true"  multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="revenue"        type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="orders"         type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="instances"      type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="visits"         type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="units"          type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="carts"          type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="checkout"       type="int"             indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="extendedDataTimestamp" type="string"   indexed="true"  stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
    
-   <field name="lastResults"    type="int"             indexed="false" stored="true" required="false" multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
-   <field name="lastUpdated"    type="tdate"           indexed="true" stored="true" required="true"   multiValued="false"  omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="lastResults"    type="int"             indexed="false" stored="true" required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
+   <field name="lastUpdated"    type="tdate"           indexed="true"  stored="true" required="true"   multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" omitTermFreqAndPositions="true" />
  </fields>
 
  <!-- Field to use to determine and enforce document uniqueness.

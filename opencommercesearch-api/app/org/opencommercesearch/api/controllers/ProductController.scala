@@ -45,6 +45,7 @@ import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
 
 import com.wordnik.swagger.annotations._
+import org.opencommercesearch.search.suggester.Suggestion
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -131,14 +132,14 @@ object ProductController extends BaseController {
 
                       taxonomyFuture = categoryFuture.map(categoryTaxonomy => {
                         product.categories = Some(categoryIds.map( fieldValue => {categoryTaxonomy(fieldValue.toString)}).toSeq
-                                .filter(
-                                  category =>  {
-                                        if (site != null) {
-                                          category.catalogs.getOrElse(Seq.empty).contains(site)
-                                        } else {
-                                          true
-                                        }
+                          .filter(
+                            category =>  {
+                                  if (site != null) {
+                                    category.sites.getOrElse(Seq.empty).contains(site)
+                                  } else {
+                                    true
                                   }
+                            }
                         ))
                         product
                       })
@@ -550,7 +551,10 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val future: Future[SimpleResult] = productFuture zip searchFuture map { case (r1, r2) =>
+            val queryCollectionUpdateFuture = Suggestion.addToIndex(products)
+            val futureList = List(productFuture, searchFuture, queryCollectionUpdateFuture)
+
+            val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
               Created
             }
 
