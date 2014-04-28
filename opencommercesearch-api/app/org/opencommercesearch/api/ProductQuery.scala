@@ -98,6 +98,9 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
         if (sortSpec.indexOf("price") != -1) {
           addSort(s"salePrice$country", selectedOrder)
         }
+        if (sortSpec.indexOf("activationDate") != -1) {
+          addSort("activationDate", selectedOrder)
+        }
       }
     }
 
