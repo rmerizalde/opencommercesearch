@@ -207,21 +207,23 @@ object ProductController extends BaseController {
    */
   private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
     val groups = ArrayBuffer[JsObject]()
-    val productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]]
-    if(productSummaries != null) {
-     JIterableWrapper(productSummaries).map(productSummary => {
-       val parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]]
-       val productSeq = ArrayBuffer[(String,JsValue)]()
-       JIterableWrapper(parameterSummaries).map(parameterSummary => {
-         val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]]
-         val parameterSeq = ArrayBuffer[(String,JsString)]()
-         JIterableWrapper(statSummaries).map(statSummary => {
-           parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
+    if(groupSummary != null) {
+      val productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]]
+      if(productSummaries != null) {
+       JIterableWrapper(productSummaries).map(productSummary => {
+         val parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]]
+         val productSeq = ArrayBuffer[(String,JsValue)]()
+         JIterableWrapper(parameterSummaries).map(parameterSummary => {
+           val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]]
+           val parameterSeq = ArrayBuffer[(String,JsString)]()
+           JIterableWrapper(statSummaries).map(statSummary => {
+             parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
+           })
+           productSeq += ((parameterSummary.getKey, new JsObject(parameterSeq)))
          })
-         productSeq += ((parameterSummary.getKey, new JsObject(parameterSeq)))
+         groups += new JsObject(ArrayBuffer[(String,JsValue)]((productSummary.getKey, new JsObject(productSeq))))
        })
-       groups += new JsObject(ArrayBuffer[(String,JsValue)]((productSummary.getKey, new JsObject(productSeq))))
-     })
+      }
     }
     new JsArray(groups)
   }
