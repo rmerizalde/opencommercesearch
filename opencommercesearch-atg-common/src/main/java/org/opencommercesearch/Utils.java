@@ -20,17 +20,27 @@ package org.opencommercesearch;
 */
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
-import atg.json.JSONException;
-import atg.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.solr.util.DateMathParser;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.opencommercesearch.repository.CategoryProperty;
+import org.restlet.representation.Representation;
 
 import atg.repository.RepositoryItem;
-import org.restlet.representation.Representation;
+import atg.json.JSONException;
+import atg.json.JSONObject;
 
 public class Utils {
 
@@ -39,7 +49,8 @@ public class Utils {
     public static final String RESOURCE_BEFORE = "before";
     public static final String RESOURCE_AFTER = "after";
     public static final String RESOURCE_CRUMB = "crumb";
-
+    public static final String NOW = "NOW";
+    
     /**
      * Date formatter for ISO 8601 dates.
      */
@@ -82,7 +93,8 @@ public class Utils {
     public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) {
         String resource = null;
         String resourceKey = "facet.range." + fieldName + "." + key;
-
+        String rangeName = defaultName;
+        
         // First try to find if there's a specific resource for the value
         resource = loadResource(resourceKey + "." + value1);
         if (resource == null) {
@@ -98,15 +110,22 @@ public class Utils {
             }
             resource = "${v1}-${v2}";
         }
+        
+        if (resource.contains("${days}")) {
+            int days = daysBetween(value1, value2);
+            rangeName = StringUtils.replace(resource, "${days}", String.valueOf(days));
+        } else{
+            rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? "" : value1));
+            rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? "" : value2));
+        }
 
-        String rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? "" : value1));
-        rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? "" : value2));
+        
         return rangeName;
     }
 
     public static String getRangeName(String fieldName, String expression) {
         if (expression.startsWith("[") && expression.endsWith("]")) {
-            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            String[] parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
                 String key = Utils.RESOURCE_IN_RANGE;
                 if ("*".equals(parts[0])) {
@@ -309,5 +328,22 @@ public class Utils {
             // do nothing
         }
         return message;
+    }
+    
+    private static Date parseDate(String value, DateMathParser dmp) {
+        Date date = new Date();
+    	try{
+            date = dmp.parseMath(StringUtils.remove(value, NOW));
+        } catch (ParseException ex){
+            // do nothing
+        }
+        return date;
+    }
+
+    private static int daysBetween(String from, String to) {
+        DateMathParser dmp = new DateMathParser();
+        Date fromDate = parseDate(from, dmp);
+        Date toDate = parseDate(to, dmp);
+    	return Days.daysBetween(new DateTime(fromDate), new DateTime(toDate)).getDays();
     }
 }
