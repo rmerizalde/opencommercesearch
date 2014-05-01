@@ -428,7 +428,11 @@ object BrandController extends BaseController with FacetQuery {
                             Logger.debug(s"Category ids for brand ${brand.getId} are $categoryIds")
 
                             categoryDataFuture = storage.findCategories(categoryIds, Seq("*")).map( categoryList => {
-                              categoryList.map( category => {
+                              categoryList filter { category =>
+                                category.catalogs.getOrElse(Seq.empty[String]).contains(site) &&
+                                !category.isRuleBased.getOrElse(false) &&
+                                 category.parentCategories.getOrElse(Seq.empty[Category]).size != 0
+                              } map( category => {
                                 Json.obj(
                                   "brandId" -> brand.getId,
                                   "brandName" -> brand.getName,
