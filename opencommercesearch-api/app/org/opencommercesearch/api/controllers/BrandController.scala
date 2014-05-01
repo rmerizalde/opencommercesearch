@@ -97,7 +97,7 @@ object BrandController extends BaseController with FacetQuery {
           //Save brand on storage
           val storage = withNamespace(storageFactory)
           val storageFuture = storage.saveBrand(brand)
-          val queryCollectionUpdateFuture = Suggestion.addToIndex(Seq(brand))
+          val queryCollectionUpdateFuture = Suggestion.addToIndex(Seq(brand), fetchCount = true)
           val futureList = List[Future[Any]](storageFuture, queryCollectionUpdateFuture)
           val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
             Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
@@ -145,7 +145,7 @@ object BrandController extends BaseController with FacetQuery {
 
         val storage = withNamespace(storageFactory)
         val storageFuture = storage.saveBrand(brands:_*)
-        val suggestionUpdateFuture = Suggestion.addToIndex(brands)
+        val suggestionUpdateFuture = Suggestion.addToIndex(brands, fetchCount = true)
 
         val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionUpdateFuture)) map { result =>
           Created

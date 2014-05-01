@@ -30,6 +30,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import org.apache.solr.client.solrj.response.UpdateResponse
 import scala.collection.JavaConversions._
 import ExecutionContext.Implicits.global
+import org.apache.solr.client.solrj.SolrQuery
+import scala.collection.mutable.Map
 
 /**
  * This trait provides functionality to convert a model object
@@ -46,7 +48,7 @@ trait Suggestion {
    * @param feedTimestamp a feed timestamp
    * @return Solr input document for suggestion collection.
    */
-  def toSuggestionDoc(feedTimestamp: Long) : SolrInputDocument = {
+  def toSuggestionDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
     val doc = new SolrInputDocument()
     val `type` = getType
     doc.addField("id", `type` + "-" + getId)
@@ -54,7 +56,7 @@ trait Suggestion {
     doc.addField("ngrams", getNgramText)
     doc.addField("type", `type`)
     doc.addField("feedTimestamp", feedTimestamp)
-    doc.addField("count", 1)
+    doc.addField("count", count)
     doc.addField("lastUpdated", IsoDateFormat.format(new Date()))
 
     val sites = getSites
@@ -75,17 +77,39 @@ trait Suggestion {
 }
 
 object Suggestion {
-  def addToIndex(suggestions : Seq[Suggestion])(implicit context: Context) : Future[UpdateResponse] = {
+  def addToIndex(suggestions : Seq[Suggestion], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
     //Add category info to the suggestion collection
     if(context.isPublic) {
-      val feedTimeStamp = System.currentTimeMillis()
+      val feedTimeStamp = System.currentTimeMillis()    
       val updateQuery = new AsyncUpdateRequest()
+      
       updateQuery.setParam("collection", SuggestCollection)
-      updateQuery.add(suggestions map { s =>
-        s.toSuggestionDoc(feedTimeStamp)
-      })
-
-      updateQuery.process(solrServer)
+      if(fetchCount) {
+        val futureSuggestion = suggestions map { s =>
+            val query = new SolrQuery("\"" + s.getNgramText + "\"")
+                query.setParam("collection", SuggestCollection)
+                     .setFilterQueries("type:\"userQuery\"")
+                     .setFields("count")
+                     .setRows(1)
+            solrServer.query(query).flatMap( response => {
+                 if (response.getResults() != null && response.getResults().size() > 0) {
+                     val count : Int =  response.getResults().get(0).getFieldValue("count").asInstanceOf[Int]
+                     Future(s.toSuggestionDoc(feedTimeStamp, count))
+                 } else {
+                   Future(s.toSuggestionDoc(feedTimeStamp))
+                 }
+            })
+       }
+       Future.sequence(futureSuggestion).flatMap(elements => {
+         updateQuery.add(elements)
+         updateQuery.process(solrServer)
+       })
+      } else {
+        updateQuery.add(suggestions map { s =>
+            s.toSuggestionDoc(feedTimeStamp)
+        })
+        updateQuery.process(solrServer)
+      }
     }
     else {
       Future(null)
