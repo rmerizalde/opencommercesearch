@@ -78,7 +78,12 @@ object SuggestionController extends BaseController {
       val collector = new MultiSourceCollector[Element]
       suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )
 
-      suggester.search(q, site, collector, solrServer).flatMap(c => {
+      var query = q;
+      if(!(q.startsWith("\"") && q.endsWith("\""))) {
+        query = "\"" + q + "\""
+      }
+      
+      suggester.search(query, site, collector, solrServer).flatMap(c => {
         if (!collector.isEmpty) {
           var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 

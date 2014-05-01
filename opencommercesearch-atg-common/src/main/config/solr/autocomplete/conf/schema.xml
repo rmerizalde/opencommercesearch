@@ -64,11 +64,15 @@
 
     <fieldType name="ngram" class="solr.TextField" positionIncrementGap="100">
      <analyzer type="index">
+       <charFilter class="solr.MappingCharFilterFactory" mapping="mapping-ISOLatin1Accent.txt"/>
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(')" replacement="" />
        <tokenizer class="solr.KeywordTokenizerFactory"/>
        <filter class="solr.LowerCaseFilterFactory"/>
        <filter class="solr.NGramFilterFactory" minGramSize="2" maxGramSize="25" />
      </analyzer>
      <analyzer type="query">
+       <charFilter class="solr.MappingCharFilterFactory" mapping="mapping-ISOLatin1Accent.txt"/>
+       <charFilter class="solr.PatternReplaceCharFilterFactory" pattern="(')" replacement="" />
        <tokenizer class="solr.KeywordTokenizerFactory"/>
        <filter class="solr.LowerCaseFilterFactory"/>
      </analyzer>
