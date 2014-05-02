@@ -833,6 +833,9 @@ object ProductController extends BaseController {
         if (sortSpec.indexOf("price") != -1) {
           query.addSort(s"salePrice$country_", selectedOrder)
         }
+        if (sortSpec.indexOf("activationDate") != -1) {
+          query.addSort("activationDate", selectedOrder)
+        }
       }
     }
 
