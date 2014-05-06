@@ -28,12 +28,10 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
-import org.opencommercesearch.search.Element
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 /**
  * A brand model
@@ -49,7 +47,7 @@ case class Brand(
    @JsonProperty("name") var name: Option[String], 
    @JsonProperty("logo") var logo: Option[String], 
    @JsonProperty("url") var url: Option[String],
-   @JsonProperty("sites") var sites: Option[Seq[String]]) extends Element with Suggestion {
+   @JsonProperty("sites") var sites: Option[Seq[String]]) extends IndexableElement {
 
   @JsonCreator
   def this() = this(None, None, None, None, None)

@@ -32,7 +32,7 @@ import org.opencommercesearch.search.collector.Collector
 import org.apache.commons.lang3.StringUtils
 
 /**
- * Suggests any type of element. By default, it only uses the catalog suggester. Other suggesters
+ * Suggests any type of elements. By default, it only uses the catalog suggester. Other suggesters
  * can be plugged in via configuration properties.
  *
  * @author rmerizalde

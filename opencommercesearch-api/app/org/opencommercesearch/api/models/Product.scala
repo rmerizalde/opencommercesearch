@@ -29,13 +29,12 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.search.Element
 import ProductList._
 import org.jongo.marshall.jackson.oid.Id
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 case class Product (
   @Id var id: Option[String],
@@ -57,7 +56,7 @@ case class Product (
   @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
   @JsonProperty("activationDate") var activationDate: Option[String],
-  @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends Element with Suggestion
+  @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends IndexableElement
 {
   @JsonCreator
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)

@@ -26,29 +26,29 @@ import java.text.SimpleDateFormat
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.Element
 import scala.concurrent.{ExecutionContext, Future}
 import org.apache.solr.client.solrj.response.UpdateResponse
 import scala.collection.JavaConversions._
 import ExecutionContext.Implicits.global
 import org.apache.solr.client.solrj.SolrQuery
-import scala.collection.mutable.Map
 
 /**
  * This trait provides functionality to convert a model object
- * into a solr autocomplete collection document
+ * into a Solr suggestion collection document
  *
  * @author jmendez
  * @author nkumar
  */
-trait Suggestion {
+trait IndexableElement extends Element {
   val IsoDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
   /**
-   * Converts a given instance into a Solr input document compatible with the suggestion collection.
+   * Converts this instance into a Solr input document compatible with the suggestion collection.
    * @param feedTimestamp a feed timestamp
    * @return Solr input document for suggestion collection.
    */
-  def toSuggestionDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
+  def toSolrDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
     val doc = new SolrInputDocument()
     val `type` = getType
     doc.addField("id", `type` + "-" + getId)
@@ -76,11 +76,10 @@ trait Suggestion {
   def getSites : Seq[String]
 }
 
-object Suggestion {
-  def addToIndex(suggestions : Seq[Suggestion], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
-    //Add category info to the suggestion collection
-    if(context.isPublic) {
-      val feedTimeStamp = System.currentTimeMillis()    
+object IndexableElement {
+  def addToIndex(suggestions : Seq[IndexableElement], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
+    if(!context.isPublic) {
+      val feedTimeStamp = System.currentTimeMillis()
       val updateQuery = new AsyncUpdateRequest()
       
       updateQuery.setParam("collection", SuggestCollection)
@@ -92,11 +91,11 @@ object Suggestion {
                      .setFields("count")
                      .setRows(1)
             solrServer.query(query).flatMap( response => {
-                 if (response.getResults() != null && response.getResults().size() > 0) {
+                 if (response.getResults != null && response.getResults.size > 0) {
                      val count : Int =  response.getResults().get(0).getFieldValue("count").asInstanceOf[Int]
-                     Future(s.toSuggestionDoc(feedTimeStamp, count))
+                     Future(s.toSolrDoc(feedTimeStamp, count))
                  } else {
-                   Future(s.toSuggestionDoc(feedTimeStamp))
+                   Future(s.toSolrDoc(feedTimeStamp))
                  }
             })
        }
@@ -106,7 +105,7 @@ object Suggestion {
        })
       } else {
         updateQuery.add(suggestions map { s =>
-            s.toSuggestionDoc(feedTimeStamp)
+            s.toSolrDoc(feedTimeStamp)
         })
         updateQuery.process(solrServer)
       }
