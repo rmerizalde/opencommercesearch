@@ -24,11 +24,14 @@ import java.util.{MissingResourceException, ResourceBundle}
 import org.opencommercesearch.api.common.FilterQuery
 import org.apache.commons.lang3.StringUtils
 import play.api.i18n.Messages
-import org.apache.solr.util.DateMathParser;
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import java.util.Date;
-import java.text.ParseException;
+import org.apache.solr.util.DateMathParser
+import org.joda.time.DateTime
+import org.joda.time.Days
+import java.util.Date
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.util.regex.Pattern
+import play.api.Logger
 
 /**
  * @todo figure out if there a way to use Call.absoluteUrl with play.api.mvc.Request
@@ -40,6 +43,8 @@ object Util {
   val ResourceBefore = "before"
   val ResourceAfter = "after"
   val Now = "NOW"
+  val SolrDatePattern = Pattern.compile("HOUR|DAY|MONTHS|YEARS|NOW")
+  val DateFormatterISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
     
   //val resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources.properties")
 
@@ -84,25 +89,25 @@ object Util {
     if (resource == null) {
       resource = loadResource(resourceKey + "." + value2)
     }
-
+  	
     if (resource == null) {
       resource = loadResource(resourceKey)
     }
-
+    
     if (resource == null) {
       if (defaultName != null) {
         return defaultName
       }
       resource = "$[v1]-$[v2]"
     }
-
+    
     var rangeName = defaultName
     if (resource.contains("$[days]")) {
       val days = daysBetween(value1, value2)
       rangeName = StringUtils.replace(resource, "$[days]", String.valueOf(days))
     } else{
-      rangeName = StringUtils.replace(resource, "$[v1]", if (value1 == null) "" else value1)
-      rangeName = StringUtils.replace(rangeName, "$[v2]", if (value2 == null) "" else value2)	
+      rangeName = StringUtils.replace(resource, "$[v1]", if (value1 == null) StringUtils.EMPTY else value1)
+      rangeName = StringUtils.replace(rangeName, "$[v2]", if (value2 == null) StringUtils.EMPTY else value2)	
     }
     rangeName
   }
@@ -147,16 +152,20 @@ object Util {
   def parseDate(value: String, dmp: DateMathParser) : Date = {
     var date = new Date();
     try{
-      date = dmp.parseMath(StringUtils.remove(value, Now));
+      if(SolrDatePattern.matcher(value).find()) {
+        date = dmp.parseMath(StringUtils.remove(value, Now))
+      } else {
+        date = DateFormatterISO8601.parse(value)
+      }
     } catch {
       case ex: ParseException =>
-      // do nothing
+        Logger.error(ex.getMessage)
     }
-    date;
+    date
   }
 
   def daysBetween(from: String, to: String) : Int = {
-    var dmp = new DateMathParser()
+    val dmp = new DateMathParser()
     var fromDate = parseDate(from, dmp)
     var toDate = parseDate(to, dmp)
     Days.daysBetween(new DateTime(fromDate), new DateTime(toDate)).getDays()

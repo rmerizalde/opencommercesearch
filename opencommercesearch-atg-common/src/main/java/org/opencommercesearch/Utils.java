@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.util.DateMathParser;
@@ -57,6 +58,8 @@ public class Utils {
     private static final SimpleDateFormat iso8601Formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     public static final ResourceBundle resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources");
+    
+    public static final Pattern SolrDatePattern = Pattern.compile("HOUR|DAY|MONTHS|YEARS|NOW");
 
     public static String createPath(FilterQuery[] filterQueries, FilterQuery skipFilter) {
         return createPath(filterQueries, skipFilter, null);
@@ -115,11 +118,9 @@ public class Utils {
             int days = daysBetween(value1, value2);
             rangeName = StringUtils.replace(resource, "${days}", String.valueOf(days));
         } else{
-            rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? "" : value1));
-            rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? "" : value2));
+            rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? StringUtils.EMPTY : value1));
+            rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? StringUtils.EMPTY : value2));
         }
-
-        
         return rangeName;
     }
 
@@ -333,7 +334,11 @@ public class Utils {
     private static Date parseDate(String value, DateMathParser dmp) {
         Date date = new Date();
     	try{
-            date = dmp.parseMath(StringUtils.remove(value, NOW));
+            if(SolrDatePattern.matcher(value).find()) {
+                date = dmp.parseMath(StringUtils.remove(value, NOW));
+            } else {
+                date = iso8601Formatter.parse(value);
+            }
         } catch (ParseException ex){
             // do nothing
         }
