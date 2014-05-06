@@ -20,7 +20,6 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 import java.util
 
@@ -34,7 +33,6 @@ import org.opencommercesearch.search.Element
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
-import org.apache.commons.lang.StringUtils
 import org.opencommercesearch.search.suggester.Suggestion
 
 /**
@@ -129,11 +127,11 @@ case class Brand(
     doc
   }
 
-  def getNgramText() : String = {
+  def getNgramText : String = {
     this.getName
   }
 
-  def getType() : String = {
+  def getType : String = {
     "brand"
   }
 }
