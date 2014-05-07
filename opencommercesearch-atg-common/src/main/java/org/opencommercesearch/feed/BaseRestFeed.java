@@ -326,6 +326,15 @@ public abstract class BaseRestFeed extends GenericService {
                 }
             }
 
+            //If all items were ignored due data errors, simply ignore this batch.
+            if(jsonObjects.isEmpty()) {
+                if(isLoggingDebug()) {
+                    logDebug("Nothing to do here, all items in the current batch seem to have failed.");
+                }
+
+                return 0;
+            }
+
             final JSONObject obj = new JSONObject();
             obj.put(getEndpoint().getLowerCaseName(), jsonObjects);
             obj.put("feedTimestamp", feedTimestamp);
