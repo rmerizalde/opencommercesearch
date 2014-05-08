@@ -28,22 +28,22 @@ class UtilSpec extends Specification  {
   
   "Range Name" should {
     "parse range dates" should {
-      "get 0 days when ParseException" in {
-        running(FakeApplication()) {
-          val rangeMessage = Util.getRangeName("activationDate", "[20SOMETHING TO NOW]")
-          rangeMessage mustEqual "Last 0 days"
-        }
-      }
       "get number of days using NOW" in {
         running(FakeApplication()) {
           val rangeMessage = Util.getRangeName("activationDate", "[NOW-23DAY TO NOW]")
           rangeMessage mustEqual "Last 23 days"
         }
       }
+      
       "get number of days using dates ISO8601" in {
         running(FakeApplication()) {
           val rangeMessage = Util.getRangeName("activationDate", "[2013-05-05T00:00:00Z TO 2013-05-15T00:00:00Z]")
           rangeMessage mustEqual "Last 10 days"
+        }
+      }
+      "must throw ParseException" in {
+        running(FakeApplication()) {
+          Util.getRangeName("activationDate", "[20SOMETHING TO NOW]") must throwA[ParseException]
         }
       }
     }

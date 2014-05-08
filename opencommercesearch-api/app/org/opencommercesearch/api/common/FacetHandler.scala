@@ -37,6 +37,8 @@ import scala.concurrent.{ExecutionContext, Await}
 import ExecutionContext.Implicits.global
 import scala.collection.mutable
 import org.opencommercesearch.api.models.BreadCrumb
+import play.api.Logger
+import java.text.ParseException
 
 /**
  * @author rmerizalde
@@ -180,8 +182,11 @@ case class FacetHandler (
               value2 = Math.round(prevCount.getValue.toFloat)
               value2 += gap
             }
-            filters.add(createRangeFilter(range.getName, f, Util.ResourceInRange, prevCount.getValue,
-              value2.toString, prevCount.getCount))
+            
+            val filter = createRangeFilter(range.getName, f, Util.ResourceInRange, prevCount.getValue, value2.toString, prevCount.getCount) 
+            if (filter != null){
+                filters.add(filter)
+            }
           }
 
           val afterFilter = createAfterFilter(range, f)
@@ -215,16 +220,24 @@ case class FacetHandler (
   }
 
   private def createRangeFilter(fieldName: String, facet: Facet, key: String, value1: String, value2: String, count: Int): Filter = {
-    val v1 = removeDecimals(value1)
-    val v2 = removeDecimals(value2)
-    val filterQuery = s"$fieldName:[$v1 TO v2]"
-    new Filter(
-      Some(Util.getRangeName(fieldName, key, v1, v2, null)),
-      Some(count),
-      Some(URLEncoder.encode(getCountPath(fieldName, filterQuery, facet), "UTF-8")),
-      Some(URLEncoder.encode(filterQuery, "UTF-8")),
-      None
-    )
+    var filter: Filter = null
+    try {
+      val v1 = removeDecimals(value1)
+      val v2 = removeDecimals(value2)
+      val filterQuery = s"$fieldName:[$v1 TO v2]"
+      val filterName = Util.getRangeName(fieldName, key, v1, v2, null)
+      filter = new Filter(
+        Some(filterName),
+        Some(count),
+        Some(URLEncoder.encode(getCountPath(fieldName, filterQuery, facet), "UTF-8")),
+        Some(URLEncoder.encode(filterQuery, "UTF-8")),
+        None
+      )
+    } catch {
+        case ex: ParseException =>
+          Logger.error("Invalid range expression for fieldName: " + fieldName + " and key: " + key)
+    }
+    filter
   }
 
   private def removeDecimals(number: String) : String = {
@@ -264,15 +277,20 @@ case class FacetHandler (
             }
 
             val filterQuery = fieldName + ':' + expression
-
-            val filter = new Filter(
-              Some(FilterQuery.unescapeQueryChars(Util.getRangeName(fieldName, expression))),
-              Some(count),
-              Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
-              Some(URLEncoder.encode(filterQuery, "UTF-8")),
-              None)
-            filter.setSelected(fieldName, expression, filterQueries)
-            filters.add(filter)
+                    
+            try{
+                val filter = new Filter(
+                  Some(FilterQuery.unescapeQueryChars(Util.getRangeName(fieldName, expression))),
+                  Some(count),
+                  Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
+                  Some(URLEncoder.encode(filterQuery, "UTF-8")),
+                  None)
+                filter.setSelected(fieldName, expression, filterQueries)
+                filters.add(filter)
+            } catch {
+              case ex: ParseException =>
+                Logger.error("Invalid range expression for fieldName: " + fieldName + " and expression: " + expression)
+            }
           }
         }
       }

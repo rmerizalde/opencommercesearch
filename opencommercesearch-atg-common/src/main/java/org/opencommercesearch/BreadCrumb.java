@@ -19,6 +19,8 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.text.ParseException;
+
 public class BreadCrumb {
     private String fieldName;
     private String expression;
@@ -36,7 +38,7 @@ public class BreadCrumb {
         return expression;
     }
 
-    public void setExpression(String expression) {
+    public void setExpression(String expression) throws ParseException {
         this.expression = Utils.getRangeName(getFieldName(), expression);
     }
 

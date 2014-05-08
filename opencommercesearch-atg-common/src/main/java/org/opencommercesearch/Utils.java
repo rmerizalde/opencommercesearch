@@ -93,7 +93,7 @@ public class Utils {
         }
     }
 
-    public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) {
+    public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) throws ParseException {
         String resource = null;
         String resourceKey = "facet.range." + fieldName + "." + key;
         String rangeName = defaultName;
@@ -113,7 +113,7 @@ public class Utils {
             }
             resource = "${v1}-${v2}";
         }
-        
+
         if (resource.contains("${days}")) {
             int days = daysBetween(value1, value2);
             rangeName = StringUtils.replace(resource, "${days}", String.valueOf(days));
@@ -124,7 +124,7 @@ public class Utils {
         return rangeName;
     }
 
-    public static String getRangeName(String fieldName, String expression) {
+    public static String getRangeName(String fieldName, String expression) throws ParseException {
         if (expression.startsWith("[") && expression.endsWith("]")) {
             String[] parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
@@ -140,12 +140,11 @@ public class Utils {
         return expression;
     }
 
-    public static String getRangeBreadCrumb(String fieldName, String expression)
-    {
+    public static String getRangeBreadCrumb(String fieldName, String expression) throws ParseException {
         return getRangeBreadCrumb(fieldName, expression, null);
     }
 
-    public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) {
+    public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) throws ParseException {
         if (expression.startsWith("[") && expression.endsWith("]")) {
             String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
@@ -331,21 +330,15 @@ public class Utils {
         return message;
     }
     
-    private static Date parseDate(String value, DateMathParser dmp) {
-        Date date = new Date();
-    	try{
-            if(SolrDatePattern.matcher(value).find()) {
-                date = dmp.parseMath(StringUtils.remove(value, NOW));
-            } else {
-                date = iso8601Formatter.parse(value);
-            }
-        } catch (ParseException ex){
-            // do nothing
+    private static Date parseDate(String value, DateMathParser dmp) throws ParseException {
+        if(SolrDatePattern.matcher(value).find()) {
+            return dmp.parseMath(StringUtils.remove(value, NOW));
+        } else {
+            return iso8601Formatter.parse(value);
         }
-        return date;
     }
 
-    private static int daysBetween(String from, String to) {
+    private static int daysBetween(String from, String to) throws ParseException {
         DateMathParser dmp = new DateMathParser();
         Date fromDate = parseDate(from, dmp);
         Date toDate = parseDate(to, dmp);

@@ -31,7 +31,6 @@ import java.util.Date
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.regex.Pattern
-import play.api.Logger
 
 /**
  * @todo figure out if there a way to use Call.absoluteUrl with play.api.mvc.Request
@@ -79,7 +78,8 @@ object Util {
       null
     }
   }
-
+  
+  @throws(classOf[ParseException])
   def getRangeName(fieldName: String, key: String, value1: String, value2: String, defaultName: String): String = {
     var resource: String = null
     val resourceKey = "facet.range." + fieldName + "." + key
@@ -111,7 +111,8 @@ object Util {
     }
     rangeName
   }
-
+  
+  @throws(classOf[ParseException])
   def getRangeName(fieldName: String, expression: String): String = {
     if (expression.startsWith("[") && expression.endsWith("]")) {
       val parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ")
@@ -128,10 +129,12 @@ object Util {
     expression
   }
 
+  @throws(classOf[ParseException])
   def getRangeBreadCrumb(fieldName: String, expression: String): String = {
     getRangeBreadCrumb(fieldName, expression, null)
   }
-
+  
+  @throws(classOf[ParseException])
   def getRangeBreadCrumb(fieldName: String, expression: String, defaultCrumb: String): String = {
     if (expression.startsWith("[") && expression.endsWith("]")) {
       val parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ")
@@ -149,21 +152,16 @@ object Util {
     s"http${if (secure) "s" else ""}://${request.host}${call.url}"
   }
   
+  @throws(classOf[ParseException])
   def parseDate(value: String, dmp: DateMathParser) : Date = {
-    var date = new Date();
-    try{
-      if(SolrDatePattern.matcher(value).find()) {
-        date = dmp.parseMath(StringUtils.remove(value, Now))
-      } else {
-        date = DateFormatterISO8601.parse(value)
-      }
-    } catch {
-      case ex: ParseException =>
-        Logger.error(ex.getMessage)
+    if(SolrDatePattern.matcher(value).find()) {
+      dmp.parseMath(StringUtils.remove(value, Now))
+    } else {
+      DateFormatterISO8601.parse(value)
     }
-    date
   }
-
+  
+  @throws(classOf[ParseException])
   def daysBetween(from: String, to: String) : Int = {
     val dmp = new DateMathParser()
     var fromDate = parseDate(from, dmp)
