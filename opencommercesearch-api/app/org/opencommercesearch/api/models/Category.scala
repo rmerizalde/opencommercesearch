@@ -30,13 +30,11 @@ import org.apache.solr.client.solrj.beans.Field
 import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
-import org.opencommercesearch.search.Element
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 
-import org.apache.commons.lang.StringUtils
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 
 /**
@@ -59,7 +57,7 @@ case class Category (
   @JsonProperty("sites") var sites: Option[Seq[String]],
   @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
-  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends Element with Suggestion {
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends IndexableElement {
 
   /**
    * This constructor is for lazy loaded categories
@@ -325,6 +323,8 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
           hasSites = sites.size > 0
           for (site <- sites) {
             doc.addField("siteId", site)
+
+            //TODO Remove this
             doc.addField("catalogs", site)
           }
         }

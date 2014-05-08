@@ -40,7 +40,7 @@ import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.util.Util._
 
 import com.wordnik.swagger.annotations._
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController with FacetQuery {
@@ -97,8 +97,8 @@ object BrandController extends BaseController with FacetQuery {
           //Save brand on storage
           val storage = withNamespace(storageFactory)
           val storageFuture = storage.saveBrand(brand)
-          val queryCollectionUpdateFuture = Suggestion.addToIndex(Seq(brand), fetchCount = true)
-          val futureList = List[Future[Any]](storageFuture, queryCollectionUpdateFuture)
+          val suggestionFuture = IndexableElement.addToIndex(Seq(brand), fetchCount = true)
+          val futureList = List[Future[Any]](storageFuture, suggestionFuture)
           val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
             Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
           }
@@ -145,9 +145,9 @@ object BrandController extends BaseController with FacetQuery {
 
         val storage = withNamespace(storageFactory)
         val storageFuture = storage.saveBrand(brands:_*)
-        val suggestionUpdateFuture = Suggestion.addToIndex(brands, fetchCount = true)
+        val suggestionFuture = IndexableElement.addToIndex(brands, fetchCount = true)
 
-        val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionUpdateFuture)) map { result =>
+        val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionFuture)) map { result =>
           Created
         }
 

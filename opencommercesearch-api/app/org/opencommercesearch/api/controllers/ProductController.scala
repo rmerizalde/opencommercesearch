@@ -45,7 +45,7 @@ import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
 
 import com.wordnik.swagger.annotations._
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -551,8 +551,8 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val queryCollectionUpdateFuture = Suggestion.addToIndex(products)
-            val futureList = List(productFuture, searchFuture, queryCollectionUpdateFuture)
+            val suggestionFuture = IndexableElement.addToIndex(products)
+            val futureList = List(productFuture, searchFuture, suggestionFuture)
 
             val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
               Created

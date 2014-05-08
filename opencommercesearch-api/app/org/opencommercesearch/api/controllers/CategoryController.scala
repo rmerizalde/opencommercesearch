@@ -38,7 +38,7 @@ import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.common.FacetQuery
 import org.opencommercesearch.api.models.{Category, Brand, CategoryList}
 import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.search.suggester.Suggestion
+import org.opencommercesearch.search.suggester.IndexableElement
 
 import com.wordnik.swagger.annotations._
 
@@ -223,9 +223,9 @@ object CategoryController extends BaseController with FacetQuery {
           val docs = categoryList.toDocuments
           update.add(docs)
           val catalogUpdateFuture = update.process(solrServer)
-          val suggestionUpdateFuture = Suggestion.addToIndex(categories)
+          val suggestionFuture = IndexableElement.addToIndex(categories)
 
-          val future = Future.sequence(List[Future[Any]](storageFuture, catalogUpdateFuture, suggestionUpdateFuture)) map { result =>
+          val future = Future.sequence(List[Future[Any]](storageFuture, catalogUpdateFuture, suggestionFuture)) map { result =>
             Created
           }
 
