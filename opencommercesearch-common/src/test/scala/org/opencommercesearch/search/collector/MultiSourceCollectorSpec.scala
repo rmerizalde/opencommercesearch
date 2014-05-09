@@ -90,8 +90,8 @@ class MultiSourceCollectorSpec extends UnitSpec {
 
     val collectors = multiCollector.collectors
     collectors should contain allOf (collector1, collector2)
-    multiCollector.collector("source1") shouldBe collector1
-    multiCollector.collector("source2") shouldBe collector2
+    multiCollector.collector("source1").get shouldBe collector1
+    multiCollector.collector("source2").get shouldBe collector2
   }
 
   it should "return that is empty when all of its collectors are empty" in {
