@@ -34,14 +34,13 @@ import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.ProductFacetQuery
-import org.opencommercesearch.api.I18n._
 import org.opencommercesearch.api.common.FacetQuery
 import org.opencommercesearch.api.models.{Category, Brand, BrandList}
 import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.util.Util._
-import org.opencommercesearch.common.Context
 
 import com.wordnik.swagger.annotations._
+import org.opencommercesearch.search.suggester.IndexableElement
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController with FacetQuery {
@@ -98,8 +97,9 @@ object BrandController extends BaseController with FacetQuery {
           //Save brand on storage
           val storage = withNamespace(storageFactory)
           val storageFuture = storage.saveBrand(brand)
-
-          val future: Future[SimpleResult] = storageFuture.map { result =>
+          val suggestionFuture = IndexableElement.addToIndex(Seq(brand), fetchCount = true)
+          val futureList = List[Future[Any]](storageFuture, suggestionFuture)
+          val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
             Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
           }
 
@@ -145,9 +145,10 @@ object BrandController extends BaseController with FacetQuery {
 
         val storage = withNamespace(storageFactory)
         val storageFuture = storage.saveBrand(brands:_*)
+        val suggestionFuture = IndexableElement.addToIndex(brands, fetchCount = true)
 
-        val future: Future[SimpleResult] =  storageFuture.map { result =>
-            Created
+        val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionFuture)) map { result =>
+          Created
         }
 
         withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
@@ -209,8 +210,8 @@ object BrandController extends BaseController with FacetQuery {
    @ApiParam(value = "The feed timestamp. All brands with a different timestamp are deleted", required = true)
    @QueryParam("feedTimestamp")
    feedTimestamp: Long) = ContextAction.async { context => request =>
-    // no-op
-    Future.successful(Ok)
+    //TODO: Should the brand feed clean up mongo?
+    Future.successful(NoContent)
   }
 
   /**

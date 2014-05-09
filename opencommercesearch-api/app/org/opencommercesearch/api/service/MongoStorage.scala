@@ -448,7 +448,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
               val newDoc : Category =  lookupMap(id)
               category.name = newDoc.name
               category.seoUrlToken = newDoc.seoUrlToken
-              category.catalogs = newDoc.catalogs
+              category.sites= newDoc.sites
             } else {
               Logger.error(s"Missing nested category id reference [$id]")
             }

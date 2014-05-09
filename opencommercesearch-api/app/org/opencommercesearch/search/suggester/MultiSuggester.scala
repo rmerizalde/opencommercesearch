@@ -20,6 +20,7 @@ package org.opencommercesearch.search.suggester
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
+import play.api.Play
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -28,10 +29,11 @@ import org.apache.solr.client.solrj.AsyncSolrServer
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.Collector
+import org.apache.commons.lang3.StringUtils
 
 /**
- * Suggests elements any type of element. By default, it uses the catalog suggester only. Other suggester
- * can be plugged in via configuration properties
+ * Suggests any type of elements. By default, it only uses the catalog suggester. Other suggesters
+ * can be plugged in via configuration properties.
  *
  * @author rmerizalde
  */
@@ -43,11 +45,24 @@ class MultiSuggester extends Suggester[Element] {
 
   private def init() : Unit = {
     val multiElementSuggester = new CatalogSuggester[Element]
-    suggesters = suggesters :+ multiElementSuggester
+    suggesters :+= multiElementSuggester
 
-    // plug other suggester from the config here
+    //plug other suggesters from the config here
+    suggesters ++= initConfigSuggesters()
 
     allSources = suggesters.foldLeft(allSources)(_ ++ _.sources())
+  }
+
+  /**
+   * Creates suggesters from the config. It looks for a comma separated list of suggester names in "suggester.extra" configuration property.
+   * @return Sequence of suggester instances from config
+   */
+  def initConfigSuggesters() : Seq[Suggester[Element]] = {
+    val suggestersFromConfig = Play.current.configuration.getString("suggester.extra").getOrElse(StringUtils.EMPTY)
+    val suggesterNames = StringUtils.split(suggestersFromConfig, ",").toSeq
+    suggesterNames map { suggesterName =>
+      Class.forName(suggesterName).newInstance().asInstanceOf[Suggester[Element]]
+    }
   }
 
   init()

@@ -68,8 +68,6 @@ object SuggestionController extends BaseController {
      //@QueryParam("preview")
      preview: Boolean) = Action.async { implicit request =>
 
-
-
     if (q == null || q.length < 2) {
       Future.successful(BadRequest(Json.obj(
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
@@ -80,7 +78,12 @@ object SuggestionController extends BaseController {
       val collector = new MultiSourceCollector[Element]
       suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )
 
-      suggester.search(q, site, collector, solrServer).flatMap(c => {
+      var query = q;
+      if(!(q.startsWith("\"") && q.endsWith("\""))) {
+        query = "\"" + q + "\""
+      }
+      
+      suggester.search(query, site, collector, solrServer).flatMap(c => {
         if (!collector.isEmpty) {
           var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 
@@ -89,7 +92,6 @@ object SuggestionController extends BaseController {
               futureList += Future.successful(suggester.responseName(source) -> c.elements().map(e => e.toJson))
             }
           }
-
 
           Future.sequence(futureList).map( results => {
             Ok(Json.obj(
@@ -110,9 +112,6 @@ object SuggestionController extends BaseController {
         }
       })
     }
-
-
-
   }
 }
 

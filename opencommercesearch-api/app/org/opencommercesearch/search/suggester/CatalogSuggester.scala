@@ -36,10 +36,11 @@ import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.collector.Collector
 import org.opencommercesearch.api.ProductSearchQuery
 import scala.collection.mutable.ArrayBuffer
+import org.apache.commons.lang.StringUtils
 
 
 /**
- * Suggests elements from the catalog. The elements include brands, categories and products. Aditionally, the suggester
+ * Suggests elements from the catalog. The elements include brands, categories and products. Additionally, the suggester
  * returns popular user queries. Suggestions come from the autocomplete collection and are based on ngrams on the brand name,
  * category name and product title. User queries used edge ngrams.
  *
@@ -114,16 +115,12 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
     }
   }
 
-  private object ProductSuggester extends Suggester[E] with ContentPreview {
+  private object ProductSuggester extends ContentPreview {
 
     val fields = Seq("id", "title", "url", "brand.name", "skus.image", "skus.url")
     val empty = Seq[E]()
 
-    override def responseName(source: String) : String = if (sources().contains(source)) "products" else source
-
-    override def sources() = Set("product")
-
-    protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
+    def search(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
       val query = new ProductSearchQuery(q, site)(context, null)
         .withPagination(offset = 0, suggestionLimit)
         .withGrouping(totalCount = false, limit = 1, collapse = false)
@@ -194,12 +191,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
   override def sources() = typeToClass.keySet
 
-  override def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer)(implicit context : Context) : Future[Collector[E]] = {
-    ProductSuggester.search(q, site, collector, server).flatMap(c => {
-      super.search(q, site, collector, server)
-    })
-  }
-
+  
   protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
     val query = new SolrQuery(q)
     query.setParam("collection", SuggestCollection)
@@ -215,7 +207,9 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
     server.query(query).flatMap( response => {
       val futureList = new mutable.ArrayBuffer[Future[Seq[E]]](typeToBinder.size)
-
+      var suggestedTerm = StringUtils.EMPTY 
+      var suggestedProducts: Future[Seq[E]] = null
+      
       if (response.getGroupResponse != null) {
         for (command <- response.getGroupResponse.getValues) {
 
@@ -226,16 +220,32 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
             if (clazz != null) {
               val docs = group.getResult.map(doc => amendId(doc, `type`))
 
+              if(`type` == "userQuery" && StringUtils.isEmpty(suggestedTerm) && docs.length > 0) {
+                suggestedTerm = docs.get(0).getFieldValue("userQuery").toString()
+              }
+              
               for (binder <- typeToBinder.get(`type`)) {
-                futureList += binder.getElements(docs)
+                if(`type` == "product") {
+                    suggestedProducts = binder.getElements(docs)
+                } else {
+                    futureList += binder.getElements(docs)
+                }
               }
             }
           }
         }
+
       }
-      Future.sequence(futureList).map( elements => {
-        elements.flatten
-      })
+      
+     if (StringUtils.isNotEmpty(suggestedTerm)) {
+         futureList += ProductSuggester.search(suggestedTerm, site, server)
+     }
+     if (suggestedProducts != null) {
+         futureList += suggestedProducts
+     }
+     Future.sequence(futureList).map( elements => {  
+          elements.flatten
+     })
     })
   }
 

@@ -20,7 +20,6 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 import java.util
 
@@ -29,10 +28,10 @@ import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
-import org.opencommercesearch.search.Element
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
+import org.opencommercesearch.search.suggester.IndexableElement
 
 /**
  * A brand model
@@ -47,10 +46,11 @@ case class Brand(
    @Id var id: Option[String], 
    @JsonProperty("name") var name: Option[String], 
    @JsonProperty("logo") var logo: Option[String], 
-   @JsonProperty("url") var url: Option[String]) extends Element {
+   @JsonProperty("url") var url: Option[String],
+   @JsonProperty("sites") var sites: Option[Seq[String]]) extends IndexableElement {
 
   @JsonCreator
-  def this() = this(None, None, None, None)
+  def this() = this(None, None, None, None, None)
 
   def getId : String = { this.id.get }
   
@@ -61,7 +61,7 @@ case class Brand(
 
   override def source = "brand"
 
-  override def toJson : JsValue = Json.toJson(this)
+  override def toJson : JsValue = { Json.toJson(this) }
 
   @Field
   def setName(name: String) : Unit = {
@@ -86,6 +86,15 @@ case class Brand(
     this.url.getOrElse(StringUtils.EMPTY)
   }
 
+  @Field("siteId")
+  def setSites(sites: Seq[String]) : Unit = {
+    this.sites = Option.apply(sites)
+  }
+
+  def getSites : Seq[String] = {
+    this.sites.getOrElse(Seq.empty[String])
+  }
+
   def toDocument(feedTimestamp: Long) : SolrInputDocument = {
     val doc = new SolrInputDocument()
 
@@ -105,35 +114,39 @@ case class Brand(
       doc.setField("url", v)
     }
 
+    for(s <- sites) {
+      s.foreach { site =>
+        doc.addField("siteId", site)
+      }
+    }
+
     doc.setField("feedTimestamp", feedTimestamp)
 
     doc
+  }
+
+  def getNgramText : String = {
+    this.getName
+  }
+
+  def getType : String = {
+    "brand"
   }
 }
 
 object Brand {
 
-  implicit val readsBrand: Reads[Brand] = (
-    (__ \ "id").readNullable[String] ~
-    (__ \ "name").readNullable[String] ~
-    (__ \ "logo").readNullable[String] ~
-    (__ \ "url").readNullable[String]
-  ) (Brand.apply _)
-
-  implicit val writesBrand : Writes[Brand] = (
-    (__ \ "id").writeNullable[String] ~
-    (__ \ "name").writeNullable[String] ~
-    (__ \ "logo").writeNullable[String] ~
-    (__ \ "url").writeNullable[String]
-  ) (unlift(Brand.unapply))
+  implicit val readsBrand = Json.reads[Brand]
+  implicit val writesBrand = Json.writes[Brand]
 
   def fromDocument(doc : SolrDocument) : Brand = {
     val id = doc.get("id").asInstanceOf[String]
     val name = doc.get("name").asInstanceOf[String]
     val logo = doc.get("logo").asInstanceOf[String]
     val url = doc.get("url").asInstanceOf[String]
+    val sites = doc.get("siteId").asInstanceOf[Seq[String]]
 
-    new Brand(Option.apply(id), Option.apply(name), Option.apply(logo), Option.apply(url))
+    new Brand(Option.apply(id), Option(name), Option(logo), Option(url), Option(sites))
   }
 }
 

@@ -154,7 +154,7 @@ class CategoryServiceSpec extends Specification with Mockito {
     category.getId returns categoryId
     category.id returns Some(categoryId)
     category.name returns Some(displayName)
-    category.catalogs returns Some(categoryCatalogs)
+    category.sites returns Some(categoryCatalogs)
     if (parentCategories != null) {
       category.parentCategories returns Some(parentCategories)
     } else {
