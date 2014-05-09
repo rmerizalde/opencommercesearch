@@ -4,7 +4,11 @@ version := "0.3-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
-libraryDependencies += "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT" % "provided"
+libraryDependencies ++= Seq(
+  "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT" % "provided",
+  "org.scalatest" %% "scalatest" % "2.1.5" % "test",
+  "org.mockito" % "mockito-all" % "1.9.5"
+)
 
 resolvers ++= Seq(
   "SBT Plugin Snapshot Repository" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-snapshots/",
