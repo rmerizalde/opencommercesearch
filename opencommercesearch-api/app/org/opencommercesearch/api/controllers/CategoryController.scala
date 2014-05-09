@@ -60,7 +60,10 @@ object CategoryController extends BaseController with FacetQuery{
       id: String,
       @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
       @QueryParam("preview")
-      preview: Boolean) = Action.async { implicit request =>
+      preview: Boolean,
+      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
+      @QueryParam("outlet")
+      outlet: Boolean) = Action.async { implicit request =>
 
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
@@ -72,10 +75,12 @@ object CategoryController extends BaseController with FacetQuery{
       catalogQuery.add("fq", fq.toString)
     })
 
+    catalogQuery.addFilterQuery("isOutlet:"+request.getQueryString("outlet").getOrElse("false").toBoolean)
+
     if(Logger.isDebugEnabled) {
       Logger.debug(s"Searching for child categories for [$id] with query ${catalogQuery.toString}")
     }
-
+    
     val future = solrServer.query(catalogQuery).flatMap( catalogResponse => {
       val facetFields = catalogResponse.getFacetFields
       var taxonomyFuture: Future[SimpleResult] = null
@@ -140,10 +145,14 @@ object CategoryController extends BaseController with FacetQuery{
                 site: String,
                 @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
                 @QueryParam("preview")
-                preview: Boolean) = Action.async { implicit request =>
+                preview: Boolean,
+                @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
+                @QueryParam("outlet")
+                outlet: Boolean) = Action.async { implicit request =>
 
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(withFieldFacet("categoryPath", new SolrQuery("*:*")), preview)
+    catalogQuery.addFilterQuery("isOutlet:"+request.getQueryString("outlet").getOrElse("false").toBoolean)
     catalogQuery.setFacetPrefix(s"$site.")
     catalogQuery.setFacetLimit(MaxFacetPaginationLimit)
 
@@ -309,7 +318,10 @@ object CategoryController extends BaseController with FacetQuery{
      id: String,
      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
      @QueryParam("preview")
-     preview: Boolean) = Action.async { implicit request =>
+     preview: Boolean,
+     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
+     @QueryParam("outlet")
+     outlet: Boolean) = Action.async { implicit request =>
 
     val startTime = System.currentTimeMillis()
     val catalogQuery = withSearchCollection(new SolrQuery("*:*"), preview)
@@ -323,7 +335,7 @@ object CategoryController extends BaseController with FacetQuery{
       //and 0 rows in the result
       withFieldFacet("brandId", catalogQuery)
     }
-
+    catalogQuery.addFilterQuery("isOutlet:"+request.getQueryString("outlet").getOrElse("false").toBoolean)
     solrServer.query(catalogQuery).flatMap( categoryResponse => {
       //query the SOLR product catalog with the query we generated in the code above.
       val brandFacet = categoryResponse.getFacetField("brandId")
