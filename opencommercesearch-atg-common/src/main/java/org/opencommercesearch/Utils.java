@@ -146,7 +146,7 @@ public class Utils {
 
     public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) throws ParseException {
         if (expression.startsWith("[") && expression.endsWith("]")) {
-            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            String[] parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
                 return getRangeName(fieldName, Utils.RESOURCE_CRUMB, parts[0], parts[1], defaultCrumb);
             }

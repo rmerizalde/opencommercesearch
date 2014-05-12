@@ -442,11 +442,16 @@ case class FacetHandler (
       if ("category".equals(filterQuery.fieldName)) {
         crumbs.addAll(createCategoryBreadCrumb(filterQuery))
       } else {
-        val crumb = new BreadCrumb()
-        crumb.setFieldName(filterQuery.fieldName)
-        crumb.setExpression(Util.getRangeBreadCrumb(filterQuery.fieldName, filterQuery.unescapeExpression, filterQuery.unescapeExpression))
-        crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"))
-        crumbs.add(crumb)
+        try{
+          val crumb = new BreadCrumb()
+          crumb.setFieldName(filterQuery.fieldName)
+          crumb.setExpression(getCrumbExpression(filterQuery.fieldName, filterQuery.unescapeExpression))
+          crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"))
+          crumbs.add(crumb)
+        } catch {
+          case ex: ParseException =>
+            Logger.error("Invalid range expression for fieldName: " + filterQuery.fieldName + " and expression: " + filterQuery.unescapeExpression)
+        }
       }
     })
     crumbs
@@ -495,5 +500,10 @@ case class FacetHandler (
       buffer.append(FilterQuery.CategorySeparator).append(category)
     }
     breadCrumbs
+  }
+  
+  @throws(classOf[ParseException])
+  private def getCrumbExpression(fieldName: String, expression: String): String = {
+      Util.getRangeName(fieldName, Util.getRangeBreadCrumb(fieldName, expression, expression))
   }
 }

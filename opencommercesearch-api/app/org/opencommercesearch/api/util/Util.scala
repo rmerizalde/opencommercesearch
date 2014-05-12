@@ -137,7 +137,7 @@ object Util {
   @throws(classOf[ParseException])
   def getRangeBreadCrumb(fieldName: String, expression: String, defaultCrumb: String): String = {
     if (expression.startsWith("[") && expression.endsWith("]")) {
-      val parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ")
+      val parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ")
       if (parts.length == 2) {
         return getRangeName(fieldName, RESOURCE_CRUMB, parts(0), parts(1), defaultCrumb)
       }
