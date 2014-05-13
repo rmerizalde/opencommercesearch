@@ -24,7 +24,8 @@ object ApplicationBuild extends Build {
     "com.fasterxml.jackson.core" % "jackson-core" % "2.2.3" force(),
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.2.3",
     "org.mongodb" % "mongo-java-driver" % "2.11.3",
-    "org.jongo" % "jongo" % "1.0"//,
+    "org.jongo" % "jongo" % "1.0",
+    "org.apache.solr" % "solr-core" % "4.6.1"
     //"uk.co.panaxiom" %% "play-jongo" % "0.6.0-jongo0.4"
   )
 

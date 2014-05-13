@@ -15,12 +15,13 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable
 import scala.concurrent.Future
 import java.util
-
+import play.api.test._
+import play.api.test.Helpers._
 
 /**
  * Created by atguser on 2/11/14.
  */
-class FacetHandlerSpec  extends BaseSpec {
+class FacetHandlerSpec extends BaseSpec {
 
   var facetHandler : FacetHandler = null;
   var solrQuery : SolrQuery = mock[SolrQuery]
@@ -36,8 +37,7 @@ class FacetHandlerSpec  extends BaseSpec {
 
   "FacetHandler" should {
     setup()
-
-
+    
     "return no breadcrumbs when no facets are selected" in {
       var fq = Array.empty[FilterQuery]
       facetHandler = new FacetHandler(solrQuery, queryResponse, fq, facetData, storage)
@@ -68,6 +68,15 @@ class FacetHandlerSpec  extends BaseSpec {
       validateBreadcrumb(response(0), "category", "category1", "brand:myBrand|colorFamily:blue")
       validateBreadcrumb(response(1), "brand", "myBrand", "category:1.mysite.category1|colorFamily:blue")
       validateBreadcrumb(response(2), "colorFamily", "blue", "category:1.mysite.category1|brand:myBrand")
+    }
+    
+    "return one breadcrumb when new arrivals is selected" in {
+      running(FakeApplication()) {
+        var fq = FilterQuery.parseFilterQueries("activationDate:[NOW-30DAY TO NOW]")
+        facetHandler = new FacetHandler(solrQuery, queryResponse, fq, facetData, storage)
+        val response = facetHandler.getBreadCrumbs
+        validateBreadcrumb(response(0), "activationDate", "Last 30 days", "")
+      }
     }
 
     "Remove facet filters when blacklisted" in {

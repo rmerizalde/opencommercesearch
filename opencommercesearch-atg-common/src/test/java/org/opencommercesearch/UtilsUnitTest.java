@@ -21,7 +21,7 @@ package org.opencommercesearch;
 
 
 import org.junit.Test;
-
+import java.text.ParseException;
 import static org.junit.Assert.*;
 
 /**
@@ -29,14 +29,14 @@ import static org.junit.Assert.*;
  */
 public class UtilsUnitTest {
     @Test
-    public void testRangeCrumb() {
+    public void testRangeCrumb() throws ParseException {
         assertEquals("5 Stars & Up", Utils.getRangeBreadCrumb("reviewAverage", "[5 TO *]"));
         assertEquals("1 Star & Up", Utils.getRangeBreadCrumb("reviewAverage", "[1 TO *]"));
         assertEquals("2 Stars & Up", Utils.getRangeBreadCrumb("reviewAverage", "[2 TO 3]"));
     }
 
     @Test
-    public void testRangeCrumbDefault() {
+    public void testRangeCrumbDefault() throws ParseException {
         assertEquals("5-*", Utils.getRangeBreadCrumb("myCustomField", "[5 TO *]"));
         assertEquals("1-6", Utils.getRangeBreadCrumb("myCustomField", "[1 TO 6]"));
     }

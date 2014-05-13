@@ -35,7 +35,7 @@ case class BreadCrumb(
     this.fieldName = Option.apply(fieldName)
   }
   def setExpression(expression: String) : Unit = {
-    this.expression = Option.apply(expression)
+    this.expression = Some(expression)
   }
   def setPath(path: String) : Unit = {
     this.path = Option.apply(path)

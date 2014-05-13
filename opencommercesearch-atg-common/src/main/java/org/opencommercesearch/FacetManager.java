@@ -19,9 +19,11 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import java.text.ParseException;
 import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.FacetField.Count;
@@ -49,6 +51,7 @@ import atg.repository.RepositoryItem;
  */
 public class FacetManager {
     private Map<String, RepositoryItem> facetMap;
+    private Logger logger = Logger.getLogger(FacetManager.class);
 
     enum FacetType {
         fieldFacet() {
@@ -409,11 +412,15 @@ public class FacetManager {
             if (filterQuery.getFieldName().equals("category")) {
                 createCategoryBreadCrumb(filterQuery, filterQueries, crumbs);
             } else {
-                BreadCrumb crumb = new BreadCrumb();
-                crumb.setFieldName(filterQuery.getFieldName());
-                crumb.setExpression(Utils.getRangeBreadCrumb(filterQuery.getFieldName(), filterQuery.getUnescapeExpression(), filterQuery.getUnescapeExpression()));
-                crumb.setPath(Utils.createPath(filterQueries, filterQuery));
-                crumbs.add(crumb);
+                try {
+                    BreadCrumb crumb = new BreadCrumb();
+                    crumb.setFieldName(filterQuery.getFieldName());
+                    crumb.setExpression(Utils.getRangeBreadCrumb(filterQuery.getFieldName(), filterQuery.getUnescapeExpression(), filterQuery.getUnescapeExpression()));
+                    crumb.setPath(Utils.createPath(filterQueries, filterQuery));
+                    crumbs.add(crumb);
+                } catch (ParseException ex) {
+                    logger.error("Invalid range expression for fieldName: " + filterQuery.getFieldName() + " and expression: " + filterQuery.getUnescapeExpression());
+                }
             }
         }
         return crumbs;
@@ -446,27 +453,31 @@ public class FacetManager {
 
         int level = 1;
         for (int i = 2; i < categories.length; ++i) {
-            BreadCrumb crumb = new BreadCrumb();
-            String category = categories[i];
-
-            crumb.setExpression(FilterQuery.unescapeQueryChars(category));
-
-            crumb.setFieldName(categoryFilterQuery.getFieldName());
-            String unselectPath = "";
-            if (buffer.length() > 0) {
-                unselectPath = "category:" + level++ + SearchConstants.CATEGORY_SEPARATOR + catalogId
-                        + buffer.toString();
-            }
-
-            if (StringUtils.isNotBlank(basePath)) {
-                if (unselectPath != null) {
-                    unselectPath += Utils.PATH_SEPARATOR;
+            try{
+                BreadCrumb crumb = new BreadCrumb();
+                String category = categories[i];
+    
+                crumb.setExpression(FilterQuery.unescapeQueryChars(category));
+    
+                crumb.setFieldName(categoryFilterQuery.getFieldName());
+                String unselectPath = "";
+                if (buffer.length() > 0) {
+                    unselectPath = "category:" + level++ + SearchConstants.CATEGORY_SEPARATOR + catalogId
+                            + buffer.toString();
                 }
-                unselectPath += basePath;
+    
+                if (StringUtils.isNotBlank(basePath)) {
+                    if (unselectPath != null) {
+                        unselectPath += Utils.PATH_SEPARATOR;
+                    }
+                    unselectPath += basePath;
+                }
+                crumb.setPath(unselectPath);
+                breadCrumbs.add(crumb);
+                buffer.append(SearchConstants.CATEGORY_SEPARATOR).append(category);
+            } catch(ParseException ex) {
+                logger.error("Invalid range expression for fieldName: " + categoryFilterQuery.getFieldName() + " and expression: " + FilterQuery.unescapeQueryChars(categories[i]));
             }
-            crumb.setPath(unselectPath);
-            breadCrumbs.add(crumb);
-            buffer.append(SearchConstants.CATEGORY_SEPARATOR).append(category);
         }
     }
 }

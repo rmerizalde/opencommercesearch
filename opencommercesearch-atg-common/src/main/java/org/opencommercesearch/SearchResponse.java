@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.text.ParseException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
@@ -34,6 +35,7 @@ import org.apache.solr.client.solrj.response.FacetField.Count;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.RangeFacet;
 import org.apache.solr.common.params.FacetParams;
+import org.apache.log4j.Logger;
 import org.opencommercesearch.Facet.Filter;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.RangeFacetProperty;
@@ -58,6 +60,7 @@ public class SearchResponse {
     private List<CategoryGraph> categoryGraph;
     private boolean matchesAll;
     private String correctedTerm;
+    private Logger logger = Logger.getLogger(SearchResponse.class);
 
     private int ruleQueryTime;
     
@@ -226,8 +229,10 @@ public class SearchResponse {
                     prevCount = count;
                     continue;
                 }
-                filters.add(createRangeFilter(range.getName(), Utils.RESOURCE_IN_RANGE,
-                        prevCount.getValue(), count.getValue(), prevCount.getCount()));
+                Filter filter = createRangeFilter(range.getName(), Utils.RESOURCE_IN_RANGE, prevCount.getValue(), count.getValue(), prevCount.getCount());
+                if (filter != null){
+                    filters.add(filter);
+                }
                 prevCount = count;
             }
             
@@ -280,15 +285,19 @@ public class SearchResponse {
         
     private Filter createRangeFilter(String fieldName, String key, String value1, String value2, int count) {
         Filter filter = new Filter();
-        value1 = removeDecimals(value1);
-        value2 = removeDecimals(value2);
-        filter.setName(Utils.getRangeName(fieldName, key, value1, value2, null));
-        filter.setCount(count);
-        String filterQuery = fieldName + ":[" + value1 + " TO " + value2 + "]";
-        FacetManager manager = getRuleManager().getFacetManager();
-        filter.setPath(manager.getCountPath(fieldName, fieldName, filterQuery,
-                filterQueries));
-
+        try {
+            value1 = removeDecimals(value1);
+            value2 = removeDecimals(value2);
+            filter.setName(Utils.getRangeName(fieldName, key, value1, value2, null));
+            filter.setCount(count);
+            String filterQuery = fieldName + ":[" + value1 + " TO " + value2 + "]";
+            FacetManager manager = getRuleManager().getFacetManager();
+            filter.setPath(manager.getCountPath(fieldName, fieldName, filterQuery,
+                    filterQueries));
+        } catch (ParseException ex) {
+            logger.error("Invalid range expression for fieldName: " + fieldName + " and key: " + key);
+            filter = null;
+        }
         return filter;
     }
 
@@ -341,13 +350,18 @@ public class SearchResponse {
                 setMetadata(manager, fieldName, facet);
                 facetMap.put(fieldName, facet);
             }
-            Filter filter = new Filter();
-            filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
-            String filterQuery = fieldName + ':' + expression;
-            filter.setPath(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
-            filter.setCount(count);
-            filter.setSelected(fieldName, expression, filterQueries);
-            filters.add(filter);
+            
+            try {
+                Filter filter = new Filter();
+                filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
+                String filterQuery = fieldName + ':' + expression;
+                filter.setPath(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
+                filter.setCount(count);
+                filter.setSelected(fieldName, expression, filterQueries);
+                filters.add(filter);
+            } catch (ParseException ex) {
+                logger.error("Invalid range expression for fieldName: " + fieldName + " and expression: " + expression);
+            }
         }
     }
 

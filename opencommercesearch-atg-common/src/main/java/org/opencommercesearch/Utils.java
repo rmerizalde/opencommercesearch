@@ -20,17 +20,28 @@ package org.opencommercesearch;
 */
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
-import atg.json.JSONException;
-import atg.json.JSONObject;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.solr.util.DateMathParser;
+import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.opencommercesearch.repository.CategoryProperty;
+import org.restlet.representation.Representation;
 
 import atg.repository.RepositoryItem;
-import org.restlet.representation.Representation;
+import atg.json.JSONException;
+import atg.json.JSONObject;
 
 public class Utils {
 
@@ -39,13 +50,16 @@ public class Utils {
     public static final String RESOURCE_BEFORE = "before";
     public static final String RESOURCE_AFTER = "after";
     public static final String RESOURCE_CRUMB = "crumb";
-
+    public static final String NOW = "NOW";
+    
     /**
      * Date formatter for ISO 8601 dates.
      */
     private static final SimpleDateFormat iso8601Formatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     public static final ResourceBundle resources = ResourceBundle.getBundle("org.opencommercesearch.CSResources");
+    
+    public static final Pattern SolrDatePattern = Pattern.compile("HOUR|DAY|MONTHS|YEARS|NOW");
 
     public static String createPath(FilterQuery[] filterQueries, FilterQuery skipFilter) {
         return createPath(filterQueries, skipFilter, null);
@@ -79,10 +93,11 @@ public class Utils {
         }
     }
 
-    public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) {
+    public static String getRangeName(String fieldName, String key, String value1, String value2, String defaultName) throws ParseException {
         String resource = null;
         String resourceKey = "facet.range." + fieldName + "." + key;
-
+        String rangeName = defaultName;
+        
         // First try to find if there's a specific resource for the value
         resource = loadResource(resourceKey + "." + value1);
         if (resource == null) {
@@ -99,14 +114,19 @@ public class Utils {
             resource = "${v1}-${v2}";
         }
 
-        String rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? "" : value1));
-        rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? "" : value2));
+        if (resource.contains("${days}")) {
+            int days = daysBetween(value1, value2);
+            rangeName = StringUtils.replace(resource, "${days}", String.valueOf(days));
+        } else{
+            rangeName = StringUtils.replace(resource, "${v1}", (value1 == null ? StringUtils.EMPTY : value1));
+            rangeName = StringUtils.replace(rangeName, "${v2}", (value2 == null ? StringUtils.EMPTY : value2));
+        }
         return rangeName;
     }
 
-    public static String getRangeName(String fieldName, String expression) {
+    public static String getRangeName(String fieldName, String expression) throws ParseException {
         if (expression.startsWith("[") && expression.endsWith("]")) {
-            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            String[] parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
                 String key = Utils.RESOURCE_IN_RANGE;
                 if ("*".equals(parts[0])) {
@@ -120,14 +140,13 @@ public class Utils {
         return expression;
     }
 
-    public static String getRangeBreadCrumb(String fieldName, String expression)
-    {
+    public static String getRangeBreadCrumb(String fieldName, String expression) throws ParseException {
         return getRangeBreadCrumb(fieldName, expression, null);
     }
 
-    public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) {
+    public static String getRangeBreadCrumb(String fieldName, String expression, String defaultCrumb) throws ParseException {
         if (expression.startsWith("[") && expression.endsWith("]")) {
-            String[] parts = StringUtils.split(expression.substring(1, expression.length() - 1), " TO ");
+            String[] parts = StringUtils.splitByWholeSeparator(expression.substring(1, expression.length() - 1), " TO ");
             if (parts.length == 2) {
                 return getRangeName(fieldName, Utils.RESOURCE_CRUMB, parts[0], parts[1], defaultCrumb);
             }
@@ -309,5 +328,20 @@ public class Utils {
             // do nothing
         }
         return message;
+    }
+    
+    private static Date parseDate(String value, DateMathParser dmp) throws ParseException {
+        if(SolrDatePattern.matcher(value).find()) {
+            return dmp.parseMath(StringUtils.remove(value, NOW));
+        } else {
+            return iso8601Formatter.parse(value);
+        }
+    }
+
+    private static int daysBetween(String from, String to) throws ParseException {
+        DateMathParser dmp = new DateMathParser();
+        Date fromDate = parseDate(from, dmp);
+        Date toDate = parseDate(to, dmp);
+    	return Days.daysBetween(new DateTime(fromDate), new DateTime(toDate)).getDays();
     }
 }
