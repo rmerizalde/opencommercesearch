@@ -26,6 +26,7 @@ import com.mongodb.gridfs.GridFS
 import org.jongo.marshall.jackson.JacksonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import scala.collection.mutable
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * MongoDB storage factory implementation
@@ -34,7 +35,7 @@ import scala.collection.mutable
  */
 class MongoStorageFactory extends StorageFactory[WriteResult] {
 
-  val storages = new mutable.HashMap[String, MongoStorage]().withDefaultValue(null)
+  val storages = new ConcurrentHashMap[String, MongoStorage]()
   var mongo: MongoClient = null
   var config: Configuration = null
   var classLoader: ClassLoader = null
@@ -55,25 +56,24 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
    */
   def getInstance(namespace: String) : MongoStorage = {
     val databaseName =  namespace
+    var storage = storages.get(databaseName)
 
-    synchronized {
-      var storage = storages(databaseName)
+    if (storage == null) {
+      Logger.info(s"Setting up storage for namespace $namespace")
 
-      if (storage == null) {
-        Logger.info(s"Setting up storage for namespace $namespace")
+      val jongoUri = config.getString("jongo.uri").getOrElse("mongodb://127.0.0.1:27017/")
+      val uri = new MongoClientURI(jongoUri)
 
-        val jongoUri = config.getString("jongo.uri").getOrElse("mongodb://127.0.0.1:27017/")
-        val uri = new MongoClientURI(jongoUri)
-
-        this.synchronized {
-          if (mongo == null) {
-            Logger.info(s"Initializing mongo client singleton for namespace $namespace with URI $jongoUri")
-            mongo = new MongoClient(uri)
-          }
+      this.synchronized {
+        if (mongo == null) {
+          Logger.info(s"Initializing mongo client singleton for namespace $namespace with URI $jongoUri")
+          mongo = new MongoClient(uri)
         }
+      }
 
-        storage = new MongoStorage(mongo)
+      storage = new MongoStorage(mongo)
 
+      if (storages.putIfAbsent(databaseName, storage) == null) {
         Logger.info(s"Creating database for $namespace")
         val db = mongo.getDB(databaseName)
 
@@ -100,8 +100,8 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
         Logger.info(s"Setting up indexes for namespace $namespace")
         storage.ensureIndexes
       }
-      storage
     }
+    storage
   }
 
   private def createMapper() : Mapper = {

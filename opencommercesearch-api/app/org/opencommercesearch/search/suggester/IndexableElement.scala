@@ -81,32 +81,36 @@ object IndexableElement {
     if(!context.isPublic) {
       val feedTimeStamp = System.currentTimeMillis()
       val updateQuery = new AsyncUpdateRequest()
-      
+
       updateQuery.setParam("collection", SuggestCollection)
+
       if(fetchCount) {
         val futureSuggestion = suggestions map { s =>
-            val query = new SolrQuery("\"" + s.getNgramText + "\"")
-                query.setParam("collection", SuggestCollection)
-                     .setFilterQueries("type:\"userQuery\"")
-                     .setFields("count")
-                     .setRows(1)
-            solrServer.query(query).flatMap( response => {
-                 if (response.getResults != null && response.getResults.size > 0) {
-                     val count : Int =  response.getResults().get(0).getFieldValue("count").asInstanceOf[Int]
-                     Future(s.toSolrDoc(feedTimeStamp, count))
-                 } else {
-                   Future(s.toSolrDoc(feedTimeStamp))
-                 }
-            })
-       }
-       Future.sequence(futureSuggestion).flatMap(elements => {
-         updateQuery.add(elements)
-         updateQuery.process(solrServer)
-       })
+          val query = new SolrQuery("\"" + s.getNgramText + "\"")
+          query.setParam("collection", SuggestCollection)
+           .setFilterQueries("type:\"userQuery\"")
+           .setFields("count")
+           .setRows(1)
+
+          solrServer.query(query).flatMap( response => {
+            if (response.getResults != null && response.getResults.size > 0) {
+               val count : Int =  response.getResults().get(0).getFieldValue("count").asInstanceOf[Int]
+               Future(s.toSolrDoc(feedTimeStamp, count))
+             } else {
+               Future(s.toSolrDoc(feedTimeStamp))
+             }
+          })
+        }
+
+        Future.sequence(futureSuggestion).flatMap(elements => {
+          updateQuery.add(elements)
+          updateQuery.process(solrServer)
+        })
       } else {
         updateQuery.add(suggestions map { s =>
-            s.toSolrDoc(feedTimeStamp)
+          s.toSolrDoc(feedTimeStamp)
         })
+
         updateQuery.process(solrServer)
       }
     }
