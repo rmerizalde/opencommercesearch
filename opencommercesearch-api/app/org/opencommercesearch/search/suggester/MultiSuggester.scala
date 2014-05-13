@@ -30,6 +30,7 @@ import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.Collector
 import org.apache.commons.lang3.StringUtils
+import play.api.Logger
 
 /**
  * Suggests any type of elements. By default, it only uses the catalog suggester. Other suggesters
@@ -44,6 +45,7 @@ class MultiSuggester extends Suggester[Element] {
   private var allSources = Set.empty[String]
 
   private def init() : Unit = {
+    //TODO: should this come from the configuration as well?
     val multiElementSuggester = new CatalogSuggester[Element]
     suggesters :+= multiElementSuggester
 
@@ -59,9 +61,18 @@ class MultiSuggester extends Suggester[Element] {
    */
   def initConfigSuggesters() : Seq[Suggester[Element]] = {
     val suggestersFromConfig = Play.current.configuration.getString("suggester.extra").getOrElse(StringUtils.EMPTY)
-    val suggesterNames = StringUtils.split(suggestersFromConfig, ",").toSeq
-    suggesterNames map { suggesterName =>
-      Class.forName(suggesterName).newInstance().asInstanceOf[Suggester[Element]]
+    val suggesterNames = StringUtils.split(suggestersFromConfig.replaceAll("\\s", ""), ",").toSeq
+
+    suggesterNames.foldLeft(Seq.empty[Suggester[Element]]) {
+      (result, suggesterName) =>
+      try {
+        result :+ Class.forName(suggesterName).newInstance().asInstanceOf[Suggester[Element]]
+      }
+      catch {
+        case e: Exception =>
+          Logger.error(s"Can't initialize extra suggester '$suggesterName' from configuration.", e)
+          result
+      }
     }
   }
 
@@ -77,7 +88,13 @@ class MultiSuggester extends Suggester[Element] {
     val futureList = new mutable.ArrayBuffer[Future[Collector[Element]]](suggesters.size)
 
     suggesters.foreach( suggester => {
-      futureList += suggester.search(q, site, collector, server)
+      try {
+        futureList += suggester.search(q, site, collector, server)
+      }
+      catch {
+        case e: Exception =>
+          Logger.error(s"Failed to get suggestions from '${suggester.sources()}' source", e)
+      }
     })
 
     Future.sequence(futureList).map( _ => {

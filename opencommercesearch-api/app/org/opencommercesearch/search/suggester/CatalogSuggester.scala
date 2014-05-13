@@ -33,7 +33,6 @@ import org.opencommercesearch.search.Element
 import org.opencommercesearch.api.models.{UserQuery, Category, Product, Brand}
 import org.opencommercesearch.api.common.ContentPreview
 import org.opencommercesearch.common.Context
-import org.opencommercesearch.search.collector.Collector
 import org.opencommercesearch.api.ProductSearchQuery
 import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang.StringUtils
@@ -144,7 +143,6 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
             products.foreach(p => {
               for (skus <- p.skus) {
                 skus.foreach(sku => {
-                  println(sku.id)
                   // workaround, fields selection don't work with sku filtering currently in mongo
                   sku.id = None
                   sku.isPastSeason = None
@@ -171,7 +169,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       "product" -> classOf[Product],
       "category" -> classOf[Category],
       "userQuery" -> classOf[UserQuery]
-    )
+  )
 
   private val typeToBinder = Map[String, ElementBinder](
     "userQuery" -> new UserQueryBinder(),
@@ -191,7 +189,6 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
   override def sources() = typeToClass.keySet
 
-  
   protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
     val query = new SolrQuery(q)
     query.setParam("collection", SuggestCollection)
@@ -209,7 +206,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       val futureList = new mutable.ArrayBuffer[Future[Seq[E]]](typeToBinder.size)
       var suggestedTerm = StringUtils.EMPTY 
       var suggestedProducts: Future[Seq[E]] = null
-      
+
       if (response.getGroupResponse != null) {
         for (command <- response.getGroupResponse.getValues) {
 
@@ -221,31 +218,32 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
               val docs = group.getResult.map(doc => amendId(doc, `type`))
 
               if(`type` == "userQuery" && StringUtils.isEmpty(suggestedTerm) && docs.length > 0) {
-                suggestedTerm = docs.get(0).getFieldValue("userQuery").toString()
+                suggestedTerm = docs.get(0).getFieldValue("userQuery").toString
               }
-              
+
               for (binder <- typeToBinder.get(`type`)) {
                 if(`type` == "product") {
-                    suggestedProducts = binder.getElements(docs)
+                  suggestedProducts = binder.getElements(docs)
                 } else {
-                    futureList += binder.getElements(docs)
+                  futureList += binder.getElements(docs)
                 }
               }
             }
           }
         }
-
       }
-      
-     if (StringUtils.isNotEmpty(suggestedTerm)) {
-         futureList += ProductSuggester.search(suggestedTerm, site, server)
-     }
-     if (suggestedProducts != null) {
-         futureList += suggestedProducts
-     }
-     Future.sequence(futureList).map( elements => {  
-          elements.flatten
-     })
+
+      if (StringUtils.isNotEmpty(suggestedTerm)) {
+        futureList += ProductSuggester.search(suggestedTerm, site, server)
+      }
+
+      if (suggestedProducts != null) {
+        futureList += suggestedProducts
+      }
+
+      Future.sequence(futureList).map( elements => {
+        elements.flatten
+      })
     })
   }
 
