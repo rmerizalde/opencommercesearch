@@ -78,7 +78,7 @@ trait IndexableElement extends Element {
 
 object IndexableElement {
   def addToIndex(suggestions : Seq[IndexableElement], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
-    if(!context.isPublic) {
+    if(context.isPublic) {
       val feedTimeStamp = System.currentTimeMillis()
       val updateQuery = new AsyncUpdateRequest()
 
