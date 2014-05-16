@@ -22,9 +22,9 @@ package org.opencommercesearch.api.controllers
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
-import scala.concurrent.{Future}
+import scala.concurrent.{Await, Future}
 import org.specs2.mutable._
-import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.client.solrj.{SolrRequest, AsyncSolrServer}
 import org.apache.solr.common.SolrDocument
 import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.Global._
@@ -32,12 +32,12 @@ import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.response.FacetField
-import play.api.Logger
+import scala.concurrent.duration.Duration
 
 class CategoryControllerSpec extends BaseSpec {
 
   val storage = mock[MongoStorage]
-  
+
   trait Categories extends Before {
     def before = {
       // @todo: use di
@@ -63,7 +63,7 @@ class CategoryControllerSpec extends BaseSpec {
       }
     }
 
-    "send 404 when a category is not found"  in new Categories {
+    "send 404 when a category is not found" in new Categories {
       running(FakeApplication()) {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
@@ -125,7 +125,7 @@ class CategoryControllerSpec extends BaseSpec {
         namedList.get("doc") returns doc
         doc.get("id") returns expectedId
 
-        var facetFields = new java.util.LinkedList[FacetField]()
+        val facetFields = new java.util.LinkedList[FacetField]()
         val facetField = new FacetField("categoryPath")
         facetField.add("1000", 10)
         facetField.add("rootCategory", 10)
@@ -155,9 +155,8 @@ class CategoryControllerSpec extends BaseSpec {
     "send 400 when not sending a JSON body" in new Categories {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
-        val expectedId = "1000"
 
-        val url = routes.CategoryController.bulkCreateOrUpdate(false).url
+        val url = routes.CategoryController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 
@@ -226,7 +225,7 @@ class CategoryControllerSpec extends BaseSpec {
 
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        setupUpdate
         val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
           ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
         val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2, hierarchyTokens2) =
@@ -248,17 +247,15 @@ class CategoryControllerSpec extends BaseSpec {
               "isRuleBased" -> expectedIsRuleBased2,
               "hierarchyTokens" -> hierarchyTokens2)))
 
-        val url = routes.CategoryController.bulkCreateOrUpdate().url
+        val url = routes.CategoryController.bulkCreateOrUpdate().url + "?preview=false"
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "application/json"))
           .withJsonBody(json)
-
         val result = route(fakeRequest)
+        Await.ready(result.get, Duration.Inf)
         validateUpdateResult(result.get, CREATED)
-        validateUpdate(updateResponse)
+        there was two(solrServer).request(any[SolrRequest]) //One for the category collection, and other for the suggestion collection
       }
     }
   }
-
-
 }

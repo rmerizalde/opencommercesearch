@@ -24,7 +24,7 @@ import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
 import scala.concurrent.{Future}
 import org.specs2.mutable._
-import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.client.solrj.{SolrQuery, SolrRequest, AsyncSolrServer}
 import org.opencommercesearch.api.models.Brand
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
@@ -32,17 +32,17 @@ import com.mongodb.WriteResult
 
 class BrandControllerSpec extends BaseSpec {
 
-   val storage = mock[MongoStorage]
-      
   trait Brands extends Before {
+    val storage = mock[MongoStorage]
+
     def before = {
       solrServer = mock[AsyncSolrServer]
-      
+
       storageFactory = mock[MongoStorageFactory]
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
       storage.saveBrand(any) returns Future.successful(writeResult)
-      
+
     }
   }
 
@@ -81,7 +81,7 @@ class BrandControllerSpec extends BaseSpec {
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
 
         validateQueryResult(result.get, OK, "application/json")
-        there was two(storage).findBrand(anyString, any)
+        there was one(storage).findBrand(anyString, any)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "brand").validate[Brand].map { brand =>
@@ -96,7 +96,8 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brand is created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        setupQuery
+        setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
           "id" -> expectedId,
@@ -110,8 +111,11 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED, url)
+
+        there was one(solrServer).query(any[SolrQuery])
+        there was one(solrServer).request(any[SolrRequest])
+        there was one(storage).saveBrand(any)
       }
     }
 
@@ -207,7 +211,8 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brands are created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        setupQuery
+        setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val (expectedId2, expectedName2, expectedLogo2) = ("1001", "Another Brand", "/brands/logo2.jpg")
         val json = Json.obj(
@@ -228,8 +233,11 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED)
+
+        there was two(solrServer).query(any[SolrQuery])
+        there was one(solrServer).request(any[SolrRequest])
+        there was one(storage).saveBrand(any)
       }
     }
   }

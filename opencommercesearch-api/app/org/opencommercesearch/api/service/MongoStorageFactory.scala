@@ -19,13 +19,14 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import java.util.concurrent.ConcurrentHashMap
 import com.mongodb._
 import play.api.{Logger, Configuration}
 import org.jongo.{Jongo, Mapper}
 import com.mongodb.gridfs.GridFS
 import org.jongo.marshall.jackson.JacksonMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import scala.collection.mutable
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * MongoDB storage factory implementation
@@ -71,6 +72,7 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
       }
 
       storage = new MongoStorage(mongo)
+
       if (storages.putIfAbsent(databaseName, storage) == null) {
         Logger.info(s"Creating database for $namespace")
         val db = mongo.getDB(databaseName)

@@ -27,14 +27,20 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest
 
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.service.{StorageFactory, Storage}
+import org.opencommercesearch.common.Context
 
 trait ContentPreview {
 
   val SupportedCountries = Seq("US", "CA")
   val SupportedLanguages = Seq("en", "fr")
 
-  def withQueryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
-    query.setParam("collection", QueryCollection)
+  def withSuggestCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
+    query.setParam("collection", SuggestCollection)
+  }
+
+  def withSuggestCollection[T <: AbstractUpdateRequest](request: T) : T = {
+    request.setParam("collection", SuggestCollection)
+    request
   }
 
   def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
@@ -52,6 +58,15 @@ trait ContentPreview {
       collection = BrandPreviewCollection
     }
     collection
+  }
+
+  def withNamespace[T](factory: StorageFactory[T])(implicit context: Context) : Storage[T] = {
+    var namespace = "public"
+    if (context.isPreview) {
+      namespace = "preview"
+    }
+    namespace += "_" + context.lang.language
+    factory.getInstance(namespace)
   }
 
   def withNamespace[R, T](factory: StorageFactory[T], preview: Boolean)(implicit req: Request[R]) : Storage[T] = {
@@ -80,30 +95,12 @@ trait ContentPreview {
     collection + "_" + language(acceptLanguages)
   }
 
-  def withSearchCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
-    query.setParam("collection", getSearchCollection(preview, req.acceptLanguages))
+  def withCategoryCollection(query: SolrQuery)(implicit context: Context) : SolrQuery = {
+    query.setParam("collection", getCategoryCollection(context.isPreview))
   }
 
-  def withSearchCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean)(implicit req: Request[R]) : T = {
-    request.setParam("collection", getSearchCollection(preview, req.acceptLanguages))
-    request
-  }
-
-  private def getSearchCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
-    var collection = SearchPublicCollection
-    if (preview) {
-      collection = SearchPreviewCollection
-    }
-
-    collection + "_" + language(acceptLanguages)
-  }
-
-  def withCategoryCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
-    query.setParam("collection", getCategoryCollection(preview))
-  }
-
-  def withCategoryCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean) : T = {
-    request.setParam("collection", getCategoryCollection(preview))
+  def withCategoryCollection[T <: AbstractUpdateRequest, R](request: T)(implicit context: Context) : T = {
+    request.setParam("collection", getCategoryCollection(context.isPreview))
     request
   }
 
@@ -153,14 +150,14 @@ trait ContentPreview {
     collection
   }
 
-  def country(acceptLanguages:Seq[Lang]) : String = {
+  private def country(acceptLanguages:Seq[Lang]) : String = {
     var country: String = "US"
 
     acceptLanguages.collectFirst { case lang if SupportedCountries.contains(lang.country) => country = lang.country }
     country
   }
 
-  def language(acceptLanguages:Seq[Lang]) : String = {
+  private def language(acceptLanguages:Seq[Lang]) : String = {
     var language: String = "en"
 
     acceptLanguages.collectFirst { case lang if SupportedLanguages.contains(lang.language) => language = lang.language }

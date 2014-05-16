@@ -59,7 +59,7 @@ class ProductControllerSpec extends BaseSpec {
 
       val category = new Category()
       category.isRuleBased = Option(false)
-      category.catalogs = Option(Seq("mysite"))
+      category.sites = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
 
@@ -111,7 +111,7 @@ class ProductControllerSpec extends BaseSpec {
 
         val categoryResult = new Category()
         categoryResult.setId("someCategory")
-        categoryResult.catalogs = Option(Seq("mysite"))
+        categoryResult.sites = Option(Seq("mysite"))
 
         storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
 
@@ -159,13 +159,8 @@ class ProductControllerSpec extends BaseSpec {
 
         val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
-        productQuery.getQuery must beEqualTo("term")
-        productQuery.getBool("rule", true)
-        productQuery.getBool("isRetail", true)
-        productQuery.getBool("isCloseout", true)
-        productQuery.getBool("onsaleUS", false)
-        productQuery.get("pageType", "search")
         validateCommonQueryParams(productQuery)
+        validateSearchParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
@@ -207,12 +202,8 @@ class ProductControllerSpec extends BaseSpec {
         val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url + "&sort=discountPercent desc"))
         validateQueryResult(result.get, OK, "application/json")
         productQuery.getQuery must beEqualTo("term")
-        productQuery.getBool("rule", true)
-        productQuery.getBool("isRetail", true)
-        productQuery.getBool("isCloseout", true)
-        productQuery.getBool("onsaleUS", false)
-        productQuery.get("pageType", "search")
-        validateCommonQueryParams(productQuery)
+        validateCommonQueryParams(productQuery, expectedGroupSorting = false)
+        validateSearchParams(productQuery)
 
         productQuery.get("sort") must beEqualTo("discountPercentUS desc")
 
@@ -253,7 +244,7 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
@@ -303,7 +294,7 @@ class ProductControllerSpec extends BaseSpec {
 
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, ruleFilter = "category:cat1 AND category:cat2", escapedCategoryFilter = "1.mysite.cat1")
         validateCommonQueryParams(productQuery)
@@ -345,7 +336,7 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true, preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true).url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = true, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
@@ -387,7 +378,7 @@ class ProductControllerSpec extends BaseSpec {
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1").url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
@@ -431,7 +422,7 @@ class ProductControllerSpec extends BaseSpec {
         storage.findCategory(any, any) returns Future.successful(null)
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
+        val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1").url))
         validateQueryResult(result.get, OK, "application/json")
         validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
@@ -453,7 +444,7 @@ class ProductControllerSpec extends BaseSpec {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
 
-        val url = routes.ProductController.bulkCreateOrUpdate(preview = false).url
+        val url = routes.ProductController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 
@@ -639,6 +630,23 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+
+  /**
+   * Helper method to validate search parameters
+   * @param productQuery
+   */
+  def validateSearchParams(productQuery: SolrQuery) {
+    productQuery.getQuery must beEqualTo("term")
+    productQuery.getBool("rule") must beEqualTo(true)
+    productQuery.getFilterQueries contains "isRetail:true" must beTrue
+    productQuery.getFilterQueries contains("isCloseout:false") must beFalse
+    productQuery.getFilterQueries contains("isOutlet:false") must beFalse
+    productQuery.getFilterQueries contains("isCloseout:true") must beFalse
+    productQuery.getFilterQueries contains("isOutlet:true") must beFalse
+    productQuery.getFilterQueries contains "country:onsaleUS" must beFalse
+    productQuery.get("pageType") must beEqualTo("search")
+  }
+
   /**
    * Helper method to validate common browse params
    * @param productQuery the query
@@ -656,13 +664,14 @@ class ProductControllerSpec extends BaseSpec {
       //scenario for non rule based categories
       if (categoryId != null) {
         expected += 2
-        productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId"
-        productQuery.getFilterQueries contains "category:" + escapedCategoryFilter
+        productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId" must beTrue
+        productQuery.getFilterQueries contains "category:" + escapedCategoryFilter must beTrue
       }
 
       if (brandId != null) {
         expected += 1
-        productQuery.getFilterQueries contains s"brand:$brandId"
+        productQuery.getFilterQueries contains s"brandId:$brandId" must beTrue
+        productQuery.get("brandId") must beEqualTo(brandId)
       }
     } else {
       //scenario for rule based categories
@@ -676,26 +685,30 @@ class ProductControllerSpec extends BaseSpec {
         productQuery.get("categoryFilter") must beEqualTo(escapedCategoryFilter)
     }
                 
-    productQuery.getBool("rule", true)
-    productQuery.get("siteId", site)
+    productQuery.getBool("rule") must beEqualTo(true)
+    productQuery.get("siteId") must beEqualTo(site)
     productQuery.getFilterQueries.size must beEqualTo(expected)
-    productQuery.getFilterQueries contains "country:US"
-    productQuery.getFilterQueries contains "isRetail:true"
-    productQuery.getFilterQueries contains s"isOutlet:$isOutlet"
+    productQuery.getFilterQueries contains "country:US" must beTrue
+    productQuery.getFilterQueries contains "isRetail:true" must beTrue
+    productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
   }
 
   /**
    * Helper method to validate common query params
    * @param query the query
    */
-  private def validateCommonQueryParams(query: SolrQuery) : Unit = {
+  private def validateCommonQueryParams(query: SolrQuery, expectedGroupSorting: Boolean = true) : Unit = {
     query.getBool("facet") must beEqualTo(true)
     query.getBool("group") must beEqualTo(true)
     query.getBool("group.ngroups") must beEqualTo(true)
     query.getInt("group.limit") must beEqualTo(50)
     query.get("group.field") must beEqualTo("productId")
     query.getBool("group.facet") must beEqualTo(false)
-    query.get("group.sort") must beEqualTo("isCloseout asc, score desc, sort asc")
+    if (expectedGroupSorting) {
+      query.get("group.sort") must beEqualTo("isCloseout asc, score desc, sort asc")
+    } else {
+      query.get("group.sort") must beNull
+    }
     query.getBool("groupcollapse") must beEqualTo(true)
     query.get("groupcollapse.fl") must beEqualTo("listPriceUS,salePriceUS,discountPercentUS")
     query.get("groupcollapse.ff") must beEqualTo("isCloseout")

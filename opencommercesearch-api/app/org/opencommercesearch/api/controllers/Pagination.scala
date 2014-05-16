@@ -26,7 +26,6 @@ import org.opencommercesearch.api.Global.MaxPaginationLimit
 import org.opencommercesearch.api.Global.DefaultPaginationLimit
 
 trait Pagination {
-  self: Controller =>
 
   def withPagination(query: SolrQuery)(implicit request: Request[AnyContent]) : SolrQuery = {
     val offset = request.getQueryString("offset")

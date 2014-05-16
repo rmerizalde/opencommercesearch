@@ -45,7 +45,7 @@ import com.google.common.collect.Iterables;
  */
 public class CategoryFeed extends BaseRestFeed {
 
-    public static String[] REQUIRED_FIELDS = { "id", "name" };
+    public static String[] REQUIRED_FIELDS = { "id", "name", "seoUrlToken" };
     private RulesBuilder rulesBuilder;
     private FeedLocaleService feedLocaleService;
     /**
@@ -82,7 +82,8 @@ public class CategoryFeed extends BaseRestFeed {
         //TODO gsegura: move this calculation out of the feed into the ProductController once we provide a caching layer
         //to access products to avoid performance issues
         category.put("hierarchyTokens", buildHierarchyTokens(item));
-        setIdsProperty(category, "catalogs", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
+        //TODO get rid of "catalogs", currently kept for backwards compatibility only
+        setIdsProperty(category, "sites", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
         return category;
