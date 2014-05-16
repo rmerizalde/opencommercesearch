@@ -20,17 +20,22 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import scala.collection.convert.Wrappers.JIterableWrapper
+import play.api.libs.functional.syntax._
 import java.util
+
+import scala.collection.convert.Wrappers.JIterableWrapper
+
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
-import play.api.libs.functional.syntax._
+import org.apache.commons.lang.StringUtils
 import org.jongo.marshall.jackson.oid.Id
-
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
+
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.apache.commons.lang.StringUtils
+
+import org.opencommercesearch.search.suggester.IndexableElement
+
 
 /**
  * A category model.
@@ -38,21 +43,21 @@ import org.apache.commons.lang.StringUtils
  * @param id is the category id
  * @param name is the category name
  * @param isRuleBased indicates if this a rule based category or not
- * @param catalogs the catalogs the categories belongs to
+ * @param sites the sites the categories belongs to
  * @param parentCategories the parent categories. Empty for root categories
  *
  * @author rmerizalde
  */
-case class Category(
+case class Category (
   @Id var id: Option[String],
   @JsonProperty("name") var name: Option[String],
   @JsonProperty("seoUrlToken") var seoUrlToken: Option[String],
   @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
   @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]],
-  @JsonProperty("catalogs") var catalogs: Option[Seq[String]],
+  @JsonProperty("sites") var sites: Option[Seq[String]],
   @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
-  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) {
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends IndexableElement {
 
   /**
    * This constructor is for lazy loaded categories
@@ -66,6 +71,10 @@ case class Category(
   def setId(id: String) {
     this.id = Option.apply(id)
   }
+
+  override def source = "category"
+
+  override def toJson : JsValue = Json.toJson(this)
 
   @Field
   def setName(name: String) {
@@ -85,9 +94,9 @@ case class Category(
     this.seoUrlToken.getOrElse(StringUtils.EMPTY)
   }
   
-  @Field("catalogs")
-  def setCatalogs(catalogs: util.Collection[String]) {
-    this.catalogs = Option.apply(JIterableWrapper(catalogs).toSeq)
+  @Field("siteId")
+  def setSites(sites: util.Collection[String]) {
+    this.sites = Option.apply(JIterableWrapper(sites).toSeq)
   }
   
   @Field("isRuleBased")
@@ -132,6 +141,18 @@ case class Category(
   def getChildCategories : Seq[Category] = {
     this.childCategories.getOrElse(Seq.empty)
   }
+
+  def getNgramText : String = {
+    this.getName
+  }
+
+  def getType : String = {
+    "category"
+  }
+
+  def getSites : Seq[String] = {
+    this.sites.getOrElse(Seq.empty[String])
+  }
 }
 
 object Category {
@@ -172,8 +193,8 @@ object Category {
       copy.ruleFilters = category.ruleFilters
     }
 
-    if(hasStar || fieldsToCopy.contains("catalogs")) {
-      copy.catalogs = category.catalogs
+    if(hasStar || fieldsToCopy.contains("sites")) {
+      copy.sites = category.sites
     }
 
     if(hasStar || fieldsToCopy.contains("hierarchyTokens")) {
@@ -188,7 +209,7 @@ object Category {
       copy.childCategories = category.childCategories
     }
 
-    return copy
+    copy
   }
 
   /**
@@ -252,7 +273,7 @@ object Category {
       fieldsToCopy = fields
     }
 
-    return copyWithFields(category, fieldsToCopy)
+    copyWithFields(category, fieldsToCopy)
   }
 
   implicit val readsCategory : Reads[Category] = (
@@ -261,7 +282,7 @@ object Category {
     (__ \ "seoUrlToken").readNullable[String] ~
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "ruleFilters").readNullable[Seq[String]] ~
-    (__ \ "catalogs").readNullable[Seq[String]] ~
+    (__ \ "sites").readNullable[Seq[String]] ~
     (__ \ "hierarchyTokens").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
     (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
@@ -273,7 +294,7 @@ object Category {
     (__ \ "seoUrlToken").writeNullable[String] ~
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "ruleFilters").writeNullable[Seq[String]] ~
-    (__ \ "catalogs").writeNullable[Seq[String]] ~
+    (__ \ "sites").writeNullable[Seq[String]] ~
     (__ \ "hierarchyTokens").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
     //Prevent empty child lists to be written
@@ -297,11 +318,14 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
         doc.setField("isRuleBased", isRuleBased)
         doc.setField("feedTimestamp", feedTimestamp)
 
-        var hasCatalogs = false
-        for (catalogs <- category.catalogs) {
-          hasCatalogs = catalogs.size > 0
-          for (catalog <- catalogs) {
-            doc.addField("catalogs", catalog)
+        var hasSites = false
+        for (sites <- category.sites) {
+          hasSites = sites.size > 0
+          for (site <- sites) {
+            doc.addField("siteId", site)
+
+            //TODO Remove this
+            doc.addField("catalogs", site)
           }
         }
 
@@ -326,7 +350,7 @@ case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {
         }
 
         // this is just informational info
-        if (hasCatalogs) {
+        if (hasSites) {
           if (!hasParents && hasChildren) {
             doc.setField("isRoot", true)
           } else if (hasParents && hasChildren) {

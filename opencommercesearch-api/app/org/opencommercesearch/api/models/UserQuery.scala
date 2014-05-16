@@ -19,12 +19,34 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import org.apache.solr.client.solrj.beans.Field
-import play.api.libs.json.Json
 
-case class UserQuery (var userQuery: Option[String], var count: Option[Int]) {
+import play.api.libs.json.{Json, JsValue}
+
+import scala.beans.BeanProperty
+
+import org.apache.solr.client.solrj.beans.Field
+import org.opencommercesearch.search.Element
+
+object UserQuery {
+  implicit val readsUserQuery = Json.reads[UserQuery]
+  implicit val writesUserQuery = Json.writes[UserQuery]
+}
+
+case class UserQuery (var userQuery: Option[String], var count: Option[Int]) extends Element {
+
+  @BeanProperty
+  var id: Option[String] = _
 
   def this() = this(None, None)
+
+  override def source = "userQuery"
+
+  override def toJson : JsValue = { Json.toJson(this) }
+
+  @Field
+  def setId(id: String) {
+    this.id = Some(id)
+  }
 
   @Field
   def setUserQuery(userQuery: String) : Unit = {
@@ -35,10 +57,4 @@ case class UserQuery (var userQuery: Option[String], var count: Option[Int]) {
   def setCount(count: Int) : Unit = {
     this.count = Option.apply(count)
   }
-
-}
-
-object UserQuery {
-  implicit val readsUserQuery = Json.reads[UserQuery]
-  implicit val writesUserQuery = Json.writes[UserQuery]
 }

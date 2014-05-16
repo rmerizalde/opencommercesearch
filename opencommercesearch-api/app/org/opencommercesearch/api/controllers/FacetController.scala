@@ -127,6 +127,8 @@ object FacetController extends BaseController {
         withErrorHandling(future, s"Cannot store facet with id [$id]")
       }
       catch {
+        // @todo for jmendez: revisit check for missing fields. Its checking for a BindingException cause by a called
+        // to get on a None object.
         case e : BindingException =>
           Logger.error("Illegal facet fields", e)
           Future.successful(BadRequest(Json.obj(

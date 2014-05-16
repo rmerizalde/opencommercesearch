@@ -26,6 +26,7 @@ import play.api.Play.current
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import java.util
+import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.models.{Category, Product}
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
@@ -52,9 +53,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   private val StatsdBuildTaxonomyGraphMetric = "api.search.internal.service.buildTaxonomyGraph"
   private val StatsdPruneTaxonomyGraphMetric = "api.search.internal.service.pruneTaxonomyGraph"
 
-  def findById(id: String, preview: Boolean, fields: Option[String]) : Future[Option[Category]] = {
+  def findById(id: String, fields: Option[String])(implicit context: Context) : Future[Option[Category]] = {
     val (query, hasNestedCategories) =
-      withNestedCategories(id,  withCategoryCollection(withFields(new SolrQuery(), fields), preview),  fields)
+      withNestedCategories(id, withCategoryCollection(withFields(new SolrQuery(), fields)),  fields)
 
     //TODO gsegura: once we have mongo ready, change here to call it
     server.query(query).map( response => {
@@ -116,7 +117,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
               val newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
               category.name = newDoc.name
               category.seoUrlToken = newDoc.seoUrlToken
-              category.catalogs = newDoc.catalogs
+              category.sites = newDoc.sites
             } else {
               Logger.error(s"Missing nested category id reference [$id]")
             }
@@ -126,8 +127,8 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     }
   }
 
-  def findByIds(ids: Seq[String], preview: Boolean, fields: Option[String]) : Future[Option[Seq[Category]]] = {
-    val query = withCategoryCollection(withFields(new SolrQuery(), fields), preview)
+  def findByIds(ids: Seq[String], fields: Option[String])(implicit context: Context) : Future[Option[Seq[Category]]] = {
+    val query = withCategoryCollection(withFields(new SolrQuery(), fields))
 
     query.setRequestHandler(RealTimeRequestHandler)
     ids.map(id => query.add("id", id))
@@ -163,13 +164,14 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    *            If the product is belongs to a category in any of those
    *            catalogs then that category is part of the returned value.
    */
-  def loadCategoryPaths(doc: SolrInputDocument, product: Product, skuCatalogAssignments: Seq[String], preview: Boolean) : Unit = {
+  def loadCategoryPaths(doc: SolrInputDocument, product: Product, skuCatalogAssignments: Seq[String])
+                       (implicit context: Context) : Unit = {
     if (product != null) {
       var tries = 1
       while (tries <= MaxTries) {
         try {
           tries += 1
-          val generator = new SkuCategoryDataGenerator(doc, product, skuCatalogAssignments, preview)
+          val generator = new SkuCategoryDataGenerator(doc, product, skuCatalogAssignments, context)
           generator.generate()
           return
         } catch {
@@ -202,8 +204,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
                                           val doc: SolrInputDocument,
                                           val product: Product,
                                           val skuCatalogAssignments: Seq[String],
-                                          val preview: Boolean) {
-
+                                          implicit val context: Context) {
     val Fields = Some("*")
     // use a high timeout while we block
     val Timeout = Duration(10, SECONDS)
@@ -212,7 +213,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     val tokenCache = new util.HashSet[String]
     val ancestorCache = new util.HashSet[String]
     val leafCache = new util.HashSet[String]
-    lazy val keyPrefix = CategoryKeyPrefix + getPreviewKeyPrefix(preview)
+    lazy val keyPrefix = CategoryKeyPrefix + getPreviewKeyPrefix(context.isPreview)
 
     def generate() : Unit = {
       for (productCategories <- product.categories) {
@@ -265,7 +266,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       }
     }
 
-    def findCategoryById(id: String) : Future[Option[Category]] = {
+    def findCategoryById(id: String)(implicit context: Context) : Future[Option[Category]] = {
       val key = keyPrefix +  id
       val category = Cache.getAs[Category](key)
 
@@ -273,7 +274,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         Future.successful(category)
       } else {
         Logger.debug(s"Category $id not found in cache")
-        findById(id, preview, Fields).map( category => {
+        findById(id, Fields).map( category => {
           if (category.isDefined) {
             Cache.set(key, category.get, CategoryCacheTtl)
             Some(category.get)
@@ -299,10 +300,10 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         return false
       }
 
-      for (categoryCatalogs <- category.catalogs) {
-        if (categoryCatalogs != null) {
-          for (categoryCatalog <- categoryCatalogs) {
-            if (catalogs.contains(categoryCatalog)) {
+      for (categorySites <- category.sites) {
+        if (categorySites != null) {
+          for (categorySite <- categorySites) {
+            if (catalogs.contains(categorySite)) {
               return true
             }
           }
@@ -341,10 +342,10 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           hierarchyCategories.remove(0)
         }
       } else {
-        for (catalogs <- category.catalogs) {
-          for(catalog <- catalogs){
-            if(catalogAssignments.contains(catalog)){
-              generateCategoryTokens(doc, hierarchyCategories, catalog, tokenCache)
+        for (sites <- category.sites) {
+          for(site <- sites){
+            if(catalogAssignments.contains(site)){
+              generateCategoryTokens(doc, hierarchyCategories, site, tokenCache)
             }
           }
         }
@@ -451,12 +452,12 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
    * @param maxChildren Max leaf children to return. It only limits those children returned in the final level specified by maxLevels. A -1 value means all children are returned.
    * @param fields Fields to retrieve for each category on the taxonomy. This field list is applied to the parent category and any children of it.
    * @param storage Storage used to retrieve category data.
-   * @param preview Whether or not reading preview categories.
-   * @return The category instance for the given category id, plus all children up to the given level. Null if the parent category does not exist in storage.
    */
-  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String] = Set.empty, maxLevels: Int, maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult], preview: Boolean) : Future[Category] =  {
+  def getTaxonomyForCategory(parentCategoryId: String, categoryPaths: Iterable[String] = Set.empty, maxLevels: Int,
+                             maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult])
+                            (implicit context: Context) : Future[Category] =  {
     //First get the taxonomy
-    val taxonomyFuture = getTaxonomy(storage, preview)
+    val taxonomyFuture = getTaxonomy(storage, context.isPreview)
 
     //Now, find the category we are looking for
     taxonomyFuture map { taxonomy =>
@@ -533,15 +534,15 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
       //Check if is a root cat
       if(category.parentCategories == null || category.parentCategories.isEmpty || category.parentCategories.get.isEmpty) {
         //Find out if there are catalog assignments
-        for(catalogs <- category.catalogs) {
-          if(!catalogs.isEmpty) {
-            val catalog = category.catalogs.get(0)
-            if(result.contains(catalog)) {
+        for(sites <- category.sites) {
+          if(!sites.isEmpty) {
+            val site = category.sites.get(0)
+            if(result.contains(site)) {
               Logger.error(s"Found a duplicate root category node. Previous id was ${category.getId}, new id is $key. Assuming the first one found is correct, however " +
                 s"this is an indicator of taxonomy issues on storage.")
             }
             else {
-              result += (catalog -> category)
+              result += (site -> category)
             }
           }
         }
@@ -616,7 +617,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
           taxonomyNode.childCategories = Option(category.getChildCategories)
           taxonomyNode.parentCategories = category.parentCategories
           taxonomyNode.isRuleBased = category.isRuleBased
-          taxonomyNode.catalogs = category.catalogs
+          taxonomyNode.sites = category.sites
           taxonomyNode.name = category.name
           taxonomyNode.seoUrlToken = category.seoUrlToken
         }
