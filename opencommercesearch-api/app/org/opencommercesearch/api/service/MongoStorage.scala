@@ -322,7 +322,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.update(s"{_id: '${p.getId}'}").upsert().`with`(p) )
+      product.map( p => result = productCollection.save(p) )
       result
     }
   }
@@ -331,7 +331,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val categoryCollection = jongo.getCollection("categories")
       var result: WriteResult = null
-      category.map( c => result = categoryCollection.update(s"{_id: '${c.getId}'}").upsert().`with`(c) )
+      category.map( c => result = categoryCollection.save(c) )
       result
     }
   }
@@ -375,7 +375,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val brandCollection = jongo.getCollection("brands")
       var result: WriteResult = null
-      brand.map( b => result = brandCollection.update(s"{_id: '${b.getId}'}").upsert().`with`(b) )
+      brand.map( b => result = brandCollection.save(b) )
       result
     }
   }
@@ -398,7 +398,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val facetCollection = jongo.getCollection("facets")
       var result: WriteResult = null
-      facet.map( c => result = facetCollection.update(s"{_id: '${c.getId}'}").upsert().`with`(c) )
+      facet.map( c => result = facetCollection.save(c) )
       result
     }
   }
