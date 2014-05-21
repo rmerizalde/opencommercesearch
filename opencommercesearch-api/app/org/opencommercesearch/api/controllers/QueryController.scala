@@ -54,6 +54,9 @@ object QueryController extends BaseController {
     val solrQuery = withSuggestCollection(new SolrQuery(q), preview)
     solrQuery.setFields("userQuery")
     solrQuery.setFilterQueries(s"siteId:$site")
+    solrQuery.setFilterQueries(s"-type:brand")
+    solrQuery.setFilterQueries(s"-type:category")
+    solrQuery.setFilterQueries(s"-type:product")
 
     findSuggestionsFor(classOf[UserQuery], "queries" , solrQuery)
   }

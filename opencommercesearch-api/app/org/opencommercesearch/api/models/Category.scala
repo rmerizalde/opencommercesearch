@@ -59,104 +59,30 @@ case class Category (
   @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
   @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends IndexableElement {
 
-  /**
-   * This constructor is for lazy loaded categories
-   */
-  @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None)
+  import Category._
 
-  def getId : String = { this.id.get }
-  
-  @Field
-  def setId(id: String) {
-    this.id = Option.apply(id)
-  }
+  def getId : String = this.id.get
+
+  def getName : String = this.name.getOrElse(StringUtils.EMPTY)
+
+  def getUrl : String = this.seoUrlToken.getOrElse(StringUtils.EMPTY)
 
   override def source = "category"
 
   override def toJson : JsValue = Json.toJson(this)
 
-  @Field
-  def setName(name: String) {
-    this.name = Option.apply(name)
-  }
+  def getNgramText : String = this.getName
 
-  def getName : String = {
-    this.name.getOrElse(StringUtils.EMPTY)
-  }
+  def getType : String = "category"
 
-  @Field
-  def setSeoUrlToken(seoUrlToken: String) {
-    this.seoUrlToken = Option.apply(seoUrlToken)
-  }
+  def getSites : Seq[String] = this.sites.getOrElse(Seq.empty[String])
 
-  def getSeoUrlToken : String = {
-    this.seoUrlToken.getOrElse(StringUtils.EMPTY)
-  }
-  
-  @Field("siteId")
-  def setSites(sites: util.Collection[String]) {
-    this.sites = Option.apply(JIterableWrapper(sites).toSeq)
-  }
-  
-  @Field("isRuleBased")
-  def setRuleBased(isRuleBased: Boolean) {
-    this.isRuleBased = Option.apply(isRuleBased)
-  }
-  
-  @Field("ruleFilters")
-  def setRuleFilters(ruleFilters: util.Collection[String]) {
-    this.ruleFilters = Option.apply(JIterableWrapper(ruleFilters).toSeq)
-  }
-
-  @Field("hierarchyTokens")
-  def setCategory(hierarchyTokens: util.Collection[String]) {
-    this.hierarchyTokens = Option.apply(JIterableWrapper(hierarchyTokens).toSeq)
-  }
-
-  @Field
-  def setParentCategories(parentCategories: util.Collection[String]) {
-    this.parentCategories = Option.apply(JIterableWrapper(parentCategories).toSeq.map(id => 
-     {
-       val category : Category = new Category()
-       category.setId(id)
-       category
-     }))
-  }
-
-  @Field("childCategories")
-  def setChildCategories(childCategories: util.Collection[String]) {
-    this.childCategories = Option.apply(JIterableWrapper(childCategories).toSeq.map(id => 
-      {
-       val category : Category = new Category()
-       category.setId(id)
-       category
-     }))
-  }
-
-  /**
-   * Get this category child categories
-   * @return A collection of child categories if any, null otherwise.
-   */
-  def getChildCategories : Seq[Category] = {
-    this.childCategories.getOrElse(Seq.empty)
-  }
-
-  def getNgramText : String = {
-    this.getName
-  }
-
-  def getType : String = {
-    "category"
-  }
-
-  def getSites : Seq[String] = {
-    this.sites.getOrElse(Seq.empty[String])
-  }
 }
 
 object Category {
   val defaultFields = Seq("id", "name", "seoUrlToken", "hierarchyTokens")
+
+  def getInstance(id: Option[String]) = new Category(id, None, None, None, None, None, None, None, None)
 
   /**
    * Creates a copy of the given category that contains only the fields specified.
@@ -167,8 +93,7 @@ object Category {
    * @return A copy of the given category with only the fields specified set.
    */
   def copyWithFields(category: Category, fields: Seq[String]) : Category = {
-    val copy = new Category()
-    copy.setId(category.getId)
+    val copy = getInstance(category.id)
 
     var fieldsToCopy = defaultFields
     if(!fields.isEmpty) {
@@ -228,7 +153,7 @@ object Category {
   def prune(category: Category, categories: Set[String], depth: Int, maxChildren: Int, fields: Seq[String]) : Category = {
     if(depth >= 0) {
       val prunedCat = copyCategory(category, fields)
-      var childCats = category.getChildCategories
+      var childCats = category.childCategories.getOrElse(Seq.empty)
 
       childCats = childCats map { childCat =>
         if(categories.isEmpty || categories.contains(childCat.getId)) {

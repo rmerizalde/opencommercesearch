@@ -27,19 +27,6 @@ case class BreadCrumb(
     var fieldName: Option[String], 
     var expression: Option[String], 
     var path: Option[String]){
-  
-  @JsonCreator
-  def this() = this(None, None, None)
-
-  def setFieldName(fieldName: String) : Unit = {
-    this.fieldName = Option.apply(fieldName)
-  }
-  def setExpression(expression: String) : Unit = {
-    this.expression = Some(expression)
-  }
-  def setPath(path: String) : Unit = {
-    this.path = Option.apply(path)
-  }
 }
 
 object BreadCrumb {

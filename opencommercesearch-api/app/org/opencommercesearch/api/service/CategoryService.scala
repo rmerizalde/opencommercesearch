@@ -53,102 +53,6 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   private val StatsdBuildTaxonomyGraphMetric = "api.search.internal.service.buildTaxonomyGraph"
   private val StatsdPruneTaxonomyGraphMetric = "api.search.internal.service.pruneTaxonomyGraph"
 
-  def findById(id: String, fields: Option[String])(implicit context: Context) : Future[Option[Category]] = {
-    val (query, hasNestedCategories) =
-      withNestedCategories(id, withCategoryCollection(withFields(new SolrQuery(), fields)),  fields)
-
-    //TODO gsegura: once we have mongo ready, change here to call it
-    server.query(query).map( response => {
-
-      if (hasNestedCategories) {
-        val docs = response.getResults
-        val lookupMap = mutable.HashMap.empty[String, SolrDocument]
-        var mainDoc :SolrDocument = null
-        if (docs != null) {
-          JIterableWrapper(docs).foreach(
-            doc => {
-              val currentId = doc.getFieldValue("id").toString
-              lookupMap += (currentId -> doc)
-              if( id.equals(currentId) ) {
-                mainDoc = doc
-              }
-              Logger.debug("Found category " + id)
-            }
-          )
-          if(mainDoc != null) {
-            val category : Category = server.binder.getBean(classOf[Category], mainDoc)
-            addNestedCategoryNames(category.childCategories, lookupMap)
-            addNestedCategoryNames(category.parentCategories, lookupMap)
-            Logger.debug(s"Found category [$id] - has nested child categories [$hasNestedCategories]")
-            Some(category)
-          } else {
-            //failed to find the main doc
-            None
-          }
-        } else {
-          //solr docs were null
-          None
-        }
-      }
-      else {
-        //TODO gsegura: there seems to be a bug with solr 4.6. The fl field is been ignored
-        // so it's only returning the default fields, which exclude the catalogs. This makes the
-        // product feed to fail
-        val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
-        if (doc != null) {
-          Logger.debug("Found category " + id)
-          Some(server.binder.getBean(classOf[Category], doc))
-        } else {
-          None
-        }
-      }
-    })
-  }
-
-  def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: mutable.HashMap[String, SolrDocument] ) = {
-    for( cats <- categories) {
-      cats.foreach(
-        category => {
-          for (id <- category.id) {
-            if(lookupMap.contains(id)) {
-              val solrDocument : SolrDocument =  lookupMap(id)
-              //category.setName(solrDocument.getFieldValue("name").toString())
-              //category.setSeoUrlToken(solrDocument.getFieldValue("seoUrlToken").toString())
-              val newDoc :Category = server.binder.getBean(classOf[Category], solrDocument)
-              category.name = newDoc.name
-              category.seoUrlToken = newDoc.seoUrlToken
-              category.sites = newDoc.sites
-            } else {
-              Logger.error(s"Missing nested category id reference [$id]")
-            }
-          }
-        }
-      )
-    }
-  }
-
-  def findByIds(ids: Seq[String], fields: Option[String])(implicit context: Context) : Future[Option[Seq[Category]]] = {
-    val query = withCategoryCollection(withFields(new SolrQuery(), fields))
-
-    query.setRequestHandler(RealTimeRequestHandler)
-    ids.map(id => query.add("id", id))
-
-    Logger.debug("Query categories " + ids)
-    server.query(query).map( response => {
-      val docs = response.getResponse.getAll("doc").asInstanceOf[util.List[SolrDocument]]
-      if (docs != null && docs.size > 0) {
-        Logger.debug("Found categories " + ids)
-        Some(JIterableWrapper(docs).toSeq.map(doc => {
-          val category = server.binder.getBean(classOf[Category], doc)
-
-          category
-        }))
-      } else {
-        None
-      }
-    })
-  }
-
   /**
    * Generate the category tokens to create a hierarchical facet in Solr. Each
    * token is formatted such that encodes the depth information for each node
@@ -205,7 +109,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
                                           val product: Product,
                                           val skuCatalogAssignments: Seq[String],
                                           implicit val context: Context) {
-    val Fields = Some("*")
+    val Fields = Seq("*")
     // use a high timeout while we block
     val Timeout = Duration(10, SECONDS)
 
@@ -216,7 +120,9 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
     lazy val keyPrefix = CategoryKeyPrefix + getPreviewKeyPrefix(context.isPreview)
 
     def generate() : Unit = {
+      Logger.debug("Generating category data for product " + product.getId)
       for (productCategories <- product.categories) {
+        Logger.debug(s"Categories for product ${product.getId}: ${productCategories.map(c => c.getId)}")
         for(productCategory <- productCategories) {
           // block for the moment. Not ideal but this code is used by the feed only. Feeds use a few thread (normally one)
           // to send products
@@ -274,14 +180,16 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         Future.successful(category)
       } else {
         Logger.debug(s"Category $id not found in cache")
-        findById(id, Fields).map( category => {
-          if (category.isDefined) {
-            Cache.set(key, category.get, CategoryCacheTtl)
-            Some(category.get)
+        val storage = withNamespace(storageFactory)
+
+        storage.findCategory(id, Fields) map { category =>
+          if (category != null) {
+            Cache.set(key, category, CategoryCacheTtl)
+            Some(category)
           } else {
             None
           }
-        })
+        }
       }
     }
 
@@ -295,6 +203,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
      * @return
      */
     private def isCategoryInCatalogs(category: Category, catalogs: Seq[String]) : Boolean = {
+      Logger.debug(s"Checking if category ${category.getId} is in catalogs '$catalogs'")
 
       if (catalogs == null || catalogs.size == 0) {
         return false
@@ -304,11 +213,13 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         if (categorySites != null) {
           for (categorySite <- categorySites) {
             if (catalogs.contains(categorySite)) {
+              Logger.debug(s"Category ${category.getId} is assigned to catalog '$categorySite'")
               return true
             }
           }
         }
       }
+      Logger.debug(s"Category ${category.getId} is not in catalogs '$skuCatalogAssignments'")
       false
     }
 
@@ -405,7 +316,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
   }
 
   /**
-   * If the fields parameter has categories or parentCategories, generated a special query to retrieve the id plus
+   * If the fields parameter has categories or parentCategories, generate a special query to retrieve the id plus
    * documents which parentCategories or categories are the id.
    * In any other case, create a real time query for the id specified
    */
@@ -614,7 +525,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         }
         else {
           //TODO: Find a more maintainable way to copy this data
-          taxonomyNode.childCategories = Option(category.getChildCategories)
+          taxonomyNode.childCategories = category.childCategories
           taxonomyNode.parentCategories = category.parentCategories
           taxonomyNode.isRuleBased = category.isRuleBased
           taxonomyNode.sites = category.sites
@@ -623,7 +534,7 @@ class CategoryService(var server: AsyncSolrServer) extends FieldList with Conten
         }
 
         //Add this category to the map
-        val childCategories = category.getChildCategories.filter(childCategory => {filterCategories.size == 0 || filterCategories.contains(childCategory.getId)}).map(childCategory => {
+        val childCategories = category.childCategories.getOrElse(Seq.empty).filter(childCategory => {filterCategories.size == 0 || filterCategories.contains(childCategory.getId)}).map(childCategory => {
           val tmpNode = hierarchyMap(childCategory.getId)
 
           if(tmpNode == null) {

@@ -25,8 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 case class Size(
     @JsonProperty("name") var name: Option[String], 
     @JsonProperty("scale") var scale: Option[String]) {
-  @JsonCreator
-  def this() = this(None, None)
+
 }
 
 object Size {

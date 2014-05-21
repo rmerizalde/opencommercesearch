@@ -25,8 +25,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 case class Color(
   @JsonProperty("name") var name: Option[String],
   @JsonProperty("family") var family: Option[String]) {
-  @JsonCreator
-  def this() = this(None, None)
+
 }
 
 object Color {

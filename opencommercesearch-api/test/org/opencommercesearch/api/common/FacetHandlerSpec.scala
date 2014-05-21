@@ -80,7 +80,7 @@ class FacetHandlerSpec extends BaseSpec {
     }
 
     "Remove facet filters when blacklisted" in {
-      val facet = new Facet()
+      val facet = Facet.getInstance()
       facet.setId("facetId")
       facet.setBlackList(Seq("bluee"))
       storage.findFacets(any, any) returns Future.successful(Seq(facet))

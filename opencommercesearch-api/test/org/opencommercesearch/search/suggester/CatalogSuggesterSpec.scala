@@ -75,7 +75,8 @@ class CatalogSuggesterSpec extends Specification with Mockito {
       }
     }
 
-    "Does not query product catalog if there are no userQueries in suggestions" in {
+    // @todo gsegura: add argument captor to very query
+    "Use query there are no userQueries in suggestions" in {
       running(FakeApplication()) {
         val suggester = new CatalogSuggester[Element]()
         val solrServer = setupSolrServer(returnUserQueries =  false)
@@ -84,7 +85,7 @@ class CatalogSuggesterSpec extends Specification with Mockito {
         val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
         val results = Await.result(searchFuture, Duration.Inf)
 
-        there was one(solrServer).query(any[SolrQuery])
+        there was two(solrServer).query(any[SolrQuery])
 
         results.elements().length must beEqualTo(3)
 
@@ -136,23 +137,19 @@ class CatalogSuggesterSpec extends Specification with Mockito {
     storageFactory = mock[MongoStorageFactory]
     storageFactory.getInstance(anyString) returns storage
 
-    val brand = new Brand()
-    brand.setId("0")
-    brand.setLogo("/brand/logo")
-    brand.setUrl("/brand/url")
-    brand.setName("Test Brand")
+    val brand = new Brand(Some("0"), Some("Test Brand"), Some("/brand/logo"), Some("/brand/url"), None)
 
-    val category = new Category()
-    category.setId("1")
-    category.setName("Test Category")
-    category.setSeoUrlToken("/category/url")
 
-    val suggestionProduct = new Product()
-    suggestionProduct.setId("2")
+    val category = Category.getInstance(Some("1"))
+    category.name = Some("Test Category")
+    category.seoUrlToken = Some("/category/url")
 
-    val catalogProduct = new Product()
-    catalogProduct.setId("skuId")
-    catalogProduct.setTitle("A title that matches better")
+    val suggestionProduct = Product.getInstance()
+    suggestionProduct.id = Some("2")
+
+    val catalogProduct = Product.getInstance()
+    catalogProduct.id = Some("skuId")
+    catalogProduct.title = Some("A title that matches better")
 
     storage.findBrands(===(Seq("0")), any) returns Future(Seq(brand))
     storage.findCategories(===(Seq("1")), any) returns Future(Seq(category))

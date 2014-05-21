@@ -33,8 +33,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 case class Image(
     @JsonProperty("title") var title: Option[String], 
     @JsonProperty("url")var url: Option[String]) {
-  @JsonCreator
-  def this() = this(None, None)
+
 }
 
 object Image {    Tuple2

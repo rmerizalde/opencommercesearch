@@ -19,19 +19,22 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
-import org.apache.solr.common.SolrInputDocument
-import org.apache.commons.lang.StringUtils
-import java.util.Date
+import play.api.libs.concurrent.Execution.Implicits._
+
+import scala.concurrent.Future
+import scala.collection.JavaConversions._
+
 import java.text.SimpleDateFormat
+import java.util.Date
+
+import org.apache.commons.lang.StringUtils
+import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.apache.solr.client.solrj.response.UpdateResponse
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.Element
-import scala.concurrent.{ExecutionContext, Future}
-import org.apache.solr.client.solrj.response.UpdateResponse
-import scala.collection.JavaConversions._
-import ExecutionContext.Implicits.global
-import org.apache.solr.client.solrj.SolrQuery
 
 /**
  * This trait provides functionality to convert a model object
@@ -41,7 +44,7 @@ import org.apache.solr.client.solrj.SolrQuery
  * @author nkumar
  */
 trait IndexableElement extends Element {
-  val IsoDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  import IndexableElement._
 
   /**
    * Converts this instance into a Solr input document compatible with the suggestion collection.
@@ -51,13 +54,13 @@ trait IndexableElement extends Element {
   def toSolrDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
     val doc = new SolrInputDocument()
     val `type` = getType
-    doc.addField("id", `type` + "-" + getId)
+    doc.addField("id", `type` + "-" + id.get)
     doc.addField("userQuery", StringUtils.EMPTY)
     doc.addField("ngrams", getNgramText)
     doc.addField("type", `type`)
     doc.addField("feedTimestamp", feedTimestamp)
     doc.addField("count", count)
-    doc.addField("lastUpdated", IsoDateFormat.format(new Date()))
+    doc.addField("lastUpdated", IsoDateFormat.get().format(new Date()))
 
     val sites = getSites
 
@@ -70,13 +73,19 @@ trait IndexableElement extends Element {
     doc
   }
 
-  def getId : String
   def getNgramText : String
   def getType : String
   def getSites : Seq[String]
 }
 
 object IndexableElement {
+
+  val IsoDateFormat = new ThreadLocal[SimpleDateFormat]() {
+    protected override def initialValue() : SimpleDateFormat = {
+      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    }
+  }
+
   def addToIndex(suggestions : Seq[IndexableElement], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
     if(context.isPublic) {
       val feedTimeStamp = System.currentTimeMillis()

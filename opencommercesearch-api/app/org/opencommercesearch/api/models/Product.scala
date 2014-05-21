@@ -36,6 +36,15 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.opencommercesearch.search.suggester.IndexableElement
 
+object Product {
+
+  def getInstance() =  new Product(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+
+  implicit val readsProduct = Json.reads[Product]
+  implicit val writesProduct = Json.writes[Product]
+
+}
+
 case class Product (
   @Id var id: Option[String],
   @JsonProperty("title") var title: Option[String],
@@ -58,135 +67,12 @@ case class Product (
   @JsonProperty("activationDate") var activationDate: Option[String],
   @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends IndexableElement
 {
-  @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
-
   def getId : String = { this.id.get }
-
-  @Field
-  def setId(id: String) : Unit = { this.id = Option.apply(id) }
 
   override def source = "product"
 
   override def toJson : JsValue = { Json.toJson(this) }
-
-  @Field
-  def setTitle(title: String) : Unit = { this.title = Option.apply(title) }
   
-  @Field
-  def setActivationDate(activationDate: String) : Unit = { this.activationDate = Option.apply(activationDate) }
-  
-  @Field
-  def setDescription(description: String) : Unit = { this.description = Option.apply(description) }
-  
-  @Field
-  def setShortDescription(shortDescription: String) : Unit = { this.shortDescription = Option.apply(shortDescription) }    
-
-  @Field
-  def setBrandId(id: Int) : Unit = {
-    if (brand.isEmpty) {
-        brand = Option.apply(new Brand())
-    }
-    brand.get.setId(id.toString) 
-  }  
-  
-  @Field
-  def setBrand(name: String) : Unit = {
-    if (brand.isEmpty) {
-        brand = Option.apply(new Brand())
-    }
-    brand.get.setName(name) 
-  }  
-
-  @Field
-  def setGender(gender: String) : Unit = { this.gender = Option.apply(gender) }
-  
-  @Field
-  def setSizingChart(sizingChart: String) : Unit = { this.sizingChart = Option.apply(sizingChart) } 
-  
-  @Field
-  def setBulletPoints(bulletPoints: util.List[String]) {
-    this.bulletPoints = Some(bulletPoints.toSeq)
-  }   
-  
-  @Field
-  def setDetailImages(detailImages: util.List[String]) {
-    this.detailImages = Some(detailImages.map( { image =>
-      val parts = StringUtils.split(image, FieldSeparator)
-      if(parts.size == 1) {
-          new Image(Some(StringUtils.EMPTY), Some(parts(0)))
-      } else {
-        new Image(Some(parts(0)), Some(parts(1)))
-      }
-    }).toSeq)
-  }   
-
-  @Field
-  def setSkus(skus: Seq[Sku]) : Unit = { this.skus = Option.apply(skus) }
-  
-  @Field("isOutOfStock")
-  def setOutOfStock(isOutOfStock: Boolean) {
-    this.isOutOfStock = Option.apply(isOutOfStock)
-  }
-
-  @Field
-  def setFeatures(features: util.List[String]) {
-    this.features = Some(features.map( { feature =>
-      val parts = StringUtils.split(feature, FieldSeparator)
-      new Attribute(Some(parts(0)), Some(parts(1)))    
-    }).toSeq)
-  }  
-  
-  @Field
-  def setAttributes(attributes: util.List[String]) {
-    this.features = Some(attributes.map( { attribute =>
-      val parts = StringUtils.split(attribute, FieldSeparator)
-      new Attribute(Some(parts(0)), Some(parts(1)))    
-    }).toSeq)
-  }
-  
-  @Field("reviews")
-  def setReviewCount(reviewCount: Int) : Unit = {
-    if(customerReviews.isEmpty) {
-      customerReviews = Some(new CustomerReview())
-    }
-    for (reviews <- customerReviews) {
-      reviews.count = reviewCount
-    }
-  }
-
-  @Field("reviewAverage")
-  def setReviewAverage(reviewAverage: Float) : Unit = {
-    if(customerReviews.isEmpty) {
-      customerReviews = Some(new CustomerReview())
-    }
-
-    for (reviews <- customerReviews) {
-      reviews.average =reviewAverage
-    }
-
-  }
-
-  @Field("bayesianReviewAverage")
-  def setBayesianReviewAverage(bayesianReviewAverage: Float) : Unit = {
-    if(customerReviews.isEmpty) {
-      customerReviews = Some(new CustomerReview())
-    }
-
-    for (reviews <- customerReviews) {
-      reviews.bayesianAverage = bayesianReviewAverage
-    }
-
-  }
-    
-  @Field
-  def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
-    this.hasFreeGift = Some(freeGifts.map( { freeGift =>
-      val parts = StringUtils.split(freeGift, FieldSeparator)
-      (parts(0), "true".equals(parts(1)))    
-    }).toMap)
-  }
-
   def getNgramText : String = {
     this.title.getOrElse(StringUtils.EMPTY)
   }
@@ -204,14 +90,8 @@ case class Product (
   }
 }
 
-object Product {
-
-  implicit val readsProduct = Json.reads[Product]
-  implicit val writesProduct = Json.writes[Product]
-
-}
-
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
+
   def toDocuments(service: CategoryService)(implicit context: Context) : (util.List[SolrInputDocument], util.List[SolrInputDocument]) = {
     val productDocuments = new util.ArrayList[SolrInputDocument](products.size)
     val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)

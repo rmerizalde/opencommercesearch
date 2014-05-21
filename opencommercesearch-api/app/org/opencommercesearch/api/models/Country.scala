@@ -43,9 +43,6 @@ case class Country(
   @JsonProperty("url") var url: Option[String],
   @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean]) {
 
-  @JsonCreator
-  def this() = this(None, None, None, None, None, None, None, None)
-
 }
 
 

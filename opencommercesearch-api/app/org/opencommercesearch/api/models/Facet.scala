@@ -72,6 +72,8 @@ case class Facet(
   @JsonProperty("blackList") var blackList: Option[Seq[String]],
   @JsonIgnore @JsonProperty("filters")  var filters: Option[Seq[Filter]]) {
 
+
+  // @todo (jmendez) fix this avoid using the Solr binder
   def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
@@ -185,32 +187,34 @@ object Facet {
   val IsMissing = "isMissing"
   val Limit = "limit"
 
+  def getInstance() = new Facet(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+
   def fromDefinition(facetDefinition: NamedList[String]): Facet = {
-    val facet = new Facet
-
-    facet.id = Some(facetDefinition.get(Id))
-    facet.name = Some(facetDefinition.get(Name))
-    facet.fieldName = Some(facetDefinition.get(FieldName))
-    facet.sort = Some(facetDefinition.get(Sort))
-    facet.start = Some(facetDefinition.get(Start))
-    facet.end = Some(facetDefinition.get(End))
-    facet.gap = Some(facetDefinition.get(Gap))
-    facet.uiType = Some(facetDefinition.get(UiType))
-    facet.isMultiSelect = Some("T".equals(facetDefinition.get(IsMultiSelect)))
-    facet.isMixedSorting = Some("T".equals(facetDefinition.get(IsMixedSorting)))
-    facet.isHardened = Some("T".equals(facetDefinition.get(IsHardened)))
-    facet.isMissing = Some("T".equals(facetDefinition.get(IsMissing)))
-
-    val minCount = facetDefinition.get(MinCount)
-    if (minCount != null) { facet.minCount = Option.apply(minCount.toInt) }
-
     val minBuckets = facetDefinition.get(MinBuckets)
-    facet.minBuckets = Option.apply(if (minBuckets != null) minBuckets.toInt else 2)
-
+    val minCount = facetDefinition.get(MinCount)
     val limit = facetDefinition.get(Limit)
-    if (limit != null) { facet.limit = Option.apply(limit.toInt) }
 
-    facet
+    new Facet(
+      Option(facetDefinition.get(Id)),
+      Option(facetDefinition.get(Name)),
+      None,
+      Option(facetDefinition.get(UiType)),
+      Option("T".equals(facetDefinition.get(IsMultiSelect))),
+      Option(facetDefinition.get(FieldName)),
+      Option(if (minBuckets != null) minBuckets.toInt else 2),
+      Option("T".equals(facetDefinition.get(IsMixedSorting))),
+      if (minCount != null) Some(minCount.toInt) else None,
+      Option(facetDefinition.get(Sort)),
+      Option("T".equals(facetDefinition.get(IsMissing))),
+      if (limit != null) Some(limit.toInt) else None,
+      Option(facetDefinition.get(Start)),
+      Option(facetDefinition.get(End)),
+      Option(facetDefinition.get(Gap)),
+      Option("T".equals(facetDefinition.get(IsHardened))),
+      None,
+      None,
+      None
+    )
   }
 
   implicit val readsFacet = Json.reads[Facet]

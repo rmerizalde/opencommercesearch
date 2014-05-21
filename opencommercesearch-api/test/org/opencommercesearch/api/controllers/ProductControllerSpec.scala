@@ -57,13 +57,13 @@ class ProductControllerSpec extends BaseSpec {
       val writeResult = mock[WriteResult]
       storage.saveProduct(any) returns Future.successful(writeResult)
 
-      val category = new Category()
+      val category = Category.getInstance(Some("someCategory"))
       category.isRuleBased = Option(false)
       category.sites = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
 
-      val facet = new Facet()
+      val facet = Facet.getInstance()
       facet.id = Some("facetId")
       facet.blackList = Some(Seq.empty[String])
       storage.findFacets(any, any) returns Future.successful(Seq(facet))
@@ -95,13 +95,13 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(facetResponse)
         }
 
-        val product = new Product()
+        val product = Product.getInstance
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
 
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -109,11 +109,10 @@ class ProductControllerSpec extends BaseSpec {
         storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
 
-        val categoryResult = new Category()
-        categoryResult.setId("someCategory")
-        categoryResult.sites = Option(Seq("mysite"))
+        val category = Category.getInstance(Some("someCategory"))
+        category.sites = Option(Seq("mysite"))
 
-        storage.findCategories(any, any) returns Future.successful(Seq(categoryResult))
+        storage.findCategories(any, any) returns Future.successful(Seq(category))
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
@@ -135,8 +134,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by query" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -145,7 +144,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -177,8 +176,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by query with sort options" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -187,7 +186,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -222,8 +221,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a category" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -232,7 +231,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -265,7 +264,7 @@ class ProductControllerSpec extends BaseSpec {
     "send 200 when a product is found when browsing a rule based category" in new Products {
       running(FakeApplication()) {
 
-        val category = new Category()
+        val category = Category.getInstance(Some("someCategory"))
         category.isRuleBased = Option(true)
         category.hierarchyTokens = Option(Seq("1.mysite.cat1"))
         category.ruleFilters = Option(Seq("en_US:(category:cat1 AND category:cat2)", "fr_CA:(category:cat1)"))
@@ -273,8 +272,8 @@ class ProductControllerSpec extends BaseSpec {
         storage.findCategory(any, any) returns Future.successful(null)
         storage.findCategory(any, any) returns Future.successful(category)
 
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -283,7 +282,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -314,8 +313,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing an outlet category" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -324,7 +323,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -356,8 +355,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a brand category" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -366,7 +365,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -398,8 +397,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a brand" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+        val product = Product.getInstance
+        val sku = Sku.getInstance
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -408,7 +407,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 

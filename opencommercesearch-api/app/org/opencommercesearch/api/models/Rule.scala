@@ -62,10 +62,10 @@ case class Rule(
   var boostedProducts: Option[Array[String]],
   var blockedProducts: Option[Array[String]],
   var ruleType: Option[String],
-  // @todo jmendez: rename to url
   var redirectUrl: Option[String]) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  // @todo (jmendez):  fix this to avoid using Solr binder
+  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   def getId : String = { id.get }
 

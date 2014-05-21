@@ -22,6 +22,7 @@ package org.opencommercesearch.search.suggester
 import org.specs2.mutable.Specification
 import org.specs2.mock._
 import org.opencommercesearch.common.Context
+import org.opencommercesearch.api.models.Product
 import play.api.i18n.Lang
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future, Await}
@@ -66,7 +67,9 @@ class MultiSuggesterSpec extends Specification with Mockito {
       running(FakeApplication()) {
         val suggester = new MultiSuggester()
         val solrServer = setupSolrServer()
-        setupMongo()
+        val storage = setupMongo()
+
+        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
         val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
         val results = Await.result(searchFuture, Duration.Inf)
@@ -88,7 +91,9 @@ class MultiSuggesterSpec extends Specification with Mockito {
       running(FakeApplication(additionalConfiguration = Map("suggester.extra" -> suggesterClasses))) {
         val suggester = new MultiSuggester()
         val solrServer = setupSolrServer()
-        setupMongo()
+        val storage = setupMongo()
+
+        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
         val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
         val results = Await.result(searchFuture, Duration.Inf)
@@ -110,19 +115,15 @@ class MultiSuggesterSpec extends Specification with Mockito {
     storageFactory = mock[MongoStorageFactory]
     storageFactory.getInstance(anyString) returns storage
 
-    val brand = new Brand()
-    brand.setId("00")
-    brand.setLogo("/brand/logo")
-    brand.setUrl("/brand/url")
-    brand.setName("Test Brand")
+    val brand = new Brand(Some("00"), Some("Test Brand"), Some("/brand/logo"), Some("/brand/url"), None)
 
-    val category = new Category()
-    category.setId("01")
-    category.setName("Test Category")
-    category.setSeoUrlToken("/category/url")
+    val category = Category.getInstance(Some("01"))
+    category.name = Some("Test Category")
+    category.seoUrlToken = Some("/category/url")
 
     storage.findBrands(===(Seq("00")), any) returns Future(Seq(brand))
     storage.findCategories(===(Seq("01")), any) returns Future(Seq(category))
+    storage
   }
 
   def setupSolrServer() = {

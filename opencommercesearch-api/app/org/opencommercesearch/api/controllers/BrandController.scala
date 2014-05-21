@@ -40,7 +40,10 @@ import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.util.Util._
 
 import com.wordnik.swagger.annotations._
-import org.opencommercesearch.search.suggester.IndexableElement
+import org.opencommercesearch.search.suggester.{CatalogSuggester, IndexableElement}
+import org.apache.solr.common.SolrDocument
+import org.opencommercesearch.search.Element
+import org.opencommercesearch.search.collector.{MultiSourceCollector, SimpleCollector}
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController with FacetQuery {
@@ -175,11 +178,7 @@ object BrandController extends BaseController with FacetQuery {
     @ApiParam(value = "Partial category name", required = true)
     @QueryParam("q")
     query: String) = ContextAction.async { implicit context => implicit request =>
-
-    // @todo: fix this
-    val solrQuery = withBrandCollection(new SolrQuery(query), context.isPreview)
-
-    findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
+    findSuggestionsFor("brand", query)
   }
 
   /**
@@ -430,7 +429,7 @@ object BrandController extends BaseController with FacetQuery {
                                   "categoryId" -> category.getId,
                                   "categoryName" -> category.getName,
                                   "name" -> s"${brand.getName} ${category.getName}",
-                                  "seoUrlToken" -> s"${brand.getSeoUrlToken}-${category.getSeoUrlToken}"
+                                  "seoUrlToken" -> s"${brand.getUrl}-${category.getUrl}"
                                 )
                               })
                             })

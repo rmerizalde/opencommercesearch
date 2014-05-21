@@ -287,9 +287,7 @@ object CategoryController extends BaseController with FacetQuery {
       @QueryParam("site")
       site: String) = ContextAction.async { implicit context => implicit request =>
     val solrQuery = withCategoryCollection(new SolrQuery(query))
-    solrQuery.addFilterQuery(s"catalogs:$site")
-
-    findSuggestionsFor(classOf[Category], "categories" , solrQuery)
+    findSuggestionsFor("category", query, site)
   }
 
   @ApiOperation(value = "Return all brands", notes = "Returns all brands for a given category", response = classOf[Brand], httpMethod = "GET")

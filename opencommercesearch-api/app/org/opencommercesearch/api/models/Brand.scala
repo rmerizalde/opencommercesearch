@@ -49,47 +49,15 @@ case class Brand(
    @JsonProperty("url") var url: Option[String],
    @JsonProperty("sites") var sites: Option[Seq[String]]) extends IndexableElement {
 
-  @JsonCreator
-  def this() = this(None, None, None, None, None)
-
-  def getId : String = { this.id.get }
+  def getId : String = this.id.getOrElse(null)
   
-  @Field
-  def setId(id: String) : Unit = {
-    this.id = Option.apply(id)
-  }
+  def getName : String = this.name.getOrElse(null)
+
+  def getUrl: String = url.getOrElse(null)
 
   override def source = "brand"
 
   override def toJson : JsValue = { Json.toJson(this) }
-
-  @Field
-  def setName(name: String) : Unit = {
-    this.name = Option.apply(name)
-  }
-
-  def getName : String = {
-    this.name.getOrElse(StringUtils.EMPTY)
-  }
-
-  @Field
-  def setLogo(logo: String) : Unit = {
-    this.logo = Option.apply(logo)
-  }
-
-  @Field
-  def setUrl(url: String) : Unit = {
-    this.url = Option.apply(url)
-  }
-
-  def getSeoUrlToken : String = {
-    this.url.getOrElse(StringUtils.EMPTY)
-  }
-
-  @Field("siteId")
-  def setSites(sites: Seq[String]) : Unit = {
-    this.sites = Option.apply(sites)
-  }
 
   def getSites : Seq[String] = {
     this.sites.getOrElse(Seq.empty[String])
@@ -126,7 +94,7 @@ case class Brand(
   }
 
   def getNgramText : String = {
-    this.getName
+    name.getOrElse(null)
   }
 
   def getType : String = {

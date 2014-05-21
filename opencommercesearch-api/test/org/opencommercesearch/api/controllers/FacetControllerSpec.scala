@@ -88,7 +88,7 @@ class FacetControllerSpec extends Specification with Mockito {
         val doc = mock[SolrDocument]
         val (expectedId) = ("1000")
 
-        val facet = new Facet()
+        val facet = Facet.getInstance
         facet.setId("1000")
         facet.setBlackList(Seq.empty[String])
         storage.findFacet(anyString, any) returns Future.successful(facet)

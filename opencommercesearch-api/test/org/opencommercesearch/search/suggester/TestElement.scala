@@ -32,11 +32,10 @@ object TestElement {
 }
 
 case class TestElement(var id: Option[String]) extends IndexableElement {
-  override def getId: String = "testId"
 
   override def getType: String = "test"
 
-  override def getNgramText: String = "Some significative text"
+  override def getNgramText: String = "Some significant text"
 
   override def getSites: Seq[String] = Seq("myTestSite")
 

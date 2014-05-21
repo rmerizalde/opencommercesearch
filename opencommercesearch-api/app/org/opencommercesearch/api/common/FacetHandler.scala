@@ -62,9 +62,18 @@ case class FacetHandler (
     //from results in the Solr rule_facet. Then in a second pass we'll populate the actual facet and filter values
     facetMap.put("category", null)
     val facetIds = facetData map { entry =>
-    	facetMap.put(entry.get(Facet.FieldName).toString, null)
+      val name = entry.get(Facet.FieldName).asInstanceOf[String]
+      if (name == null) {
+        throw new NullPointerException("Facet name can't be null")
+      }
       //Get the facet ID too, so we can look it up on storage to get the blacklist
-      entry.get(Facet.Id).toString
+      val id = entry.get(Facet.Id)
+      if (id == null) {
+        throw new NullPointerException("Facet id can't be null")
+      }
+
+      facetMap.put(name, null)
+      id.asInstanceOf[String]
     }
 
     val facetBlackLists = getFacetBlacklists(facetIds)
@@ -314,7 +323,7 @@ case class FacetHandler (
    * Creates a new category facet with the default facet values
    */
   private def createCategoryFacet(fieldName: String) : Option[Facet] = {
-    val categoryFacet = new Facet
+    val categoryFacet = Facet.getInstance()
     categoryFacet.name = Option.apply(fieldName)
     categoryFacet.fieldName = Option.apply(fieldName)
     categoryFacet.minBuckets = Option.apply(1)
@@ -443,10 +452,11 @@ case class FacetHandler (
         crumbs.addAll(createCategoryBreadCrumb(filterQuery))
       } else {
         try{
-          val crumb = new BreadCrumb()
-          crumb.setFieldName(filterQuery.fieldName)
-          crumb.setExpression(getCrumbExpression(filterQuery.fieldName, filterQuery.unescapeExpression))
-          crumb.setPath(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"))
+          val crumb = new BreadCrumb(
+            Some(filterQuery.fieldName),
+            Some(getCrumbExpression(filterQuery.fieldName, filterQuery.unescapeExpression)),
+            Some(URLEncoder.encode(Util.createPath(filterQueries, filterQuery), "UTF-8"))
+          )
           crumbs.add(crumb)
         } catch {
           case ex: ParseException =>
@@ -477,13 +487,7 @@ case class FacetHandler (
     val basePath = Util.createPath(filterQueries, categoryFilterQuery)
     var level = 1
     for (i <- 2 until categories.length) {
-      val crumb = new BreadCrumb()
-      val category = categories(i)
-
-      crumb.setExpression(FilterQuery.unescapeQueryChars(category))
-
-      crumb.setFieldName(categoryFilterQuery.fieldName)
-      var unselectPath: String = ""
+      var unselectPath = StringUtils.EMPTY
       if (buffer.length() > 0) {
         unselectPath += "category:" + level + FilterQuery.CategorySeparator + catalogId + buffer.toString
         level = level
@@ -495,7 +499,14 @@ case class FacetHandler (
         }
         unselectPath += basePath
       }
-      crumb.setPath(URLEncoder.encode(unselectPath, "UTF-8"))
+
+      val category = categories(i)
+      val crumb = new BreadCrumb(
+        Some(categoryFilterQuery.fieldName),
+        Some(FilterQuery.unescapeQueryChars(category)),
+        Some(URLEncoder.encode(unselectPath, "UTF-8"))
+      )
+
       breadCrumbs.add(crumb)
       buffer.append(FilterQuery.CategorySeparator).append(category)
     }

@@ -38,6 +38,10 @@ import org.opencommercesearch.api.I18n._
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.Some
 import play.api.mvc.SimpleResult
+import org.apache.solr.common.SolrDocument
+import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
+import org.opencommercesearch.search.Element
+import org.opencommercesearch.search.suggester.CatalogSuggester
 
 /**
  * This class provides common functionality for all controllers
@@ -49,6 +53,7 @@ import play.api.mvc.SimpleResult
 class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
 
   private val timeZoneCode = "GMT"
+  private val suggester = new CatalogSuggester[Element]
 
   private val df: DateTimeFormatter =
     DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '" + timeZoneCode + "'").withLocale(java.util.Locale.ENGLISH).withZone(DateTimeZone.forID(timeZoneCode))
@@ -73,7 +78,32 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     case None => result
   }
 
-  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[SimpleResult] = {
+  protected def findSuggestionsFor(typeName: String, query: String, site: String = null)(implicit context: Context): Future[SimpleResult] = {
+    val startTime = System.currentTimeMillis()
+
+    if (query == null || query.length < 2) {
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
+      )))
+    } else {
+      val collector = new MultiSourceCollector[Element]
+      collector.add(typeName, new SimpleCollector[Element])
+
+      val future = suggester.search(query, site, collector, solrServer) map { c =>
+       Ok(Json.obj(
+          "metadata" -> Json.obj(
+             "found" -> c.size(),
+             "time" -> (System.currentTimeMillis() - startTime)),
+          "suggestions" -> (c.elements() map { el => el.toJson })
+        ))
+      }
+
+      withErrorHandling(future, s"Cannot suggest $typeName for [${query}]")
+    }
+  }
+
+  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]): Future[SimpleResult] = {
+
     val startTime = System.currentTimeMillis()
     val solrQuery = withPagination(withFields(query, req.getQueryString("fields")))
 
@@ -82,12 +112,12 @@ class BaseController extends Controller with ContentPreview with FieldList with 
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
       )))
     } else {
-      val future = solrServer.query(solrQuery).map( response => {
+      val future = solrServer.query(solrQuery).map(response => {
         val docs = response.getResults
         Ok(Json.obj(
           "metadata" -> Json.obj(
-             "found" -> docs.getNumFound,
-             "time" -> (System.currentTimeMillis() - startTime)),
+            "found" -> docs.getNumFound,
+            "time" -> (System.currentTimeMillis() - startTime)),
           "suggestions" -> JIterableWrapper(docs).map(doc => solrServer.binder.getBean(clazz, doc))
         ))
       })
