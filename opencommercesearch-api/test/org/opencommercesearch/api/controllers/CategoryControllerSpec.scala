@@ -257,5 +257,40 @@ class CategoryControllerSpec extends BaseSpec {
         there was two(solrServer).request(any[SolrRequest]) //One for the category collection, and other for the suggestion collection
       }
     }
+
+    "send 201 when categories are created, but don't send to autocomplete collection if only rule based categories" in new Categories {
+      running(FakeApplication()) {
+        setupUpdate
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
+          ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2, hierarchyTokens2) =
+          ("1001", "Another Category", "/another-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "categories" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "name" -> expectedName,
+              "seoUrlToken" -> expectedSeoUrlToken,
+              "isRuleBased" -> expectedIsRuleBased,
+              "ruleFilters" -> Seq("en_US:(filter:value)"),
+              "hierarchyTokens" -> hierarchyTokens),
+            Json.obj(
+              "id" -> expectedId2,
+              "name" -> expectedName2,
+              "seoUrlToken" -> expectedSeoUrlToken2,
+              "isRuleBased" -> expectedIsRuleBased2,
+              "hierarchyTokens" -> hierarchyTokens2)))
+
+        val url = routes.CategoryController.bulkCreateOrUpdate().url + "?preview=false"
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+        val result = route(fakeRequest)
+        Await.ready(result.get, Duration.Inf)
+        validateUpdateResult(result.get, CREATED)
+        there was one(solrServer).request(any[SolrRequest])
+      }
+    }
   }
 }

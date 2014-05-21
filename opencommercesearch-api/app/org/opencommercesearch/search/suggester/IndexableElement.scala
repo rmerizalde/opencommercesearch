@@ -120,7 +120,12 @@ object IndexableElement {
           s.toSolrDoc(feedTimeStamp)
         })
 
-        updateQuery.process(solrServer)
+        if(updateQuery.getDocuments.size() > 0) {
+          updateQuery.process(solrServer)
+        }
+        else {
+          Future(null)
+        }
       }
     }
     else {
