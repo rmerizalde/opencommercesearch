@@ -226,7 +226,7 @@ object CategoryController extends BaseController with FacetQuery {
           val docs = categoryList.toDocuments
           update.add(docs)
           val catalogUpdateFuture = update.process(solrServer)
-          val suggestionFuture = IndexableElement.addToIndex(categories filter { category => category.isRuleBased.getOrElse(false) })
+          val suggestionFuture = IndexableElement.addToIndex(categories filter { category => !category.isRuleBased.getOrElse(false) })
 
           val future = Future.sequence(List[Future[Any]](storageFuture, catalogUpdateFuture, suggestionFuture)) map { result =>
             Created
