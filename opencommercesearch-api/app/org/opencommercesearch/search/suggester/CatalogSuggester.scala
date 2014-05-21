@@ -223,8 +223,6 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
               if(`type` == "userQuery" && StringUtils.isEmpty(suggestedTerm) && docs.length > 0) {
                 suggestedTerm = docs.get(0).getFieldValue("userQuery").toString
-              } else {
-                suggestedTerm = q
               }
 
               for (binder <- typeToBinder.get(`type`)) {
@@ -239,9 +237,10 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
         }
       }
 
-      if (StringUtils.isNotEmpty(suggestedTerm)) {
-        futureList += ProductSuggester.search(suggestedTerm, site, server)
+      if (StringUtils.isEmpty(suggestedTerm)) {
+        suggestedTerm = q
       }
+      futureList += ProductSuggester.search(suggestedTerm, site, server)
 
       if (suggestedProducts != null) {
         futureList += suggestedProducts
