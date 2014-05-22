@@ -177,8 +177,11 @@ object BrandController extends BaseController with FacetQuery {
     version: Int,
     @ApiParam(value = "Partial category name", required = true)
     @QueryParam("q")
-    query: String) = ContextAction.async { implicit context => implicit request =>
-    findSuggestionsFor("brand", query)
+    query: String,
+    @ApiParam(value = "Site to search", required = true)
+    @QueryParam("site")
+    site: String) = ContextAction.async { implicit context => implicit request =>
+    findSuggestionsFor("brand", query, site)
   }
 
   /**

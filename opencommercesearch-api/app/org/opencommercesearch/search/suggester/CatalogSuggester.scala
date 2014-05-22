@@ -196,6 +196,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
     val query = new SolrQuery(q)
     query.setParam("collection", SuggestCollection)
       .setFields("id", "userQuery")
+      .setFilterQueries(s"siteId:$site")
       .set("group", true)
       .set("group.ngroups", false)
       .set("group.field", "type")
@@ -203,8 +204,6 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       .set("group.limit", suggestionLimit)
       .set("defType", "edismax")
       .set("qf", "userQuery ngrams")
-
-    if (site != null) query.setFilterQueries(s"siteId:$site")
 
     server.query(query).flatMap( response => {
       val futureList = new mutable.ArrayBuffer[Future[Seq[E]]](typeToBinder.size)

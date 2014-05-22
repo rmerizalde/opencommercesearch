@@ -7,7 +7,7 @@ GET           /v1/healthcheck                                            org.ope
 HEAD          /v1/healthcheck                                            org.opencommercesearch.api.controllers.HealthCheckController.checkHead(version: Int = 1, preview: Boolean ?= false)
 
 # brand routes
-GET           /v1/brands/suggestions                                     org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, q: String)
+GET           /v1/brands/suggestions                                     org.opencommercesearch.api.controllers.BrandController.findSuggestions(version: Int = 1, q: String, site: String)
 GET           /v1/brands/categories                                      org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, site: String)
 # this endpoint is been deprecated
 GET           /v1/brand/categories                                       org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, site: String)

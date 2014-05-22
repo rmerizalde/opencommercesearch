@@ -78,7 +78,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     case None => result
   }
 
-  protected def findSuggestionsFor(typeName: String, query: String, site: String = null)(implicit context: Context): Future[SimpleResult] = {
+  protected def findSuggestionsFor(typeName: String, query: String, site: String)(implicit context: Context): Future[SimpleResult] = {
     val startTime = System.currentTimeMillis()
 
     if (query == null || query.length < 2) {
