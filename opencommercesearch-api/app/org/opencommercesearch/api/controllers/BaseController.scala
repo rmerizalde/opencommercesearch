@@ -34,7 +34,6 @@ import org.opencommercesearch.api.common.FacetQuery
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import org.joda.time.DateTimeZone
 import org.opencommercesearch.common.Context
-import org.opencommercesearch.api.I18n._
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.Some
 import play.api.mvc.SimpleResult
@@ -98,7 +97,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
         ))
       }
 
-      withErrorHandling(future, s"Cannot suggest $typeName for [${query}]")
+      withErrorHandling(future, s"Cannot suggest $typeName for [$query]")
     }
   }
 
@@ -177,6 +176,9 @@ class BaseController extends Controller with ContentPreview with FieldList with 
   }
 
   object ContextAction {
+    import play.api.Play.current
+    import play.api.i18n.Lang.preferred
+
     /**
      * Action composition for async actions that require a context and request
      *
@@ -194,7 +196,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
      */
     final def async[A](bodyParser: BodyParser[A])(block: Context => Request[A] => Future[SimpleResult]): Action[A] = Action.async(bodyParser) { implicit request =>
       val preview = request.getQueryString("preview").getOrElse(false)
-      val context = Context("true".equals(preview), language())
+      val context = Context("true".equals(preview), preferred(request.acceptLanguages))
 
       block(context)(request)
     }

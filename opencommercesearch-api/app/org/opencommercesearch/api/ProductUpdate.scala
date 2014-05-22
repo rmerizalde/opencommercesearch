@@ -12,9 +12,6 @@ import org.opencommercesearch.common.Context
  */
 sealed class ProductUpdate(implicit context: Context, request: Request[_]) extends AsyncUpdateRequest {
   import Collection._
-  import I18n._
 
-  val lang = language()
-
-  setParam("collection", searchCollection.name(lang))
+  setParam("collection", searchCollection.name(context.lang))
 }

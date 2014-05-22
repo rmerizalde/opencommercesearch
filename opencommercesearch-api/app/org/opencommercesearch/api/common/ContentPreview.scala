@@ -21,6 +21,8 @@ package org.opencommercesearch.api.common
 
 import play.api.mvc.{AnyContent, Request}
 import play.api.i18n.Lang
+import play.api.i18n.Lang.preferred
+import play.api.Play.current
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest
@@ -151,17 +153,11 @@ trait ContentPreview {
   }
 
   private def country(acceptLanguages:Seq[Lang]) : String = {
-    var country: String = "US"
-
-    acceptLanguages.collectFirst { case lang if SupportedCountries.contains(lang.country) => country = lang.country }
-    country
+    preferred(acceptLanguages).country
   }
 
   private def language(acceptLanguages:Seq[Lang]) : String = {
-    var language: String = "en"
-
-    acceptLanguages.collectFirst { case lang if SupportedLanguages.contains(lang.language) => language = lang.language }
-    language
+    preferred(acceptLanguages).language
   }
 
 }

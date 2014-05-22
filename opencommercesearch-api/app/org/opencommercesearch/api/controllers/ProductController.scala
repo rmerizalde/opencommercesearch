@@ -49,8 +49,6 @@ import org.opencommercesearch.search.suggester.IndexableElement
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
-  import I18n.language
-
   val categoryService = new CategoryService(solrServer)
 
   @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
@@ -435,7 +433,7 @@ object ProductController extends BaseController {
       var isRulePage = false
       if (category != null && category.isRuleBased.get) {
         //set the rules expression filter query for rule based categories
-        val lang = query.lang
+        val lang = context.lang
         val localeKey = s"${lang.language}_${lang.country}"
         val ruleFilters = category.ruleFilters.getOrElse(Seq.empty[String]).filter(rule => {
             rule.startsWith(localeKey)
@@ -491,7 +489,7 @@ object ProductController extends BaseController {
                   products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
                 }
                 val storage = withNamespace(storageFactory)
-                storage.findProducts(products, query.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
+                storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
                   val facetHandler = buildFacetHandler(response, query, query.filterQueries)
                   withCacheHeaders(Ok(Json.obj(
                     "metadata" -> Json.obj(

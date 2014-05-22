@@ -28,7 +28,6 @@ import scala.concurrent.Future
 import scala.collection.mutable
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.I18n._
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.MultiSuggester
 import org.opencommercesearch.search.Element
@@ -66,14 +65,13 @@ object SuggestionController extends BaseController {
      site: String,
      //@ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
      //@QueryParam("preview")
-     preview: Boolean) = Action.async { implicit request =>
+     preview: Boolean) = ContextAction.async { implicit context => implicit request =>
 
     if (q == null || q.length < 2) {
       Future.successful(BadRequest(Json.obj(
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
       )))
     } else {
-      implicit val context = Context(preview, language)
       val startTime = System.currentTimeMillis()
       val collector = new MultiSourceCollector[Element]
       suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )

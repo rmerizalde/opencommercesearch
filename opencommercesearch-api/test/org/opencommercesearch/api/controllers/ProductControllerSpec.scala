@@ -2,9 +2,9 @@ package org.opencommercesearch.api.controllers
 
 import play.api.libs.json.{JsError, Json}
 import play.api.test.Helpers._
-import play.api.test.{FakeRequest, FakeApplication}
+import play.api.test.FakeRequest
 
-import scala.concurrent.{Future}
+import scala.concurrent.Future
 
 import java.util
 
@@ -18,10 +18,6 @@ import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import com.mongodb.WriteResult
-import scala.Some
-import play.api.test.FakeApplication
-import scala.Some
-import play.api.test.FakeApplication
 import scala.Some
 import play.api.test.FakeApplication
 

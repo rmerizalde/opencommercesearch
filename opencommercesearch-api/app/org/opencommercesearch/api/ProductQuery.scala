@@ -27,19 +27,17 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
   import Collection._
   import Query._
 
-  val lang = context.lang
-
   private var _filterQueries: Array[FilterQuery] = null
 
   protected def init() : Unit = {
     setFields("id")
-    setParam("collection", searchCollection.name(lang))
+    setParam("collection", searchCollection.name(context.lang))
 
     // default filter queries
     addFilterQuery("isRetail:true")
 
     // product params
-    addFilterQuery(s"country:${lang.country}")
+    addFilterQuery(s"country:${context.lang.country}")
 
     // RuleComponent params
     setParam("rule", true)
@@ -85,7 +83,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
     val sortParam = URLDecoder.decode(request.getQueryString("sort").getOrElse(""), "UTF-8")
     val sortSpecs = StringUtils.split(sortParam, ",")
     if (sortSpecs != null && sortSpecs.length > 0) {
-      val country = lang.country
+      val country = context.lang.country
       for (sortSpec <- sortSpecs) {
         val selectedOrder = if (sortSpec.trim.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
 
@@ -150,7 +148,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
 
       setParam("groupcollapse", collapse)
       if (collapse) {
-        val country = lang.country
+        val country = context.lang.country
         val listPrice = s"listPrice$country"
         val salePrice = s"salePrice$country"
         val discountPercent = s"discountPercent$country"
@@ -256,12 +254,9 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
  */
 class SingleProductQuery(productId : String, site : String)(implicit context: Context, request: Request[AnyContent]) extends SolrQuery("*:*") {
   import Collection._
-  import I18n._
-
-  val lang = language()
 
   private def init() : Unit = {
-    setParam("collection", searchCollection.name(lang))
+    setParam("collection", searchCollection.name(context.lang))
     addFilterQuery(s"productId:$productId")
     setRows(1)
 
@@ -288,15 +283,12 @@ class SingleProductQuery(productId : String, site : String)(implicit context: Co
  */
 class ProductFacetQuery(facetField: String, site: String)(implicit context: Context, request: Request[AnyContent]) extends SolrQuery("*:*") {
   import Collection._
-  import I18n._
   import Query._
 
   def this(facetField: String)(implicit context: Context, request: Request[AnyContent]) = this(facetField, null)
 
-  val lang = language()
-
   private def init() = {
-    setParam("collection", searchCollection.name(lang))
+    setParam("collection", searchCollection.name(context.lang))
     setRows(0)
     setFacet(true)
     addFacetField(facetField)
