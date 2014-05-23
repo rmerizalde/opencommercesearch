@@ -26,8 +26,10 @@ object ApplicationBuild extends Build {
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.2.3",
     "org.mongodb" % "mongo-java-driver" % "2.11.3",
     "org.jongo" % "jongo" % "1.0",
-    "org.apache.solr" % "solr-core" % "4.6.1"
-    //"uk.co.panaxiom" %% "play-jongo" % "0.6.0-jongo0.4"
+    "org.apache.solr" % "solr-core" % "4.6.1" excludeAll(
+      ExclusionRule(organization = "log4j"),
+      ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")
+    )
   )
 
   val main = play.Project(appName, appVersion, appDependencies, settings = s).settings(
