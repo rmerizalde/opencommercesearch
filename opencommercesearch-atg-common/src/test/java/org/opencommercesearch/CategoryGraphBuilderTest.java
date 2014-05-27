@@ -52,7 +52,15 @@ public class CategoryGraphBuilderTest {
         
         List<CategoryGraph> vos = builder.getCategoryGraphList();
         
-        validate(vos);
+        assertEquals("level1", vos.get(0).getId());
+        assertEquals("node1-1", vos.get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("node1-2", vos.get(0).getCategoryGraphNodes().get(1).getId());
+        assertEquals("level2", vos.get(1).getId());
+        assertEquals("node2-1", vos.get(1).getCategoryGraphNodes().get(0).getId());
+        assertEquals("node2-1-1", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("node2-1-2", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(1).getId());
+        assertEquals("level3", vos.get(2).getId());
+        assertEquals("level4", vos.get(3).getId());
        
     }
 
@@ -72,23 +80,17 @@ public class CategoryGraphBuilderTest {
         builder.addPath(newFilter("level4", "root.level4"));
         
         List<CategoryGraph> vos = builder.getCategoryGraphList();
-        
-        validate(vos);
-       
-    }
-    
-    protected void validate(List<CategoryGraph> vos) {
         assertEquals("level1", vos.get(0).getId());
-        assertEquals("node1-1", vos.get(0).getCategoryGraphNodes().get(0).getId());
-        assertEquals("node1-2", vos.get(0).getCategoryGraphNodes().get(1).getId());
+        assertEquals("node1-2", vos.get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("node1-1", vos.get(0).getCategoryGraphNodes().get(1).getId());
         assertEquals("level2", vos.get(1).getId());
         assertEquals("node2-1", vos.get(1).getCategoryGraphNodes().get(0).getId());
-        assertEquals("node2-1-1", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(0).getId());
-        assertEquals("node2-1-2", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(1).getId());
+        assertEquals("node2-1-2", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(0).getId());
+        assertEquals("node2-1-1", vos.get(1).getCategoryGraphNodes().get(0).getCategoryGraphNodes().get(1).getId());
         assertEquals("level3", vos.get(2).getId());
         assertEquals("level4", vos.get(3).getId());
     }
-    
+        
     private Filter newFilter(String name, String path){
         Filter filter = new Filter();
         filter.setCount(1);
