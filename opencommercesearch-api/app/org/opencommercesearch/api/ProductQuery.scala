@@ -158,7 +158,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
       }
 
       if (isSortedByScore()) {
-        set("group.sort", "isCloseout asc, score desc, sort asc")
+        set("group.sort", s"salePrice${lang.country} asc, isCloseout asc, score desc, sort asc")
       }
     }
 

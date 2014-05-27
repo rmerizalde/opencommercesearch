@@ -166,6 +166,10 @@ public class AbstractSearchServerUnitTest {
     private Locale getFrenchLocale() {
         return Locale.FRENCH;
     }
+    
+    private Locale getUSLocale() {
+        return Locale.US;
+    }
 
     @Before
     public void setup() throws Exception {
@@ -335,7 +339,7 @@ public class AbstractSearchServerUnitTest {
         when(query.getSorts()).thenReturn(clauses);
         when(server.isGroupSortingEnabled()).thenReturn(true);
 
-        server.setGroupParams(query);
+        server.setGroupParams(query, getUSLocale());
 
         verify(query).set("group", true);
         verify(query).set("group.ngroups", true);
@@ -343,7 +347,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "isCloseout asc, sort asc, score desc");
+        verify(query).set("group.sort", "salePriceUS asc, isCloseout asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
     }
 
@@ -354,7 +358,7 @@ public class AbstractSearchServerUnitTest {
         when(query.getSorts()).thenReturn(clauses);
         when(server.isGroupSortingEnabled()).thenReturn(true);
 
-        server.setGroupParams(query);
+        server.setGroupParams(query, getUSLocale());
 
         verify(query).set("group", true);
         verify(query).set("group.ngroups", true);
@@ -371,8 +375,8 @@ public class AbstractSearchServerUnitTest {
 
         when(query.getSorts()).thenReturn(clauses);
         when(server.isGroupSortingEnabled()).thenReturn(true);
-
-        server.setGroupParams(query);
+        
+        server.setGroupParams(query, getUSLocale());
 
         verify(query).set("group", true);
         verify(query).set("group.ngroups", true);
@@ -380,7 +384,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "isCloseout asc, sort asc, score desc");
+        verify(query).set("group.sort", "salePriceUS asc, isCloseout asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
 
     }
@@ -392,7 +396,7 @@ public class AbstractSearchServerUnitTest {
         when(query.getSorts()).thenReturn(clauses);
         when(server.isGroupSortingEnabled()).thenReturn(false);
 
-        server.setGroupParams(query);
+        server.setGroupParams(query, getUSLocale());
 
         verify(query).set("group", true);
         verify(query).set("group.ngroups", true);
