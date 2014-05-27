@@ -479,7 +479,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
         
         RuleManager ruleManager = new RuleManager(getSearchRepository(), getRulesBuilder(), getRulesSolrServer(locale));
         if ((query.getRows() != null && query.getRows() > 0) || (query.get("group") != null && query.getBool("group"))) {
-            setGroupParams(query);
+            setGroupParams(query, locale);
             setFieldListParams(query, locale.getCountry(), catalog.getRepositoryId());
             try {
                 ruleManager.setRuleParams(query, isSearch, isRuleBasedPage, categoryPath, filterQueries, catalog, isOutletPage, brandId);
@@ -559,7 +559,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     }
 
-    public void setGroupParams(SolrQuery query) {
+    public void setGroupParams(SolrQuery query, Locale locale) {
         query.set("group", true);
         query.set("group.ngroups", true);
         query.set("group.limit", 50);
@@ -582,7 +582,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
             if (isSortByScore) {
                 // break ties with custom sort field
-                query.set("group.sort", "isCloseout asc, sort asc, score desc");
+                query.set("group.sort", "salePrice" + locale.getCountry() + " asc, isCloseout asc, sort asc, score desc");
             }
         }
     }
