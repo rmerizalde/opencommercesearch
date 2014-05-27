@@ -192,27 +192,40 @@ object ProductController extends BaseController {
    * @param groupSummary returned by Solr
    * @return an array for products containing its summary
    */
-  private def processGroupSummary(groupSummary: NamedList[Object]) : JsArray = {
-    val groups = ArrayBuffer[JsObject]()
+  private def processGroupSummary(groupSummary: NamedList[Object])(implicit context: Context) : JsObject = {
+    val groups = new ArrayBuffer[(String, JsValue)]()
+
     if(groupSummary != null) {
       val productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]]
+
       if(productSummaries != null) {
-       JIterableWrapper(productSummaries).map(productSummary => {
+       productSummaries map { productSummary =>
          val parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]]
          val productSeq = ArrayBuffer[(String,JsValue)]()
-         JIterableWrapper(parameterSummaries).map(parameterSummary => {
+
+         parameterSummaries map { parameterSummary =>
            val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]]
            val parameterSeq = ArrayBuffer[(String,JsString)]()
-           JIterableWrapper(statSummaries).map(statSummary => {
+
+           statSummaries map { statSummary =>
              parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
-           })
-           productSeq += ((parameterSummary.getKey, new JsObject(parameterSeq)))
-         })
-         groups += new JsObject(ArrayBuffer[(String,JsValue)]((productSummary.getKey, new JsObject(productSeq))))
-       })
+           }
+
+           //Remove country from parameters
+           var parameter = parameterSummary.getKey
+           if(parameter.endsWith(context.lang.country)) {
+             parameter = parameter.substring(0, parameter.length - context.lang.country.length)
+           }
+
+           productSeq += ((parameter, new JsObject(parameterSeq)))
+         }
+
+         groups += ((productSummary.getKey, new JsObject(productSeq)))
+       }
       }
     }
-    new JsArray(groups)
+
+    new JsObject(groups)
   }
 
 

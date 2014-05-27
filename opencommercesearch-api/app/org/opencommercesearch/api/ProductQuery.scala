@@ -153,7 +153,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
         val salePrice = s"salePrice$country"
         val discountPercent = s"discountPercent$country"
 
-        setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent")
+        setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent,color,colorFamily")
         setParam("groupcollapse.ff", "isCloseout")
       }
 
