@@ -19,7 +19,6 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -111,7 +110,6 @@ public class CategoryGraphBuilder {
             name = name.substring(lastDotIndex+1);
         }
         node.setId(name);
-        Collections.sort(parentChildList);
     }
     
     public CategoryGraph search(String id, CategoryGraph graphNode){
