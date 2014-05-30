@@ -148,8 +148,16 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                isCloseout <- sku.isCloseout; countries <- sku.countries) {
             val doc = new SolrInputDocument()
-            doc.setField("id", id)
-            doc.setField("productId", productId)
+
+            if (isOutOfStock) {
+              //for outOfStock scenario we need to save the id of the document with the "-toos" suffix
+              //and the productId should be the regular id, without the suffix.
+              doc.setField("id", id + "-toos")
+              doc.setField("productId", productId)
+            } else {
+              doc.setField("id", id)
+              doc.setField("productId", productId)
+            }
             doc.setField("title", title)
             for (brandId <- brand.id) { doc.setField("brandId", brandId) }
             for (brandName <- brand.name) { doc.setField("brand", brandName) }
