@@ -220,6 +220,7 @@ public class EmbeddedSearchServer extends AbstractSearchServer<EmbeddedSolrServe
                 copy.getSolrServer(copyRuleCollectionName, locale).commit();
             }
         }
+        copy.setSearchRepository(getSearchRepository());
         copy.setInMemoryIndex(getInMemoryIndex());
         copy.setEnabled(getEnabled());
         copy.setDataDir(getDataDir());
