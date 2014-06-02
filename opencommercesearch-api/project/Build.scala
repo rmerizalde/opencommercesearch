@@ -18,6 +18,7 @@ object ApplicationBuild extends Build {
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
+    "com.github.fakemongo" % "fongo" % "1.4.3" % "test", 
     "com.wordnik" %% "swagger-play2" % "1.3.2",
     "de.undercouch" % "bson4jackson" % "2.2.3" force(),
     "com.fasterxml.jackson.core" % "jackson-databind" % "2.2.3" force(),

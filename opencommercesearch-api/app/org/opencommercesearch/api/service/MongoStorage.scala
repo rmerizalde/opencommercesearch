@@ -114,18 +114,30 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       val query = new StringBuilder(128)
         .append("{ $or: [")
 
+      //for ids without toos suffix
       ids.foreach(t => query.append("{_id:#},"))
+      //for ids with toos suffix
+      ids.foreach(t => query.append("{_id:#},"))
+
       query.setLength(query.length - 1)
       query.append("]")
 
       var products:Iterable[Product] = null
       val skuCount = if (minimumFields) ids.size else 0
       val parameters = new ArrayBuffer[Object](ids.size + 1)
+      //ids without toos suffix
       parameters.appendAll(ids.map(t => t._1))
+      //ids with toos suffix
+      parameters.appendAll(ids.map(t => t._1 + "-toos"))
 
       if(site != null) {
         query.append(", skus.catalogs:#")
         parameters.append(site)
+      }
+
+      if(country != null) {
+        query.append(", skus.countries.code:#")
+        parameters.append(country)
       }
 
       query.append("}")
@@ -138,14 +150,14 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.countries.code:#}", id, country).projection(projectProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{$or:[{_id:#},{_id:#}], skus.countries.code:#}", id, id + "-toos", country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{_id:#, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(fields)).as(classOf[Product]))
+      filterSkus(country, productCollection.findOne("{$or:[{_id:#},{_id:#}], skus.catalogs:#, skus.countries.code:#}", id, id + "-toos", site, country).projection(projectProduct(fields)).as(classOf[Product]))
     }
   }
 
@@ -167,6 +179,12 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean) : Product = {
+   for ( id <- product.id) {
+     val idx = id.lastIndexOf("-toos")
+     if(idx > 0) {
+       product.id = Some(id.substring(0, idx))
+     }
+   }
     for (skus <- product.skus) {
       skus.foreach(s => {
         flattenCountries(country, s)
@@ -322,9 +340,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.save(p) )
+      product.map( p => result = productCollection.save(preProcessProduct(p)) )
       result
     }
+  }
+  
+  def preProcessProduct(product: Product) : Product = {
+    if(product.isOutOfStock.getOrElse(false)) {
+      product.id = Some(product.getId + "-toos")
+    }
+    product
   }
   
   def saveCategory(category: Category*) : Future[WriteResult] = {
