@@ -347,7 +347,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "salePriceUS asc, isCloseout asc, sort asc, score desc");
+        verify(query).set("group.sort", "isCloseout asc, salePriceUS asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
     }
 
@@ -384,7 +384,7 @@ public class AbstractSearchServerUnitTest {
         verify(query).set("group.field", "productId");
         verify(query).set("group.facet", false);
         verify(query).getSorts();
-        verify(query).set("group.sort", "salePriceUS asc, isCloseout asc, sort asc, score desc");
+        verify(query).set("group.sort", "isCloseout asc, salePriceUS asc, sort asc, score desc");
         verifyNoMoreInteractions(query);
 
     }
