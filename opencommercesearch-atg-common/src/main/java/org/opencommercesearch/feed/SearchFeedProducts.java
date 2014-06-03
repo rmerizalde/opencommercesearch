@@ -45,6 +45,19 @@ public class SearchFeedProducts {
         return productsByLocale.get(locale);
     }
 
+    /**
+     * Gets the total product count in the current instance, considering all locales.
+     * @return Total product count in the current instance (counts all locales).
+     */
+    public int getProductCount() {
+        int count = 0;
+        for(Locale locale : getLocales()) {
+            count += productsByLocale.get(locale).size();
+        }
+
+        return count;
+    }
+
     public int getSkuCount(Locale locale) {
         int count = 0;
         for (Product p : productsByLocale.get(locale)) {

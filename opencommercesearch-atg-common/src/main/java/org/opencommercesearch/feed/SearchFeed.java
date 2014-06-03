@@ -385,8 +385,9 @@ public abstract class SearchFeed extends GenericService {
                         break;
                     }
 
+                    int count = item.productList.getProducts().size();
                     if(!sendProducts(item.locale, item.type, item.feedTimestamp, item.productList)) {
-                        failedProductCount.incrementAndGet();
+                        failedProductCount.addAndGet(count);
                     }
                 }
             } catch (InterruptedException ex) {
@@ -401,7 +402,9 @@ public abstract class SearchFeed extends GenericService {
     }
 
     /**
-     * Sends the products for indexing
+     * Sends the products for indexing.
+     * <p/>
+     * If async this method always returns zero. If not async, this method will return the number of successfully sent products.
      *
      * @param products the lists of products to be indexed
      * @param type is the feed's type
@@ -409,32 +412,41 @@ public abstract class SearchFeed extends GenericService {
      * @param min the minimum size of of a product list. If the size is not met then the products are not sent
      *            for indexing
      * @param async determines if the products should be send right away or asynchronously.
-     * return False if there were errors while sending the products, true otherwise.
+     * return If async, always zero. If not async, the number of successfully sent products.
      */
-    public boolean sendProducts(SearchFeedProducts products, FeedType type, long feedTimestamp, int min, boolean async) {
+    public int sendProducts(SearchFeedProducts products, FeedType type, long feedTimestamp, int min, boolean async) {
+        int sent = 0;
         for (Locale locale : products.getLocales()) {
+            List<Product> productList = products.getProducts(locale);
+
             if (products.getSkuCount(locale) > min) {
-                List<Product> productList = products.getProducts(locale);
                 try {
                     if (async) {
                         List<Product> clone = new ArrayList<Product>(productList.size());
                         clone.addAll(productList);
                         sendQueue.offer(new SendQueueItem(locale, type, feedTimestamp, new ProductList(clone, feedTimestamp)));
                         //If an async call is made, this always return true.
-                        return true;
+                        return 0;
                     } else {
+                        int count = productList.size();
                         if(!sendProducts(locale, type, feedTimestamp, new ProductList(productList, feedTimestamp))) {
-                            failedProductCount.incrementAndGet();
-                            return false;
+                            failedProductCount.addAndGet(count);
+                            return sent;
+                        }
+                        else {
+                            sent += count;
                         }
                     }
                 } finally {
                     productList.clear();
                 }
             }
+            else {
+                sent += productList.size();
+            }
         }
 
-        return true;
+        return sent;
     }
 
     /**
