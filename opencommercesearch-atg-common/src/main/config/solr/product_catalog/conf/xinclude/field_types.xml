@@ -117,4 +117,6 @@
       <filter class="solr.PhoneticFilterFactory" encoder="DoubleMetaphone" inject="false"/>
     </analyzer>
   </fieldType>
+
+  <fieldType name="efloat" keyField="productId" defVal="0.0" class="solr.ExternalFileField" valType="float"/>
 </types>
