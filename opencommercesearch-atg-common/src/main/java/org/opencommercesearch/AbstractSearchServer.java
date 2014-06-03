@@ -582,7 +582,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
             if (isSortByScore) {
                 // break ties with custom sort field
-                query.set("group.sort", "salePrice" + locale.getCountry() + " asc, isCloseout asc, sort asc, score desc");
+                query.set("group.sort", "isCloseout asc, salePrice" + locale.getCountry() + " asc, sort asc, score desc");
             }
         }
     }
