@@ -20,27 +20,28 @@ package org.opencommercesearch.feed;
 */
 
 import atg.commerce.inventory.InventoryException;
+import atg.nucleus.ServiceException;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.opencommercesearch.SearchServer;
+import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.model.Product;
 import org.opencommercesearch.model.Sku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
+import org.restlet.Request;
 import org.restlet.Response;
+import org.restlet.data.Status;
 
-import static org.junit.Assert.*;
+import java.util.*;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
-
-import java.util.*;
 
 public class SearchFeedTest {
 
@@ -176,7 +177,7 @@ public class SearchFeedTest {
 
     @Test
     public void testDuplicateCategories() throws RepositoryException, InventoryException {
-        final Set<String> categories = new HashSet<String>();
+        //final Set<String> categories = new HashSet<String>();
 
         doCallRealMethod().when(sku).setAssigned(anyBoolean());
         when(sku.isAssigned()).thenCallRealMethod();
@@ -198,7 +199,6 @@ public class SearchFeedTest {
         verify(sku, never()).addCategory(anyString()); */
         verify(sku).setAssigned(true);
     }
-
 
     @Test
     public void testCategoryNotInCurrentCatalog() throws RepositoryException, InventoryException {
@@ -232,6 +232,99 @@ public class SearchFeedTest {
     }
 
     @Test
+    public void testSendProducts() throws ServiceException {
+        SearchFeed feed = new SearchFeed() {
+            @Override
+            protected void onFeedStarted(FeedType type, long feedTimestamp) {
+
+            }
+
+            @Override
+            protected void onProductsSent(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Response response) {
+
+            }
+
+            @Override
+            protected void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Exception ex) {
+
+            }
+
+            @Override
+            protected void onProductsSentError(FeedType type, long feedTimestamp, Locale locale, List<Product> productList, Response response) {
+
+            }
+
+            @Override
+            protected void onFeedFinished(FeedType type, long feedTimestamp) {
+
+            }
+
+            @Override
+            protected void processProduct(RepositoryItem product, SearchFeedProducts products) throws RepositoryException, InventoryException {
+
+            }
+        };
+
+        ProductService productService = mock(ProductService.class);
+        Response response = mock(Response.class);
+        when(productService.handle(any(Request.class))).thenReturn(response);
+        when(response.getStatus())
+                .thenReturn(Status.SUCCESS_CREATED)
+                .thenReturn(Status.SERVER_ERROR_INTERNAL)
+                .thenReturn(Status.SUCCESS_CREATED);
+        feed.setProductService(productService);
+        feed.setWorkerCount(1);
+        feed.doStartService();
+
+        SearchFeedProducts products = new SearchFeedProducts();
+        Product p = new Product();
+        p.addSku(new Sku());
+        p.addSku(new Sku());
+        p.addSku(new Sku());
+        products.add(Locale.US, p);
+        products.add(Locale.CANADA, p);
+
+        feed.setIndexBatchSize(2);
+
+        //Async returns zero.
+        int sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 2, true);
+        assertEquals(0, sent);
+
+        products = new SearchFeedProducts();
+        products.add(Locale.US, p);
+        products.add(Locale.CANADA, p);
+
+        //Async returns product count when index batch is not reached
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 3, true);
+        assertEquals(2, sent);
+        assertEquals(2, products.getProductCount());
+
+        products = new SearchFeedProducts();
+        products.add(Locale.US, p);
+        products.add(Locale.CANADA, p);
+
+        //Sync returns product count when index batch not reached
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 3, false);
+        assertEquals(2, sent);
+        assertEquals(2, products.getProductCount());
+
+        //Test sync with batch failure
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 2, false);
+        assertEquals(1, sent);
+        assertEquals(0, products.getProductCount());
+        assertEquals(1, feed.getCurrentFailedProductCount());
+
+        products = new SearchFeedProducts();
+        products.add(Locale.US, p);
+        products.add(Locale.CANADA, p);
+
+        //Test sync with batch reached
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 2, false);
+        assertEquals(2, sent);
+        assertEquals(0, products.getProductCount());
+    }
+
+    @Test
     public void testRulesBasedCategory() throws RepositoryException, InventoryException {
 
         doCallRealMethod().when(sku).setAssigned(anyBoolean());
@@ -262,12 +355,10 @@ public class SearchFeedTest {
         when(itemDescriptor.getItemDescriptorName()).thenReturn(itemDescriptorName);
 		when(category.getItemDescriptor()).thenReturn(itemDescriptor );
     }
-    
+
     private Set<RepositoryItem> newSet(RepositoryItem... items) {
         Set<RepositoryItem> set = new HashSet<RepositoryItem>(items.length);
-        for (RepositoryItem item : items) {
-            set.add(item);
-        }
+        Collections.addAll(set, items);
         return set;
     }
 }
