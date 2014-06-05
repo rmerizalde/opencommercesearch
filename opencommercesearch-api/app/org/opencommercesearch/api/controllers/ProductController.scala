@@ -483,63 +483,71 @@ object ProductController extends BaseController {
       }
 
       solrServer.query(query).flatMap { response =>
-        val groupResponse = response.getGroupResponse
-        val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
+        if (query.getRows > 0) {
+          val groupResponse = response.getGroupResponse
+          val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
-        if (groupResponse != null) {
-          val commands = groupResponse.getValues
+          if (groupResponse != null) {
+            val commands = groupResponse.getValues
 
-          if (commands.size > 0) {
-            val command = groupResponse.getValues.get(0)
+            if (commands.size > 0) {
+              val command = groupResponse.getValues.get(0)
 
-            if ("productId".equals(command.getName)) {
-              if (command.getNGroups > 0) {
-                val products = new util.ArrayList[(String, String)]
-                for (group <- command.getValues.toSeq) {
-                  val documentList = group.getResult
-                  val product = documentList.get(0)
-                  product.setField("productId", group.getGroupValue)
-                  products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
-                }
-                val storage = withNamespace(storageFactory)
-                storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
-                  val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-                  withCacheHeaders(Ok(Json.obj(
+              if ("productId".equals(command.getName)) {
+                if (command.getNGroups > 0) {
+                  val products = new util.ArrayList[(String, String)]
+                  for (group <- command.getValues.toSeq) {
+                    val documentList = group.getResult
+                    val product = documentList.get(0)
+                    product.setField("productId", group.getGroupValue)
+                    products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
+                  }
+                  val storage = withNamespace(storageFactory)
+                  storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
+                    val facetHandler = buildFacetHandler(response, query, query.filterQueries)
+                    withCacheHeaders(Ok(Json.obj(
+                      "metadata" -> Json.obj(
+                        "found" -> command.getNGroups.intValue(),
+                        "productSummary" -> processGroupSummary(groupSummary),
+                        "time" -> (System.currentTimeMillis() - startTime),
+                        "facets" -> facetHandler.getFacets,
+                        "breadCrumbs" -> facetHandler.getBreadCrumbs),
+                      "products" -> Json.toJson(
+                        products map (Json.toJson(_))
+                      ))
+                    ), products map (_.getId))
+                  })
+                } else {
+                  Future.successful(Ok(Json.obj(
                     "metadata" -> Json.obj(
                       "found" -> command.getNGroups.intValue(),
-                      "productSummary" -> processGroupSummary(groupSummary),
-                      "time" -> (System.currentTimeMillis() - startTime),
-                      "facets" -> facetHandler.getFacets,
-                      "breadCrumbs" -> facetHandler.getBreadCrumbs),
-                    "products" -> Json.toJson(
-                      products map (Json.toJson(_))
-                    ))
-                  ), products map (_.getId))
-                })
+                      "time" -> (System.currentTimeMillis() - startTime)),
+                    "products" -> Json.arr())))
+                }
               } else {
+                Logger.debug(s"Unexpected response found for category $categoryId")
                 Future.successful(Ok(Json.obj(
                   "metadata" -> Json.obj(
-                    "found" -> command.getNGroups.intValue(),
+                    "found" -> 0,
                     "time" -> (System.currentTimeMillis() - startTime)),
-                  "products" -> Json.arr())))
+                  "message" -> "No products found")))
               }
             } else {
               Logger.debug(s"Unexpected response found for category $categoryId")
-              Future.successful(Ok(Json.obj(
-                "metadata" -> Json.obj(
-                  "found" -> 0,
-                  "time" -> (System.currentTimeMillis() - startTime)),
-                "message" -> "No products found")))
+              Future.successful(InternalServerError(Json.obj(
+                "message" -> "Unable to execute query")))
             }
           } else {
             Logger.debug(s"Unexpected response found for category $categoryId")
             Future.successful(InternalServerError(Json.obj(
               "message" -> "Unable to execute query")))
           }
-        } else {
-          Logger.debug(s"Unexpected response found for category $categoryId")
-          Future.successful(InternalServerError(Json.obj(
-            "message" -> "Unable to execute query")))
+        }
+        else {
+          Future.successful(Ok(Json.obj(
+            "metadata" -> Json.obj(
+              "found" -> response.getResults.getNumFound),
+            "time" -> (System.currentTimeMillis() - startTime))))
         }
       }
     }
