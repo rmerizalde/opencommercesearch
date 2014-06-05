@@ -807,8 +807,8 @@
          {
             "id" : "CST0180",
             "title" : "Goccia Rain Jacket ",
-            "description" : "<p>Don’t let a little sprinkle stop your ride. Just pull on the Castelli Goccia Rain Jacket and get after it. Waterproof, breathable Torrent fabric keeps you dry while a back vent helps the heat escape. Reflective Castelli graphics make you more visible when riding in traffic.</p>",
-            "shortDescription" : "Don’t let a little sprinkle stop your ride. Just pull on the Castelli Men’s Goccia Rain Jacket and get after it.",
+            "description" : "<p>Dont let a little sprinkle stop your ride. Just pull on the Castelli Goccia Rain Jacket and get after it. Waterproof, breathable Torrent fabric keeps you dry while a back vent helps the heat escape. Reflective Castelli graphics make you more visible when riding in traffic.</p>",
+            "shortDescription" : "Dont let a little sprinkle stop your ride. Just pull on the Castelli Mens Goccia Rain Jacket and get after it.",
             "brand" :
                {
                   "id" : "100000522",
@@ -1174,7 +1174,7 @@
                   "Two-way adjustable helmet-compatible hood with a laminated visor to direct rain and snow away from your face in inclement weather",
                   "Modified Y-joint sleeve construction for overhead mobility without jacket lifting at the waist",
                   "Cord locks in the hood and hem to seal out rain and snow",
-                  "Recyclable through Patagonia’s Common Threads Garment recycling program"
+                  "Recyclable through Patagonias Common Threads Garment recycling program"
                ],
             "features" :
                [
@@ -1493,8 +1493,8 @@
          {
             "id" : "SIC0118",
             "title" : "Vaporshell Jacket - Women's",
-            "description" : "Never question whether or not to pack a rainshell again—the Stoic Women’s Vaporshell Jacket protects like an atmosphere when you wear it, but weighs as much as an apparition when you have it in your pack. This lightweight, waterproof, extremely packable rainshell puts all your past rain gear to shame.",
-            "shortDescription" : "Never question whether or not to pack a rainshell again—the Stoic Women’s Vaporshell Jacket protects like an atmosphere when you wear it, but weighs as much as an apparition when you have it in your pack.",
+            "description" : "Never question whether or not to pack a rainshell again—the Stoic Womens Vaporshell Jacket protects like an atmosphere when you wear it, but weighs as much as an apparition when you have it in your pack. This lightweight, waterproof, extremely packable rainshell puts all your past rain gear to shame.",
+            "shortDescription" : "Never question whether or not to pack a rainshell again—the Stoic Womens Vaporshell Jacket protects like an atmosphere when you wear it, but weighs as much as an apparition when you have it in your pack.",
             "brand" :
                {
                   "id" : "100000957",
@@ -1569,7 +1569,7 @@
                   "Lightweight VaporShell shuns rain and vents body heat like none other",
                   "3-D Ergonomic fit moves with you, not against you",
                   "Extremely compressible—plays nice with other gear in your pack",
-                  "Stoic Vaporshell fabric’s air permeability and vapor permeability is so shocking, you’ll swear it's magic"
+                  "Stoic Vaporshell fabrics air permeability and vapor permeability is so shocking, youll swear it's magic"
                ],
             "features" :
                [
@@ -1911,7 +1911,7 @@
                [
                   "3-Layer Bombshell fabric offers 20K-rated weatherproof protection and supreme breathability so you're comfortable, not stifled, underneath this shell",
                   "Mechanical stretch fabric construction keeps this shell flexible so your mobility isn't hindered when you're fully-layered and battened down",
-                  "Fully-welded seams increase the Bombshell’s durability over standard taped-seam shell",
+                  "Fully-welded seams increase the Bombshells durability over standard taped-seam shell",
                   "Mesh-lined underarm vents banish excess body heat during long boot packs",
                   "3-D ergonomic fit offers uninhibited mobility without drowning you in excess fabric—if you tend to like a roomier fit, size up",
                   "Recco reflector in the upper arm aids Recco-equipped search and rescue parties should disaster strike and you require rescue",
@@ -2205,8 +2205,8 @@
          {
             "id" : "TNF2833",
             "title" : "Resolve Jacket - Men's",
-            "description" : "If you live in a place where every day is clear, blue, and perfect, don’t bother looking at this jacket. Those of us who live on Earth may want to check out The North Face Men’s Resolve Jacket. The North Face used HyVent, a waterproof and breathable fabric, to make the Resolve as comfortable as possible on the days where the sun doesn’t make an appearance.",
-            "shortDescription" : "The North Face used HyVent, a waterproof and breathable fabric, to make the Resolve as comfortable as possible on the days where the sun doesn’t make an appearance.",
+            "description" : "If you live in a place where every day is clear, blue, and perfect, dont bother looking at this jacket. Those of us who live on Earth may want to check out The North Face Mens Resolve Jacket. The North Face used HyVent, a waterproof and breathable fabric, to make the Resolve as comfortable as possible on the days where the sun doesnt make an appearance.",
+            "shortDescription" : "The North Face used HyVent, a waterproof and breathable fabric, to make the Resolve as comfortable as possible on the days where the sun doesnt make an appearance.",
             "brand" :
                {
                   "id" : "88",
@@ -3151,7 +3151,7 @@
          {
             "id" : "TNF3731",
             "title" : "Metropolis Parka - Women's",
-            "description" : "Some mornings the wind comes whipping through the buildings like a runaway subway train. It’s a good thing that you have The North Face Women’s Metropolis Parka to hold back the onslaught. With head-to-knees windproof protection and 600-fill down insulation, the Metropolis can keep that nasty wind at bay.",
+            "description" : "Some mornings the wind comes whipping through the buildings like a runaway subway train. Its a good thing that you have The North Face Womens Metropolis Parka to hold back the onslaught. With head-to-knees windproof protection and 600-fill down insulation, the Metropolis can keep that nasty wind at bay.",
             "shortDescription" : "With head-to-knees windproof protection and 600-fill down insulation, The North Face Women's Metropolis Down Parka can keep that nasty wind at bay.",
             "brand" :
                {
@@ -3757,7 +3757,7 @@
             "bulletPoints" :
                [
                   "Two chest pockets and two hand-warmer pockets provide plenty of storage for essentials cell phone to ski straps",
-                  "Underarm vents help you stay comfortable when you’re working up a sweat breaking trail",
+                  "Underarm vents help you stay comfortable when youre working up a sweat breaking trail",
                   "Abrasion patches on chest, shoulders, and arms block wind and guard against pack straps and ski edges",
                   "Hem cinch cord blocks out drafts",
                   "Zip-in compatible, so you can layer it with a The North Face shell for the ultimate cold-busting comfort"
@@ -5477,7 +5477,7 @@
          {
             "id" : "TNF6816",
             "title" : "Amongstit Jacket - Men's",
-            "description" : "You just woke up from the best dream of your entire life. Perfect virgin snow, lifts without lines, T-shirt weather, and a hottie-liftie with a beer waiting for you every time you come around. Get out of bed, towel yourself off, and high-tail it to the hill. But since it was just a fantasy, grab your Amongstit Jacket from The North Face and make your dream a reality. High-tech fabrics keep you warm and dry even if the weather isn’t perfect, and with all of those pockets, you can pack enough booze for you and your fave liftie. Hopefully that part wasn’t just a dream.",
+            "description" : "You just woke up from the best dream of your entire life. Perfect virgin snow, lifts without lines, T-shirt weather, and a hottie-liftie with a beer waiting for you every time you come around. Get out of bed, towel yourself off, and high-tail it to the hill. But since it was just a fantasy, grab your Amongstit Jacket from The North Face and make your dream a reality. High-tech fabrics keep you warm and dry even if the weather isnt perfect, and with all of those pockets, you can pack enough booze for you and your fave liftie. Hopefully that part wasnt just a dream.",
             "shortDescription" : "Grab your Amongstit Jacket from The North Face and make your dream a reality.",
             "brand" :
                {
@@ -5498,7 +5498,7 @@
                ],
             "bulletPoints" :
                [
-                  "The HyVent shell handles flurries and breathes so excess heat doesn’t get trapped",
+                  "The HyVent shell handles flurries and breathes so excess heat doesnt get trapped",
                   "Full underarm zip-vents allow you dump excess heat while you are punishing the mountain",
                   "Heatseeker Eco insulation uses recycled material to keep things easy on the environment",
                   "Detachable powder skirt with gripper elastic keeps the cold off of your backside",

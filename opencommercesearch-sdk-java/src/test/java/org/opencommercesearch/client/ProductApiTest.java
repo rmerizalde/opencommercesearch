@@ -311,8 +311,8 @@ public class ProductApiTest {
     assertNotNull(firstProduct);
     assertEquals("CST0180", firstProduct.getId());
     assertEquals("Goccia Rain Jacket ", firstProduct.getTitle());
-    assertEquals("<p>Don’t let a little sprinkle stop your ride. Just pull on the Castelli Goccia Rain Jacket and get after it. Waterproof, breathable Torrent fabric keeps you dry while a back vent helps the heat escape. Reflective Castelli graphics make you more visible when riding in traffic.</p>", firstProduct.getDescription());
-    assertEquals("Don’t let a little sprinkle stop your ride. Just pull on the Castelli Men’s Goccia Rain Jacket and get after it.", firstProduct.getShortDescription());
+    assertEquals("<p>Dont let a little sprinkle stop your ride. Just pull on the Castelli Goccia Rain Jacket and get after it. Waterproof, breathable Torrent fabric keeps you dry while a back vent helps the heat escape. Reflective Castelli graphics make you more visible when riding in traffic.</p>", firstProduct.getDescription());
+    assertEquals("Dont let a little sprinkle stop your ride. Just pull on the Castelli Mens Goccia Rain Jacket and get after it.", firstProduct.getShortDescription());
     assertEquals("557", firstProduct.getSizingChart());
     assertEquals(1, firstProduct.getListRank());
     assertFalse(firstProduct.isOutOfStock());
