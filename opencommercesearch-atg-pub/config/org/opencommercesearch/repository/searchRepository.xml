@@ -12,7 +12,7 @@
             <property name="item_owner" column-name="item_owner" data-type="string" />
         </table>
 
-		<table name="cs_acls" type="multi" id-column-names="item_acl_id"
+		<table name="cs_acls_syn_list" type="multi" id-column-names="item_acl_id"
 			multi-column-name="acl_index">
 			<property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
 				<attribute name="maxFragmentSize" value="254" />
@@ -26,7 +26,7 @@
             <property name="item_owner" column-name="item_owner" data-type="string" />
         </table>
         
-        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+        <table name="cs_acls_syn" type="multi" id-column-names="item_acl_id"
             multi-column-name="acl_index">
             <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
                 <attribute name="maxFragmentSize" value="254" />
@@ -38,7 +38,7 @@
         <table name="cs_facet" xml-combine="append">
             <property name="item_owner" column-name="item_owner" data-type="string" />
         </table>
-        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+        <table name="cs_acls_facet" type="multi" id-column-names="item_acl_id"
             multi-column-name="acl_index">
             <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
                 <attribute name="maxFragmentSize" value="254" />
@@ -51,7 +51,7 @@
 			xml-combine="append">
 			<property name="item_owner" column-name="item_owner" data-type="string" />
 		</table>
-        <table name="cs_acls" type="multi" id-column-names="item_acl_id"
+        <table name="cs_acls_rule" type="multi" id-column-names="item_acl_id"
             multi-column-name="acl_index">
             <property name="item_acl" column-names="item_acl" data-type="array" component-data-type="string">
                 <attribute name="maxFragmentSize" value="254" />

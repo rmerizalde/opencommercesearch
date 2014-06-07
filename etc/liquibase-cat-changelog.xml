@@ -857,4 +857,102 @@
       </column>
     </addColumn>
   </changeSet>
+  
+  <changeSet author="commercesearch" id="48">
+    <preConditions onFail="MARK_RAN">
+    <not><columnExists tableName="cs_rule" columnName="sub_target"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_rule">
+        <column name="sub_target" type="VARCHAR2(255)"></column>
+    </addColumn>
+    <sql>update cs_rule set sub_target = '3' WHERE sub_target IS NULL</sql>
+    <addNotNullConstraint tableName="cs_rule" columnName="sub_target" />
+  </changeSet>
+
+  <changeSet author="commercesearch" id="49">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_rule_brands"/></not>
+    </preConditions>
+    <createTable tableName="cs_rule_brands">
+      <column name="rule_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_brands_pk"
+               foreignKeyName="cs_rule_brand_rule_fk" references="cs_rule(rule_id)" />
+      </column>
+      <column name="brand_id" type="VARCHAR2(40 BYTE)">
+          <constraints nullable="false" primaryKey="true" primaryKeyName="cs_rule_cats_pk"
+              foreignKeyName="cs_rule_brand_brand_fk" references="bc_brand(brand_id)"/>
+      </column>
+    </createTable>
+  </changeSet>
+  
+  <changeSet author="commercesearch" id="50">
+      <preConditions onFail="MARK_RAN">
+        <tableExists tableName="cs_rule"/>
+        <not><columnExists tableName="cs_rule" columnName="experimental"/></not>
+      </preConditions>
+      <addColumn tableName="cs_rule">
+        <column name="experimental" type="NUMBER(1)" defaultValueNumeric="0">
+          <constraints nullable="true" />
+        </column>
+      </addColumn>
+      <sql>update cs_rule set experimental = '0' WHERE experimental IS NULL</sql>
+  </changeSet>
+    
+  <changeSet author="commercesearch" id="51">
+    <preConditions onFail="MARK_RAN">
+      <not><tableExists tableName="cs_acls_syn_list"/></not>
+      <not><tableExists tableName="cs_acls_syn"/></not>
+      <not><tableExists tableName="cs_acls_facet"/></not>
+      <not><tableExists tableName="cs_acls_rule"/></not>
+    </preConditions>
+
+    <createTable tableName="cs_acls_syn_list">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_acls_syn">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_acls_facet">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <createTable tableName="cs_acls_rule">
+      <column name="item_acl_id" type="VARCHAR2(40 BYTE)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="acl_index" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="item_acl" type="VARCHAR2(254 BYTE)">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+</changeSet>
 </databaseChangeLog>
