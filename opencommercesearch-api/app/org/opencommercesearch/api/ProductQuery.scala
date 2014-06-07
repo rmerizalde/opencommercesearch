@@ -99,6 +99,9 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
         if (sortSpec.indexOf("activationDate") != -1) {
           addSort("activationDate", selectedOrder)
         }
+        if (sortSpec.indexOf("bestSeller") != -1) {
+          addSort(s"field(sellRank$site)", selectedOrder)
+        }
       }
     }
 
