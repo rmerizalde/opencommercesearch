@@ -1,10 +1,5 @@
 package org.opencommercesearch.client.response;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import org.opencommercesearch.client.impl.DefaultProductSummary;
-import org.opencommercesearch.client.impl.Metadata;
-import org.opencommercesearch.client.impl.Product;
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -24,6 +19,11 @@ import org.opencommercesearch.client.impl.Product;
 * under the License.
 */
 
+import com.fasterxml.jackson.databind.JsonNode;
+import org.opencommercesearch.client.impl.DefaultProduct;
+import org.opencommercesearch.client.impl.DefaultProductSummary;
+import org.opencommercesearch.client.impl.Metadata;
+
 /**
  * Simple data holder that represents a response from search endpoints.
  *
@@ -31,7 +31,7 @@ import org.opencommercesearch.client.impl.Product;
  */
 public class SearchResponse extends DefaultResponse {
   private Metadata metadata;
-  private Product[] products;
+  private DefaultProduct[] products;
   private boolean boundSummaries = false;
 
   public Metadata getMetadata() {
@@ -42,7 +42,7 @@ public class SearchResponse extends DefaultResponse {
     this.metadata = metadata;
   }
 
-  public Product[] getProducts() {
+  public DefaultProduct[] getProducts() {
     if (!boundSummaries) {
       bindSummaries();
     }
@@ -50,7 +50,7 @@ public class SearchResponse extends DefaultResponse {
     return products;
   }
 
-  protected void setProducts(Product[] products) {
+  protected void setProducts(DefaultProduct[] products) {
     this.products = products;
   }
 
@@ -59,7 +59,7 @@ public class SearchResponse extends DefaultResponse {
    */
   private void bindSummaries() {
     JsonNode summaries = metadata.getProductSummary();
-    for (Product product : products) {
+    for (DefaultProduct product : products) {
       DefaultProductSummary productSummary = new DefaultProductSummary(summaries.get(product.getId()));
       product.setSummary(productSummary);
     }

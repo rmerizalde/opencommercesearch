@@ -257,7 +257,7 @@ public class ProductApiTest {
     SearchResponse response = (SearchResponse) method.invoke(productApi, request);
 
     Metadata metadata = response.getMetadata();
-    Product[] products = response.getProducts();
+    DefaultProduct[] products = response.getProducts();
 
     verify(client, times(1)).handle(any(org.restlet.Request.class));
 
@@ -305,9 +305,9 @@ public class ProductApiTest {
     assertEquals("colorFamily%3Ablack", filters.get(0).getFilterQuery());
   }
 
-  private void validateProducts(Product[] products) {
+  private void validateProducts(DefaultProduct[] products) {
     assertEquals("Products in current page match", 10, products.length);
-    Product firstProduct = products[0];
+    DefaultProduct firstProduct = products[0];
     assertNotNull(firstProduct);
     assertEquals("CST0180", firstProduct.getId());
     assertEquals("Goccia Rain Jacket ", firstProduct.getTitle());

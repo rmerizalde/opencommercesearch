@@ -25,19 +25,20 @@ package org.opencommercesearch.client.request;
  * Once populated, pass this class to {@link org.opencommercesearch.client.ProductApi} to get the browse response.
  */
 public class BrowseBrandCategoryRequest extends BrowseRequest {
-  public String getBrandId() {
-    return brandId;
-  }
 
-  public void setBrandId(String brandId) {
-    this.brandId = brandId;
-  }
+    public String getBrandId() {
+        return brandId;
+    }
 
-  public String getCategoryId() {
-    return categoryId;
-  }
+    public void setBrandId(String brandId) {
+        this.brandId = brandId;
+    }
 
-  public void setCategoryId(String categoryId) {
-    this.categoryId = categoryId;
-  }
+    public String getCategoryId() {
+        return categoryId;
+    }
+
+    public void setCategoryId(String categoryId) {
+        this.categoryId = categoryId;
+    }
 }

@@ -27,11 +27,11 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Represents a product.
+ * Default product implementation.
  *
  * @author jmendez
  */
-public class Product {
+public class DefaultProduct {
   private String id;
   private String title;
   private String description;
