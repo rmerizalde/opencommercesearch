@@ -30,6 +30,11 @@ public abstract class BrowseRequest extends SearchRequest {
   String brandId;
   String categoryId;
 
+
+  public BrowseRequest() {
+      setQuery("*:*");
+  }
+
   @Override
   public String getEndpoint() {
     String brandPart = StringUtils.EMPTY;
