@@ -1,7 +1,11 @@
 package org.opencommercesearch.client.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductSummary;
+
+import java.util.Arrays;
+import java.util.List;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -61,9 +65,9 @@ public class DefaultProductSummary implements ProductSummary {
     return getDouble("salePrice", "max");
   }
 
-  public String getColorFamilies() {
+  public List<String> getColorFamilies() {
     JsonNode colorFamilies = getValue("colorFamily", "families");
-    return colorFamilies != null ? colorFamilies.asText() : null;
+    return colorFamilies != null ? Arrays.asList(StringUtils.split(colorFamilies.asText(), "[], ")) : null;
   }
 
   public Integer getColorCount() {

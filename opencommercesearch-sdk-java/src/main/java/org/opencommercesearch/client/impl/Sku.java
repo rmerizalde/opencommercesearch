@@ -20,121 +20,130 @@ package org.opencommercesearch.client.impl;
 */
 
 public class Sku {
-  private String id;
-  private String title;
-  private Image image;
-  private boolean isPastSeason;
-  private boolean isRetail;
-  private boolean isCloseout;
-  private boolean isOutlet;
-  private double listPrice;
-  private double salePrice;
-  private int discountPercent;
-  private String url;
-  private int stockLevel;
-  private boolean allowBackorder;
+    private String id;
+    private String title;
+    private Image image;
+    private boolean isPastSeason;
+    private boolean isRetail;
+    private boolean isCloseout;
+    private boolean isOutlet;
+    private double listPrice;
+    private double salePrice;
+    private int discountPercent;
+    private String url;
+    private int stockLevel;
+    private boolean allowBackorder;
+    private Size size;
 
-  public String getId() {
-    return id;
-  }
+    public String getId() {
+        return id;
+    }
 
-  public void setId(String id) {
-    this.id = id;
-  }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-  public String getTitle() {
-    return title;
-  }
+    public String getTitle() {
+        return title;
+    }
 
-  public void setTitle(String title) {
-    this.title = title;
-  }
+    public void setTitle(String title) {
+        this.title = title;
+    }
 
-  public int getDiscountPercent() {
-    return discountPercent;
-  }
+    public int getDiscountPercent() {
+        return discountPercent;
+    }
 
-  public void setDiscountPercent(int discountPercent) {
-    this.discountPercent = discountPercent;
-  }
+    public void setDiscountPercent(int discountPercent) {
+        this.discountPercent = discountPercent;
+    }
 
-  public Image getImage() {
-    return image;
-  }
+    public Image getImage() {
+        return image;
+    }
 
-  public void setImage(Image image) {
-    this.image = image;
-  }
+    public void setImage(Image image) {
+        this.image = image;
+    }
 
-  public boolean isPastSeason() {
-    return isPastSeason;
-  }
+    public boolean isPastSeason() {
+        return isPastSeason;
+    }
 
-  public void setIsPastSeason(boolean isPastSeason) {
-    this.isPastSeason = isPastSeason;
-  }
+    public void setIsPastSeason(boolean isPastSeason) {
+        this.isPastSeason = isPastSeason;
+    }
 
-  public boolean isRetail() {
-    return isRetail;
-  }
+    public boolean isRetail() {
+        return isRetail;
+    }
 
-  public void setIsRetail(boolean isRetail) {
-    this.isRetail = isRetail;
-  }
+    public void setIsRetail(boolean isRetail) {
+        this.isRetail = isRetail;
+    }
 
-  public boolean isCloseout() {
-    return isCloseout;
-  }
+    public boolean isCloseout() {
+        return isCloseout;
+    }
 
-  public void setIsCloseout(boolean isCloseout) {
-    this.isCloseout = isCloseout;
-  }
+    public void setIsCloseout(boolean isCloseout) {
+        this.isCloseout = isCloseout;
+    }
 
-  public boolean isOutlet() {
-    return isOutlet;
-  }
+    public boolean isOutlet() {
+        return isOutlet;
+    }
 
-  public void setIsOutlet(boolean isOutlet) {
-    this.isOutlet = isOutlet;
-  }
+    public void setIsOutlet(boolean isOutlet) {
+        this.isOutlet = isOutlet;
+    }
 
-  public double getSalePrice() {
-    return salePrice;
-  }
+    public double getSalePrice() {
+        return salePrice;
+    }
 
-  public void setSalePrice(double salePrice) {
-    this.salePrice = salePrice;
-  }
+    public void setSalePrice(double salePrice) {
+        this.salePrice = salePrice;
+    }
 
-  public double getListPrice() {
-    return listPrice;
-  }
+    public double getListPrice() {
+        return listPrice;
+    }
 
-  public void setListPrice(double listPrice) {
-    this.listPrice = listPrice;
-  }
+    public void setListPrice(double listPrice) {
+        this.listPrice = listPrice;
+    }
 
-  public String getUrl() {
-    return url;
-  }
+    public String getUrl() {
+        return url;
+    }
 
-  public void setUrl(String url) {
-    this.url = url;
-  }
+    public void setUrl(String url) {
+        this.url = url;
+    }
 
-  public int getStockLevel() {
-    return stockLevel;
-  }
+    public int getStockLevel() {
+        return stockLevel;
+    }
 
-  public void setStockLevel(int stockLevel) {
-    this.stockLevel = stockLevel;
-  }
+    public void setStockLevel(int stockLevel) {
+        this.stockLevel = stockLevel;
+    }
 
-  public boolean isAllowBackorder() {
-    return allowBackorder;
-  }
+    public boolean isAllowBackorder() {
+        return allowBackorder;
+    }
 
-  public void setAllowBackorder(boolean allowBackorder) {
-    this.allowBackorder = allowBackorder;
-  }
+    public void setAllowBackorder(boolean allowBackorder) {
+        this.allowBackorder = allowBackorder;
+    }
+
+    public Size getSize() {
+        return size;
+    }
+
+    public void setSize(Size size) {
+        this.size = size;
+    }
 }
