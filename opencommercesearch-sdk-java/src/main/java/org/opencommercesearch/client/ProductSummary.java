@@ -19,6 +19,8 @@ package org.opencommercesearch.client;
 * under the License.
 */
 
+import java.util.List;
+
 /**
  * Represents product summary information for a product.
  *
@@ -37,7 +39,7 @@ public interface ProductSummary {
 
   public Double getMaxSalePrice();
 
-  public String getColorFamilies();
+  public List<String> getColorFamilies();
 
   public Integer getColorCount();
 }
