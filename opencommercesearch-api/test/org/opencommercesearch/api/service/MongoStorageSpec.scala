@@ -79,7 +79,7 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     savedCat.getName must beEqualTo("name")
 	     savedCat.getUrl  must beEqualTo("urlToken")
 	     savedCat.isRuleBased.get must beEqualTo(false)
-	     savedCat.hierarchyTokens.get must contain("token1")
+	     savedCat.hierarchyTokens must beEqualTo(None)
 	     savedCat.getSites must contain("site1")
 	     
      }

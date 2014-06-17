@@ -302,9 +302,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @return A projection to be used while querying Mongo storage.
    */
   private def projectionAux(fields: Seq[String], defaultFieldsToHide: String) : String = {
-    //If star is provided, then return everything
+    //If star is provided, then return everything except for hierarchyTokens
     if(fields.contains("*")) {
-      return "{}"
+      return "{hierarchyTokens:0}"
     }
 
     val projection = new StringBuilder(128)
@@ -391,8 +391,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]] = {
     Future {
-        val categoryCollection = jongo.getCollection("categories")
-        categoryCollection.find("{_id:{$in:#}}", ids).projection(projectionCategory(fields)).as(classOf[Category])
+      val categoryCollection = jongo.getCollection("categories")
+      categoryCollection.find("{_id:{$in:#}}", ids).projection(projectionCategory(fields)).as(classOf[Category])
     }
   }
   

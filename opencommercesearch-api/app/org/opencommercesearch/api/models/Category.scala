@@ -80,7 +80,7 @@ case class Category (
 }
 
 object Category {
-  val defaultFields = Seq("id", "name", "seoUrlToken", "hierarchyTokens")
+  val defaultFields = Seq("id", "name", "seoUrlToken")
 
   def getInstance(id: Option[String]) = new Category(id, None, None, None, None, None, None, None, None)
 
@@ -89,10 +89,11 @@ object Category {
    * <p/>
    * If fields is empty, then all existing field of the category are copied over.
    * @param category Category to copy fields from.
-   * @param fields A list of fields to copy from the given category. If empty, all fields are copied.
+   * @param fields is the list of fields to copy from the given category. If empty, all fields are copied.
+   * @param excludedFields is the list of fields to exclude from the new category
    * @return A copy of the given category with only the fields specified set.
    */
-  def copyWithFields(category: Category, fields: Seq[String]) : Category = {
+  def copyWithFields(category: Category, fields: Seq[String], excludedFields: Seq[String] = Seq()) : Category = {
     val copy = getInstance(category.id)
 
     var fieldsToCopy = defaultFields
@@ -101,39 +102,35 @@ object Category {
     }
 
     val hasStar = fieldsToCopy.contains("*")
+    def copyField(name: String) = !excludedFields.contains(name) && (hasStar || fieldsToCopy.contains(name))
 
-    if(hasStar || fieldsToCopy.contains("name")) {
+    if(copyField("name")) {
       copy.name = category.name
     }
 
-    if(hasStar || fieldsToCopy.contains("seoUrlToken")) {
+    if(copyField("seoUrlToken")) {
       copy.seoUrlToken = category.seoUrlToken
     }
 
-    if(hasStar || fieldsToCopy.contains("isRuleBased")) {
+    if(copyField("isRuleBased")) {
       copy.isRuleBased = category.isRuleBased
     }
 
-    if(hasStar || fieldsToCopy.contains("ruleFilters")) {
+    if(copyField("ruleFilters")) {
       copy.ruleFilters = category.ruleFilters
     }
 
-    if(hasStar || fieldsToCopy.contains("sites")) {
+    if(copyField("sites")) {
       copy.sites = category.sites
     }
 
-    if(hasStar || fieldsToCopy.contains("hierarchyTokens")) {
-      copy.hierarchyTokens = category.hierarchyTokens
-    }
-
-    if(hasStar || fieldsToCopy.contains("parentCategories")) {
+    if(copyField("parentCategories")) {
       copy.parentCategories = category.parentCategories
     }
 
-    if(hasStar || fieldsToCopy.contains("childCategories")) {
+    if(copyField("childCategories")) {
       copy.childCategories = category.childCategories
     }
-
     copy
   }
 
@@ -152,8 +149,8 @@ object Category {
    */
   def prune(category: Category, categories: Set[String], depth: Int, maxChildren: Int, fields: Seq[String]) : Category = {
     if(depth >= 0) {
-      val prunedCat = copyCategory(category, fields)
-      var childCats = category.childCategories.getOrElse(Seq.empty)
+      val categoryCopy = copyCategory(category, fields)
+      var childCats = categoryCopy.childCategories.getOrElse(Seq.empty)
 
       childCats = childCats map { childCat =>
         if(categories.isEmpty || categories.contains(childCat.getId)) {
@@ -168,8 +165,8 @@ object Category {
         childCats = childCats.take(maxChildren)
       }
 
-      prunedCat.childCategories = Option(childCats)
-      prunedCat
+      categoryCopy.childCategories = Option(childCats)
+      categoryCopy
     }
     else {
       null
@@ -183,22 +180,15 @@ object Category {
    * the default fields.
    * <p/>
    * This method ensures you have a new copy of the category data to work on.
-   * @param fields List of fields to include in the new category.
+   * @param fields is the list of fields to include in the new category
+   * @param excludedFields is the list of fields to exclude from the new category
    */
-  def copyCategory(category: Category, fields: Seq[String]) : Category = {
-    var fieldsToCopy:Seq[String] = null
-
-    if(fields.isEmpty) {
-      fieldsToCopy = defaultFields
+  def copyCategory(category: Category, fields: Seq[String], excludedFields: Seq[String] = Seq()) : Category = {
+    var fieldsToCopy:Seq[String] = fields match {
+      case Nil => defaultFields
+      case _ => fields
     }
-    else if(fields.contains("*")) {
-      fieldsToCopy = Seq.empty[String]
-    }
-    else {
-      fieldsToCopy = fields
-    }
-
-    copyWithFields(category, fieldsToCopy)
+    copyWithFields(category, fieldsToCopy, excludedFields)
   }
 
   implicit val readsCategory : Reads[Category] = (
