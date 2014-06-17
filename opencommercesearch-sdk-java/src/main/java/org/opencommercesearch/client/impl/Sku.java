@@ -34,6 +34,7 @@ public class Sku {
     private int stockLevel;
     private boolean allowBackorder;
     private Size size;
+    private Color color;
 
     public String getId() {
         return id;
@@ -145,5 +146,13 @@ public class Sku {
 
     public void setSize(Size size) {
         this.size = size;
+    }
+
+    public Color getColor() {
+        return color;
+    }
+
+    public void setColor(Color color) {
+        this.color = color;
     }
 }

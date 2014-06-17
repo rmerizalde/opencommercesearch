@@ -387,6 +387,7 @@ public class ProductApiTest {
         assertEquals(14, sku1.getStockLevel());
         assertEquals("/Store/catalog/productLanding.jsp?productId=CST0180", sku1.getUrl());
         assertFalse(sku1.isAllowBackorder());
+
     }
 
     private void validateProductSummary(ProductSummary summary) {
@@ -396,6 +397,7 @@ public class ProductApiTest {
         List<String> colorFamilies = summary.getColorFamilies();
 
         assertNotNull(colorFamilies);
+        assertEquals(2, colorFamilies.size());
         assertEquals("yellow", colorFamilies.get(0));
         assertEquals("black", colorFamilies.get(1));
 
