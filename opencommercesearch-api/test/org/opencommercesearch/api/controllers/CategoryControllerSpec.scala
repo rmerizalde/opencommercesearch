@@ -48,13 +48,13 @@ class CategoryControllerSpec extends BaseSpec {
       // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
-      CategoryController.categoryService.server = solrServer
-      
+
       storageFactory = mock[MongoStorageFactory]
       storageFactory.getInstance(anyString) returns storage
       val writeResult = mock[WriteResult]
       storage.saveCategory(any) returns Future.successful(writeResult)
-      
+
+      CategoryController.categoryService.server = solrServer
     }
   }
 

@@ -2,9 +2,12 @@ package org.opencommercesearch.api
 
 import play.api.Play
 import play.api.i18n.Lang
-import Play.current
+
+import scala.language.implicitConversions
 
 import org.opencommercesearch.common._
+
+import Play.current
 
 /**
  * @author rmerizalde

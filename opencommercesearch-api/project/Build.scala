@@ -35,6 +35,7 @@ object ApplicationBuild extends Build {
 
   val main = play.Project(appName, appVersion, appDependencies, settings = s).settings(
   // @todo: publish play-solrj as maven style??
+    scalacOptions ++= Seq("-feature"),
     resolvers += "sbt-plugin-releases" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/",
     resolvers += "sbt-plugin-snapshots" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-snapshots/",
     resolvers += "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
