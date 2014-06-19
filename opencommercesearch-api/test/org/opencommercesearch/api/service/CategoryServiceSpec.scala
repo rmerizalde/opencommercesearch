@@ -95,7 +95,8 @@ class CategoryServiceSpec extends Specification with Mockito {
   private def setupService() : CategoryService = {
     val server = mock[AsyncSolrServer]
     val storage = mock[MongoStorage]
-    val service = spy(new CategoryService(server))
+    val storageFactory = mock[MongoStorageFactory]
+    val service = spy(new CategoryService(server, storageFactory))
 
     val categoryMap = Map(
       "catRoot" -> catRoot,

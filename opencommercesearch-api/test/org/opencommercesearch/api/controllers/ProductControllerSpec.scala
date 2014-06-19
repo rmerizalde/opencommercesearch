@@ -1,25 +1,27 @@
 package org.opencommercesearch.api.controllers
 
 import play.api.libs.json.{JsError, Json}
+import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
-import play.api.test.FakeRequest
 
+import scala.Some
 import scala.concurrent.Future
 
 import java.util
 
-import org.specs2.mutable.Before
 import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.apache.solr.common.{SolrDocumentList, SolrDocument}
 import org.opencommercesearch.api.models._
-import org.apache.solr.client.solrj.response._
-import org.apache.solr.common.util.NamedList
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
+import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.response._
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
+import org.apache.solr.common.util.NamedList
+
+import org.specs2.mutable.Before
+
 import com.mongodb.WriteResult
-import scala.Some
-import play.api.test.FakeApplication
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -50,6 +52,7 @@ class ProductControllerSpec extends BaseSpec {
       storageFactory = mock[MongoStorageFactory]
       val storage = mock[MongoStorage]
       storageFactory.getInstance(anyString) returns storage
+      ProductController.categoryService.storageFactory = storageFactory
       val writeResult = mock[WriteResult]
       storage.saveProduct(any) returns Future.successful(writeResult)
 
@@ -108,7 +111,7 @@ class ProductControllerSpec extends BaseSpec {
         val category = Category.getInstance(Some("someCategory"))
         category.sites = Option(Seq("mysite"))
 
-        storage.findCategories(any, any) returns Future.successful(Seq(category))
+        storage.findAllCategories(any) returns Future.successful(Seq(category))
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
         validateQueryResult(result.get, OK, "application/json")

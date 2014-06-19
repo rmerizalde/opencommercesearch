@@ -19,23 +19,20 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
 import java.util
 
-import scala.collection.convert.Wrappers.JIterableWrapper
-
-import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.beans.Field
-import org.apache.commons.lang.StringUtils
-import org.jongo.marshall.jackson.oid.Id
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
-
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
-
 import org.opencommercesearch.search.suggester.IndexableElement
 
+import org.apache.commons.lang.StringUtils
+import org.apache.solr.common.SolrInputDocument
+
+import org.jongo.marshall.jackson.oid.Id
+
+import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
  * A category model.
@@ -102,33 +99,33 @@ object Category {
     }
 
     val hasStar = fieldsToCopy.contains("*")
-    def copyField(name: String) = !excludedFields.contains(name) && (hasStar || fieldsToCopy.contains(name))
+    def isCopyField(name: String) = !excludedFields.contains(name) && (hasStar || fieldsToCopy.contains(name))
 
-    if(copyField("name")) {
+    if(isCopyField("name")) {
       copy.name = category.name
     }
 
-    if(copyField("seoUrlToken")) {
+    if(isCopyField("seoUrlToken")) {
       copy.seoUrlToken = category.seoUrlToken
     }
 
-    if(copyField("isRuleBased")) {
+    if(isCopyField("isRuleBased")) {
       copy.isRuleBased = category.isRuleBased
     }
 
-    if(copyField("ruleFilters")) {
+    if(isCopyField("ruleFilters")) {
       copy.ruleFilters = category.ruleFilters
     }
 
-    if(copyField("sites")) {
+    if(isCopyField("sites")) {
       copy.sites = category.sites
     }
 
-    if(copyField("parentCategories")) {
+    if(isCopyField("parentCategories")) {
       copy.parentCategories = category.parentCategories
     }
 
-    if(copyField("childCategories")) {
+    if(isCopyField("childCategories")) {
       copy.childCategories = category.childCategories
     }
     copy

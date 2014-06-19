@@ -46,7 +46,7 @@ import com.wordnik.swagger.annotations._
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController with FacetQuery {
 
-  val categoryService = new CategoryService(solrServer)
+  val categoryService = new CategoryService(solrServer, storageFactory)
 
   @ApiOperation(value = "Searches categories", notes = "Returns category information for a given category", response = classOf[Category], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))

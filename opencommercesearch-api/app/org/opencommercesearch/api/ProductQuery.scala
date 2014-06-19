@@ -4,14 +4,13 @@ import play.api.mvc.{AnyContent, Request}
 
 import java.net.URLDecoder
 
+import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
+import org.opencommercesearch.api.common.FilterQuery
+import org.opencommercesearch.common.Context
+
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.common.params.GroupParams
-import org.opencommercesearch.common.Context
-import org.opencommercesearch.api.common.FilterQuery
-import org.opencommercesearch.api.Global.MaxPaginationLimit
-import org.opencommercesearch.api.Global.DefaultPaginationLimit
-
 
 /**
  * The base query to retrieve product results
@@ -253,9 +252,8 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
  * @param productId is the product id
  * @param site is the site to search in
  * @param context is the search context
- * @param request is the HTTP request
  */
-class SingleProductQuery(productId : String, site : String)(implicit context: Context, request: Request[AnyContent]) extends SolrQuery("*:*") {
+class SingleProductQuery(productId : String, site : String)(implicit context: Context) extends SolrQuery("*:*") {
   import Collection._
 
   private def init() : Unit = {
@@ -299,7 +297,9 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     if (site != null) {
       addFilterQuery("categoryPath:" + site)
     }
-    addFilterQuery("isOutlet:"+request.getQueryString("outlet").getOrElse("false").toBoolean)
+    if (request != null) {
+      addFilterQuery("isOutlet:" + request.getQueryString("outlet").getOrElse("false").toBoolean)
+    }
   }
 
   init()

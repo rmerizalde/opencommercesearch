@@ -19,20 +19,25 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import play.api.libs.json.{JsError, Json}
 import play.api.test._
 import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json}
+
 import scala.concurrent.{Await, Future}
-import org.specs2.mutable._
-import org.apache.solr.client.solrj.{SolrRequest, AsyncSolrServer}
-import org.apache.solr.common.SolrDocument
-import org.opencommercesearch.api.models.Category
-import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-import com.mongodb.WriteResult
-import org.apache.solr.client.solrj.response.FacetField
 import scala.concurrent.duration.Duration
+
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.Category
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrRequest}
+import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.response.FacetField
+import org.apache.solr.common.SolrDocument
+
+import org.specs2.mutable._
+
+import com.mongodb.WriteResult
 
 class CategoryControllerSpec extends BaseSpec {
 

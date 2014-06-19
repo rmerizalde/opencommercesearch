@@ -19,36 +19,30 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
 import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, JsObject, Json}
+import play.api.mvc._
 
-import scala.concurrent.Future
 import scala.collection.JavaConversions._
+import scala.concurrent.Future
 
-import javax.ws.rs.{QueryParam, PathParam}
+import javax.ws.rs.{PathParam, QueryParam}
 
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.response.UpdateResponse
-import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.ProductFacetQuery
+import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.common.FacetQuery
-import org.opencommercesearch.api.models.{Category, Brand, BrandList}
+import org.opencommercesearch.api.models.{Brand, BrandList, Category}
 import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.api.util.Util._
+import org.opencommercesearch.search.suggester.IndexableElement
 
 import com.wordnik.swagger.annotations._
-import org.opencommercesearch.search.suggester.{CatalogSuggester, IndexableElement}
-import org.apache.solr.common.SolrDocument
-import org.opencommercesearch.search.Element
-import org.opencommercesearch.search.collector.{MultiSourceCollector, SimpleCollector}
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController with FacetQuery {
 
-  val categoryService = new CategoryService(solrServer)
+  val categoryService = new CategoryService(solrServer, storageFactory)
 
   @ApiOperation(value = "Get a brand by id", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
   @ApiResponses(Array(new ApiResponse(code = 404, message = "Brand not found")))
@@ -307,52 +301,17 @@ object BrandController extends BaseController with FacetQuery {
     // @todo revisit this limit
     categoryFacetQuery.setFacetLimit(MaxFacetPaginationLimit)
 
-
     if(Logger.isDebugEnabled) {
       Logger.debug(s"Searching categories for brand $id with query ${categoryFacetQuery.toString}")
     }
 
-    val future = solrServer.query(categoryFacetQuery).flatMap( catalogResponse => {
-      val facetFields = catalogResponse.getFacetFields
-      var taxonomyFuture: Future[SimpleResult] = null
-
-      if(facetFields != null) {
-        facetFields.map( facetField => {
-          if("ancestorCategoryId".equals(facetField.getName)) {
-            if(Logger.isDebugEnabled) {
-              Logger.debug(s"Got ${facetField.getValueCount} category ids for brand $id")
-            }
-
-            val storage = withNamespace(storageFactory)
-
-            if(facetField.getValueCount > 0) {
-              val categoryIds = facetField.getValues.map(facetValue => {facetValue.getName})
-              Logger.debug(s"Category ids for brand $id are $categoryIds")
-
-              val categoryFuture = categoryService.getTaxonomy(categoryIds, fieldList(allowStar = true), storage)
-
-              taxonomyFuture = categoryFuture.flatMap(categoryTaxonomy => {
-                Future(Ok(Json.obj(
-                  "metadata" -> Json.obj(
-                    "time" -> (System.currentTimeMillis() - startTime)),
-                  "categories" -> Json.toJson(facetField.getValues.map( facetValue => {categoryTaxonomy(facetValue.getName)})))
-                ))
-              })
-            }
-          }
-        })
-      }
-      else {
-        Logger.debug("Got 0 categories, no facets were returned")
-      }
-
-      if(taxonomyFuture != null) {
-        withErrorHandling(taxonomyFuture, s"Found categories for brand $id, but could not resolve taxonomy")
-      }
-      else {
-        Future(NotFound(Json.obj("message" -> s"No categories found for brand $id")))
-      }
-    })
+    val future = categoryService.getBrandTaxonomy(id, site, fieldList(allowStar = true)) flatMap { roots =>
+      Future(Ok(Json.obj(
+        "metadata" -> Json.obj(
+          "time" -> (System.currentTimeMillis() - startTime)),
+        "categories" -> Json.toJson(roots)))
+      )
+    }
 
     withErrorHandling(future, s"Cannot get categories for brand $id")
   }

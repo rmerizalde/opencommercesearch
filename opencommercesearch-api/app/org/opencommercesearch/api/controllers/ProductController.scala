@@ -18,38 +18,40 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
 import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
+import play.api.mvc._
+
+import scala.collection.JavaConversions._
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
+
+import javax.ws.rs.{PathParam, QueryParam}
 
 import java.util
-import javax.ws.rs.{QueryParam, PathParam}
 
-import scala.concurrent.Future
-import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.convert.Wrappers.JIterableWrapper
-
-import org.apache.commons.lang3.StringUtils
-import org.apache.solr.common.util.NamedList
-import org.apache.solr.client.solrj.response.{UpdateResponse, QueryResponse}
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.util.ClientUtils
-import org.opencommercesearch.common.Context
 import org.opencommercesearch.api._
 import org.opencommercesearch.api.Collection._
-import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.common.{FacetHandler, FilterQuery}
+import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.api.common.{FilterQuery, FacetHandler}
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.IndexableElement
+
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.response.{QueryResponse, UpdateResponse}
+import org.apache.solr.client.solrj.util.ClientUtils
+import org.apache.solr.common.util.NamedList
 
 import com.wordnik.swagger.annotations._
-import org.opencommercesearch.search.suggester.IndexableElement
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
-  val categoryService = new CategoryService(solrServer)
+  val categoryService = new CategoryService(solrServer, storageFactory)
 
   @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
@@ -92,66 +94,10 @@ object ProductController extends BaseController {
 
         if(includeTaxonomy) {
           val productListFuture = productList map { product =>
-            val productQuery = new SingleProductQuery(product.getId, site)
-              .withFields("ancestorCategoryId")
-
-            if(Logger.isDebugEnabled) {
-              Logger.debug(s"Searching for category ids for product ${product.getId} with query ${productQuery.toString}")
+            categoryService.getProductTaxonomy(product.getId, site, getCategoryFields(fields)) map { categories =>
+              product.categories = Option(categories)
+              product
             }
-
-            solrServer.query(productQuery).flatMap(response => {
-      
-              val docs = response.getResults
-              var taxonomyFuture: Future[Product] = null
-
-              if (docs != null && docs.size() > 0) {
-                val document = docs.get(0)
-                if(document.containsKey("ancestorCategoryId")) {
-                    val categoryIds = document.getFieldValues("ancestorCategoryId")
-                    if(Logger.isDebugEnabled) {
-                      Logger.debug(s"Got ${categoryIds.size} category ids for product ${product.getId}")
-                    }
-
-                    val storage = withNamespace(storageFactory)
-
-                    if(categoryIds.size > 0) {
-                      //val categoryIds = ancestorCatFields.map(fieldValue => {fieldValue.toString})
-                      Logger.debug(s"Category ids for product ${product.getId} are $categoryIds")
-
-                      val categoryFields = fields.filter(field => {field.startsWith("categories.") || field.equals("*")}).map(field => field.replaceFirst("categories\\.", ""))
-                      Logger.debug(s"Category fields are $categoryFields")
-                      val categoryFuture = categoryService.getTaxonomy(categoryIds.map(fieldValue => {fieldValue.toString}), categoryFields, storage)
-
-                      taxonomyFuture = categoryFuture.map(categoryTaxonomy => {
-                        product.categories = Some(categoryIds.map( fieldValue => {categoryTaxonomy(fieldValue.toString)}).toSeq
-                          .filter(
-                            category =>  {
-                                  if (site != null) {
-                                    category.sites.getOrElse(Seq.empty).contains(site)
-                                  } else {
-                                    true
-                                  }
-                            }
-                        ))
-                        product
-                      })
-                    }
-                  }
-                  else {
-                    Logger.debug(s"Cannot get categories for product $id because there are no field in Solr response")
-                  }
-              }
-              else {
-                Logger.debug(s"Got 0 categories for product $id, no facets were returned")
-              }
-
-              if(taxonomyFuture != null) {
-                taxonomyFuture
-              }
-              else {
-                Future(product)
-              }
-            })
           }
 
           //Combine all futures in a single one (wait until they all finish)
@@ -179,6 +125,18 @@ object ProductController extends BaseController {
     }
 
     withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
+  }
+
+  /**
+   * @param fields the product field list
+   * @return the field list for product categories
+   */
+  private def getCategoryFields(fields: Seq[String]) = fields withFilter {
+    field =>
+      field.startsWith("categories.") || field.equals("*")
+  } map {
+    field =>
+      field.replaceFirst("categories\\.", "")
   }
 
   /**
