@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opencommercesearch.client.impl.*;
 import org.opencommercesearch.client.request.*;
+import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.response.DefaultResponse;
 import org.opencommercesearch.client.response.SearchResponse;
 import org.powermock.api.mockito.PowerMockito;
@@ -244,7 +245,7 @@ public class ProductApiTest {
         doTestSearchAndBrowse(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class));
     }
 
-    public void doTestSearchAndBrowse(DefaultRequest request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+    public void doTestSearchAndBrowse(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
         ProductApi productApi = new ProductApi();
         productApi.setClient(client);
         productApi.setPreview(true);
@@ -257,7 +258,7 @@ public class ProductApiTest {
         SearchResponse response = (SearchResponse) method.invoke(productApi, request);
 
         Metadata metadata = response.getMetadata();
-        DefaultProduct[] products = response.getProducts();
+        Product[] products = response.getProducts();
 
         verify(client, times(1)).handle(any(org.restlet.Request.class));
 
@@ -305,9 +306,9 @@ public class ProductApiTest {
         assertEquals("colorFamily%3Ablack", filters.get(0).getFilterQuery());
     }
 
-    private void validateProducts(DefaultProduct[] products) {
+    private void validateProducts(Product[] products) {
         assertEquals("Products in current page match", 10, products.length);
-        DefaultProduct firstProduct = products[0];
+        Product firstProduct = products[0];
         assertNotNull(firstProduct);
         assertEquals("CST0180", firstProduct.getId());
         assertEquals("Goccia Rain Jacket ", firstProduct.getTitle());
@@ -433,7 +434,7 @@ public class ProductApiTest {
                 request.getResourceRef().toString());
     }
 
-    class TestRequest extends DefaultRequest {
+    class TestRequest extends BaseRequest {
         @Override
         public String getEndpoint() {
             return "/dummy/endpoint";

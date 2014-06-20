@@ -20,6 +20,7 @@ package org.opencommercesearch.client.response;
 */
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.impl.DefaultProduct;
 import org.opencommercesearch.client.impl.DefaultProductSummary;
 import org.opencommercesearch.client.impl.Metadata;
@@ -29,20 +30,11 @@ import org.opencommercesearch.client.impl.Metadata;
  *
  * @author jmendez
  */
-public class SearchResponse extends DefaultResponse {
-  private Metadata metadata;
-  private DefaultProduct[] products;
+public class SearchResponse extends ProductResponse {
+
   private boolean boundSummaries = false;
 
-  public Metadata getMetadata() {
-    return metadata;
-  }
-
-  protected void setMetadata(Metadata metadata) {
-    this.metadata = metadata;
-  }
-
-  public DefaultProduct[] getProducts() {
+  public Product[] getProducts() {
     if (!boundSummaries) {
       bindSummaries();
     }
@@ -50,15 +42,11 @@ public class SearchResponse extends DefaultResponse {
     return products;
   }
 
-  protected void setProducts(DefaultProduct[] products) {
-    this.products = products;
-  }
-
   /**
    * Adds to each product in the response, its corresponding product summary information.
    */
   private void bindSummaries() {
-    JsonNode summaries = metadata.getProductSummary();
+    JsonNode summaries = getMetadata().getProductSummary();
     for (DefaultProduct product : products) {
       DefaultProductSummary productSummary = new DefaultProductSummary(summaries.get(product.getId()));
       product.setSummary(productSummary);

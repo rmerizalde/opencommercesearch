@@ -23,50 +23,21 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductApi;
 
 /**
- * Holds the necessary parameters to perform product searches on the API.
- * <p/>
- * Once populated, pass this class to {@link org.opencommercesearch.client.ProductApi} to get the search response.
+ * A request to retrieve one or more products by id
  *
- * @author jmendez
+ * @author rmerizalde
  */
-public class SearchRequest extends BaseRequest {
+public class ProductRequest extends BaseRequest {
 
-  public void setQuery(String query) {
-    setParam("q", query);
-  }
+  private String endpoint;
 
-  public void setOutlet(boolean outlet) {
-    setParam("outlet", String.valueOf(outlet));
-  }
-
-  public void setOffset(int offset) {
-    setParam("offset", String.valueOf(offset));
-  }
-
-  public void setLimit(int limit) {
-    setParam("limit", String.valueOf(limit));
-  }
-
-
-  public void addFilterQuery(String filterQuery) {
-    addParam("filterQueries", filterQuery);
-  }
-
-  public void setFilterQueries(String[] filterQueries) {
-    if (filterQueries == null) {
-      throw new NullPointerException("filterQueries");
-    }
-
-    setParam("filterQueries", StringUtils.join(filterQueries, ","));
-  }
-
-  public void setSort(String sort) {
-    setParam("sort", sort);
+  public ProductRequest(String... id) {
+    endpoint = "/products/" + StringUtils.join(id, ',');
   }
 
   @Override
   public String getEndpoint() {
-    return "/products";
+    return endpoint;
   }
 
   @Override

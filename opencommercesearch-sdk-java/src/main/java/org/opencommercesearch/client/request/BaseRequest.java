@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * @author jmendez
  */
-public abstract class DefaultRequest implements Request {
+public abstract class BaseRequest implements Request {
 
   /**
    * The URI of the current request. For example: /api-docs
@@ -79,5 +79,34 @@ public abstract class DefaultRequest implements Request {
 
     queryString.setLength(queryString.length() - 1);
     return queryString.toString();
+  }
+
+  /**
+   * Replaces the fields param in this request with the given fields
+   * @param fields is the new field list
+   */
+  public void setFields(String[] fields) {
+    if (fields == null) {
+      throw new NullPointerException("fields");
+    }
+
+    setParam("fields", StringUtils.join(fields, ","));
+  }
+
+  /**
+   * Adds a new field to this request
+   * @param fieldName is the new field to add
+   */
+
+  public void addField(String fieldName) {
+    addParam("fields", fieldName);
+  }
+
+  /**
+   * Sets the site for this request
+   * @param site is the request site
+   */
+  public void setSite(String site) {
+    setParam("site", site);
   }
 }

@@ -19,40 +19,22 @@ package org.opencommercesearch.client.response;
 * under the License.
 */
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
+import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.impl.DefaultProduct;
-import org.opencommercesearch.client.impl.Metadata;
-import org.opencommercesearch.client.response.Response;
 
 /**
- * Base API response class.
+ * A response the contains one or more products
  *
- * @author jmendez
+ * @author rmerizalde
  */
-public class DefaultResponse implements Response {
+public class ProductResponse extends DefaultResponse {
+  protected DefaultProduct[] products;
 
-  private Metadata metadata;
-
-  public Metadata getMetadata() {
-    return metadata;
+  public Product[] getProducts() {
+    return products;
   }
 
-  protected void setMetadata(Metadata metadata) {
-    this.metadata = metadata;
-  }
-
-  public String toString() {
-    ObjectWriter ow = new ObjectMapper()
-      .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-      .writer().withDefaultPrettyPrinter();
-
-    try {
-      return ow.writeValueAsString(this);
-    } catch (JsonProcessingException ex) {
-      return "InvalidObject";
-    }
+  protected void setProducts(DefaultProduct[] products) {
+    this.products = products;
   }
 }

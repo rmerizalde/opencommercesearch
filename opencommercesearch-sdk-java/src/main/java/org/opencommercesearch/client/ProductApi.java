@@ -25,6 +25,7 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.request.*;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.response.BrowseResponse;
+import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
 import org.restlet.*;
@@ -145,11 +146,21 @@ public class ProductApi {
   }
 
   /**
+   * Finds one or more products by ids
+   * @param request is the product request
+   * @return a product response
+   * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public ProductResponse findProducts(ProductRequest request) throws ProductApiException {
+    return (ProductResponse) handle(request, ProductResponse.class);
+  }
+
+  /**
    * Performs a search for products.
    *
    * @param request A search request.
    * @return A search response with products matching the given search request.
-   * @throws ProductApiException If there are underlying HTTP communication issues, if the API responded with errors or if there response parsing problems.
+   * @throws ProductApiException If there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
    */
   public SearchResponse search(SearchRequest request) throws ProductApiException {
     return (SearchResponse) handle(request, SearchResponse.class);
@@ -198,7 +209,7 @@ public class ProductApi {
    * @return A API response with data returned from the product API server.
    * @throws ProductApiException If there are underlying HTTP communication issues, if the API responded with errors or if there response parsing problems.
    */
-  protected <T extends Response> Response handle(DefaultRequest request, Class<T> clazz) throws ProductApiException {
+  protected <T extends Response> Response handle(Request request, Class<T> clazz) throws ProductApiException {
     int retries = 0;
     Exception lastException = null;
 
@@ -345,7 +356,7 @@ public class ProductApi {
    * @param request Request used to calculate the URL from.
    * @return A properly formed request URL for the API.
    */
-  protected String getRequestUrl(DefaultRequest request) {
+  protected String getRequestUrl(Request request) {
     String endpoint = request.getEndpoint();
     if (StringUtils.isNotEmpty(endpoint)) {
       StringBuilder url = new StringBuilder();

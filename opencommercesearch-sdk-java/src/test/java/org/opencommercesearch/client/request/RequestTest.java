@@ -1,4 +1,4 @@
-package org.opencommercesearch.client;
+package org.opencommercesearch.client.request;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -20,7 +20,7 @@ package org.opencommercesearch.client;
 */
 
 import org.junit.Test;
-import org.opencommercesearch.client.request.DefaultRequest;
+import org.opencommercesearch.client.ProductApi;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,7 +31,7 @@ public class RequestTest {
 
   @Test
   public void testGetHttpRequest() {
-    DefaultRequest ar = new DefaultRequest() {
+    BaseRequest ar = new BaseRequest() {
 
       @Override
       public String getEndpoint() {

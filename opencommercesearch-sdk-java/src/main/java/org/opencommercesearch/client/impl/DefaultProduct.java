@@ -20,6 +20,7 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.ProductSummary;
 
 import java.util.List;
@@ -31,7 +32,7 @@ import java.util.Set;
  *
  * @author jmendez
  */
-public class DefaultProduct {
+public class DefaultProduct implements Product {
   private String id;
   private String title;
   private String description;

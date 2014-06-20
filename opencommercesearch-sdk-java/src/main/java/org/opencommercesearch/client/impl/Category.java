@@ -19,6 +19,10 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.Set;
+
 /**
  * Represents a product category.
  *
@@ -29,7 +33,10 @@ public class Category {
   private String name;
   private Category[] parentCategories;
   private Category[] childCategories;
+  @JsonProperty("seoUrlToken")
+  private String url;
   private boolean isRuleBased;
+  private Set<String> sites;
 
   public void setId(String id) {
     this.id = id;
@@ -69,5 +76,17 @@ public class Category {
 
   public void setIsRuleBased(boolean isRuleBased) {
     this.isRuleBased = isRuleBased;
+  }
+
+  public String getUrl() { return url; }
+
+  public void setUrl(String url) { url = "/" + url; }
+
+  public Set<String> getSites() {
+    return sites;
+  }
+
+  public void setSites(Set<String> sites) {
+    this.sites = sites;
   }
 }
