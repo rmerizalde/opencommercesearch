@@ -39,7 +39,6 @@ case class Sku(
   var isOutlet: Option[Boolean],
   var size: Option[Size],
   var catalogs: Option[Seq[String]],
-  var customSort: Option[Int],
   var listPrice: Option[BigDecimal],
   var salePrice: Option[BigDecimal],
   var discountPercent: Option[Int],
@@ -58,7 +57,7 @@ object Sku {
   val Stocklevel = "stockLevel"
 
   @JsonCreator
-  def getInstance() = new Sku(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def getInstance() = new Sku(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   implicit val readsSku = Json.reads[Sku]
   implicit val writesSku = Json.writes[Sku]

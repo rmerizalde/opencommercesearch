@@ -71,9 +71,6 @@ public class Sku {
     @JsonIgnore
     private boolean isAssigned;
 
-    @JsonProperty
-    private int customSort;
-
     public String getId() {
         return id;
     }
@@ -205,14 +202,6 @@ public class Sku {
 
     public void setAssigned(boolean isAssigned) {
         this.isAssigned = isAssigned;
-    }
-
-    public int getCustomSort() {
-        return customSort;
-    }
-
-    public void setCustomSort(int customSort) {
-        this.customSort = customSort;
     }
     
     public Color getColor() {

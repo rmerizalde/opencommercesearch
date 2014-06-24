@@ -144,6 +144,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         }        
         productDocuments.add(productDoc)
         val skuCount = skus.size
+        var skuSort = 0
         for (sku: Sku <- skus) {
           for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                isCloseout <- sku.isCloseout; countries <- sku.countries) {
@@ -218,7 +219,8 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             }
             for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
             for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
-            for (sort <- sku.customSort) { doc.setField("sort", sort) }
+            doc.setField("sort", skuSort)
+            skuSort += 1
             doc.setField("indexStamp", feedTimestamp)
             skuDocuments.add(doc)
             currentDocCount += 1

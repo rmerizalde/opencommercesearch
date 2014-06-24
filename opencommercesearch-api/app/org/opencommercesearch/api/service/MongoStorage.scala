@@ -171,7 +171,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     if (product != null) {
       for (skus <- product.skus) {
         product.skus = Some(skus.filter((s: Sku) => {
-          s.customSort = None
           flattenCountries(country, s)
         }))
       }
@@ -199,7 +198,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
           s.year = None
           s.season = None
         }
-        s.customSort = None
       })
     }
     product
