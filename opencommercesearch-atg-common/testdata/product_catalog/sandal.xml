@@ -78,6 +78,7 @@
     <field name="ancestorCategoryId"><![CDATA[cat411110192]]></field>
     <field name="listPriceUS"><![CDATA[21.95]]></field>
     <field name="salePriceUS"><![CDATA[15.00]]></field>
+    <field name="isCloseout"><![CDATA[true]]></field>
     <field name="discountPercentUS"><![CDATA[32]]></field>
     <field name="onsaleUS"><![CDATA[true]]></field>
     <field name="stockLevelUS"><![CDATA[1]]></field>
