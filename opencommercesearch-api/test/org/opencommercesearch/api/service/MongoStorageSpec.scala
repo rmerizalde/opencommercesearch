@@ -101,7 +101,7 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     val sku = new Sku(
 	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(usCountry)), Some(false), None,
-	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")), Some(1),
+	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
 	    		 None, None, None, Some(false), Some(0), Some("url"), Some(true))
 
 	     val productToos = new Product(
@@ -117,7 +117,7 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     val skuInStock = new Sku(
 	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(caCountry)), Some(false), None,
-	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")), Some(1),
+	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
 	    		 None, None, None, Some(false), Some(10), Some("url"), Some(true))
 	     
 	    val productInStock = new Product(
