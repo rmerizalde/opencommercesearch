@@ -20,6 +20,7 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.ProductSummary;
 
@@ -49,6 +50,8 @@ public class DefaultProduct implements Product {
   private Map<String, Boolean> hasFreeGift;
   private boolean isOutOfStock;
   private boolean isPackage;
+  @JsonProperty("isOem")
+  private boolean isOem;
   private Set<Category> categories;
   private List<Sku> skus;
   private String activationDate;
@@ -172,6 +175,14 @@ public class DefaultProduct implements Product {
 
   public void setIsOutOfStock(boolean isOutOfStock) {
     this.isOutOfStock = isOutOfStock;
+  }
+
+  public boolean isOem() {
+    return isOem;
+  }
+
+  public void setOem(boolean isOem) {
+    this.isPackage = isOem;
   }
 
   public boolean isPackage() {

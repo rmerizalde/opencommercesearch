@@ -76,6 +76,9 @@ public class Product {
     
     @JsonProperty
     private boolean isPackage;
+
+    @JsonProperty
+    private boolean isOem;
     
     @JsonProperty
     private Set<Category> categories;
@@ -230,6 +233,14 @@ public class Product {
 
     public void setPackage(boolean isPackage) {
         this.isPackage = isPackage;
+    }
+
+    public boolean isOem() {
+      return isOem;
+    }
+
+    public void setOem(boolean isOem) {
+      this.isPackage = isOem;
     }
 
     public Set<Category> getCategories() {

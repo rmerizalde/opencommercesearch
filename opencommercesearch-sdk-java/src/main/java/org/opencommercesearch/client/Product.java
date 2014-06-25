@@ -67,6 +67,8 @@ public interface Product {
 
   public boolean isPackage();
 
+  public boolean isOem();
+
   public Set<Category> getCategories();
 
   public List<Sku> getSkus();
