@@ -50,7 +50,6 @@ public class DefaultProduct implements Product {
   private Map<String, Boolean> hasFreeGift;
   private boolean isOutOfStock;
   private boolean isPackage;
-  @JsonProperty("isOem")
   private boolean isOem;
   private Set<Category> categories;
   private List<Sku> skus;
