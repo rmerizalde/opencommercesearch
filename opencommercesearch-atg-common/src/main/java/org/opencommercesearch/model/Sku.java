@@ -23,6 +23,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -70,6 +71,9 @@ public class Sku {
 
     @JsonIgnore
     private boolean isAssigned;
+
+    @JsonProperty
+    private Date availableDate;
 
     public String getId() {
         return id;
@@ -212,5 +216,7 @@ public class Sku {
         this.color = color;
     }
 
+    public Date getAvailableDate() { return availableDate; }
 
+    public void setAvailableDate(Date availableDate) { this.availableDate = availableDate; }
 }

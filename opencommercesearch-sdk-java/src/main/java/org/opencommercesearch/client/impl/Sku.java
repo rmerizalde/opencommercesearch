@@ -19,6 +19,7 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import java.util.Date;
 import java.util.Set;
 
 public class Sku {
@@ -40,6 +41,7 @@ public class Sku {
   private Set<String> catalogs;
   private String year;
   private String season;
+  private Date availableDate;
 
   public String getId() {
       return id;
@@ -180,4 +182,8 @@ public class Sku {
   public void setSeason(String season) {
     this.season = season;
   }
+
+  public Date getAvailableDate() { return availableDate; }
+
+  public void setAvailableDate(Date availableDate) { this.availableDate = availableDate; }
 }
