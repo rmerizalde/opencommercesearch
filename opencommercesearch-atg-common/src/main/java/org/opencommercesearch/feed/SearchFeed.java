@@ -27,8 +27,9 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.model.Product;
@@ -49,8 +50,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.opencommercesearch.api.ProductService.Endpoint;
 import static org.opencommercesearch.Utils.errorMessage;
+import static org.opencommercesearch.api.ProductService.Endpoint;
 
 /**
  * This class provides a basic functionality to generate a search feed. This includes:
@@ -230,6 +231,7 @@ public abstract class SearchFeed extends GenericService {
         super.doStartService();
         endpointUrl = getProductService().getUrl4Endpoint(Endpoint.PRODUCTS);
         mapper = new ObjectMapper();
+        mapper.setDateFormat(new ISO8601DateFormat());
         if (getWorkerCount() <= 0) {
             if (isLoggingInfo()) {
                 logInfo("At least one worker is required to process the feed, setting number of workers to 1");

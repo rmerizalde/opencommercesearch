@@ -24,6 +24,7 @@ import play.api.libs.json.Json
 import com.fasterxml.jackson.annotation.JsonCreator
 import org.jongo.marshall.jackson.oid.Id
 import com.fasterxml.jackson.annotation.JsonProperty
+import java.util.Date
 
 case class Sku(
   var id: Option[String],
@@ -45,7 +46,9 @@ case class Sku(
   var onSale: Option[Boolean],
   var stockLevel: Option[Int],
   var url: Option[String],
-  var allowBackorder: Option[Boolean]) {
+  var allowBackorder: Option[Boolean],
+  var availableDate: Option[Date])
+{
 
 }
 
@@ -57,7 +60,7 @@ object Sku {
   val Stocklevel = "stockLevel"
 
   @JsonCreator
-  def getInstance() = new Sku(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def getInstance() = new Sku(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
 
   implicit val readsSku = Json.reads[Sku]
   implicit val writesSku = Json.writes[Sku]

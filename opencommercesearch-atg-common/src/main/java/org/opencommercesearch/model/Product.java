@@ -19,12 +19,17 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import java.sql.Timestamp;
-import java.util.*;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
-import org.opencommercesearch.Utils;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Product {
@@ -87,16 +92,13 @@ public class Product {
     private List<Sku> skus;
 
     @JsonProperty
-    private String activationDate;
-    
+    private Date activationDate;
 
-    public String getActivationDate() {
+    public Date getActivationDate() {
         return activationDate;
     }
 
-    public void setActivationDate(long activationTime) {
-        this.activationDate = Utils.getISO8601Date(activationTime);
-    }
+    public void setActivationDate(Date activationDate) { this.activationDate = activationDate; }
 
     public String getId() {
         return id;
@@ -264,5 +266,4 @@ public class Product {
         }
         skus.add(sku);
     }
-
 }

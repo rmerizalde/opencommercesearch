@@ -21,20 +21,21 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import java.util
-import scala.collection.JavaConversions._
 
-import org.apache.solr.client.solrj.beans.Field
-import org.apache.solr.common.SolrInputDocument
-import org.apache.commons.lang3.StringUtils
-import org.opencommercesearch.common.Context
+import java.util
+import java.util.Date
+
 import org.opencommercesearch.api.service.CategoryService
-import ProductList._
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.IndexableElement
+
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.common.SolrInputDocument
+
 import org.jongo.marshall.jackson.oid.Id
 
-import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
-import org.opencommercesearch.search.suggester.IndexableElement
+import ProductList._
 
 object Product {
 
@@ -64,7 +65,7 @@ case class Product (
   @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
   @JsonProperty("categories") var categories: Option[Seq[Category]],
   @JsonProperty("skus") var skus: Option[Seq[Sku]],
-  @JsonProperty("activationDate") var activationDate: Option[String],
+  @JsonProperty("activationDate") var activationDate: Option[Date],
   @JsonProperty("isPackage") var isPackage: Option[Boolean]) extends IndexableElement
 {
   def getId : String = { this.id.get }
@@ -105,7 +106,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         expectedDocCount += skus.size
         val productDoc = new SolrInputDocument()
         var gender: String = null
-        var activationDate: String = null
+        var activationDate: Date = null
         productDoc.setField("id", productId)
         productDoc.setField("title", title)
         for (brandId <- brand.id) {

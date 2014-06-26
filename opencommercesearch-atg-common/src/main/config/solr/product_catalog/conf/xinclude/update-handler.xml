@@ -4,7 +4,7 @@
   Production environments should overwrite this file with custom settings
 -->
 <updateHandler class="solr.DirectUpdateHandler2">
-  <!--
+  <!--          -->
   <autoCommit>
     <maxTime>600000</maxTime>
     <maxDocs>5000</maxDocs>
@@ -18,5 +18,5 @@
   <updateLog>
     <str name="dir">${solr.data.dir:}</str>
   </updateLog>
-  -->
+
 </updateHandler>

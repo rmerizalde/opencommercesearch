@@ -19,7 +19,7 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 

@@ -19,8 +19,8 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)

@@ -19,11 +19,10 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.Locale;
-import java.util.Map;
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 public class Country {
