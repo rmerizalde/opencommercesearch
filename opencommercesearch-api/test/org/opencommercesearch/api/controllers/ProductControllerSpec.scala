@@ -94,13 +94,13 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(facetResponse)
         }
 
-        val product = Product.getInstance
+        val product = Product.getInstance()
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
 
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -133,8 +133,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by query" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -143,7 +143,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -175,8 +175,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by query with sort options" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -185,7 +185,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -220,8 +220,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a category" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -230,7 +230,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -271,8 +271,8 @@ class ProductControllerSpec extends BaseSpec {
         storage.findCategory(any, any) returns Future.successful(null)
         storage.findCategory(any, any) returns Future.successful(category)
 
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -281,7 +281,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -312,8 +312,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing an outlet category" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -322,7 +322,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -354,8 +354,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a brand category" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -364,7 +364,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -396,8 +396,8 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when browsing a brand" in new Products {
       running(FakeApplication()) {
-        val product = Product.getInstance
-        val sku = Sku.getInstance
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -406,7 +406,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = Sku.getInstance
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -453,7 +453,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum products an a bulk create" in new Products {
-      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName) = ("PRD100", "A Product")
         val jsonBrand = Json.obj("id" -> "1000")
@@ -521,7 +521,7 @@ class ProductControllerSpec extends BaseSpec {
 
 
     "send 400 when trying to bulk create products with missing sku fields" in new Products {
-      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedTitle) = ("PRD0001", "A Product")
         val jsonBrand = Json.obj("id" -> "1000")
@@ -533,6 +533,7 @@ class ProductControllerSpec extends BaseSpec {
               "title" -> expectedTitle,
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
+              "isOem" -> false,
               "listRank" -> 1,
               "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
@@ -543,6 +544,7 @@ class ProductControllerSpec extends BaseSpec {
               "title" -> expectedTitle,
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
+              "isOem" -> false,
               "listRank" -> 1,
               "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
@@ -561,10 +563,9 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 400 when trying to bulk create products with missing product fields" in new Products {
-      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedTitle) = ("PRD0001", "A Product")
-        val jsonBrand = Json.obj("id" -> "1000")
         val json = Json.obj(
           "feedTimestamp" -> 1001,
           "products" -> Json.arr(
@@ -605,6 +606,7 @@ class ProductControllerSpec extends BaseSpec {
               "title" -> expectedName,
               "brand" -> jsonBrand,
               "isOutOfStock" -> true,
+              "isOem" -> false,
               "listRank" -> 1,
               "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
@@ -628,6 +630,42 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+  "send 201 when a OEM products are created" in new Products {
+    running(FakeApplication()) {
+      setupUpdate
+      val (expectedId, expectedName) = ("PRD0001", "A Product")
+      val jsonBrand = Json.obj("id" -> "PRD0001")
+      val json = Json.obj(
+        "feedTimestamp" -> 1001,
+        "products" -> Json.arr(
+          Json.obj(
+            "id" -> (expectedId + "0"),
+            "title" -> expectedName,
+            "brand" -> jsonBrand,
+            "isOutOfStock" -> true,
+            "isOem" -> true,
+            "listRank" -> 1,
+            "activationDate" -> "2010-07-31T00:00:00Z",
+            "skus" -> Json.arr(Json.obj(
+              "id" -> (expectedId + "0" + "BLK"),
+              "image" -> "/images/black.jpg",
+              "isRetail" -> true,
+              "isCloseout" -> false,
+              "countries" -> Seq(Json.obj("code" -> "US"))
+            ))
+          )))
+
+
+      val url = routes.ProductController.bulkCreateOrUpdate().url
+      val fakeRequest = FakeRequest(PUT, url)
+        .withHeaders((CONTENT_TYPE, "application/json"))
+        .withJsonBody(json)
+
+      val result = route(fakeRequest)
+      validateUpdateResult(result.get, CREATED)
+    }
+  }
+
 
   /**
    * Helper method to validate search parameters
@@ -637,10 +675,10 @@ class ProductControllerSpec extends BaseSpec {
     productQuery.getQuery must beEqualTo("term")
     productQuery.getBool("rule") must beEqualTo(true)
     productQuery.getFilterQueries contains "isRetail:true" must beTrue
-    productQuery.getFilterQueries contains("isCloseout:false") must beFalse
-    productQuery.getFilterQueries contains("isOutlet:false") must beFalse
-    productQuery.getFilterQueries contains("isCloseout:true") must beFalse
-    productQuery.getFilterQueries contains("isOutlet:true") must beFalse
+    productQuery.getFilterQueries contains "isCloseout:false" must beFalse
+    productQuery.getFilterQueries contains "isOutlet:false" must beFalse
+    productQuery.getFilterQueries contains "isCloseout:true" must beFalse
+    productQuery.getFilterQueries contains "isOutlet:true" must beFalse
     productQuery.getFilterQueries contains "country:onsaleUS" must beFalse
     productQuery.get("pageType") must beEqualTo("search")
   }
@@ -801,15 +839,15 @@ class ProductControllerSpec extends BaseSpec {
 
     val summary = mock[NamedList[Object]]
     val groupSummary = mock[NamedList[Object]]
-    summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary;
+    summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary
 
-    groupSummary.get("productId").asInstanceOf[NamedList[Object]] returns null;
+    groupSummary.get("productId").asInstanceOf[NamedList[Object]] returns null
 
     val groupResponse = mock[GroupResponse]
 
     groupResponse.getValues returns commandValues
     queryResponse.getGroupResponse returns groupResponse
-    queryResponse.getResponse returns summary;
+    queryResponse.getResponse returns summary
     queryResponse
   }
 }

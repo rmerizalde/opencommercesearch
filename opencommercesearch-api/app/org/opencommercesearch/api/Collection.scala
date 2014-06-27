@@ -35,9 +35,9 @@ object Collection {
 sealed abstract class SearchCollection extends Collection {}
 
 object PublicSearchCollection extends SearchCollection {
-  val baseName = Play.configuration.getString("public.searchCollection").getOrElse("catalogPublic")
+  val baseName = Play.configuration.getString("public.collection.search").getOrElse("catalogPublic")
 }
 
 object PreviewSearchCollection extends SearchCollection {
-  val baseName = Play.configuration.getString("preview.searchCollection").getOrElse("catalogPreview")
+  val baseName = Play.configuration.getString("preview.collection.search").getOrElse("catalogPreview")
 }

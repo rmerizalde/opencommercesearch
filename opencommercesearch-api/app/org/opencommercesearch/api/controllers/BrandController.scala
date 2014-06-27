@@ -131,9 +131,9 @@ object BrandController extends BaseController with FacetQuery {
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 
-      if (brands.length > MaxUpdateBrandBatchSize) {
+      if (brands.length > MaxBrandIndexBatchSize) {
         Future.successful(BadRequest(Json.obj(
-          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize")))
+          "message" -> s"Exceeded number of brands. Maximum is $MaxBrandIndexBatchSize")))
       } else if (hasMissingFields(brands)) {
         Logger.error("Missing required brand fields [id] or [name]")
         Future.successful(BadRequest(Json.obj(

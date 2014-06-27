@@ -151,7 +151,7 @@ class BrandControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum brands an a bulk create" in new Brands {
-      running(FakeApplication(additionalConfiguration = Map("brand.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.brand.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
@@ -182,7 +182,7 @@ class BrandControllerSpec extends BaseSpec {
     }
 
     "send 400 when trying to bulk create brands with missing fields" in new Brands {
-      running(FakeApplication(additionalConfiguration = Map("brand.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.brand.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(

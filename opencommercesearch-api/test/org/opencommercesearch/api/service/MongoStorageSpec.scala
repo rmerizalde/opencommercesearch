@@ -20,6 +20,7 @@ import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.models.Sku
 import org.opencommercesearch.api.models.Country
 import org.opencommercesearch.api.models.Product
+import java.util.Date
 
 @RunWith(classOf[JUnitRunner])
 class MongoStorageSpec extends Specification with Mockito  {
@@ -102,12 +103,12 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     val sku = new Sku(
 	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(usCountry)), Some(false), None,
 	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
-	    		 None, None, None, Some(false), Some(0), Some("url"), Some(true))
+	    		 None, None, None, Some(false), Some(0), Some("url"), Some(true), None)
 
 	     val productToos = new Product(
 	        Some("id"), Some("title"), Some("description"), Some("shortDesc"), Some(brand), Some("gender"),
 			Some("sizeChart"), None, None, None, None, Some(1), None, None,
-			Some(true), Some(Seq(category)), Some(Seq(sku)), Some("actDate"), Some(false))
+			Some(true), Some(Seq(category)), Some(Seq(sku)), Some(new Date()), Some(false), None)
 	     
 	     Await.result(storage.saveCategory(category), Duration.Inf)
 	     Await.result(storage.saveBrand(brand), Duration.Inf)
@@ -118,12 +119,12 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     val skuInStock = new Sku(
 	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(caCountry)), Some(false), None,
 	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
-	    		 None, None, None, Some(false), Some(10), Some("url"), Some(true))
+	    		 None, None, None, Some(false), Some(10), Some("url"), Some(true),None)
 	     
 	    val productInStock = new Product(
 	        Some("id"), Some("title"), Some("description"), Some("shortDesc"), Some(brand), Some("gender"),
 			Some("sizeChart"), None, None, None, None, Some(1), None, None,
-			Some(false), Some(Seq(category)), Some(Seq(skuInStock)), Some("actDate"), Some(false))
+			Some(false), Some(Seq(category)), Some(Seq(skuInStock)), Some(new Date()), Some(false), None)
 	     
 	     Await.result(storage.saveProduct(productInStock), Duration.Inf)
 	     

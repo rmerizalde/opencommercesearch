@@ -94,9 +94,9 @@ object RuleController extends BaseController {
     Json.fromJson[RuleList](request.body).map { ruleList =>
       val rules = ruleList.rules
       try {
-        if (rules.length > MaxUpdateRuleBatchSize) {
+        if (rules.length > MaxRuleIndexBatchSize) {
           Future.successful(BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Rules. Maximum is $MaxUpdateRuleBatchSize")))
+            "message" -> s"Exceeded number of Rules. Maximum is $MaxRuleIndexBatchSize")))
         } else {
           val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
           rules map { rule =>

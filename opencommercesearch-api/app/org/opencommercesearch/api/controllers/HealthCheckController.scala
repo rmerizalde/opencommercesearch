@@ -27,24 +27,29 @@ import org.opencommercesearch.api.common.ContentPreview
 import org.apache.solr.client.solrj.SolrQuery
 import scala.concurrent.Future
 import play.api.mvc.SimpleResult
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.api.Collection
 
 /**
  * A simple check to verify Solr and Mongo are healthy
  */
-object HealthCheckController extends Controller with ContentPreview {
+object HealthCheckController extends BaseController with ContentPreview {
 
 
-  def checkGet(version: Int, preview: Boolean) = Action.async  { implicit request =>
+  def checkGet(version: Int, preview: Boolean) = ContextAction.async { implicit context =>  implicit request =>
     checkHealth(version, preview)
   }
 
-  def checkHead(version: Int, preview: Boolean) = Action.async  { implicit request =>
+  def checkHead(version: Int, preview: Boolean) = ContextAction.async { implicit context =>  implicit request =>
     checkHealth(version, preview)
   }
 
-  def checkHealth(version: Int, preview: Boolean)(implicit request: Request[AnyContent]) : Future[SimpleResult] = {
+  def checkHealth(version: Int, preview: Boolean)(implicit request: Request[AnyContent], context: Context) : Future[SimpleResult] = {
+    import Collection._
+
     val startTime = System.currentTimeMillis()
-    val query = withProductCollection(new SolrQuery("*:*"), preview)
+    val query = new SolrQuery("*:*")
+    query.setParam("collection", searchCollection.name(context.lang))
 
     query.setRows(0)
     solrServer.query(query).flatMap(response => {

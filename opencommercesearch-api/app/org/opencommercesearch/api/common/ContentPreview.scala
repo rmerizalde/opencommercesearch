@@ -45,23 +45,6 @@ trait ContentPreview {
     request
   }
 
-  def withBrandCollection(query: SolrQuery, preview: Boolean) : SolrQuery = {
-    query.setParam("collection", getBrandCollection(preview))
-  }
-
-  def withBrandCollection[T <: AbstractUpdateRequest](request: T, preview: Boolean) : T = {
-    request.setParam("collection", getBrandCollection(preview))
-    request
-  }
-
-  private def getBrandCollection(preview: Boolean) : String = {
-    var collection = BrandPublicCollection
-    if (preview) {
-      collection = BrandPreviewCollection
-    }
-    collection
-  }
-
   def withNamespace[T](factory: StorageFactory[T])(implicit context: Context) : Storage[T] = {
     var namespace = "public"
     if (context.isPreview) {
@@ -78,23 +61,6 @@ trait ContentPreview {
     }
     namespace += "_" + language(req.acceptLanguages)
     factory.getInstance(namespace)
-  }
-
-  def withProductCollection(query: SolrQuery, preview: Boolean)(implicit req: Request[AnyContent]) : SolrQuery = {
-    query.setParam("collection", getProductCollection(preview, req.acceptLanguages))
-  }
-
-  def withProductCollection[T <: AbstractUpdateRequest, R](request: T, preview: Boolean)(implicit req: Request[R]) : T = {
-    request.setParam("collection", getProductCollection(preview, req.acceptLanguages))
-    request
-  }
-
-  private def getProductCollection(preview: Boolean, acceptLanguages:Seq[Lang]) : String = {
-    var collection = ProductPublicCollection
-    if (preview) {
-      collection = ProductPreviewCollection
-    }
-    collection + "_" + language(acceptLanguages)
   }
 
   def withCategoryCollection(query: SolrQuery)(implicit context: Context) : SolrQuery = {

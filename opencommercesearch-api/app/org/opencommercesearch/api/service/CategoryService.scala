@@ -200,8 +200,10 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
         storage.findCategory(id, Fields) map { category =>
           if (category != null) {
             Cache.set(key, category, CategoryCacheTtl)
+            Logger.debug(s"Category $id was found in storage and will be cached for $CategoryCacheTtl seconds")
             Some(category)
           } else {
+            Logger.debug(s"Category $id was not found in storage")
             None
           }
         }

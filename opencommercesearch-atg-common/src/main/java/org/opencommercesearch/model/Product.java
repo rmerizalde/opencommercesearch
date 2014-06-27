@@ -241,9 +241,7 @@ public class Product {
       return isOem;
     }
 
-    public void setOem(boolean isOem) {
-      this.isPackage = isOem;
-    }
+    public void setOem(boolean isOem) { this.isOem = isOem; }
 
     public Set<Category> getCategories() {
         return categories;

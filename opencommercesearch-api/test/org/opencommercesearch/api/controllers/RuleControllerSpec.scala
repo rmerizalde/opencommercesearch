@@ -156,7 +156,7 @@ class RuleControllerSpec extends Specification with Mockito {
 
     // @todo test bulk update
     "send 400 when exceeding maximum rules an a bulk create" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.rule.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
         val expectedId2 = "1001"
@@ -180,7 +180,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
 
     "send 400 when trying to bulk create rules with missing fields" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.rule.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId) = ("1000")
         val json = Json.obj(

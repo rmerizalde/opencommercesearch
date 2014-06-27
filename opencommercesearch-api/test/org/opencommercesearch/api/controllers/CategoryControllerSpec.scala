@@ -172,7 +172,7 @@ class CategoryControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum categories an a bulk create" in new Categories {
-      running(FakeApplication(additionalConfiguration = Map("category.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.category.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedIsRuleBased) = ("1000", "A Category", true)
         val json = Json.obj(

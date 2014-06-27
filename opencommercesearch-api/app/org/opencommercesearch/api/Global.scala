@@ -36,44 +36,26 @@ import com.wordnik.swagger.converter.ModelConverters
 
 
 object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLog) {
-  lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
-  lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateRuleBatchSize = getConfigInt("rule.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateFacetBatchSize = getConfigInt("facet.maxUpdateBatchSize", 100)
-  lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
-  lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
-  lazy val ProductPreviewCollection = getConfigString("preview.productCollection", "productsPreview")
-  lazy val ProductPublicCollection = getConfigString("public.productCollection", "productsPublic")
-  lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
-  lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
-  lazy val SuggestCollection = getConfigString("public.suggestCollection", "autocomplete")
-  lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
-  lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
-  lazy val DefaultPaginationLimit = getConfigInt("defaultPaginationLimit", 10)
-  lazy val MaxFacetPaginationLimit = getConfigInt("maxFacetPaginationLimit", 5000)
-  lazy val MinSuggestQuerySize = getConfigInt("minSuggestQuerySize", 2)
-
-  /**
-   * Rule preview collection from configuration.
-   */
-  lazy val RulePreviewCollection = getConfigString("preview.ruleCollection", "rulePreview")
-
-  /**
-   * * Rule public collection from configuration.
-   */
-  lazy val RulePublicCollection = getConfigString("public.ruleCollection", "rulePublic")
-
-  /**
-   * Facet preview collection from configuration.
-   */
-  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetsPreview")
-
-  /**
-   * * Facet public collection from configuration.
-   */
-  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetsPublic")
+  lazy val RealTimeRequestHandler = getConfig("realtimeRequestHandler", "/get")
+  lazy val MaxBrandIndexBatchSize = getConfig("index.brand.batchsize.max", 100)
+  lazy val MaxProductIndexBatchSize = getConfig("index.product.batchsize.max", 100)
+  lazy val MaxCategoryIndexBatchSize = getConfig("index.category.batchsize.max", 100)
+  lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfig("facet.maxUpdateBatchSize", 100)
+  // @todo deprecate category collections
+  lazy val CategoryPreviewCollection = getConfig("preview.collection.category", "categoriesPreview")
+  lazy val CategoryPublicCollection = getConfig("public.collection.category", "categoriesPublic")
+  lazy val RulePreviewCollection = getConfig("preview.collection.rule", "rulePreview")
+  lazy val RulePublicCollection = getConfig("public.collection.rule", "rulePublic")
+  lazy val FacetPreviewCollection = getConfig("preview.collection.facet", "facetsPreview")
+  lazy val FacetPublicCollection = getConfig("public.collection.facet", "facetsPublic") 
+  lazy val SuggestCollection = getConfig("public.collection.suggest", "autocomplete")
+  lazy val CategoryCacheTtl = getConfig("category.cache.ttl", 60 * 10)
+  lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 40)
+  lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
+  lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)
+  lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
+  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", true)
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
@@ -81,7 +63,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
 
   def solrServer = {
     if (_solrServer == null) {
-      _solrServer = AsyncCloudSolrServer(getConfigString("zkHost", "localhost:2181"))
+      _solrServer = AsyncCloudSolrServer(getConfig("zkHost", "localhost:2181"))
     }
     _solrServer
   }
@@ -135,13 +117,17 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
     )))
   }
 
-  def getConfigString(name: String, default: String) = {
+  def getConfig(name: String, default: String) = {
     Play.current.configuration.getString(name).getOrElse(default)
   }
 
-  def getConfigInt(name: String, default: Int) = {
+  def getConfig(name: String, default: Int) = {
     Play.current.configuration.getInt(name).getOrElse(default)
   }
+  
+  def getConfig(name: String, default: Boolean) = {
+    Play.current.configuration.getBoolean(name).getOrElse(default)
+  }  
 }
 
 

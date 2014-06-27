@@ -25,6 +25,6 @@ import org.opencommercesearch.api.Global._
 
 object ApiDocController extends Controller {
   def index = Action {
-    Ok(views.html.index(getConfigString("swagger.api.basepath", "http://localhost:9000")))
+    Ok(views.html.index(getConfig("swagger.api.basepath", "http://localhost:9000")))
   }
 }

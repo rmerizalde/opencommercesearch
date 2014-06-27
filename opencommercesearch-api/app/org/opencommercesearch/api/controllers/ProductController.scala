@@ -517,23 +517,29 @@ object ProductController extends BaseController {
   def bulkCreateOrUpdate(version: Int) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>
       val products = productList.products
-      if (products.size > MaxUpdateProductBatchSize) {
+      if (products.size > MaxProductIndexBatchSize) {
         Future.successful(BadRequest(Json.obj(
-          "message" -> s"Exceeded number of products. Maximum is $MaxUpdateProductBatchSize")))
+          "message" -> s"Exceeded number of products. Maximum is $MaxProductIndexBatchSize")))
       } else {
         try {
           val (_, skuDocs) = productList.toDocuments(categoryService)
-          if (skuDocs.isEmpty) {
+          def countProduct(product: Product) = if (product.isOem.getOrElse(false)) 0 else 1
+          val productCount = productList.products.foldLeft(0)((total, product) => total + countProduct(product))
+          if (productCount > 0 && skuDocs.isEmpty) {
               Future.successful(BadRequest(Json.obj(
               "message" -> "Cannot store a product without skus. Check that the required fields of the products are set")))
           } else {
             val storage = withNamespace(storageFactory)
             val productFuture = storage.saveProduct(products:_*)
-            val productUpdate = new ProductUpdate
-            productUpdate.add(skuDocs)
-            val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(products)
-            val futureList = List(productFuture, searchFuture, suggestionFuture)
+            var futureList: List[Future[AnyRef]] = List(productFuture)
+
+            if (!skuDocs.isEmpty) {
+              val productUpdate = new ProductUpdate
+              productUpdate.add(skuDocs)
+              val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
+              val suggestionFuture = IndexableElement.addToIndex(products)
+              futureList = List(productFuture, searchFuture, suggestionFuture)
+            }
 
             val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
               Created

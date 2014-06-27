@@ -216,9 +216,9 @@ object CategoryController extends BaseController with FacetQuery {
   def bulkCreateOrUpdate(version: Int) = ContextAction.async (parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>
     Json.fromJson[CategoryList](request.body).map { categoryList =>
       val categories = categoryList.categories
-      if (categories.size > MaxUpdateCategoryBatchSize) {
+      if (categories.size > MaxCategoryIndexBatchSize) {
         Future.successful(BadRequest(Json.obj(
-          "message" -> s"Exceeded number of categories. Maximum is $MaxUpdateCategoryBatchSize")))
+          "message" -> s"Exceeded number of categories. Maximum is $MaxCategoryIndexBatchSize")))
       } else {
         try {
           val storage = withNamespace(storageFactory)
