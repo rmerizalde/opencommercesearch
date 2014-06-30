@@ -180,6 +180,7 @@ public class DefaultProduct implements Product {
     return isOem;
   }
 
+  @JsonProperty("isOem")
   public void setOem(boolean isOem) {
     this.isPackage = isOem;
   }
