@@ -80,7 +80,7 @@ public class Category {
 
   public String getUrl() { return url; }
 
-  public void setUrl(String url) { url = "/" + url; }
+  public void setUrl(String url) { this.url = "/" + url; }
 
   public Set<String> getSites() {
     return sites;
