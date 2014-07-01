@@ -140,7 +140,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
               for (season <- sku.season) { doc.setField("season", season) }
 
               for (color <- sku.color) {
-                for (name <-color.name; family <- color.family) {
+                for (name <- color.name; family <- color.family) {
                   doc.setField("colorFamily", family)
                   doc.setField("color", name)
                 }

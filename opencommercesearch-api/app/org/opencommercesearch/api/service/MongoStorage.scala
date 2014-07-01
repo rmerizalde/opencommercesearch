@@ -175,42 +175,39 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         }))
       }
 
-      setToosProduct(product, fields)
+      setToos(product, fields)
     }
 
     product
   }
 
   /**
-   * Calculate is the product is TOOS (temporarily out of stock)
+   * Calculate if the product is TOOS (temporarily out of stock)
    * @param product The product
    * @param fields The fields requested from the product
    * @return The product, with the out of stock property set if the product is TOOS. If the field was not requested, then no calculation is done.
    */
-  private def setToosProduct(product: Product, fields: Seq[String]) : Product = {
+  private def setToos(product: Product, fields: Seq[String]) : Product = {
     for (skus <- product.skus) {
       val hasProductOutOfStock = fields.contains("isOutofStock")
       if (fields.isEmpty || fields.contains("*") || hasProductOutOfStock) {
         val hasStockLevel = fields.contains("skus.stockLevel")
         //Artificial property calculated from storage
-        product.isOutOfStock = Some(skus.foldLeft(true) {
-          (outOfStock, sku) =>
-            val isOutofStock = sku.stockLevel.getOrElse(0) == 0 && outOfStock
+        product.isOutOfStock = skus collectFirst {
+          case sku: Sku if sku.stockLevel.getOrElse(0) == 0 =>
             if(hasProductOutOfStock && !hasStockLevel) {
               sku.stockLevel = None
             }
 
-            isOutofStock
-        })
-
-        //Clean up product data if skus weren't requested originally
-        val hasSkuFields = fields.foldLeft(false) {
-          (accum, field) => {
-            accum || field.startsWith("skus.")
-          }
+            true
         }
 
-        if(hasProductOutOfStock && !hasSkuFields) {
+        //Clean up product data if skus weren't requested originally
+        val skuFields = fields collectFirst {
+          case field: String if field.startsWith("skus.") => true
+        }
+
+        if(hasProductOutOfStock && !skuFields.getOrElse(false)) {
           product.skus = None
         }
       }
@@ -239,7 +236,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       }))
     }
 
-    setToosProduct(product, fields)
+    setToos(product, fields)
   }
 
   /**
