@@ -33,6 +33,7 @@ import java.util.Map;
  * This class provides helper service to communicate with product API.
  */
 public class ProductService extends GenericService {
+
     public enum Endpoint {
         BRANDS,
         RULES,

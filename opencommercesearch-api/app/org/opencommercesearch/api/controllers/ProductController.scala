@@ -522,7 +522,7 @@ object ProductController extends BaseController {
           "message" -> s"Exceeded number of products. Maximum is $MaxProductIndexBatchSize")))
       } else {
         try {
-          val (_, skuDocs) = productList.toDocuments(categoryService)
+          val skuDocs = productList.toDocuments(categoryService)
           def countProduct(product: Product) = if (product.isOem.getOrElse(false)) 0 else 1
           val productCount = productList.products.foldLeft(0)((total, product) => total + countProduct(product))
           if (productCount > 0 && skuDocs.isEmpty) {

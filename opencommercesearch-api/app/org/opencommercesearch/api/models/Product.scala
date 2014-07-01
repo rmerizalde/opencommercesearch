@@ -94,81 +94,40 @@ case class Product (
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
-  def toDocuments(service: CategoryService)(implicit context: Context) : (util.List[SolrInputDocument], util.List[SolrInputDocument]) = {
-    val productDocuments = new util.ArrayList[SolrInputDocument](products.size)
+  def toDocuments(service: CategoryService)(implicit context: Context) : util.List[SolrInputDocument] = {
     val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
 
     var expectedDocCount = 0
     var currentDocCount = 0
 
     for (product: Product <- products) {
-      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
+      for (productId <- product.id; title <- product.title; brand <- product.brand;
            skus <- product.skus; listRank <- product.listRank) {
         val isOem = product.isOem.getOrElse(false)
         if (IndexOemProductsEnabled || !isOem) {
           expectedDocCount += skus.size
-          val productDoc = new SolrInputDocument()
+
           var gender: String = null
           var activationDate: Date = null
-          productDoc.setField("id", productId)
-          productDoc.setField("title", title)
-          for (brandId <- brand.id) {
-            productDoc.setField("brand", brandId)
-          }
-          productDoc.setField("isOutOfStock", isOutOfStock)
 
-          for (description <- product.description; shortDescription <- product.shortDescription) {
-            productDoc.setField("description", description)
-            productDoc.setField("shortDescription", shortDescription)
-          }
-          for (g <- product.gender) { productDoc.setField("gender", gender = g) }
+          for (g <- product.gender) { gender = g }
           for (activeDate <- product.activationDate) { activationDate = activeDate }
-          for (bulletPoints <- product.bulletPoints) {
-            for (bulletPoint <- bulletPoints) { productDoc.addField("bulletPoints", bulletPoint) }
-          }
-          for (features <- product.features) { setAttributes("features", productDoc, features) }
-          for (attributes <- product.attributes) { setAttributes("attributes", productDoc, attributes) }
 
-          for (sizingChart <- product.sizingChart) { productDoc.setField("sizingChart", sizingChart) }
-          for (detailImages <- product.detailImages) {
-            for (detailImage <- detailImages) {
-              var title = ""
-              var url = ""
-              for (t <- detailImage.title) { title = t }
-              for (u <- detailImage.url) { url = u }
-              productDoc.addField("detailImages", title + FieldSeparator + url)
-            }
-          }
-          for (hasFreeGift <- product.hasFreeGift) {
-            hasFreeGift.foreach { case (catalog, hasGift) =>
-                if (hasGift) {
-                  productDoc.addField("hasFreeGift", s"$catalog$FieldSeparator$hasGift")
-                }
-            }
-          }
-          productDocuments.add(productDoc)
           val skuCount = skus.size
           var skuSort = 0
+
           for (sku: Sku <- skus) {
             for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                  isCloseout <- sku.isCloseout; countries <- sku.countries) {
               val doc = new SolrInputDocument()
 
-              if (isOutOfStock) {
-                //for outOfStock scenario we need to save the id of the document with the "-toos" suffix
-                //and the productId should be the regular id, without the suffix.
-                doc.setField("id", id + "-toos")
-                doc.setField("productId", productId)
-              } else {
-                doc.setField("id", id)
-                doc.setField("productId", productId)
-              }
+              doc.setField("id", id)
+              doc.setField("productId", productId)
               doc.setField("title", title)
               for (brandId <- brand.id) { doc.setField("brandId", brandId) }
               for (brandName <- brand.name) { doc.setField("brand", brandName) }
               for (imageUrl <- image.url) { doc.setField("image", imageUrl) }
               doc.setField("listRank", listRank)
-              doc.setField("isToos", isOutOfStock)
               doc.setField("isRetail", isRetail)
               doc.setField("skuCount", skuCount)
               doc.setField("isCloseout", isCloseout)
@@ -181,7 +140,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
               for (season <- sku.season) { doc.setField("season", season) }
 
               for (color <- sku.color) {
-                for (name <- color.name; family <- color.family) {
+                for (name <-color.name; family <- color.family) {
                   doc.setField("colorFamily", family)
                   doc.setField("color", name)
                 }
@@ -210,7 +169,10 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                   for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
                   for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
                   for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
-                  for (stockLevel <- country.stockLevel) { doc.setField("stockLevel" + code, stockLevel) }
+                  for (stockLevel <- country.stockLevel) {
+                    doc.setField("stockLevel" + code, stockLevel)
+                    doc.setField("isToos", stockLevel == 0)
+                  }
                   for (url <- country.url) { doc.setField("url" + code, url) }
                 }
               }
@@ -222,6 +184,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                     }
                 }
               }
+
               for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
               for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
               doc.setField("sort", skuSort)
@@ -240,7 +203,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
         }
       }
     }
-    (productDocuments, skuDocuments)
+    skuDocuments
   }
 
   def setAttributes(fieldName: String, doc: SolrInputDocument, features: Seq[Attribute]) : Unit = {

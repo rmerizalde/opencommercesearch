@@ -26,6 +26,28 @@ import java.util.*;
 public class SearchFeedProducts {
     private Map<Locale, List<Product>> productsByLocale = new HashMap<Locale, List<Product>>();
 
+    /**
+     * Searches for a product ID with the given locale.
+     * @param locale The locale
+     * @param productId The product ID to look for.
+     * @return The product in the given locale if exists, null otherwise.
+     */
+    public Product getProduct(Locale locale, String productId) {
+        if (locale != null && productId != null) {
+            List<Product> productList = productsByLocale.get(locale);
+
+            if (productList != null) {
+                for (Product product : productList) {
+                    if(productId.equals(product.getId())) {
+                        return product;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
     public void add(Locale locale, Product product) {
         List<Product> productList = productsByLocale.get(locale);
 
