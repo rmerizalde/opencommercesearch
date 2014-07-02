@@ -179,15 +179,17 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean) : Product = {
-   for ( id <- product.id) {
+    for ( id <- product.id) {
      val idx = id.lastIndexOf("-toos")
      if(idx > 0) {
        product.id = Some(id.substring(0, idx))
      }
-   }
-    for (skus <- product.skus) {
+    }
+
+    val filteredProduct = filterSkus(country, product)
+
+    for (skus <- filteredProduct.skus) {
       skus.foreach(s => {
-        flattenCountries(country, s)
         // @todo mixing exlclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
