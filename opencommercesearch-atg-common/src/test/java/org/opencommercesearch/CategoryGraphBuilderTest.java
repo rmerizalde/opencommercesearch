@@ -25,8 +25,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.opencommercesearch.Facet.Filter;
-
+import org.opencommercesearch.client.impl.Facet.Filter;
 
 public class CategoryGraphBuilderTest {
 
@@ -95,7 +94,7 @@ public class CategoryGraphBuilderTest {
         Filter filter = new Filter();
         filter.setCount(1);
         filter.setName(name);
-        filter.setPath("categoryPath:"+path);
+        filter.setFilterQueries("categoryPath:"+path);
         return filter;
     }
 

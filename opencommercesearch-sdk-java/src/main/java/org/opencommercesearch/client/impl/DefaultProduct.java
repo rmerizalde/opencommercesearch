@@ -21,6 +21,7 @@ package org.opencommercesearch.client.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.ProductSummary;
 
@@ -226,4 +227,6 @@ public class DefaultProduct implements Product {
   public void setSummary(ProductSummary summary) {
     this.summary = summary;
   }
+
+
 }

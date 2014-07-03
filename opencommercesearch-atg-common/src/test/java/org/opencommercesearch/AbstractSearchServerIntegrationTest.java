@@ -46,7 +46,7 @@ import org.junit.Before;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.opencommercesearch.Facet.Filter;
+import org.opencommercesearch.client.impl.Facet;
 import org.opencommercesearch.junit.SearchTest;
 import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 import org.opencommercesearch.repository.FacetProperty;
@@ -437,32 +437,32 @@ public class AbstractSearchServerIntegrationTest {
         validateRegularFacets(response, facetMap, null, null);
         
         //apply brand filter
-        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);
         validateRegularFacets(response, facetMap, Sets.newHashSet(0), null);
 
         //add filter by $10-$20
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);        
         validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
         
         //add filter by $20 and up
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getFilterQueries());
         response = server.search(query, site, filterQueries);        
         validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0, 1));
         
         //remove filter by $20 and up
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(1).getFilterQueries());
         response = server.search(query, site, filterQueries);        
         validateRegularFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(0));
         
         //remove brand filter
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("brand").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);        
         validateRegularFacets(response, facetMap, null, Sets.newHashSet(0));
         
        //remove filter by $10-$20
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("price").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);        
         validateRegularFacets(response, facetMap, null, null);
     }
@@ -491,22 +491,22 @@ public class AbstractSearchServerIntegrationTest {
         validateLocalFacets(response, facetMap, null, null);
 
         //add filter by waterproof = no
-        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        FilterQuery[] filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);
         validateLocalFacets(response, facetMap, Sets.newHashSet(0), null);
         
         //add filter by sunblock = yes
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getFilterQueries());
         response = server.search(query, site, filterQueries);
         validateLocalFacets(response, facetMap, Sets.newHashSet(0), Sets.newHashSet(1));
         
         //remove filter by waterproof = no
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("waterproof").getFilters().get(0).getFilterQueries());
         response = server.search(query, site, filterQueries);
         validateLocalFacets(response, facetMap, null, Sets.newHashSet(1));
         
         //remove filter by sunblock = yes
-        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getPath());
+        filterQueries = FilterQuery.parseFilterQueries(facetMap.get("sunblock").getFilters().get(1).getFilterQueries());
         response = server.search(query, site, filterQueries);
         validateLocalFacets(response, facetMap, null, null);
         
@@ -531,14 +531,14 @@ public class AbstractSearchServerIntegrationTest {
     public void testGetFacetDepthLimit(SearchServer server) throws SearchServerException {
         Facet facet = server.getFacet(site, Locale.US,  "categoryPath", 100, 2, ".");
         assertNotNull(facet);
-        for(Filter filter : facet.getFilters()) {
+        for(Facet.Filter filter : facet.getFilters()) {
             assertTrue(StringUtils.countMatches(filter.getName(), ".") <= 2);
         }
         
         facet = server.getFacet(site, Locale.US,  "categoryPath", 100, -1, ".");
         assertNotNull(facet);
         boolean fullFacetDepth = false;
-        for(Filter filter : facet.getFilters()) {
+        for(Facet.Filter filter : facet.getFilters()) {
             if(StringUtils.countMatches(filter.getName(), ".") > 2) {
                 fullFacetDepth = true;
                 break;

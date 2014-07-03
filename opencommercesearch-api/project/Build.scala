@@ -7,14 +7,14 @@ import JacocoPlugin._
 object ApplicationBuild extends Build {
 
   val appName         = "opencommercesearch-api"
-  val appVersion      = "0.3-SNAPSHOT"
+  val appVersion      = "0.4-SNAPSHOT"
 
   lazy val s = playScalaSettings ++ Seq(jacoco.settings:_*)
 
   val appDependencies: Seq[sbt.ModuleID] = Seq(
     cache, filters,
     "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT",
-    "org.opencommercesearch" %% "opencommercesearch-common" % "0.3-SNAPSHOT"  changing(),
+    "org.opencommercesearch" %% "opencommercesearch-common" % "0.4-SNAPSHOT"  changing(),
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",

@@ -1,7 +1,10 @@
 package org.opencommercesearch.client.request;
 
 import org.apache.commons.lang.StringUtils;
+import org.opencommercesearch.client.ProductApiException;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,6 +17,8 @@ import java.util.Map;
  */
 public abstract class BaseRequest implements Request {
 
+  public static final String FILTER_QUERY_SEPARATOR = "|";
+	
   /**
    * The URI of the current request. For example: /api-docs
    */
@@ -46,11 +51,21 @@ public abstract class BaseRequest implements Request {
    * @param value The new value to add
    */
   public void addParam(String name, String value) {
+	  addParam(name, value, ",");
+  }
+  
+  /**
+   * Adds a param value to an existing value with a custom separator
+   *
+   * @param name  The name of the param
+   * @param value The new value to add
+   */
+  public void addParam(String name, String value, String separator) {
     String currentValue = getParam(name);
     if (currentValue == null) {
       setParam(name, value);
     } else if (value != null) {
-      setParam(name, currentValue + "," + value);
+      setParam(name, currentValue + separator + value);
     }
   }
 
@@ -58,8 +73,9 @@ public abstract class BaseRequest implements Request {
    * Converts this request to a valid query string.
    *
    * @return A query string conformed of all parameters stored in this request.
+   * @throws UnsupportedEncodingException 
    */
-  public String getQueryString() {
+  public String getQueryString() throws ProductApiException {
     if (params.isEmpty()) {
       return StringUtils.EMPTY;
     }
@@ -72,7 +88,12 @@ public abstract class BaseRequest implements Request {
       if (paramValue != null) {
         queryString.append(paramName);
         queryString.append("=");
-        queryString.append(params.get(paramName));
+        try {
+            queryString.append(URLEncoder.encode(params.get(paramName), "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new ProductApiException("Error encoding parameter: " + paramName 
+                                          + " with value: " + params.get(paramName), e);
+        }
         queryString.append("&");
       }
     }
@@ -109,4 +130,5 @@ public abstract class BaseRequest implements Request {
   public void setSite(String site) {
     setParam("site", site);
   }
+
 }

@@ -20,12 +20,14 @@ package org.opencommercesearch.client;
 */
 
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opencommercesearch.client.impl.*;
 import org.opencommercesearch.client.request.*;
 import org.opencommercesearch.client.request.Request;
+import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.DefaultResponse;
 import org.opencommercesearch.client.response.SearchResponse;
 import org.powermock.api.mockito.PowerMockito;
@@ -48,7 +50,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -59,6 +60,9 @@ import static org.mockito.Mockito.*;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(Client.class)
 public class ProductApiTest {
+    private static final String SEARCH_RESPONSE_JSON = "data/searchResponse-full.json";
+    private static final String CATEGORY_RESPONSE_JSON = "data/categoryResponse-full.json";
+    
     Client client = PowerMockito.mock(Client.class);
 
     @Test
@@ -245,17 +249,61 @@ public class ProductApiTest {
         doTestSearchAndBrowse(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class));
     }
 
-    public void doTestSearchAndBrowse(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+    @Test
+    public void testCategoryById() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        CategoryRequest request = new CategoryRequest("catId001");
+        request.addField("*");
+        request.setMaxLevels(2);
+        doTestCategory(request, ProductApi.class.getMethod("findCategory", CategoryRequest.class));
+    }
+    
+    @Test
+    public void testTopCategories() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        CategoryRequest request = new CategoryRequest();
+        request.addField("*");
+        request.setMaxLevels(2);
+        doTestCategory(request, ProductApi.class.getMethod("findCategory", CategoryRequest.class));
+    }
+    
+    @Test
+    public void testBrandCategories() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        BrandCategoryRequest request = new BrandCategoryRequest("brandId");
+        request.addField("*");
+        request.setSite("site");
+        doTestCategory(request, ProductApi.class.getMethod("findBrandCategories", BrandCategoryRequest.class));
+    }
+        
+    public Object callMethod(Request request, Method method, String dataFile) throws IOException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         ProductApi productApi = new ProductApi();
         productApi.setClient(client);
         productApi.setPreview(true);
-
+        
         org.restlet.Response clientResponse = new org.restlet.Response(new org.restlet.Request());
-        clientResponse.setEntity(new FileStreamRepresentation("data/searchResponse-full.json", MediaType.APPLICATION_JSON));
-
+        clientResponse.setEntity(new FileStreamRepresentation(dataFile, MediaType.APPLICATION_JSON));
+        
         when(client.handle(any(org.restlet.Request.class))).thenReturn(clientResponse);
-
-        SearchResponse response = (SearchResponse) method.invoke(productApi, request);
+        return method.invoke(productApi, request);
+    }
+    
+    public void doTestCategory(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+        CategoryResponse response = (CategoryResponse) callMethod(request, method, CATEGORY_RESPONSE_JSON);
+        
+        Metadata metadata = response.getMetadata();
+        Category[] categories = response.getCategories();
+        
+        verify(client, times(1)).handle(any(org.restlet.Request.class));
+        assertNotNull("Metadata found in the response", metadata);
+        assertNotNull("categories found in the response", categories);
+        
+        //Check metadata
+        assertEquals("Search time matches", 312, metadata.getTime());
+        
+        validateCategories(categories);
+        
+    }
+    
+    public void doTestSearchAndBrowse(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+        SearchResponse response = (SearchResponse) callMethod(request, method, SEARCH_RESPONSE_JSON);
 
         Metadata metadata = response.getMetadata();
         Product[] products = response.getProducts();
@@ -277,6 +325,25 @@ public class ProductApiTest {
         validateProducts(products);
     }
 
+    private void validateCategories(Category[] categories) {
+        assertEquals("Api should return 1 parent category", 1, categories.length);
+        
+        validateCategory(categories[0], "catId001", "Cat-001", "/cat-001", "site");
+        
+        assertEquals("Api should return 3 child categories", 3, categories[0].getChildCategories().length);
+        
+        validateCategory(categories[0].getChildCategories()[0], "catId0011", "Cat-001-1", "/cat-001-1", "site");
+        validateCategory(categories[0].getChildCategories()[1], "catId0012", "Cat-001-2", "/cat-001-2", "site");
+        validateCategory(categories[0].getChildCategories()[2], "catId0013", "Cat-001-3", "/cat-001-3", "site");
+    }
+    
+    private void validateCategory(Category category, String id, String name, String seoUrl, String site) {
+        assertEquals(id, category.getId());
+        assertEquals(name, category.getName());
+        assertEquals(seoUrl, category.getUrl());
+        assertTrue("Missing site " + site + " in category", category.getSites().contains(site));
+    }
+    
     private void validateFacets(Facet[] facets) {
         assertNotNull("Category facet is not null", facets[0]);
         assertEquals("Category facet is name is correct", "category", facets[0].getName());
@@ -411,7 +478,7 @@ public class ProductApiTest {
     }
 
     @Test
-    public void testGetHttpRequest() throws IOException {
+    public void testGetHttpRequest() throws IOException, ProductApiException {
         SearchRequest sr = new SearchRequest();
         sr.setQuery("some query");
         sr.addField("field1");
@@ -430,7 +497,7 @@ public class ProductApiTest {
 
         assertNotNull(request);
         assertEquals("GET", request.getMethod().getName());
-        assertEquals("http://localhost:9000/v1/products?preview=false&q=some%20query&fields=field1,field2&filterQueries=country:us,price:[300%20TO%20400]&offset=0&limit=10&outlet=false&sort=price%20asc,%20discount%20desc&site=testSite",
+        assertEquals("http://localhost:9000/v1/products?preview=false&q=some+query&fields=field1%2Cfield2&filterQueries=country%3Aus%7Cprice%3A%5B300+TO+400%5D&offset=0&limit=10&outlet=false&sort=price+asc%2C+discount+desc&site=testSite",
                 request.getResourceRef().toString());
     }
 

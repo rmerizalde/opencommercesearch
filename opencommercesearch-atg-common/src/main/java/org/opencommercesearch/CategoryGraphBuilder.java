@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.Facet.Filter;
+import org.opencommercesearch.client.impl.Facet.Filter;
 
 import com.google.common.collect.Lists;
 
@@ -51,7 +51,7 @@ public class CategoryGraphBuilder {
     }
     
     public void addPath(Filter filter){
-        String filterPath = Utils.findFilterExpressionByName(filter.getPath(), CATEGORY_PATH);
+        String filterPath = Utils.findFilterExpressionByName(filter.getFilterQueries(), CATEGORY_PATH);
         if(filterPath != null) {
             String[] pathArray = StringUtils.split(filterPath, SearchConstants.CATEGORY_SEPARATOR);
             parentNode.setId(pathArray[0]);
@@ -103,7 +103,7 @@ public class CategoryGraphBuilder {
         }
         
         node.setCount((int) filter.getCount());
-        node.setPath(filter.getPath());
+        node.setPath(filter.getFilterQueries());
         String name = filter.getName();
         int lastDotIndex = name.lastIndexOf('.');
         if (lastDotIndex != -1) {

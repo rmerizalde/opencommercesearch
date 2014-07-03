@@ -2,7 +2,9 @@ package org.opencommercesearch.client.request;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductApi;
+import org.opencommercesearch.client.ProductApiException;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -41,7 +43,7 @@ public interface Request {
    *
    * @return A query string conformed of all parameters stored in this request.
    */
-  String getQueryString();
+  String getQueryString() throws ProductApiException;
 
   /**
    * Gets the endpoint associated to this request.

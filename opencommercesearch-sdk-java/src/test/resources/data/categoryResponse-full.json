@@ -1,0 +1,31 @@
+{
+    "metadata": {
+        "time": 312
+    },
+    "category": {
+        "id": "catId001",
+        "name": "Cat-001",
+        "seoUrlToken": "cat-001",
+        "sites": [ "site" ],
+        "childCategories": [
+            {
+                "id": "catId0011",
+                "name": "Cat-001-1",
+                "seoUrlToken": "cat-001-1",
+                "sites": [ "site" ]
+            },
+            {
+                "id": "catId0012",
+                "name": "Cat-001-2",
+                "seoUrlToken": "cat-001-2",
+                "sites": [ "site" ]
+            },
+            {
+                "id": "catId0013",
+                "name": "Cat-001-3",
+                "seoUrlToken": "cat-001-3",
+                "sites": [ "site" ]
+            }
+        ]
+    }
+}
