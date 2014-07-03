@@ -21,10 +21,12 @@ package org.opencommercesearch.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.request.*;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.response.BrowseResponse;
+import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
@@ -155,6 +157,26 @@ public class ProductApi {
     return (ProductResponse) handle(request, ProductResponse.class);
   }
 
+  /**
+   * Finds one category
+   * @param request is the category request
+   * @return a category response
+   * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public CategoryResponse findCategory(CategoryRequest request) throws ProductApiException {
+    return (CategoryResponse) handle(request, CategoryResponse.class);
+  }
+  
+  /**
+   * Find the categories from a given brand
+   * @param request is the brand category request
+   * @return a category response
+   * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public CategoryResponse findBrandCategories(BrandCategoryRequest request) throws ProductApiException {
+    return (CategoryResponse) handle(request, CategoryResponse.class);
+  }
+  
   /**
    * Performs a search for products.
    *
@@ -326,8 +348,9 @@ public class ProductApi {
    * @param url     The URL for the HTTP request.
    * @param request The actual parameters to be included in the Restlet request.
    * @return A new Restlet request with the given URL and parameters set.
+   * @throws ProductApiException 
    */
-  org.restlet.Request convertToRestlet(String url, Request request) {
+  org.restlet.Request convertToRestlet(String url, Request request) throws ProductApiException {
     switch (request.getMethod()) {
       case GET:
         return new org.restlet.Request(Method.GET, url + "&" + request.getQueryString());

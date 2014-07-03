@@ -37,6 +37,7 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 
 import org.apache.solr.common.util.NamedList;
+import org.opencommercesearch.client.impl.Facet;
 
 /**
  * This interface represents a facade for a Solr server. Currently, it exposes

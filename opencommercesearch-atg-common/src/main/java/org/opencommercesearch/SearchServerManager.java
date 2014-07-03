@@ -45,6 +45,7 @@ import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import org.opencommercesearch.client.impl.Facet;
 
 
 /**

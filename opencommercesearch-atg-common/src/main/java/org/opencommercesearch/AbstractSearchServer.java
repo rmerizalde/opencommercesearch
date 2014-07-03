@@ -47,7 +47,8 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.GroupCollapseParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.common.SolrException;
-import org.opencommercesearch.Facet.Filter;
+import org.opencommercesearch.client.impl.Facet;
+import org.opencommercesearch.client.impl.Facet.Filter;
 import org.opencommercesearch.repository.RedirectRuleProperty;
 import org.opencommercesearch.repository.SearchRepositoryItemDescriptor;
 
@@ -449,10 +450,10 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
                             filter.setName(count.getName());
                             filter.setCount(count.getCount());
                             filter.setFilterQuery(count.getAsFilterQuery());
-                            filter.setPath(count.getAsFilterQuery());
+                            filter.setFilterQueries(count.getAsFilterQuery());
                             filters.add(filter);
                         }
-                        facet.setFilter(filters);
+                        facet.setFilters(filters);
                     }
                 }
             }
@@ -615,7 +616,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
 
     private QueryResponse handleSpellCheck(SpellCheckResponse spellCheckResponse, T catalogSolrServer, SolrQuery query, String queryOp) throws SolrServerException{
         
-        QueryResponse queryResponse = null;
+        QueryResponse queryResponse;
 
         if(spellCheckResponse != null  && StringUtils.isNotBlank(spellCheckResponse.getCollatedResult())){
             //check if we have any spelling suggestion
@@ -976,7 +977,7 @@ public abstract class AbstractSearchServer<T extends SolrServer> extends Generic
             // graph from it
             for (Filter filter : facet.getFilters()) {
                 if (isLoggingDebug()) {
-                    String filterPath = Utils.findFilterExpressionByName(filter.getPath(), CATEGORY_PATH);
+                    String filterPath = Utils.findFilterExpressionByName(filter.getFilterQueries(), CATEGORY_PATH);
                     logDebug("Generating CategoryGraph for path: " + filterPath);
                 }
                 if(filterByDepth && StringUtils.countMatches(filter.getName(), separator) > depthLimit) {

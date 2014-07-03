@@ -300,8 +300,8 @@ object ProductController extends BaseController {
       } else {
         Future.successful(Ok(Json.obj(
           "metadata" -> Json.obj(
-            "found" -> response.getResults.getNumFound),
-            "time" -> (System.currentTimeMillis() - startTime))))
+            "found" -> response.getResults.getNumFound,
+            "time" -> (System.currentTimeMillis() - startTime)))))
       }
     })
 
@@ -498,8 +498,8 @@ object ProductController extends BaseController {
         else {
           Future.successful(Ok(Json.obj(
             "metadata" -> Json.obj(
-              "found" -> response.getResults.getNumFound),
-            "time" -> (System.currentTimeMillis() - startTime))))
+              "found" -> response.getResults.getNumFound,
+              "time" -> (System.currentTimeMillis() - startTime)))))
         }
       }
     }
@@ -647,10 +647,9 @@ object ProductController extends BaseController {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime),
-                "suggestions" -> Json.toJson(
-                  products map (Json.toJson(_))
-                ))))
+                  "time" -> (System.currentTimeMillis() - startTime)),
+              "suggestions" -> Json.toJson(
+                products map (Json.toJson(_)))))
             } else {
               Ok(Json.obj(
                 "metadata" -> Json.obj(
@@ -670,8 +669,8 @@ object ProductController extends BaseController {
       } else {
         Future.successful(Ok(Json.obj(
           "metadata" -> Json.obj(
-            "found" -> response.getResults.getNumFound),
-          "time" -> (System.currentTimeMillis() - startTime))))
+            "found" -> response.getResults.getNumFound,
+            "time" -> (System.currentTimeMillis() - startTime)))))
       }
     })
     withErrorHandling(future, s"Cannot search for [$q]")

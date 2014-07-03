@@ -36,7 +36,8 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.client.solrj.response.RangeFacet;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.log4j.Logger;
-import org.opencommercesearch.Facet.Filter;
+import org.opencommercesearch.client.impl.Facet.Filter;
+import org.opencommercesearch.client.impl.Facet;
 import org.opencommercesearch.repository.FacetProperty;
 import org.opencommercesearch.repository.RangeFacetProperty;
 
@@ -146,8 +147,8 @@ public class SearchResponse {
             
             facet.setName(manager.getFacetName(facetField));
             facet.setMinBuckets(manager.getFacetMinBuckets(facetField));
-            facet.setMultiSelect(manager.isMultiSelectFacet(facetField));
-            facet.setMixedSorting(manager.isMixedSorting(facetField));
+            facet.setIsMultiSelect(manager.isMultiSelectFacet(facetField));
+            facet.setIsMixedSorting(manager.isMixedSorting(facetField));
             setMetadata(manager, facetField.getName(), facet);
             
             List<Filter> filters = new ArrayList<Filter>(facetField.getValueCount());
@@ -164,12 +165,12 @@ public class SearchResponse {
                 Filter filter = new Filter();
                 filter.setName(filterName);
                 filter.setCount(count.getCount());
-                filter.setPath(manager.getCountPath(count, getFilterQueries()));
+                filter.setFilterQueries(manager.getCountPath(count, getFilterQueries()));
                 filter.setFilterQuery(count.getAsFilterQuery());
                 filter.setSelected(count.getFacetField().getName(), filterName, filterQueries);
                 filters.add(filter);
             }
-            facet.setFilter(filters);
+            facet.setFilters(filters);
             facetMap.put(facetField.getName(), facet);
         }
         getRangeFacets(facetMap);
@@ -254,7 +255,7 @@ public class SearchResponse {
                 filters.add(afterFilter);
             }
 
-            facet.setFilter(filters);
+            facet.setFilters(filters);
             facetMap.put(range.getName(), facet);
         }
     }
@@ -292,7 +293,7 @@ public class SearchResponse {
             filter.setCount(count);
             String filterQuery = fieldName + ":[" + value1 + " TO " + value2 + "]";
             FacetManager manager = getRuleManager().getFacetManager();
-            filter.setPath(manager.getCountPath(fieldName, fieldName, filterQuery,
+            filter.setFilterQueries(manager.getCountPath(fieldName, fieldName, filterQuery,
                     filterQueries));
         } catch (ParseException ex) {
             logger.error("Invalid range expression for fieldName: " + fieldName + " and key: " + key);
@@ -319,7 +320,7 @@ public class SearchResponse {
             return;
         }
 
-        Facet facet = null;
+        Facet facet;
         String facetFieldName = "";
         List<Filter> filters = null;
 
@@ -345,8 +346,8 @@ public class SearchResponse {
 
                 filters = new ArrayList<Filter>();
                 facet.setName(manager.getFacetName(fieldName));
-                facet.setMultiSelect(manager.isMultiSelectFacet(fieldName));
-                facet.setFilter(filters);
+                facet.setIsMultiSelect(manager.isMultiSelectFacet(fieldName));
+                facet.setFilters(filters);
                 setMetadata(manager, fieldName, facet);
                 facetMap.put(fieldName, facet);
             }
@@ -355,7 +356,7 @@ public class SearchResponse {
                 Filter filter = new Filter();
                 filter.setName(FilterQuery.unescapeQueryChars(Utils.getRangeName(fieldName, expression)));
                 String filterQuery = fieldName + ':' + expression;
-                filter.setPath(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
+                filter.setFilterQueries(manager.getCountPath(expression, fieldName, filterQuery, filterQueries));
                 filter.setCount(count);
                 filter.setSelected(fieldName, expression, filterQueries);
                 filters.add(filter);

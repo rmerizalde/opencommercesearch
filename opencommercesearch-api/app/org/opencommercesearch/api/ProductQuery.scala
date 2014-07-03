@@ -238,10 +238,16 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "category")
-    if (request.getQueryString("outlet").getOrElse("false").toBoolean ) {
-      addFilterQuery("isOutlet:true")
-    } else {
-      addFilterQuery("isOutlet:false")
+    
+     request.getQueryString("outlet") match {
+      case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
+      case _ =>
+        val isOnSaleParam = "onsale" + context.lang.country;
+        val isOnSale = request.getQueryString("onsale")
+        isOnSale match {
+          case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
+          case _ => addFilterQuery("isOutlet:false")
+        }
     }
   }
 }
@@ -294,11 +300,31 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     setFacet(true)
     addFacetField(facetField)
     setFacetMinCount(1)
+
+    // product params
+    addFilterQuery(s"country:${context.lang.country}")
+    
     if (site != null) {
       addFilterQuery("categoryPath:" + site)
     }
     if (request != null) {
-      addFilterQuery("isOutlet:" + request.getQueryString("outlet").getOrElse("false").toBoolean)
+      
+      request.getQueryString("outlet") match {
+	    case Some(isOutlet) => {
+	      addFilterQuery("isRetail:true")
+	      addFilterQuery(s"isOutlet:$isOutlet")
+	    }
+	    case _ =>
+	      val isOnSaleParam = "onsale" + context.lang.country;
+	      val isOnSale = request.getQueryString("onsale")
+	      isOnSale match {
+	        case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
+	        case _ => {
+	          addFilterQuery("isRetail:true")
+	          addFilterQuery("isOutlet:false")
+	        }
+	      }
+	  }
     }
   }
 

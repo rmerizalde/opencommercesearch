@@ -21,6 +21,7 @@ package org.opencommercesearch.client.request;
 
 import org.junit.Test;
 import org.opencommercesearch.client.ProductApi;
+import org.opencommercesearch.client.ProductApiException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,8 +31,8 @@ import static org.junit.Assert.assertEquals;
 public class RequestTest {
 
   @Test
-  public void testGetHttpRequest() {
-    BaseRequest ar = new BaseRequest() {
+  public void testGetHttpRequest() throws ProductApiException {
+	  BaseRequest ar = new BaseRequest() {
 
       @Override
       public String getEndpoint() {
@@ -49,7 +50,7 @@ public class RequestTest {
     ar.addParam("param1", "v12");
 
     String queryString = ar.getQueryString();
-    assertEquals("param1=v11,v12&param2=v21", queryString);
+    assertEquals("param1=v11%2Cv12&param2=v21", queryString);
 
     ar.setParam("param1", "v13");
     queryString = ar.getQueryString();

@@ -14,6 +14,7 @@ import org.apache.solr.client.solrj.response.QueryResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.opencommercesearch.client.impl.Facet;
 
 public class SearchResponseTest {
 

@@ -27,59 +27,70 @@ import com.fasterxml.jackson.databind.JsonNode;
  * @author jmendez
  */
 public class Metadata {
-  private int found;
-  private int time;
-  private JsonNode productSummary;
-  private Facet[] facets;
-  private BreadCrumb[] breadCrumbs;
+    private int found;
+    private int time;
+    private JsonNode productSummary;
+    private Facet[] facets;
+    private BreadCrumb[] breadCrumbs;
+    private String redirectUrl;
 
-  /**
-   * Gets the number of items found.
-   *
-   * @return The number of items found.
-   */
-  public int getFound() {
-    return found;
-  }
+    /**
+     * Gets the number of items found.
+     *
+     * @return The number of items found.
+     */
+    public int getFound() {
+        return found;
+    }
 
-  protected void setFound(int found) {
-    this.found = found;
-  }
+    protected void setFound(int found) {
+        this.found = found;
+    }
 
-  /**
-   * Gets the time in milliseconds that the API server took to respond.
-   *
-   * @return The time in milliseconds that the API server took to respond.
-   */
-  public int getTime() {
-    return time;
-  }
+    /**
+     * Gets the time in milliseconds that the API server took to respond.
+     *
+     * @return The time in milliseconds that the API server took to respond.
+     */
+    public int getTime() {
+        return time;
+    }
 
-  protected void setTime(int time) {
-    this.time = time;
-  }
+    protected void setTime(int time) {
+        this.time = time;
+    }
 
-  public JsonNode getProductSummary() {
-    return productSummary;
-  }
+    public JsonNode getProductSummary() {
+        return productSummary;
+    }
 
-  public void setProductSummary(JsonNode productSummary) {
-    this.productSummary = productSummary;
-  }
+    public void setProductSummary(JsonNode productSummary) {
+        this.productSummary = productSummary;
+    }
 
-  public Facet[] getFacets() {
-    return facets;
-  }
+    public String getRedirectUrl() {
+        return redirectUrl;
+    }
 
-  protected void setFacets(Facet[] facets) {
-    this.facets = facets;
-  }
+    public void setRedirectUrl(String redirectUrl) {
+        this.redirectUrl = redirectUrl;
+    }
 
-  public BreadCrumb[] getBreadCrumbs() {
-    return breadCrumbs;
-  }
+    public Facet[] getFacets() {
+        return facets;
+    }
 
-  protected void setBreadCrumbs(BreadCrumb[] breadCrumbs) {
-    this.breadCrumbs = breadCrumbs;
-  }
+    protected void setFacets(Facet[] facets) {
+        this.facets = facets;
+    }
+
+    public BreadCrumb[] getBreadCrumbs() {
+        return breadCrumbs;
+    }
+
+    protected void setBreadCrumbs(BreadCrumb[] breadCrumbs) {
+        this.breadCrumbs = breadCrumbs;
+    }
+
+
 }
