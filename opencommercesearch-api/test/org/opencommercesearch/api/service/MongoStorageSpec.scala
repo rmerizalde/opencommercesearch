@@ -125,7 +125,7 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     val headProduct = savedProdIterable.head
 	     headProduct.getId must beEqualTo("id")
-	     headProduct.isOutOfStock.get must beEqualTo(true)
+	     headProduct.isOutOfStock.getOrElse(false) must beEqualTo(true)
 	     
 	     savedProdIterable.size must beEqualTo(1)
 	     
