@@ -28,7 +28,6 @@ import org.opencommercesearch.api.models._
 import org.jongo.Jongo
 import play.api.Logger
 import scala.collection.mutable
-import scala.Some
 import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang.StringUtils
 
@@ -54,7 +53,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   val DefaultSearchProjection =
     """
-      |title:1, brand.name:1, isOutOfStock:1, customerReviews.count:1, customerReviews.average:1, skus.isPastSeason:1, skus.countries.code:1,
+      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1v, skus.countries.stockLevel:1,  skus.isPastSeason:1, skus.countries.code:1,
       | skus.countries.listPrice:1, skus.countries.salePrice:1, skus.countries.discountPercent:1, skus.countries.onSale:1,
       | skus.countries.url:1,
     """.stripMargin
@@ -114,9 +113,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       val query = new StringBuilder(128)
         .append("{ $or: [")
 
-      //for ids without toos suffix
-      ids.foreach(t => query.append("{_id:#},"))
-      //for ids with toos suffix
+      //for ids
       ids.foreach(t => query.append("{_id:#},"))
 
       query.setLength(query.length - 1)
@@ -125,10 +122,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       var products:Iterable[Product] = null
       val skuCount = if (minimumFields) ids.size else 0
       val parameters = new ArrayBuffer[Object](ids.size + 1)
-      //ids without toos suffix
+      //ids
       parameters.appendAll(ids.map(t => t._1))
-      //ids with toos suffix
-      parameters.appendAll(ids.map(t => t._1 + "-toos"))
 
       if(site != null) {
         query.append(", skus.catalogs:#")
@@ -141,23 +136,28 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       }
 
       query.append("}")
+
       products = productCollection.find(query.toString(), parameters:_*)
           .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null):_*).as(classOf[Product])
-      products.map(p => filterSearchProduct(country, p, minimumFields))
+      products.map(p => filterSearchProduct(country, p, minimumFields, fields))
     }
   }
 
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{$or:[{_id:#},{_id:#}], skus.countries.code:#}", id, id + "-toos", country).projection(projectProduct(fields)).as(classOf[Product]))
+      filterSkus(country,
+        productCollection.findOne("{_id:#}, skus.countries.code:#}", id, country).projection(projectProduct(fields)).as(classOf[Product]),
+        fields)
     }
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country, productCollection.findOne("{$or:[{_id:#},{_id:#}], skus.catalogs:#, skus.countries.code:#}", id, id + "-toos", site, country).projection(projectProduct(fields)).as(classOf[Product]))
+      filterSkus(country,
+        productCollection.findOne("{_id:#}, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(fields)).as(classOf[Product]),
+        fields)
     }
   }
 
@@ -167,30 +167,61 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param product the product which skus will be filtered
    * @return the product
    */
-  private def filterSkus(country: String, product: Product) : Product = {
+  private def filterSkus(country: String, product: Product, fields: Seq[String]) : Product = {
     if (product != null) {
       for (skus <- product.skus) {
         product.skus = Some(skus.filter((s: Sku) => {
           flattenCountries(country, s)
         }))
       }
+
+      setToos(product, fields)
     }
+
     product
   }
 
-  private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean) : Product = {
-    for ( id <- product.id) {
-     val idx = id.lastIndexOf("-toos")
-     if(idx > 0) {
-       product.id = Some(id.substring(0, idx))
-     }
+  /**
+   * Calculate if the product is TOOS (temporarily out of stock)
+   * @param product The product
+   * @param fields The fields requested from the product
+   * @return The product, with the out of stock property set if the product is TOOS. If the field was not requested, then no calculation is done.
+   */
+  private def setToos(product: Product, fields: Seq[String]) : Product = {
+    for (skus <- product.skus) {
+      val hasProductOutOfStock = fields.contains("isOutofStock")
+      if (fields.isEmpty || fields.contains("*") || hasProductOutOfStock) {
+        val hasStockLevel = fields.contains("skus.stockLevel")
+        //Artificial property calculated from storage
+        product.isOutOfStock = skus collectFirst {
+          case sku: Sku if sku.stockLevel.getOrElse(0) == 0 =>
+            if(hasProductOutOfStock && !hasStockLevel) {
+              sku.stockLevel = None
+            }
+
+            true
+        }
+
+        //Clean up product data if skus weren't requested originally
+        val skuFields = fields collectFirst {
+          case field: String if field.startsWith("skus.") => true
+        }
+
+        if(hasProductOutOfStock && !skuFields.getOrElse(false)) {
+          product.skus = None
+        }
+      }
     }
 
+    product
+  }
+
+  private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
     val filteredProduct = filterSkus(country, product)
 
-    for (skus <- filteredProduct.skus) {
-      skus.foreach(s => {
-        // @todo mixing exlclude and includes in a project is currently not supported
+    for (skus <- product.skus) {
+      product.skus = Option(skus.filter(s => {
+        // @todo mixing exclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
         if(minimumFields) {
@@ -200,9 +231,12 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
           s.year = None
           s.season = None
         }
-      })
+
+        flattenCountries(country, s)
+      }))
     }
-    product
+
+    setToos(product, fields)
   }
 
   /**
@@ -262,7 +296,15 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         if (fields.size > 0) {
           var includeSkus = false
           fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
-            projection.append(f).append(":1,")
+
+            if(f == "isOutofStock") {
+              includeSkus = true
+              projection.append("skus.countries.stockLevel:1,")
+            }
+            else {
+              projection.append(f).append(":1,")
+            }
+
             if (f.startsWith("skus.")) {
               includeSkus = true
             }
@@ -341,16 +383,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       var result: WriteResult = null
-      product.map( p => result = productCollection.save(preProcessProduct(p)) )
+      product.map( p => result = productCollection.save(p) )
       result
     }
-  }
-  
-  def preProcessProduct(product: Product) : Product = {
-    if(product.isOutOfStock.getOrElse(false)) {
-      product.id = Some(product.getId + "-toos")
-    }
-    product
   }
   
   def saveCategory(category: Category*) : Future[WriteResult] = {

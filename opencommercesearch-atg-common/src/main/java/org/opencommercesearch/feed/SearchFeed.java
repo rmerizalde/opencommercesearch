@@ -813,7 +813,7 @@ public abstract class SearchFeed extends GenericService {
     }
 
     /**
-     * Helper method mark an sku as assigned it as assigned.
+     * Helper method to mark an sku as assigned.
      *
      * @param sku
      *            The product to set the attributes to.

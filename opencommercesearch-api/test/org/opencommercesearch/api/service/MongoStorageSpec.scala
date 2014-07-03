@@ -99,35 +99,27 @@ class MongoStorageSpec extends Specification with Mockito  {
 	    		 					 Some(Seq()),Some(Seq("site1")),Some(Seq("token1")), Some(Seq()),Some(Seq()))
 	     
 	     val usCountry = new Country(Some("US"), None, None, None, None, Some(0), Some("url"), Some(false))
-	     
+       val caCountry = new Country(Some("CA"), None, None, None, None, Some(0), Some("url"), Some(false))
+
 	     val sku = new Sku(
 	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(usCountry)), Some(false), None,
 	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
 	    		 None, None, None, Some(false), Some(0), Some("url"), Some(true), None)
 
+       val skuInStock = new Sku(
+         Some("id"), Some("season"), Some("year"), None, Some(Seq(caCountry)), Some(false), None,
+         Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
+         None, None, None, Some(false), Some(10), Some("url"), Some(true),None)
+
 	     val productToos = new Product(
 	        Some("id"), Some("title"), Some("description"), Some("shortDesc"), Some(brand), Some("gender"),
-			Some("sizeChart"), None, None, None, None, Some(1), None, None,
-			Some(true), Some(Seq(category)), Some(Seq(sku)), Some(new Date()), Some(false), None)
-	     
+			    Some("sizeChart"), None, None, None, None, Some(1), None, None,
+			    Some(true), Some(Seq(category)), Some(Seq(sku, skuInStock)), Some(new Date()), Some(false), None)
+
 	     Await.result(storage.saveCategory(category), Duration.Inf)
 	     Await.result(storage.saveBrand(brand), Duration.Inf)
 	     Await.result(storage.saveProduct(productToos), Duration.Inf)
-	     
-	     val caCountry = new Country(Some("CA"), None, None, None, None, Some(0), Some("url"), Some(false))
-	     
-	     val skuInStock = new Sku(
-	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(caCountry)), Some(false), None,
-	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
-	    		 None, None, None, Some(false), Some(10), Some("url"), Some(true),None)
-	     
-	    val productInStock = new Product(
-	        Some("id"), Some("title"), Some("description"), Some("shortDesc"), Some(brand), Some("gender"),
-			Some("sizeChart"), None, None, None, None, Some(1), None, None,
-			Some(false), Some(Seq(category)), Some(Seq(skuInStock)), Some(new Date()), Some(false), None)
-	     
-	     Await.result(storage.saveProduct(productInStock), Duration.Inf)
-	     
+
 	     val response: Future[Iterable[Product]] = storage.findProducts(Seq(("id",null)), null, lang.country, Seq("*"), false)
 	     val savedProdIterable = Await.result(response, Duration.Inf)
 	     

@@ -77,9 +77,6 @@ public class Product {
     private Map<String, Boolean> hasFreeGift;
 
     @JsonProperty
-    private boolean isOutOfStock;
-    
-    @JsonProperty
     private boolean isPackage;
 
     @JsonProperty
@@ -219,14 +216,6 @@ public class Product {
 
     public void setHasFreeGift(Map<String, Boolean> hasFreeGift) {
         this.hasFreeGift = hasFreeGift;
-    }
-
-    public boolean isOutOfStock() {
-        return isOutOfStock;
-    }
-
-    public void setOutOfStock(boolean isOutOfStock) {
-        this.isOutOfStock = isOutOfStock;
     }
 
     public boolean isPackage() {
