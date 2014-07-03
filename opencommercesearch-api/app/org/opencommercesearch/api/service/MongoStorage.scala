@@ -53,7 +53,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   val DefaultSearchProjection =
     """
-      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1v, skus.countries.stockLevel:1,  skus.isPastSeason:1, skus.countries.code:1,
+      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1,  skus.isPastSeason:1, skus.countries.code:1,
       | skus.countries.listPrice:1, skus.countries.salePrice:1, skus.countries.discountPercent:1, skus.countries.onSale:1,
       | skus.countries.url:1,
     """.stripMargin
