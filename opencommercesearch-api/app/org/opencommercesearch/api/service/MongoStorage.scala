@@ -220,7 +220,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     val filteredProduct = filterSkus(country, product, fields)
 
     for (skus <- filteredProduct.skus) {
-      product.skus = Option(skus.filter(s => {
+      skus.foreach(s => {
         // @todo mixing exclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
         // In the meanwhile, we force hiding some sku properties that are usually not needed in search
@@ -231,11 +231,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
           s.year = None
           s.season = None
         }
-
-        flattenCountries(country, s)
-      }))
+      })
     }
-
+    
     setToos(product, fields)
   }
 
@@ -253,7 +251,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       filteredCountries = countries.filter((c: Country) => country.equals(c.code.get))
     }
 
-    if (filteredCountries.size > 0) {
+    if (filteredCountries != null && filteredCountries.size > 0) {
       val country = filteredCountries(0)
       sku.allowBackorder = country.allowBackorder
 
@@ -264,7 +262,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       sku.stockLevel = country.stockLevel
     }
     sku.countries = None
-    filteredCountries.size > 0
+    filteredCountries != null && filteredCountries.size > 0
   }
 
   /**
