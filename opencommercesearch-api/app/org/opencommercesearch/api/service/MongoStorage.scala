@@ -217,9 +217,9 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
-    val filteredProduct = filterSkus(country, product)
+    val filteredProduct = filterSkus(country, product, fields)
 
-    for (skus <- product.skus) {
+    for (skus <- filteredProduct.skus) {
       product.skus = Option(skus.filter(s => {
         // @todo mixing exclude and includes in a project is currently not supported
         // https://jira.mongodb.org/browse/SERVER-391
