@@ -163,7 +163,12 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 for (code <- country.code) {
                   doc.addField("country", code)
 
-                  for (allowBackorder <- country.allowBackorder) { doc.setField("allowBackorder" + code, allowBackorder) }
+                  var allowBackorder = false
+                  for (ab <- country.allowBackorder) {
+                    allowBackorder = ab
+                    doc.setField("allowBackorder" + code, ab)
+                  }
+
                   for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
 
                   for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
@@ -171,7 +176,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                   for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
                   for (stockLevel <- country.stockLevel) {
                     doc.setField("stockLevel" + code, stockLevel)
-                    doc.setField("isToos", stockLevel == 0)
+                    doc.setField("isToos", stockLevel == 0 && !allowBackorder)
                   }
                   for (url <- country.url) { doc.setField("url" + code, url) }
                 }
