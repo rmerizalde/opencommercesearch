@@ -53,10 +53,10 @@ object QueryController extends BaseController {
       preview: Boolean) = Action.async { implicit request =>
     val solrQuery = withSuggestCollection(new SolrQuery(q), preview)
     solrQuery.setFields("userQuery")
-    solrQuery.setFilterQueries(s"siteId:$site")
-    solrQuery.setFilterQueries(s"-type:brand")
-    solrQuery.setFilterQueries(s"-type:category")
-    solrQuery.setFilterQueries(s"-type:product")
+    solrQuery.addFilterQuery(s"siteId:$site")
+    solrQuery.addFilterQuery(s"-type:brand")
+    solrQuery.addFilterQuery(s"-type:category")
+    solrQuery.addFilterQuery(s"-type:product")
 
     findSuggestionsFor(classOf[UserQuery], "queries" , solrQuery)
   }
