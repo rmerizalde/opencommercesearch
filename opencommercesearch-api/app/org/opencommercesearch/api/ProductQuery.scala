@@ -223,9 +223,6 @@ class ProductSearchQuery(q: String, site: String)(implicit context: Context, req
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "search")
-    if(request != null && request.getQueryString("outlet").getOrElse("false").toBoolean) {
-      addFilterQuery("isOutlet:true")
-    }
   }
 }
 

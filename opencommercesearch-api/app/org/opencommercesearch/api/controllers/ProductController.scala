@@ -253,6 +253,7 @@ object ProductController extends BaseController {
       .withPagination()
       .withSorting()
       .withGrouping()
+      .withOutlet()
 
     Logger.debug("Searching for " + q)
 
