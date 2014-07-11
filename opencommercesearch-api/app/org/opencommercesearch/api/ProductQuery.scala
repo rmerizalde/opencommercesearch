@@ -1,13 +1,10 @@
 package org.opencommercesearch.api
 
 import play.api.mvc.{AnyContent, Request}
-
 import java.net.URLDecoder
-
 import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
 import org.opencommercesearch.api.common.FilterQuery
 import org.opencommercesearch.common.Context
-
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.common.params.GroupParams
@@ -189,6 +186,13 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
     addFilterQuery(s"ancestorCategoryId:$categoryId")
     this
   }
+  
+  def withOutlet() : ProductQuery = {
+    if(request != null && request.getQueryString("outlet").getOrElse("false").toBoolean) {
+      addFilterQuery("isOutlet:true")
+    }
+    this
+  }
 }
 
 private object Query {
@@ -238,7 +242,9 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "category")
-    
+  }
+  
+  override def withOutlet() : ProductQuery = {
      request.getQueryString("outlet") match {
       case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
       case _ =>
@@ -248,8 +254,9 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
           case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
           case _ => addFilterQuery("isOutlet:false")
         }
-    }
-  }
+     }
+     this
+   }
 }
 
 /**

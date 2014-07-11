@@ -407,6 +407,9 @@ object ProductController extends BaseController {
         query.withRules(ruleFilters)
         isRulePage = true
       } else {
+        //filter by outlet/onsale only for category pages. Rule categories should skip this filter
+        query.withOutlet() 
+
         //otherwise handle a regular category or a brand category
         if (StringUtils.isNotBlank(categoryId)) {
           query.withAncestorCategory(categoryId)

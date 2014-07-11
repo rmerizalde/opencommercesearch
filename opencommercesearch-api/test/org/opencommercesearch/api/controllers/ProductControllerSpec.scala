@@ -3,24 +3,18 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.json.{JsError, Json}
 import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
-
 import scala.Some
 import scala.concurrent.Future
-
 import java.util
-
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.apache.solr.common.util.NamedList
-
 import org.specs2.mutable.Before
-
 import com.mongodb.WriteResult
 
 /*
@@ -41,7 +35,6 @@ import com.mongodb.WriteResult
 * specific language governing permissions and limitations
 * under the License.
 */
-
 class ProductControllerSpec extends BaseSpec {
 
   trait Products extends Before {
@@ -693,7 +686,8 @@ class ProductControllerSpec extends BaseSpec {
   private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String,
                                         isOutlet: Boolean, ruleFilter: String = null, escapedCategoryFilter: String) : Unit = {
     var expected = 3
-
+    var isRuleCategory = false
+    
     productQuery.get("pageType") must beEqualTo("category")
 
     if (ruleFilter == null) {
@@ -711,7 +705,7 @@ class ProductControllerSpec extends BaseSpec {
       }
     } else {
       //scenario for rule based categories
-      expected += 1
+      isRuleCategory = true
       productQuery.getFilterQueries contains ruleFilter
       productQuery.getBool("rulePage") must beEqualTo(true)
       productQuery.get("q") must beEqualTo("*:*")
@@ -726,7 +720,9 @@ class ProductControllerSpec extends BaseSpec {
     productQuery.getFilterQueries.size must beEqualTo(expected)
     productQuery.getFilterQueries contains "country:US" must beTrue
     productQuery.getFilterQueries contains "isRetail:true" must beTrue
-    productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
+    if (!isRuleCategory) { //rule base categoris won't filter by isOutlet
+      productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
+    }
   }
 
   /**
