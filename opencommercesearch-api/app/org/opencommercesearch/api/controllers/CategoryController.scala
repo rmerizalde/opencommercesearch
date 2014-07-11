@@ -223,12 +223,12 @@ object CategoryController extends BaseController with FacetQuery {
         try {
           val storage = withNamespace(storageFactory)
           val storageFuture = storage.saveCategory(categories:_*)
-          
+
           val update = withCategoryCollection(new AsyncUpdateRequest())
           val docs = categoryList.toDocuments
           update.add(docs)
           val catalogUpdateFuture = update.process(solrServer)
-          val suggestionFuture = IndexableElement.addToIndex(categories filter { category => !category.isRuleBased.getOrElse(false) })
+          val suggestionFuture = IndexableElement.addToIndex(categories filter { category => !category.isRuleBased.getOrElse(false) }, fetchCount = true)
 
           val future = Future.sequence(List[Future[Any]](storageFuture, catalogUpdateFuture, suggestionFuture)) map { result =>
             Created
@@ -324,27 +324,27 @@ object CategoryController extends BaseController with FacetQuery {
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
         val brandIds = JIterableWrapper(brandFacet.getValues).map(filter =>  filter.getName)
         
-	    val storage = withNamespace(storageFactory)
-	    val future = storage.findBrands(brandIds, fieldList(allowStar = true)).map( categories => {
-		    //now we need to retrieve the actual brand objects from the brand collection  
-		    if(categories != null) {
-		      Ok(Json.obj(
-	                "metadata" -> Json.obj(
-	                   "categoryId" -> id,
-	                   "found" -> brandIds.size,
-	                   "time" -> (System.currentTimeMillis() - startTime)),
-	                "brands" -> Json.toJson(categories)
-	                //the categories obj is like a sql result set, it's an iterable that can only be read once
-	          ))
-		    } else {
-		      Logger.debug("Category " + id + " not found")
-		        NotFound(Json.obj(
-		          "message" -> s"Cannot find category with id [$id]"
-		      ))
-		    }
-	    })
-	    
-	    withErrorHandling(future, s"Cannot find category with id [$id]")
+        val storage = withNamespace(storageFactory)
+        val future = storage.findBrands(brandIds, fieldList(allowStar = true)).map( categories => {
+          //now we need to retrieve the actual brand objects from the brand collection
+          if(categories != null) {
+            Ok(Json.obj(
+                    "metadata" -> Json.obj(
+                       "categoryId" -> id,
+                       "found" -> brandIds.size,
+                       "time" -> (System.currentTimeMillis() - startTime)),
+                    "brands" -> Json.toJson(categories)
+                    //the categories obj is like a sql result set, it's an iterable that can only be read once
+              ))
+          } else {
+            Logger.debug("Category " + id + " not found")
+              NotFound(Json.obj(
+                "message" -> s"Cannot find category with id [$id]"
+            ))
+          }
+        })
+
+        withErrorHandling(future, s"Cannot find category with id [$id]")
 
       } else {
         //if the product catalog didn't return filters for the brand facet, then return a null query

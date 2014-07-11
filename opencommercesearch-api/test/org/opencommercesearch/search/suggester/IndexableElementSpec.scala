@@ -70,7 +70,11 @@ class IndexableElementSpec extends Specification with Mockito {
         solrServer.query(any[SolrQuery]) returns Future(queryResponse2) thenReturns Future(queryResponse33)
 
         val suggestion1 = mock[TestElement]
+        suggestion1.id returns Some("id1")
+        suggestion1.getType returns "brand"
         val suggestion2 = mock[TestElement]
+        suggestion2.id  returns Some("id2")
+        suggestion2.getType returns "category"
 
         val responseFuture = IndexableElement.addToIndex(Seq(suggestion1, suggestion2), fetchCount = true)
         val response = Await.result(responseFuture, Duration.Inf)
@@ -92,7 +96,7 @@ class IndexableElementSpec extends Specification with Mockito {
     doc.addField("count", count)
 
     val docList = new SolrDocumentList()
-    docList.setNumFound(1)
+    docList.setNumFound(count)
     docList.add(doc)
 
     val queryResponseList = new NamedList[Object]()

@@ -21,14 +21,12 @@ package org.opencommercesearch.api.controllers
 
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play
-import play.api.mvc._
 import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.collection.mutable
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.MultiSuggester
 import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
@@ -76,7 +74,7 @@ object SuggestionController extends BaseController {
       val collector = new MultiSourceCollector[Element]
       suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )
 
-      var query = q;
+      var query = q
       if(!(q.startsWith("\"") && q.endsWith("\""))) {
         query = "\"" + q + "\""
       }

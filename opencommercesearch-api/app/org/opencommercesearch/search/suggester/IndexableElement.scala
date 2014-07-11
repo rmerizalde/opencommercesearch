@@ -19,6 +19,10 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
+import org.apache.solr.client.solrj.SolrQuery
+import org.opencommercesearch.api.Collection._
+import org.opencommercesearch.api.controllers.BrandController._
+import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.concurrent.Future
@@ -29,7 +33,6 @@ import java.util.Date
 
 import org.apache.commons.lang.StringUtils
 import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
 import org.opencommercesearch.api.Global._
@@ -53,11 +56,11 @@ trait IndexableElement extends Element {
    */
   def toSolrDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
     val doc = new SolrInputDocument()
-    val `type` = getType
-    doc.addField("id", `type` + "-" + id.get)
+    val elementType = getType
+    doc.addField("id", getSuggestionId(elementType,  id.get))
     doc.addField("userQuery", StringUtils.EMPTY)
     doc.addField("ngrams", getNgramText)
-    doc.addField("type", `type`)
+    doc.addField("type", elementType)
     doc.addField("feedTimestamp", feedTimestamp)
     doc.addField("count", count)
     doc.addField("lastUpdated", IsoDateFormat.get().format(new Date()))
@@ -79,48 +82,39 @@ trait IndexableElement extends Element {
 }
 
 object IndexableElement {
-
   val IsoDateFormat = new ThreadLocal[SimpleDateFormat]() {
     protected override def initialValue() : SimpleDateFormat = {
       new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
     }
   }
 
-  def addToIndex(suggestions : Seq[IndexableElement], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
+  /**
+   * Forms a valid suggestion ID based on the given element type.
+   * @param type An element type
+   * @param id The element id
+   */
+  private def getSuggestionId(`type`: String, id: String) : String = {
+    `type` + "-" + id
+  }
+
+  /**
+   * Adds an indexable element to the suggest collection
+   * @param elements List of elements to index
+   * @return Future with the index result
+   */
+  def addToIndex(elements : Seq[IndexableElement], fetchCount: Boolean = false)(implicit context: Context) : Future[UpdateResponse] = {
     if(context.isPublic) {
       val feedTimeStamp = System.currentTimeMillis()
-      val updateQuery = new AsyncUpdateRequest()
+      val solrDocs = getDocsToIndex(elements, fetchCount, feedTimeStamp)
 
+      val updateQuery = new AsyncUpdateRequest()
       updateQuery.setParam("collection", SuggestCollection)
 
-      if(fetchCount) {
-        val futureSuggestion = suggestions map { s =>
-          val query = new SolrQuery("\"" + s.getNgramText + "\"")
-          query.setParam("collection", SuggestCollection)
-           .setFilterQueries("type:\"userQuery\"")
-           .setFields("count")
-           .setRows(1)
+      solrDocs flatMap { docs =>
+        Logger.debug(s"Adding ${docs.size} elements out of ${elements.size} to index.")
+        updateQuery.add(docs)
 
-          solrServer.query(query).flatMap( response => {
-            if (response.getResults != null && response.getResults.size > 0) {
-               val count : Int =  response.getResults().get(0).getFieldValue("count").asInstanceOf[Int]
-               Future(s.toSolrDoc(feedTimeStamp, count))
-             } else {
-               Future(s.toSolrDoc(feedTimeStamp))
-             }
-          })
-        }
-
-        Future.sequence(futureSuggestion).flatMap(elements => {
-          updateQuery.add(elements)
-          updateQuery.process(solrServer)
-        })
-      } else {
-        updateQuery.add(suggestions map { s =>
-          s.toSolrDoc(feedTimeStamp)
-        })
-
-        if(updateQuery.getDocuments.size() > 0) {
+        if (updateQuery.getDocuments.size() > 0) {
           updateQuery.process(solrServer)
         }
         else {
@@ -131,5 +125,52 @@ object IndexableElement {
     else {
       Future(null)
     }
+  }
+
+  private def getDocsToIndex(elements: Seq[IndexableElement], fetchCount: Boolean, feedTimeStamp: Long)(implicit context: Context): Future[Seq[SolrInputDocument]] = {
+    def getQuery(e : IndexableElement) : String = {
+      e.getType match {
+        case "brand" => s"brandId:${e.id.get}"
+        case "category" => s"ancestorCategoryId:${e.id.get}"
+      }
+    }
+
+    val docsToIndex = elements map { e =>
+      if(fetchCount) {
+        val productQuery = new SolrQuery(getQuery(e))
+
+        productQuery.addFilterQuery("isRetail:true")
+        productQuery.addFilterQuery(s"country:${context.lang.country}")
+        productQuery.addFilterQuery("isToos:false")
+        productQuery.setParam("collection", searchCollection.name(context.lang))
+
+        productQuery.setRows(0)
+        val responseFuture = solrServer.query(productQuery)
+
+        responseFuture flatMap { response =>
+          response.getResults.getNumFound match {
+            case 0 =>
+              //Actually, delete this one from suggestions collection
+              val update = withSuggestCollection(new AsyncUpdateRequest())
+              val id = getSuggestionId(e.getType, e.id.get)
+              update.deleteById(id)
+              Logger.debug(s"Suggestion element $id was deleted because it no longer has products on stock.")
+              Future(None)
+            case _ =>
+              //Add the count to the element
+              Future(Some(e.toSolrDoc(feedTimeStamp, response.getResults.getNumFound.toInt)))
+          }
+        }
+      }
+      else {
+        Future(Some(e.toSolrDoc(feedTimeStamp)))
+      }
+    }
+
+    Future.sequence(docsToIndex) map (docs => {
+      docs.collect {
+        case d : Some[SolrInputDocument] => d.get
+      }
+    })
   }
 }
