@@ -676,12 +676,15 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     private void setFilterQueries(Map<String, NamedList> facets, SolrParams requestParams, MergedSolrParams ruleParams) {
         
+        String isRulePage = requestParams.get("rulePage");
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
 
         String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
-        if(StringUtils.isNotBlank(categoryFilter)) {
+        //if we don't have a category filter, or we are in a rule page, skip adding the facet prefix
+        //to the category facet. This is cause we don't index the rule path in the category facet
+        if(StringUtils.isNotBlank(categoryFilter) && !BooleanUtils.toBoolean(isRulePage)) {
             int index = categoryFilter.indexOf(SearchConstants.CATEGORY_SEPARATOR);
             if (index != -1) {
                 int level = Integer.parseInt(categoryFilter.substring(0, index));

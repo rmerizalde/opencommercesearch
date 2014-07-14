@@ -3,25 +3,21 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.json.{JsError, Json}
 import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
-
 import scala.Some
 import scala.concurrent.Future
-
 import java.util
-
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.apache.solr.common.util.NamedList
-
 import org.specs2.mutable.Before
-
 import com.mongodb.WriteResult
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -41,7 +37,7 @@ import com.mongodb.WriteResult
 * specific language governing permissions and limitations
 * under the License.
 */
-
+@RunWith(classOf[JUnitRunner])
 class ProductControllerSpec extends BaseSpec {
 
   trait Products extends Before {
@@ -69,6 +65,7 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+  def fakeApplication() = FakeApplication(additionalConfiguration = Map("sites.closeout" -> "mysite"))
   sequential
 
   "Product Controller" should {
@@ -132,7 +129,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when searching by query" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -174,7 +171,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when searching by query with sort options" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -219,7 +216,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a category" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -261,7 +258,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a rule based category" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
 
         val category = Category.getInstance(Some("someCategory"))
         category.isRuleBased = Option(true)
@@ -311,7 +308,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing an outlet category" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -353,7 +350,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a brand category" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -395,7 +392,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a brand" in new Products {
-      running(FakeApplication()) {
+      running(fakeApplication()) {
         val product = Product.getInstance()
         val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
@@ -693,7 +690,8 @@ class ProductControllerSpec extends BaseSpec {
   private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String,
                                         isOutlet: Boolean, ruleFilter: String = null, escapedCategoryFilter: String) : Unit = {
     var expected = 3
-
+    var isRuleCategory = false
+    
     productQuery.get("pageType") must beEqualTo("category")
 
     if (ruleFilter == null) {
@@ -711,7 +709,7 @@ class ProductControllerSpec extends BaseSpec {
       }
     } else {
       //scenario for rule based categories
-      expected += 1
+      isRuleCategory = true
       productQuery.getFilterQueries contains ruleFilter
       productQuery.getBool("rulePage") must beEqualTo(true)
       productQuery.get("q") must beEqualTo("*:*")
@@ -726,7 +724,9 @@ class ProductControllerSpec extends BaseSpec {
     productQuery.getFilterQueries.size must beEqualTo(expected)
     productQuery.getFilterQueries contains "country:US" must beTrue
     productQuery.getFilterQueries contains "isRetail:true" must beTrue
-    productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
+    if (!isRuleCategory) { //rule base categoris won't filter by isOutlet
+      productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
+    }
   }
 
   /**
@@ -741,7 +741,7 @@ class ProductControllerSpec extends BaseSpec {
     query.get("group.field") must beEqualTo("productId")
     query.getBool("group.facet") must beEqualTo(false)
     if (expectedGroupSorting) {
-      query.get("group.sort") must beEqualTo("isCloseout asc, salePriceUS asc, score desc, sort asc")
+      query.get("group.sort") must beEqualTo("isCloseout asc, salePriceUS asc, sort asc, score desc")
     } else {
       query.get("group.sort") must beNull
     }

@@ -1,16 +1,15 @@
 package org.opencommercesearch.api
 
 import play.api.mvc.{AnyContent, Request}
-
+import org.opencommercesearch.api.Global._
 import java.net.URLDecoder
-
 import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
 import org.opencommercesearch.api.common.FilterQuery
 import org.opencommercesearch.common.Context
-
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.common.params.GroupParams
+import play.api.Play
 
 /**
  * The base query to retrieve product results
@@ -27,13 +26,15 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
   import Query._
 
   private var _filterQueries: Array[FilterQuery] = null
-
+  private var closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  
   protected def init() : Unit = {
     setFields("id")
     setParam("collection", searchCollection.name(context.lang))
 
-    // default filter queries
-    addFilterQuery("isRetail:true")
+    if (closeoutSites.contains(site)) {
+      addFilterQuery("isRetail:true")
+    }
 
     // product params
     addFilterQuery(s"country:${context.lang.country}")
@@ -160,7 +161,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
       }
 
       if (isSortedByScore()) {
-        set("group.sort", s"isCloseout asc, salePrice${context.lang.country} asc, score desc, sort asc")
+        set("group.sort", s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
       }
     }
 
@@ -187,6 +188,13 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
 
   def withAncestorCategory(categoryId : String) : ProductQuery = {
     addFilterQuery(s"ancestorCategoryId:$categoryId")
+    this
+  }
+  
+  def withOutlet() : ProductQuery = {
+    if(request != null && request.getQueryString("outlet").getOrElse("false").toBoolean) {
+      addFilterQuery("isOutlet:true")
+    }
     this
   }
 }
@@ -219,9 +227,6 @@ class ProductSearchQuery(q: String, site: String)(implicit context: Context, req
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "search")
-    if(request != null && request.getQueryString("outlet").getOrElse("false").toBoolean) {
-      addFilterQuery("isOutlet:true")
-    }
   }
 }
 
@@ -238,7 +243,9 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "category")
-    
+  }
+  
+  override def withOutlet() : ProductQuery = {
      request.getQueryString("outlet") match {
       case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
       case _ =>
@@ -248,8 +255,9 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
           case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
           case _ => addFilterQuery("isOutlet:false")
         }
-    }
-  }
+     }
+     this
+   }
 }
 
 /**
