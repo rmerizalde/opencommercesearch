@@ -19,25 +19,25 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
-import org.apache.solr.client.solrj.SolrQuery
-import org.opencommercesearch.api.Collection._
-import org.opencommercesearch.api.controllers.BrandController._
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 
-import scala.concurrent.Future
 import scala.collection.JavaConversions._
+import scala.concurrent.Future
 
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import org.apache.commons.lang.StringUtils
-import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.response.UpdateResponse
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.ProductQuery
+import org.opencommercesearch.api.controllers.BrandController._
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.Element
+
+import org.apache.commons.lang.StringUtils
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.apache.solr.client.solrj.response.UpdateResponse
+import org.apache.solr.common.SolrInputDocument
 
 /**
  * This trait provides functionality to convert a model object
@@ -47,7 +47,7 @@ import org.opencommercesearch.search.Element
  * @author nkumar
  */
 trait IndexableElement extends Element {
-  import IndexableElement._
+  import org.opencommercesearch.search.suggester.IndexableElement._
 
   /**
    * Converts this instance into a Solr input document compatible with the suggestion collection.
@@ -56,11 +56,11 @@ trait IndexableElement extends Element {
    */
   def toSolrDoc(feedTimestamp: Long, count: Int = 1) : SolrInputDocument = {
     val doc = new SolrInputDocument()
-    val elementType = getType
-    doc.addField("id", getSuggestionId(elementType,  id.get))
+    val `type` = getType
+    doc.addField("id", getSuggestionId(`type`,  id.get))
     doc.addField("userQuery", StringUtils.EMPTY)
     doc.addField("ngrams", getNgramText)
-    doc.addField("type", elementType)
+    doc.addField("type", `type`)
     doc.addField("feedTimestamp", feedTimestamp)
     doc.addField("count", count)
     doc.addField("lastUpdated", IsoDateFormat.get().format(new Date()))
@@ -136,14 +136,9 @@ object IndexableElement {
     }
 
     val docsToIndex = elements map { e =>
-      if(fetchCount) {
-        val productQuery = new SolrQuery(getQuery(e))
-
-        productQuery.addFilterQuery("isRetail:true")
-        productQuery.addFilterQuery(s"country:${context.lang.country}")
-        productQuery.addFilterQuery("isToos:false")
-        productQuery.setParam("collection", searchCollection.name(context.lang))
-
+      if (fetchCount) {
+        val productQuery = new ProductQuery(getQuery(e))
+        productQuery.withoutToos()
         productQuery.setRows(0)
         val responseFuture = solrServer.query(productQuery)
 
