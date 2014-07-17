@@ -105,31 +105,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
       }
     }
 
-    if (getBool("group.sort") != null && isSortedByScore()) {
-      remove("group.sort")
-    }
-
     this
-  }
-
-  /**
-   * @return <code>true</code> if this query is sorted by score. Otherwise <code>false</code>
-   */
-  private def isSortedByScore() = {
-    val clauses = getSorts
-    var isSortedByScore: Boolean = false
-    if (clauses.size > 0) {
-      import scala.collection.JavaConversions._
-      for (clause <- clauses) {
-        if (Score.equals(clause.getItem)) {
-          isSortedByScore = true
-        }
-      }
-    }
-    else {
-      isSortedByScore = true
-    }
-    isSortedByScore
   }
 
   /**
@@ -160,9 +136,7 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
         setParam("groupcollapse.ff", "isCloseout")
       }
 
-      if (isSortedByScore()) {
-        set("group.sort", s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
-      }
+      set("group.sort", s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
     }
 
     this
@@ -300,6 +274,8 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
   import Collection._
   import Query._
 
+  private var closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  
   def this(facetField: String)(implicit context: Context, request: Request[AnyContent]) = this(facetField, null)
 
   private def init() = {
@@ -309,6 +285,10 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     addFacetField(facetField)
     setFacetMinCount(1)
 
+    if (closeoutSites.contains(site)) {
+      addFilterQuery("isRetail:true")
+    }
+    
     // product params
     addFilterQuery(s"country:${context.lang.country}")
     
@@ -319,7 +299,6 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
       
       request.getQueryString("outlet") match {
 	    case Some(isOutlet) => {
-	      addFilterQuery("isRetail:true")
 	      addFilterQuery(s"isOutlet:$isOutlet")
 	    }
 	    case _ =>
@@ -328,11 +307,14 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
 	      isOnSale match {
 	        case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
 	        case _ => {
-	          addFilterQuery("isRetail:true")
 	          addFilterQuery("isOutlet:false")
 	        }
 	      }
 	  }
+    } else {
+      if (closeoutSites.contains(site)) {
+        addFilterQuery("isOutlet:false")
+      }
     }
   }
 

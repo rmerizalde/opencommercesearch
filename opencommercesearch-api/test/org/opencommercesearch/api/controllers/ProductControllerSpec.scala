@@ -197,7 +197,7 @@ class ProductControllerSpec extends BaseSpec {
         val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url + "&sort=discountPercent desc"))
         validateQueryResult(result.get, OK, "application/json")
         productQuery.getQuery must beEqualTo("term")
-        validateCommonQueryParams(productQuery, expectedGroupSorting = false)
+        validateCommonQueryParams(productQuery, expectedGroupSorting = true)
         validateSearchParams(productQuery)
 
         productQuery.get("sort") must beEqualTo("discountPercentUS desc")

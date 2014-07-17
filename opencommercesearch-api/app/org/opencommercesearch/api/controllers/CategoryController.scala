@@ -55,7 +55,8 @@ object CategoryController extends BaseController with FacetQuery {
     new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect. A -1 value returns all taxonomy existing levels", defaultValue = "1", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "maxChildren", value = "Max children to return per leaf category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries for the returned categories", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "site", value = "Site to search", required = false, dataType = "string", paramType = "site")
   ))
   def findById(
       version: Int,
@@ -67,7 +68,8 @@ object CategoryController extends BaseController with FacetQuery {
       outlet: Boolean) = ContextAction.async {  implicit context => implicit request =>
 
     val startTime = System.currentTimeMillis()
-    val categoryFacetQuery = new ProductFacetQuery("categoryPath")
+    val site = request.getQueryString("site").getOrElse(null)
+    val categoryFacetQuery = new ProductFacetQuery("categoryPath", site)
       .withAncestorCategory(id)
       .withFilterQueries()
       .withPagination()
