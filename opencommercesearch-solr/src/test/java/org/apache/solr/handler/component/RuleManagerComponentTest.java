@@ -172,6 +172,23 @@ public class RuleManagerComponentTest {
     }
 
     @Test
+    public void testBoostRulesRuleCatPage() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set(RuleManagerParams.RULE_PAGE, "true");
+        params.set(RuleManagerParams.CATEGORY_FILTER, "rule_cat_page");
+        
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,fixedBoost(productId,'product3') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+    
+    @Test
     public void testFacetRules() throws IOException {
         //TODO: make a good test for testFacetRules
         prepareRuleDocs(TestSetType.facetRules);
@@ -318,11 +335,14 @@ public class RuleManagerComponentTest {
                 setIdsToResultContext(new int[]{0, 1}, rulesCore);
                 Document boostRule1 = new Document();
                 boostRule1.add(new Field(RuleConstants.FIELD_ID, "0", defaultFieldType));
+                boostRule1.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product2", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
 
                 Document boostRule2 = new Document();
                 boostRule2.add(new Field(RuleConstants.FIELD_ID, "1", defaultFieldType));
+                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
+                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "rule_cat_page", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product3", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
 

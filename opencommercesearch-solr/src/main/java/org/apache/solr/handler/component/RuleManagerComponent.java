@@ -882,18 +882,27 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 }
 
                 if(rules.size() >= 1) {
-                    String[] products = rules.get(0).getValues(RuleConstants.FIELD_BOOSTED_PRODUCTS);
-
-                    if (products != null && products.length > 0) {
-                        StringBuilder b = new StringBuilder("fixedBoost(productId,");
-
-                        for (String product : products) {
-                            b.append("'").append(product).append("',");
+                    
+                    for(Document rule : rules) {
+                        
+                        if (filterRule(query, rule)) {
+                            continue;
                         }
-
-                        b.setLength(b.length() - 1);
-                        b.append(")");
-                        query.addSort(b.toString(), SolrQuery.ORDER.asc);
+                        
+                        String[] products = rule.getValues(RuleConstants.FIELD_BOOSTED_PRODUCTS);
+    
+                        if (products != null && products.length > 0) {
+                            StringBuilder b = new StringBuilder("fixedBoost(productId,");
+    
+                            for (String product : products) {
+                                b.append("'").append(product).append("',");
+                            }
+    
+                            b.setLength(b.length() - 1);
+                            b.append(")");
+                            query.addSort(b.toString(), SolrQuery.ORDER.asc);
+                            break;
+                        }
                     }
 
                     //TODO handle multiple boost rules
@@ -925,7 +934,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         rankingRule() {
             @Override
             void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) {
+                                                            
                 for (Document rule : rules) {
+                    
+                    if(filterRule(query, rule)) {
+                        continue;
+                    }
+                    
                     String boostFunction = rule.get(RuleConstants.FIELD_BOOST_FUNCTION);
                     
                     if (boostFunction != null) {
@@ -951,6 +966,28 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             }
         };
 
+        /**
+         * Filter a rule if we are processing a rule category page and the rule 
+         * field: 'category' doesn't contain the rule category path
+         * @param query The solr params 
+         * @param doc The rule to process
+         */
+        boolean filterRule(MergedSolrParams query, Document doc) {
+            String isRulePage = query.get(RuleManagerParams.RULE_PAGE);
+            String categoryFilter = query.get(RuleManagerParams.CATEGORY_FILTER);
+            
+            if (StringUtils.isNotBlank(categoryFilter) && BooleanUtils.toBoolean(isRulePage)) {
+                String[] categories = doc.getValues(RuleConstants.FIELD_CATEGORY);
+                for (String category: categories) {
+                    if (category.equals(categoryFilter)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+        
         abstract void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) throws IOException;
     }
 }
