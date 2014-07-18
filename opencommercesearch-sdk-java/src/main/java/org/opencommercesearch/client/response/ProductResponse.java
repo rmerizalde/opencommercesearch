@@ -28,7 +28,7 @@ import org.opencommercesearch.client.impl.DefaultProduct;
  * @author rmerizalde
  */
 public class ProductResponse extends DefaultResponse {
-  protected DefaultProduct[] products;
+  protected DefaultProduct[] products = new DefaultProduct[0];
 
   public Product[] getProducts() {
     return products;

@@ -1,7 +1,5 @@
 package org.opencommercesearch.feed;
 
-import org.opencommercesearch.model.Product;
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -22,6 +20,8 @@ import org.opencommercesearch.model.Product;
 */
 
 import java.util.*;
+
+import org.opencommercesearch.client.Product;
 
 public class SearchFeedProducts {
     private Map<Locale, List<Product>> productsByLocale = new HashMap<Locale, List<Product>>();

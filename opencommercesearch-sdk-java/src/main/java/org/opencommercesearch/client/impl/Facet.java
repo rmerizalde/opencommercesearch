@@ -19,6 +19,7 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.opencommercesearch.FilterQuery;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -111,6 +112,7 @@ public class Facet {
     /**
      * @return true if user can select multiple bucket for this facet. Otherwise return false
      */
+    @JsonProperty("isMultiSelect")
     public boolean isMultiSelect() {
         return isMultiSelect;
     }
@@ -134,6 +136,7 @@ public class Facet {
      *
      * @return Whether or not this facet values should use mixed sorting approach.
      */
+    @JsonProperty("isMixedSorting")
     public boolean isMixedSorting() {
         return isMixedSorting;
     }
@@ -160,6 +163,7 @@ public class Facet {
      * Calculates a list of filters/buckets a user has already selected for this facet.
      * @return a list of the filters/buckets a user has already selected for this facet.
      */
+    @JsonIgnore
     public List<Filter> getSelectedFilters() {
         if (!isMultiSelect()) {
             Collections.emptyList();
@@ -178,6 +182,7 @@ public class Facet {
      * Calculates a list of filters/buckets a user cna select for this facet.
      * @return a list of the filters/buckets a user can select for this facet
      */
+    @JsonIgnore
     public List<Filter> getSelectableFilters() {
         if (!isMultiSelect()) {
             return filters;

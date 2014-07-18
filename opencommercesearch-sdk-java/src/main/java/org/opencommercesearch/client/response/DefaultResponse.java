@@ -23,9 +23,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import org.opencommercesearch.client.impl.DefaultProduct;
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.opencommercesearch.client.impl.Metadata;
-import org.opencommercesearch.client.response.Response;
 
 /**
  * Base API response class.
@@ -35,6 +34,7 @@ import org.opencommercesearch.client.response.Response;
 public class DefaultResponse implements Response {
 
   private Metadata metadata;
+  private String message;
 
   public Metadata getMetadata() {
     return metadata;
@@ -44,8 +44,17 @@ public class DefaultResponse implements Response {
     this.metadata = metadata;
   }
 
+  public String getMessage() {
+    return message;
+  }
+
+  public void setMessage(String message) {
+    this.message = message;
+  }
+
   public String toString() {
     ObjectWriter ow = new ObjectMapper()
+      .setDateFormat(new ISO8601DateFormat())
       .setSerializationInclusion(JsonInclude.Include.NON_NULL)
       .writer().withDefaultPrettyPrinter();
 

@@ -1,4 +1,4 @@
-package org.opencommercesearch.model;
+package org.opencommercesearch.client;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -20,36 +20,26 @@ package org.opencommercesearch.model;
 */
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Size {
+import java.util.List;
+
+public class ProductList {
+    @JsonProperty
+    private List products;
 
     @JsonProperty
-    private String name;
+    private long feedTimestamp;
 
-    @JsonProperty
-    private String scale;
-
-    public Size(String name, String size) {
-        this.name = name;
-        this.scale = size;
+    public ProductList(List<Product> products, long feedTimestamp) {
+        this.products = products;
+        this.feedTimestamp = feedTimestamp;
     }
 
-    public String getName() {
-        return name;
+    public List<Product> getProducts() {
+        return products;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public long getfeedTimestamp() {
+        return feedTimestamp;
     }
-
-    public String getScale() {
-        return scale;
-    }
-
-    public void setScale(String scale) {
-        this.scale = scale;
-    }
-
 }

@@ -30,8 +30,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.opencommercesearch.api.ProductService;
-import org.opencommercesearch.model.Product;
-import org.opencommercesearch.model.Sku;
+import org.opencommercesearch.client.Product;
+import org.opencommercesearch.client.impl.DefaultProduct;
+import org.opencommercesearch.feed.SearchFeed.FeedSku;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -108,7 +109,7 @@ public class SearchFeedTest {
     @Mock
     private RepositoryItem prodMensBoot;
     @Mock
-    private Sku sku;
+    private FeedSku sku;
     @Captor 
     private ArgumentCaptor<String> stringCaptor;
 
@@ -277,10 +278,12 @@ public class SearchFeedTest {
         feed.doStartService();
 
         SearchFeedProducts products = new SearchFeedProducts();
-        Product p = new Product();
-        p.addSku(new Sku());
-        p.addSku(new Sku());
-        p.addSku(new Sku());
+        DefaultProduct p = new DefaultProduct();
+        List<org.opencommercesearch.client.impl.Sku> skus = new LinkedList<org.opencommercesearch.client.impl.Sku>();
+        skus.add(new FeedSku());
+        skus.add(new FeedSku());
+        skus.add(new FeedSku());
+        p.setSkus(skus);
         products.add(Locale.US, p);
         products.add(Locale.CANADA, p);
 

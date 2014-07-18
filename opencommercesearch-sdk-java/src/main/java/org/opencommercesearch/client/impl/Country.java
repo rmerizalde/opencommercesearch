@@ -23,12 +23,12 @@ import java.util.Locale;
 
 public class Country {
   private String code;
-  private double listPrice;
-  private double salePrice;
-  private int discountPercent;
-  private long stockLevel;
+  private Double listPrice;
+  private Double salePrice;
+  private Integer discountPercent;
   private String url;
-  private boolean allowBackorder;
+  private Boolean allowBackorder;
+  private Availability availability;
 
   public Country(String code) {
     this.code = code;
@@ -62,40 +62,32 @@ public class Country {
     this.code = code;
   }
 
-  public double getListPrice() {
+  public Double getListPrice() {
     return listPrice;
   }
 
-  public void setListPrice(double listPrice) {
+  public void setListPrice(Double listPrice) {
     this.listPrice = listPrice;
   }
 
-  public double getSalePrice() {
+  public Double getSalePrice() {
     return salePrice;
   }
 
-  public void setSalePrice(double salePrice) {
+  public void setSalePrice(Double salePrice) {
     this.salePrice = salePrice;
   }
 
-  public int getDiscountPercent() {
+  public Integer getDiscountPercent() {
     return discountPercent;
   }
 
-  public boolean getOnSale() {
+  public Boolean getOnSale() {
     return discountPercent > 0;
   }
 
-  public void setDiscountPercent(int discountPercent) {
+  public void setDiscountPercent(Integer discountPercent) {
     this.discountPercent = discountPercent;
-  }
-
-  public long getStockLevel() {
-    return stockLevel;
-  }
-
-  public void setStockLevel(long stockLevel) {
-    this.stockLevel = stockLevel;
   }
 
   public String getUrl() {
@@ -106,11 +98,15 @@ public class Country {
     this.url = url;
   }
 
-  public boolean isAllowBackorder() {
+  public Boolean isAllowBackorder() {
     return allowBackorder;
   }
 
-  public void setAllowBackorder(boolean allowBackorder) {
+  public void setAllowBackorder(Boolean allowBackorder) {
     this.allowBackorder = allowBackorder;
   }
+
+  public Availability getAvailability() { return availability; }
+
+  public void setAvailability(Availability availability) { this.availability = availability; }
 }

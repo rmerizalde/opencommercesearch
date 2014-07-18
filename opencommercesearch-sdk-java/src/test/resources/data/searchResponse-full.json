@@ -900,7 +900,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 14,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 14
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -918,7 +921,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 7,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 7
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -960,7 +966,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -990,7 +999,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 23,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 23
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -1008,7 +1020,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 47.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 65,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 65
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -1026,7 +1041,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 47.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 78,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 78
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -1044,7 +1062,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 47.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 9,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 9
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -1074,7 +1095,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 50,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 50
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   },
@@ -1104,7 +1128,10 @@
                      "listPrice" : 119.95,
                      "salePrice" : 49.95,
                      "discountPercent" : 58,
-                     "stockLevel" : 50,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 50
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=CST0180",
                      "allowBackorder" : false
                   }
@@ -1212,7 +1239,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 246.95,
                      "discountPercent" : 45,
-                     "stockLevel" : 37,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 37
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1230,7 +1260,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 246.95,
                      "discountPercent" : 45,
-                     "stockLevel" : 41,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 41
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1248,7 +1281,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 314.3,
                      "discountPercent" : 30,
-                     "stockLevel" : 1,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1266,7 +1302,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 246.95,
                      "discountPercent" : 45,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1284,7 +1323,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 314.3,
                      "discountPercent" : 30,
-                     "stockLevel" : 21,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 21
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1302,7 +1344,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 314.3,
                      "discountPercent" : 30,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1332,7 +1377,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 269.4,
                      "discountPercent" : 40,
-                     "stockLevel" : 6,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 6
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1458,7 +1506,10 @@
                      "listPrice" : 449.0,
                      "salePrice" : 314.3,
                      "discountPercent" : 30,
-                     "stockLevel" : 1,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=PAT2512",
                      "allowBackorder" : false
                   },
@@ -1719,7 +1770,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 103.2,
                      "discountPercent" : 20,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1737,7 +1791,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 70,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 70
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1755,7 +1812,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 40,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 40
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1797,7 +1857,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 68,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 68
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1815,7 +1878,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 205,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 205
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1833,7 +1899,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 124,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 124
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1851,7 +1920,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 11,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   },
@@ -1869,7 +1941,10 @@
                      "listPrice" : 129.0,
                      "salePrice" : 96.75,
                      "discountPercent" : 25,
-                     "stockLevel" : 30,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 30
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0118",
                      "allowBackorder" : false
                   }
@@ -1948,7 +2023,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 142.45,
                      "discountPercent" : 45,
-                     "stockLevel" : 17,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 17
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -1990,7 +2068,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 142.45,
                      "discountPercent" : 45,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2020,7 +2101,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 155.4,
                      "discountPercent" : 40,
-                     "stockLevel" : 228,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 228
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2038,7 +2122,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 155.4,
                      "discountPercent" : 40,
-                     "stockLevel" : 199,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 199
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2056,7 +2143,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 259.0,
                      "discountPercent" : 0,
-                     "stockLevel" : 3,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 3
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2074,7 +2164,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 168.35,
                      "discountPercent" : 35,
-                     "stockLevel" : 46,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 46
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2092,7 +2185,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 259.0,
                      "discountPercent" : 0,
-                     "stockLevel" : 8,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 8
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2110,7 +2206,10 @@
                      "listPrice" : 259.0,
                      "salePrice" : 142.45,
                      "discountPercent" : 45,
-                     "stockLevel" : 3,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 3
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=SIC0119",
                      "allowBackorder" : false
                   },
@@ -2264,7 +2363,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 80,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 80
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2282,7 +2384,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 78,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 78
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2300,7 +2405,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 44,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 44
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2318,7 +2426,10 @@
                      "listPrice" : 109.95,
                      "salePrice" : 109.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 5,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 5
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2336,7 +2447,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 114,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 114
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2354,7 +2468,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 15,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 15
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2372,7 +2489,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 10,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2426,7 +2546,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 11,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2456,7 +2579,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 432,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 432
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2474,7 +2600,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 215,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 215
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2492,7 +2621,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 77,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 77
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2522,7 +2654,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 245,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 245
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2540,7 +2675,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 58,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 58
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2690,7 +2828,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 9,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 9
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2720,7 +2861,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 8,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 8
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2762,7 +2906,10 @@
                      "listPrice" : 109.95,
                      "salePrice" : 76.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 4,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 4
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2780,7 +2927,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 26,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 26
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2798,7 +2948,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 15,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 15
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2924,7 +3077,10 @@
                      "listPrice" : 109.95,
                      "salePrice" : 76.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 2,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 2
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2942,7 +3098,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 62.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 1,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2972,7 +3131,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 93,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 93
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -2990,7 +3152,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 70,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 70
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3008,7 +3173,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 33,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 33
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3026,7 +3194,10 @@
                      "listPrice" : 109.95,
                      "salePrice" : 109.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 19,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 19
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3044,7 +3215,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 90,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 90
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3062,7 +3236,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 42,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 42
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3128,7 +3305,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 11,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF2833",
                      "allowBackorder" : false
                   },
@@ -3284,7 +3464,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 14,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 14
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3302,7 +3485,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 17,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 17
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3332,7 +3518,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 175.97,
                      "discountPercent" : 45,
-                     "stockLevel" : 10,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3362,7 +3551,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 2,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 2
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3404,7 +3596,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 1,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3434,7 +3629,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 10,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3476,7 +3674,10 @@
                      "listPrice" : 319.95,
                      "salePrice" : 223.97,
                      "discountPercent" : 30,
-                     "stockLevel" : 6,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 6
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF3731",
                      "allowBackorder" : false
                   },
@@ -3803,7 +4004,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3821,7 +4025,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3839,7 +4046,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 10619,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10619
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3857,7 +4067,10 @@
                      "listPrice" : 184.95,
                      "salePrice" : 73.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3875,7 +4088,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3893,7 +4109,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3911,7 +4130,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3929,7 +4151,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3947,7 +4172,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 10654,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10654
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3965,7 +4193,10 @@
                      "listPrice" : 198.95,
                      "salePrice" : 198.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -3983,7 +4214,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4001,7 +4235,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 11978,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11978
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4019,7 +4256,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 125.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4037,7 +4277,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 125.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4055,7 +4298,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 125.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 9719,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 9719
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4073,7 +4319,10 @@
                      "listPrice" : 198.95,
                      "salePrice" : 139.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4091,7 +4340,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 125.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4109,7 +4361,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 125.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 11997,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11997
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4127,7 +4382,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 87.69,
                      "discountPercent" : 51,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4145,7 +4403,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 87.69,
                      "discountPercent" : 51,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4163,7 +4424,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 87.69,
                      "discountPercent" : 51,
-                     "stockLevel" : 9562,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 9562
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4181,7 +4445,10 @@
                      "listPrice" : 198.95,
                      "salePrice" : 97.49,
                      "discountPercent" : 51,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4199,7 +4466,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 87.69,
                      "discountPercent" : 51,
-                     "stockLevel" : 11997,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11997
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4217,7 +4487,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 87.5,
                      "discountPercent" : 51,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4235,7 +4508,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4253,7 +4529,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4271,7 +4550,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 10641,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10641
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4289,7 +4571,10 @@
                      "listPrice" : 184.95,
                      "salePrice" : 73.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4307,7 +4592,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4325,7 +4613,10 @@
                      "listPrice" : 164.95,
                      "salePrice" : 65.98,
                      "discountPercent" : 60,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4343,7 +4634,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 11999,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11999
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4361,7 +4655,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 148.0,
                      "discountPercent" : 17,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4379,7 +4676,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 10577,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 10577
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4397,7 +4697,10 @@
                      "listPrice" : 198.95,
                      "salePrice" : 169.0,
                      "discountPercent" : 15,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4415,7 +4718,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 12000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 12000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   },
@@ -4433,7 +4739,10 @@
                      "listPrice" : 178.95,
                      "salePrice" : 178.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 11983,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 11983
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5261",
                      "allowBackorder" : false
                   }
@@ -4944,7 +5253,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 45,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 45
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -4962,7 +5274,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 64,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 64
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -4980,7 +5295,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 73,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 73
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -4998,7 +5316,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 22,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 22
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5016,7 +5337,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 17,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 17
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5202,7 +5526,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 56,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 56
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5220,7 +5547,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 159,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 159
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5238,7 +5568,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 83,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 83
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5256,7 +5589,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 24,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 24
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5274,7 +5610,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 36,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 36
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5292,7 +5631,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 2,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 2
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5310,7 +5652,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 29,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 29
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5328,7 +5673,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 60,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 60
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5346,7 +5694,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 40,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 40
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5364,7 +5715,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 23,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 23
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5382,7 +5736,10 @@
                      "listPrice" : 89.95,
                      "salePrice" : 89.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 6,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 6
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF5884",
                      "allowBackorder" : false
                   },
@@ -5534,7 +5891,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5552,7 +5912,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5570,7 +5933,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5588,7 +5954,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 144.48,
                      "discountPercent" : 50,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5606,7 +5975,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5624,7 +5996,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5642,7 +6017,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 173.37,
                      "discountPercent" : 40,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   },
@@ -5660,7 +6038,10 @@
                      "listPrice" : 288.95,
                      "salePrice" : 144.48,
                      "discountPercent" : 50,
-                     "stockLevel" : 1000,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1000
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF6816",
                      "allowBackorder" : false
                   }
@@ -5966,7 +6347,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 69.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 7,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 7
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6008,7 +6392,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 69.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 1,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 1
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6170,7 +6557,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 61,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 61
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6188,7 +6578,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 77,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 77
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6206,7 +6599,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 39,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 39
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6224,7 +6620,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 18,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 18
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6242,7 +6641,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 7,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 7
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6320,7 +6722,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 69.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 54,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 54
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6362,7 +6767,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 69.27,
                      "discountPercent" : 30,
-                     "stockLevel" : 6,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 6
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6464,7 +6872,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 193,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 193
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6482,7 +6893,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 230,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 230
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6500,7 +6914,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 140,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 140
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6518,7 +6935,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 63,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 63
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },
@@ -6536,7 +6956,10 @@
                      "listPrice" : 98.95,
                      "salePrice" : 98.95,
                      "discountPercent" : 0,
-                     "stockLevel" : 41,
+                     "availability" : {
+                        "status" : "InStock",
+                        "stockLevel" : 41
+                     },
                      "url" : "/Store/catalog/productLanding.jsp?productId=TNF7097",
                      "allowBackorder" : false
                   },

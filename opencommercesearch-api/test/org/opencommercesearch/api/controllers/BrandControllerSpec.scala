@@ -72,7 +72,7 @@ class BrandControllerSpec extends BaseSpec {
       running(FakeApplication()) {
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
 
-        val brand = new Brand(Some(expectedId), Some(expectedName), Some(expectedLogo), None, None)
+        val brand = new Brand(id = Some(expectedId), name = Some(expectedName), logo = Some(expectedLogo))
         storage.findBrand(anyString, any) returns Future.successful(brand)
 
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))

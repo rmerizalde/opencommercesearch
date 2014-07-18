@@ -46,15 +46,15 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @author rmerizalde
  */
 case class Category (
-  @Id var id: Option[String],
-  @JsonProperty("name") var name: Option[String],
-  @JsonProperty("seoUrlToken") var seoUrlToken: Option[String],
-  @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean],
-  @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]],
-  @JsonProperty("sites") var sites: Option[Seq[String]],
-  @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]],
-  @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]],
-  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]]) extends IndexableElement {
+  @Id var id: Option[String] = None,
+  @JsonProperty("name") var name: Option[String] = None,
+  @JsonProperty("seoUrlToken") var seoUrlToken: Option[String] = None,
+  @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean] = None,
+  @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]] = None,
+  @JsonProperty("sites") var sites: Option[Seq[String]] = None,
+  @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]] = None,
+  @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]] = None,
+  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]] = None) extends IndexableElement {
 
   import Category._
 
@@ -79,7 +79,7 @@ case class Category (
 object Category {
   val defaultFields = Seq("id", "name", "seoUrlToken")
 
-  def getInstance(id: Option[String]) = new Category(id, None, None, None, None, None, None, None, None)
+  def getInstance(id: Option[String]) = new Category(id)
 
   /**
    * Creates a copy of the given category that contains only the fields specified.

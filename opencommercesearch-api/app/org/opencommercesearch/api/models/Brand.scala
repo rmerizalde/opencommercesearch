@@ -33,6 +33,25 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonProperty
 import org.opencommercesearch.search.suggester.IndexableElement
 
+object Brand {
+
+  implicit val readsBrand = Json.reads[Brand]
+  implicit val writesBrand = Json.writes[Brand]
+
+  def fromDocument(doc : SolrDocument) : Brand = {
+    def attribute(name: String) = Option(doc.get(name).asInstanceOf[String])
+    def seqAttribute(name: String) = Option(doc.get(name).asInstanceOf[Seq[String]])
+
+    val id = attribute("id")
+    val name = attribute("name")
+    val logo = attribute("logo")
+    val url = attribute("url")
+    val sites = seqAttribute("siteId")
+
+    new Brand(id, name, logo, url, sites)
+  }
+}
+
 /**
  * A brand model
  *
@@ -43,11 +62,11 @@ import org.opencommercesearch.search.suggester.IndexableElement
  * @author rmerizalde
  */
 case class Brand(
-   @Id var id: Option[String], 
-   @JsonProperty("name") var name: Option[String], 
-   @JsonProperty("logo") var logo: Option[String], 
-   @JsonProperty("url") var url: Option[String],
-   @JsonProperty("sites") var sites: Option[Seq[String]]) extends IndexableElement {
+   @Id var id: Option[String] = None,
+   @JsonProperty("name") var name: Option[String] = None,
+   @JsonProperty("logo") var logo: Option[String] = None,
+   @JsonProperty("url") var url: Option[String] = None,
+   @JsonProperty("sites") var sites: Option[Seq[String]] = None) extends IndexableElement {
 
   def getId : String = this.id.getOrElse(null)
   
@@ -99,22 +118,6 @@ case class Brand(
 
   def getType : String = {
     "brand"
-  }
-}
-
-object Brand {
-
-  implicit val readsBrand = Json.reads[Brand]
-  implicit val writesBrand = Json.writes[Brand]
-
-  def fromDocument(doc : SolrDocument) : Brand = {
-    val id = doc.get("id").asInstanceOf[String]
-    val name = doc.get("name").asInstanceOf[String]
-    val logo = doc.get("logo").asInstanceOf[String]
-    val url = doc.get("url").asInstanceOf[String]
-    val sites = doc.get("siteId").asInstanceOf[Seq[String]]
-
-    new Brand(Option.apply(id), Option(name), Option(logo), Option(url), Option(sites))
   }
 }
 

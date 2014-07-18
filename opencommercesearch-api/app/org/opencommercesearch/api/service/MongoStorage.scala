@@ -48,20 +48,24 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     "skus.discountPercent" -> "skus.countries.discountPercent",
     "skus.discountPercent" -> "skus.countries.discountPercent",
     "skus.url" -> "skus.countries.url",
-    "skus.stockLevel" -> "skus.countries.stockLevel"
+    "skus.availability" -> "skus.countries.availability",
+    "skus.availability.status" -> "skus.countries.availability.status",
+    "skus.availability.stockLevel" -> "skus.countries.availability.stockLevel",
+    "skus.stockLevel" -> "skus.countries.stockLevel", // @todo deprecated this
+    "skus.availability.backorderLevel" -> "skus.countries.availability.backorderLevel"
   )
 
   val DefaultSearchProjection =
     """
-      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1,  skus.isPastSeason:1, skus.countries.code:1,
+      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1, hasFreeGift:1,
+      | skus.countries.availability.stockLevel:1, skus.countries.availability.status:1, skus.isPastSeason:1, skus.countries.code:1,
       | skus.countries.listPrice:1, skus.countries.salePrice:1, skus.countries.discountPercent:1, skus.countries.onSale:1,
       | skus.countries.url:1,
     """.stripMargin
 
   val DefaultProductProject =
     """
-      |listRank:0, categories:0, skus.season:0, skus.year:0, skus.countries.allowBackorder:0, skus.isRetail: 0,
-      |skus.isCloseout: 0, skus.catalogs: 0, skus.customSort: 0,
+      |listRank:0, categories:0, skus.season:0, skus.year:0, skus.isRetail: 0, skus.isCloseout: 0, skus.catalogs: 0
     """.stripMargin
 
   val DefaultCategoryProject =
@@ -109,37 +113,41 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
     Future {
-      val productCollection = jongo.getCollection("products")
-      val query = new StringBuilder(128)
-        .append("{ $or: [")
+      if (ids.size > 0) {
+        val productCollection = jongo.getCollection("products")
+        val query = new StringBuilder(128)
+          .append("{ $or: [")
 
-      //for ids
-      ids.foreach(t => query.append("{_id:#},"))
+        //for ids
+        ids.foreach(t => query.append("{_id:#},"))
 
-      query.setLength(query.length - 1)
-      query.append("]")
+        query.setLength(query.length - 1)
+        query.append("]")
 
-      var products:Iterable[Product] = null
-      val skuCount = if (minimumFields) ids.size else 0
-      val parameters = new ArrayBuffer[Object](ids.size + 1)
-      //ids
-      parameters.appendAll(ids.map(t => t._1))
+        var products: Iterable[Product] = null
+        val skuCount = if (minimumFields) ids.size else 0
+        val parameters = new ArrayBuffer[Object](ids.size + 1)
+        //ids
+        parameters.appendAll(ids.map(t => t._1))
 
-      if(site != null) {
-        query.append(", skus.catalogs:#")
-        parameters.append(site)
+        if (site != null) {
+          query.append(", skus.catalogs:#")
+          parameters.append(site)
+        }
+
+        if (country != null) {
+          query.append(", skus.countries.code:#")
+          parameters.append(country)
+        }
+
+        query.append("}")
+
+        products = productCollection.find(query.toString(), parameters: _*)
+          .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product])
+        products.map(p => filterSearchProduct(country, p, minimumFields, fields))
+      } else {
+        Seq.empty[Product]
       }
-
-      if(country != null) {
-        query.append(", skus.countries.code:#")
-        parameters.append(country)
-      }
-
-      query.append("}")
-
-      products = productCollection.find(query.toString(), parameters:_*)
-          .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null):_*).as(classOf[Product])
-      products.map(p => filterSearchProduct(country, p, minimumFields, fields))
     }
   }
 
@@ -178,7 +186,29 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       setToos(product, fields)
     }
 
+    if (includesField("availabilityStatus", fields, isDefault = true)) {
+      product.populateAvailabilityStatus()
+    }
     product
+  }
+
+  /**
+   * Checks if the given fiel is include in the fields
+   * @param field the field to check
+   * @param fields the field list
+   * @param isDefault true if the field should be include when no field list is empty. Otherwise false
+   * @return true if the the field declaration includes the given field. If not, returns false
+   */
+  private def includesField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
+    def includes(fields: Seq[String]): Boolean = fields match {
+      case "*" +: xs => true
+      case x +: xs => if (x.equals(field)) true else includes(xs)
+      case Seq() => false
+    }
+    fields match {
+      case Nil => isDefault
+      case _ => includes(fields)
+    }
   }
 
   /**
@@ -188,23 +218,26 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @return The product, with the out of stock property set if the product is TOOS. If the field was not requested, then no calculation is done.
    */
   private def setToos(product: Product, fields: Seq[String]) : Product = {
+    def isAvailabilityFieldIn(field: String) = field match {
+      case "skus" => true
+      case "skus.availability" => true
+      case "skus.avaialability.status" => true
+      case _ => false
+    }
+
+    // this method will go away in favor of just hiding availability if it was not requested
     for (skus <- product.skus) {
       val hasProductOutOfStock = fields.contains("isOutofStock")
-      if (fields.isEmpty || fields.contains("*") || hasProductOutOfStock) {
-        val hasStockLevel = fields.contains("skus.stockLevel")
+      if (hasProductOutOfStock || includesField("isOutofStock", fields, isDefault = true)) {
         //Artificial property calculated from storage
-        product.isOutOfStock = skus collectFirst {
-          case sku: Sku if sku.stockLevel.getOrElse(0) == 0 =>
-            if(hasProductOutOfStock && !hasStockLevel) {
-              sku.stockLevel = None
-            }
-
-            true
+        product.isOutOfStock = product.availabilityStatus match {
+          case Some(status) => Some(status == Availability.OutOfStock)
+          case None => None
         }
 
         //Clean up product data if skus weren't requested originally
         val skuFields = fields collectFirst {
-          case field: String if field.startsWith("skus.") => true
+          case field: String if isAvailabilityFieldIn(field) => true
         }
 
         if(hasProductOutOfStock && !skuFields.getOrElse(false)) {
@@ -235,6 +268,10 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     }
     
     setToos(product, fields)
+    if (includesField("availabilityStatus", fields, isDefault = false)) {
+      product.populateAvailabilityStatus()
+    }
+    product
   }
 
   /**
@@ -259,7 +296,27 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       sku.salePrice = country.salePrice
       sku.discountPercent = country.discountPercent
       sku.url = country.url
-      sku.stockLevel = country.stockLevel
+      sku.availability = country.availability
+
+      if (sku.availability.isEmpty) {
+        // support backward compatibility
+        if (sku.availableDate.isDefined || country.stockLevel.isDefined) {
+          val skuStatus = country.stockLevel match {
+            case Some(0) | Some(Availability.InfiniteStock) => country.allowBackorder match {
+              case Some(allowed) => Some(if (allowed) Availability.Backorderable else Availability.OutOfStock)
+              case None => None
+            }
+            case Some(_) => Some(Availability.InStock)
+            case None => None
+          }
+          sku.availability = Some(new Availability(
+            status = skuStatus,
+            stockLevel = country.stockLevel,
+            date = sku.availableDate
+          ))
+          sku.availableDate = None
+        }
+      }
     }
     sku.countries = None
     filteredCountries != null && filteredCountries.size > 0
@@ -297,7 +354,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
             if(f == "isOutofStock") {
               includeSkus = true
-              projection.append("skus.countries.stockLevel:1,")
+              projection.append("skus.countries.availability.status:1,")
             }
             else {
               projection.append(f).append(":1,")

@@ -89,8 +89,8 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val categoryB = new Category(Some("rootCategory"), Some(expectedName), None, None, None, Some(Seq("catalogB")), None, None, None)
-        val categoryA = new Category(Some(expectedId), Some(expectedName), None, None, None, Some(Seq("catalogA")), None, Some(Seq(categoryB)), None)
+        val categoryB = new Category(id = Some("rootCategory"), name = Some(expectedName), sites = Some(Seq("siteB")))
+        val categoryA = new Category(id = Some(expectedId), name = Some(expectedName), sites = Some(Seq("siteA")), parentCategories = Some(Seq(categoryB)))
 
         namedList.get("doc") returns doc
         doc.get("id") returns expectedId
@@ -124,8 +124,8 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val categoryA = new Category(Some(expectedId), Some(expectedName), None, None, None, Some(Seq("catalogA")), None, Some(Seq(new Category(Some("rootCategory"), None, None, None, None, None, None, None, None))), None)
-        val categoryB = new Category(Some("rootCategory"), None, None, None, None, Some(Seq("catalogA")), None, None, Some(Seq(new Category(Some(expectedId), None, None, None, None, None, None, None, None))))
+        val categoryA = new Category(id = Some(expectedId), name = Some(expectedName), sites = Some(Seq("siteA")), parentCategories = Some(Seq(new Category(id = Some("rootCategory")))))
+        val categoryB = new Category(id = Some("rootCategory"), sites = Some(Seq("siteA")), childCategories = Some(Seq(new Category(id = Some(expectedId)))))
 
         namedList.get("doc") returns doc
         doc.get("id") returns expectedId
@@ -142,7 +142,7 @@ class CategoryControllerSpec extends BaseSpec {
 
         storage.findAllCategories(any) returns Future.successful(Seq(categoryA, categoryB))
 
-        val result = route(FakeRequest(GET, routes.CategoryController.findBySite("catalogA").url))
+        val result = route(FakeRequest(GET, routes.CategoryController.findBySite("siteA").url))
         validateQueryResult(result.get, OK, "application/json")
 
         val json = Json.parse(contentAsString(result.get))

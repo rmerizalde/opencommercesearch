@@ -43,7 +43,7 @@ public class SearchResponse extends DefaultResponse {
         this.metadata = metadata;
     }
 
-    public DefaultProduct[] getProducts() {
+    public Product[] getProducts() {
         if (!boundSummaries) {
             bindSummaries();
         }

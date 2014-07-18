@@ -1,4 +1,4 @@
-package org.opencommercesearch.model;
+package org.opencommercesearch.api
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,36 +19,18 @@ package org.opencommercesearch.model;
 * under the License.
 */
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.util.ISO8601Utils
+import play.api.libs.json.{JsString, JsValue, Writes, Reads}
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
-public class Image {
-    @JsonProperty
-    private String title;
+/**
+ * API implicts
+ *
+ * @author rmerizalde
+ */
+object Implicits {
+  implicit val dateReads = Reads.IsoDateReads
 
-    @JsonProperty
-    private String url;
-
-    public Image(String title, String url) {
-        this.title = title;
-        this.url = url;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
+  implicit object ISO8601DateWrites extends Writes[java.util.Date] {
+    def writes(d: java.util.Date): JsValue = JsString(ISO8601Utils.format(d))
+  }
 }

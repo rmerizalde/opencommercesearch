@@ -19,14 +19,17 @@ package org.opencommercesearch.client;
 * under the License.
 */
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opencommercesearch.client.impl.*;
 import org.opencommercesearch.client.request.*;
 import org.opencommercesearch.client.request.Request;
+import org.opencommercesearch.client.response.BrowseResponse;
 import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.DefaultResponse;
 import org.opencommercesearch.client.response.SearchResponse;
@@ -37,17 +40,12 @@ import org.restlet.*;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.StreamRepresentation;
+import org.restlet.representation.StringRepresentation;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
@@ -217,7 +215,7 @@ public class ProductApiTest {
         request.addField("*");
         request.setBrandId("00");
         request.setCategoryId("cat00");
-        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browse", BrowseBrandCategoryRequest.class));
+        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browse", BrowseBrandCategoryRequest.class), BrowseResponse.class);
     }
 
     @Test
@@ -227,7 +225,7 @@ public class ProductApiTest {
         request.setSite("bcs");
         request.addField("*");
         request.setBrandId("00");
-        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browseByBrand", BrowseBrandRequest.class));
+        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browseByBrand", BrowseBrandRequest.class), BrowseResponse.class);
     }
 
     @Test
@@ -237,7 +235,7 @@ public class ProductApiTest {
         request.setSite("bcs");
         request.addField("*");
         request.setCategoryId("cat00");
-        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browseByCategory", BrowseCategoryRequest.class));
+        doTestSearchAndBrowse(request, ProductApi.class.getMethod("browseByCategory", BrowseCategoryRequest.class), BrowseResponse.class);
     }
 
     @Test
@@ -246,7 +244,7 @@ public class ProductApiTest {
         searchRequest.setQuery("jackets");
         searchRequest.setSite("bcs");
         searchRequest.addField("*");
-        doTestSearchAndBrowse(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class));
+        doTestSearchAndBrowse(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class), SearchResponse.class);
     }
 
     @Test
@@ -273,20 +271,22 @@ public class ProductApiTest {
         doTestCategory(request, ProductApi.class.getMethod("findBrandCategories", BrandCategoryRequest.class));
     }
         
-    public Object callMethod(Request request, Method method, String dataFile) throws IOException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
+    public <T> Object callMethod(Request request, Method method, Class<T> clazz, String dataFile) throws IOException, IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         ProductApi productApi = new ProductApi();
         productApi.setClient(client);
         productApi.setPreview(true);
         
         org.restlet.Response clientResponse = new org.restlet.Response(new org.restlet.Request());
-        clientResponse.setEntity(new FileStreamRepresentation(dataFile, MediaType.APPLICATION_JSON));
+        ObjectMapper mapper = productApi.getMapper();
+        Object response = mapper.readValue(new FileStreamRepresentation(dataFile, MediaType.APPLICATION_JSON).getStream(), clazz);
+        clientResponse.setEntity(new StringRepresentation(mapper.writeValueAsString(response), MediaType.APPLICATION_JSON));
         
         when(client.handle(any(org.restlet.Request.class))).thenReturn(clientResponse);
         return method.invoke(productApi, request);
     }
     
     public void doTestCategory(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
-        CategoryResponse response = (CategoryResponse) callMethod(request, method, CATEGORY_RESPONSE_JSON);
+        CategoryResponse response = (CategoryResponse) callMethod(request, method, CategoryResponse.class, CATEGORY_RESPONSE_JSON);
         
         Metadata metadata = response.getMetadata();
         Category[] categories = response.getCategories();
@@ -302,8 +302,8 @@ public class ProductApiTest {
         
     }
     
-    public void doTestSearchAndBrowse(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
-        SearchResponse response = (SearchResponse) callMethod(request, method, SEARCH_RESPONSE_JSON);
+    public <T> void doTestSearchAndBrowse(Request request, Method method, Class<T> clazz) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+        SearchResponse response = (SearchResponse) callMethod(request, method, clazz, SEARCH_RESPONSE_JSON);
 
         Metadata metadata = response.getMetadata();
         Product[] products = response.getProducts();
@@ -352,6 +352,7 @@ public class ProductApiTest {
 
         //Check some facet filters
         List<Facet.Filter> filters = facets[0].getFilters();
+
         assertEquals(9, filters.size());
         assertEquals("1.bcs.Men's Clothing", filters.get(0).getName());
         assertEquals(5086, filters.get(0).getCount());
@@ -382,9 +383,9 @@ public class ProductApiTest {
         assertEquals("<p>Dont let a little sprinkle stop your ride. Just pull on the Castelli Goccia Rain Jacket and get after it. Waterproof, breathable Torrent fabric keeps you dry while a back vent helps the heat escape. Reflective Castelli graphics make you more visible when riding in traffic.</p>", firstProduct.getDescription());
         assertEquals("Dont let a little sprinkle stop your ride. Just pull on the Castelli Mens Goccia Rain Jacket and get after it.", firstProduct.getShortDescription());
         assertEquals("557", firstProduct.getSizingChart());
-        assertEquals(1, firstProduct.getListRank());
+        assertEquals(Integer.valueOf(1), firstProduct.getListRank());
         assertFalse(firstProduct.isOutOfStock());
-        assertEquals("1969-12-31T18:00:00Z", firstProduct.getActivationDate());
+        assertEquals("1969-12-31T18:00:00Z", new ISO8601DateFormat().format(firstProduct.getActivationDate()));
         assertFalse(firstProduct.isPackage());
 
         validateFeatures(firstProduct.getFeatures());
@@ -451,8 +452,9 @@ public class ProductApiTest {
         assertTrue(sku1.isOutlet());
         assertEquals(119.95, sku1.getListPrice(), 0.001);
         assertEquals(49.95, sku1.getSalePrice(), 0.001);
-        assertEquals(58, sku1.getDiscountPercent());
-        assertEquals(14, sku1.getStockLevel());
+        assertEquals(Integer.valueOf(58), sku1.getDiscountPercent());
+        assertEquals(Long.valueOf(14), sku1.getAvailability().getStockLevel());
+        assertEquals(Availability.Status.InStock, sku1.getAvailability().getStatus());
         assertEquals("/Store/catalog/productLanding.jsp?productId=CST0180", sku1.getUrl());
         assertFalse(sku1.isAllowBackorder());
 

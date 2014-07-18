@@ -29,6 +29,13 @@ public class Size {
   private String name;
   private String scale;
 
+  public Size() {}
+
+  public Size(String name, String scale) {
+    this.name = name;
+    this.scale = scale;
+  }
+
   public String getName() {
     return name;
   }

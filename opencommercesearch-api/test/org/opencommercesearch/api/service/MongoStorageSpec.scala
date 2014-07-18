@@ -1,26 +1,26 @@
 package org.opencommercesearch.api.service
 
-import play.api.test.Helpers._
-import play.api.test.FakeApplication
-import org.specs2.mutable.Specification
-import org.specs2.mock.Mockito
-import com.mongodb.MongoClient
-import org.opencommercesearch.common.Context
 import play.api.i18n.Lang
+import play.api.test.FakeApplication
+import play.api.test.Helpers._
+
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
+
+import java.util.Date
+
+import org.opencommercesearch.api.models._
+import org.opencommercesearch.common.Context
+
 import org.jongo.Jongo
 import org.jongo.marshall.jackson.JacksonMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.opencommercesearch.api.models.Brand
-import scala.concurrent.{ExecutionContext, Future, Await}
-import scala.concurrent.duration.Duration
 import org.junit.runner.RunWith
+import org.specs2.mock.Mockito
+import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.github.fakemongo.Fongo
-import org.opencommercesearch.api.models.Category
-import org.opencommercesearch.api.models.Sku
-import org.opencommercesearch.api.models.Country
-import org.opencommercesearch.api.models.Product
-import java.util.Date
 
 @RunWith(classOf[JUnitRunner])
 class MongoStorageSpec extends Specification with Mockito  {
@@ -32,12 +32,9 @@ class MongoStorageSpec extends Specification with Mockito  {
   
   private def setup() : Unit = {
     fongo = new Fongo("Mocked Mongo server")
-    storage = new MongoStorage(fongo.getMongo())
-	val jongo = new Jongo(fongo.getMongo().getDB("testdb"), new JacksonMapper.Builder().registerModule(new DefaultScalaModule).build())
+    storage = new MongoStorage(fongo.getMongo)
+	val jongo = new Jongo(fongo.getMongo.getDB("testdb"), new JacksonMapper.Builder().registerModule(new DefaultScalaModule).build())
 	storage.setJongo(jongo)
-  }
-  
-  private def tearDown(): Unit = {
   }
 
    "MongoStorage" should {
@@ -46,7 +43,7 @@ class MongoStorageSpec extends Specification with Mockito  {
     "save a brand and then find it" in {
      running(FakeApplication()) {
 	     
-	     implicit val context = Context(true, lang)
+	     implicit val context = Context(preview = true, lang)
 	     
 	     val sites = Some(Seq("1"))
 	     val brand = new Brand(Some("id"), Some("name"), Some("logo"), Some("url"), sites) 
@@ -66,9 +63,8 @@ class MongoStorageSpec extends Specification with Mockito  {
     "save a category and then find it" in {
      running(FakeApplication()) {
 	     
-	     implicit val context = Context(true, lang)
-	     
-	     val sites = Some(Seq("1"))
+	     implicit val context = Context(preview = true, lang)
+
 	     val category = new Category(Some("id"),Some("name"),Some("urlToken"),Some(false),
 	    		 					 Some(Seq()),Some(Seq("site1")),Some(Seq("token1")), Some(Seq()),Some(Seq())) 
 	     Await.result(storage.saveCategory(category), Duration.Inf)
@@ -89,7 +85,7 @@ class MongoStorageSpec extends Specification with Mockito  {
     "find a toos product toos in the US and a stock product in CA" in {
      running(FakeApplication()) {
 	     
-	     implicit val context = Context(true, lang)
+	     implicit val context = Context(preview = true, lang)
 	     
 	     val sites = Some(Seq("1"))
 	     
@@ -98,33 +94,34 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     val category = new Category(Some("id"),Some("name"),Some("urlToken"),Some(false),
 	    		 					 Some(Seq()),Some(Seq("site1")),Some(Seq("token1")), Some(Seq()),Some(Seq()))
 	     
-	     val usCountry = new Country(Some("US"), None, None, None, None, Some(0), Some("url"), Some(false))
-       val caCountry = new Country(Some("CA"), None, None, None, None, Some(0), Some("url"), Some(false))
+	     val usCountry = new Country(code = Some("US"), url = Some("url"), availability = Some(new Availability(status = Some(Availability.OutOfStock), stockLevel = Some(0), backorderLevel = Some(0))))
+       val caCountry = new Country(code = Some("CA"), url = Some("url"), availability = Some(new Availability(status = Some(Availability.InStock), stockLevel = Some(2), backorderLevel = Some(0))))
 
 	     val sku = new Sku(
-	    		 Some("id"), Some("season"), Some("year"), None, Some(Seq(usCountry)), Some(false), None,
-	    		 Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
-	    		 None, None, None, Some(false), Some(0), Some("url"), Some(true), None)
+	    	 id = Some("id1"), season = Some("season"), year = Some("year"), countries = Some(Seq(usCountry)), isPastSeason = Some(false),
+	       title = Some("title"), isRetail = Some(true), isCloseout = Some(false), isOutlet = Some(false), catalogs = Some(Seq("bcs")),
+         onSale = Some(false), availability = usCountry.availability, url = Some("url"), allowBackorder = Some(false))
 
        val skuInStock = new Sku(
-         Some("id"), Some("season"), Some("year"), None, Some(Seq(caCountry)), Some(false), None,
-         Some("title"), Some(true), Some(false), Some(false), None, Some(Seq("bcs")),
-         None, None, None, Some(false), Some(10), Some("url"), Some(true),None)
+         id = Some("id"), season = Some("season"), year = Some("year"), countries = Some(Seq(caCountry)), isPastSeason = Some(false),
+         title = Some("title"), isRetail = Some(true), isCloseout = Some(false), isOutlet = Some(false), catalogs = Some(Seq("bcs")),
+         onSale = Some(false), availability = caCountry.availability, url = Some("url"), allowBackorder = Some(true))
 
 	     val productToos = new Product(
-	        Some("id"), Some("title"), Some("description"), Some("shortDesc"), Some(brand), Some("gender"),
-			    Some("sizeChart"), None, None, None, None, Some(1), None, None,
-			    Some(true), Some(Seq(category)), Some(Seq(sku, skuInStock)), Some(new Date()), Some(false), None)
+	       id = Some("id"), title = Some("title"), description = Some("description"), shortDescription = Some("shortDesc"), brand = Some(brand), gender = Some("gender"),
+         sizingChart = Some("sizeChart"), listRank = Some(1), isOutOfStock = Some(true), availabilityStatus = Some(Availability.InStock),
+         categories = Some(Seq(category)), skus = Some(Seq(sku, skuInStock)), activationDate = Some(new Date()), isPackage = Some(false))
 
 	     Await.result(storage.saveCategory(category), Duration.Inf)
 	     Await.result(storage.saveBrand(brand), Duration.Inf)
 	     Await.result(storage.saveProduct(productToos), Duration.Inf)
 
-	     val response: Future[Iterable[Product]] = storage.findProducts(Seq(("id",null)), null, lang.country, Seq("*"), false)
+	     val response: Future[Iterable[Product]] = storage.findProducts(Seq(("id",null)), null, lang.country, Seq("*"), minimumFields = false)
 	     val savedProdIterable = Await.result(response, Duration.Inf)
 	     
 	     val headProduct = savedProdIterable.head
 	     headProduct.getId must beEqualTo("id")
+       println(headProduct.skus)
 	     headProduct.isOutOfStock.getOrElse(false) must beEqualTo(true)
 	     
 	     savedProdIterable.size must beEqualTo(1)

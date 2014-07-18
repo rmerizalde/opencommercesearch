@@ -19,9 +19,11 @@ package org.opencommercesearch.client;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.request.*;
 import org.opencommercesearch.client.request.Request;
@@ -105,6 +107,11 @@ public class ProductApi {
   private Client client;
 
   /**
+   * JSON object mapper
+   */
+  private ObjectMapper mapper;
+
+  /**
    * Creates a new ProductApi instance with properties existing in the class path. If no properties are found, an exception is thrown.
    *
    * @throws IOException if no properties are found in the class path.
@@ -113,6 +120,7 @@ public class ProductApi {
     this.configProperties = loadProperties();
 
     initProperties();
+    initMapper();
   }
 
   /**
@@ -124,6 +132,7 @@ public class ProductApi {
     this.configProperties = properties;
 
     initProperties();
+    initMapper();
   }
 
   /**
@@ -145,6 +154,16 @@ public class ProductApi {
     if (configProperties.getProperty("maxRetries") != null) {
       setMaxRetries(Integer.parseInt(configProperties.getProperty("maxRetries")));
     }
+  }
+
+  private void initMapper() {
+    mapper = new ObjectMapper()
+      .setDateFormat(new ISO8601DateFormat())
+      .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+  }
+
+  protected ObjectMapper getMapper() {
+    return mapper;
   }
 
   /**
@@ -366,7 +385,6 @@ public class ProductApi {
    * @return An API response that matches the given HTTP data.
    */
   private <T extends Response> Response unmarshall(org.restlet.Response response, Class<T> clazz) throws IOException {
-    ObjectMapper mapper = new ObjectMapper(); //TODO: should this be stored?
     return mapper.readValue(response.getEntity().getStream(), clazz);
   }
 

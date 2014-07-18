@@ -51,12 +51,16 @@ trait FieldList {
    */
   def fieldList[R](allowStar : Boolean = false, fieldsFieldName: String = "fields")(implicit request: Request[R]) : Seq[String] = {
     val fields = request.getQueryString(fieldsFieldName)
+    var fieldsStr = fields.getOrElse(StringUtils.EMPTY)
     var fieldSeparators = ","
 
     if(!allowStar) {
       fieldSeparators += "*"
+    } else {
+      // support field format like skus.* or skus.availability.*
+      fieldsStr = StringUtils.remove(fieldsStr, ".*")
     }
 
-    StringUtils.split(fields.getOrElse(StringUtils.EMPTY), fieldSeparators)
+    StringUtils.split(fieldsStr, fieldSeparators)
   }
 }

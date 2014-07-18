@@ -19,29 +19,33 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 public class Sku {
   private String id;
   private String title;
   private Image image;
-  private boolean isPastSeason;
-  private boolean isRetail;
-  private boolean isCloseout;
-  private boolean isOutlet;
-  private double listPrice;
-  private double salePrice;
-  private int discountPercent;
+  private Boolean isPastSeason;
+  private Boolean isRetail;
+  private Boolean isCloseout;
+  private Boolean isOutlet;
+  private Double listPrice;
+  private Double salePrice;
+  private Integer discountPercent;
   private String url;
-  private int stockLevel;
-  private boolean allowBackorder;
+  private Boolean allowBackorder;
   private Size size;
   private Color color;
   private Set<String> catalogs;
   private String year;
   private String season;
-  private Date availableDate;
+  private Availability availability;
+  private Set<Country> countries;
 
   public String getId() {
       return id;
@@ -59,11 +63,11 @@ public class Sku {
       this.title = title;
   }
 
-  public int getDiscountPercent() {
+  public Integer getDiscountPercent() {
       return discountPercent;
   }
 
-  public void setDiscountPercent(int discountPercent) {
+  public void setDiscountPercent(Integer discountPercent) {
       this.discountPercent = discountPercent;
   }
 
@@ -75,51 +79,91 @@ public class Sku {
       this.image = image;
   }
 
-  public boolean isPastSeason() {
+  @JsonProperty("isPastSeason")
+  public Boolean isPastSeason() {
       return isPastSeason;
   }
 
-  public void setIsPastSeason(boolean isPastSeason) {
+    /**
+     * @deprecated As of release 0.5.0, replace by {@link #setPastSeason}
+     * @param isPastSeason
+     */
+  @JsonIgnore
+  public void setIsPastSeason(Boolean isPastSeason) {
       this.isPastSeason = isPastSeason;
   }
 
-  public boolean isRetail() {
+  public void setPastSeason(Boolean isPastSeason) {
+          this.isPastSeason = isPastSeason;
+      }
+
+  @JsonProperty("isRetail")
+  public Boolean isRetail() {
       return isRetail;
   }
 
-  public void setIsRetail(boolean isRetail) {
+  /**
+   * @deprecated As of release 0.5.0, replace by {@link #setRetail}
+   * @param isRetail
+   */
+  @JsonIgnore
+  public void setIsRetail(Boolean isRetail) {
       this.isRetail = isRetail;
   }
 
-  public boolean isCloseout() {
+  public void setRetail(Boolean isRetail) {
+          this.isRetail = isRetail;
+      }
+
+  @JsonProperty("isCloseout")
+  public Boolean isCloseout() {
       return isCloseout;
   }
 
-  public void setIsCloseout(boolean isCloseout) {
+  /**
+   * @deprecated As of release 0.5.0, replace by {@link #setCloseout}
+   * @param isCloseout
+   */
+  @JsonIgnore
+  public void setIsCloseout(Boolean isCloseout) {
       this.isCloseout = isCloseout;
   }
 
-  public boolean isOutlet() {
+  public void setCloseout(Boolean isCloseout) {
+      this.isCloseout = isCloseout;
+  }
+
+  @JsonProperty("isOutlet")
+  public Boolean isOutlet() {
       return isOutlet;
   }
 
-  public void setIsOutlet(boolean isOutlet) {
+  /**
+   * @deprecated As of release 0.5.0, replace by {@link #setOutlet}
+   * @param isOutlet
+   */
+  @JsonIgnore
+  public void setIsOutlet(Boolean isOutlet) {
       this.isOutlet = isOutlet;
   }
 
-  public double getSalePrice() {
+  public void setOutlet(Boolean isOutlet) {
+      this.isOutlet = isOutlet;
+  }
+
+  public Double getSalePrice() {
       return salePrice;
   }
 
-  public void setSalePrice(double salePrice) {
+  public void setSalePrice(Double salePrice) {
       this.salePrice = salePrice;
   }
 
-  public double getListPrice() {
+  public Double getListPrice() {
       return listPrice;
   }
 
-  public void setListPrice(double listPrice) {
+  public void setListPrice(Double listPrice) {
       this.listPrice = listPrice;
   }
 
@@ -131,15 +175,7 @@ public class Sku {
       this.url = url;
   }
 
-  public int getStockLevel() {
-      return stockLevel;
-  }
-
-  public void setStockLevel(int stockLevel) {
-      this.stockLevel = stockLevel;
-  }
-
-  public boolean isAllowBackorder() {
+  public Boolean isAllowBackorder() {
       return allowBackorder;
   }
 
@@ -167,6 +203,13 @@ public class Sku {
 
   public void setCatalogs(Set<String> catalogs) { this.catalogs = catalogs; }
 
+  public void addCatalog(String catalog) {
+    if (catalogs == null) {
+      catalogs = new HashSet<String>();
+    }
+    catalogs.add(catalog);
+  }
+
   public String getYear() {
     return year;
   }
@@ -183,7 +226,18 @@ public class Sku {
     this.season = season;
   }
 
-  public Date getAvailableDate() { return availableDate; }
+  public Availability getAvailability() { return availability; }
 
-  public void setAvailableDate(Date availableDate) { this.availableDate = availableDate; }
+  public void setAvailability(Availability availability) { this.availability = availability; }
+
+  public Set<Country> getCountries() { return this.countries; }
+
+  public void setCountries(Set<Country> countries) { this.countries = countries; }
+
+  public void addCountry(Country country) {
+    if (countries == null) {
+        countries = new HashSet<Country>();
+    }
+    countries.add(country);
+  }
 }

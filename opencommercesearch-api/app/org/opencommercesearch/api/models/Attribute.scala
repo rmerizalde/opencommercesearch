@@ -22,13 +22,13 @@ import com.fasterxml.jackson.annotation.JsonCreator
 * under the License.
 */
 
-case class Attribute(var name: Option[String], var value: Option[String]) {
+case class Attribute(var name: Option[String] = None, var value: Option[String] = None) {
 }
 
 object Attribute {
 
   @JsonCreator
-  def getInstance() = new Attribute(None, None)
+  def getInstance() = new Attribute()
 
   implicit val readsAttribute = Json.reads[Attribute]
   implicit val writesAttribute = Json.writes[Attribute]

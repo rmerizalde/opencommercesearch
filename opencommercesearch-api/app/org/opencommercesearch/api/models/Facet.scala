@@ -50,31 +50,28 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @param blackList Black list of facet filters that should be ignored. For example, if your facet is person, you may want to exclude "user" from the filter list since is too common.
  */
 case class Facet(
-  @Id var id: Option[String],
-
+  @Id var id: Option[String] = None,
   //Using both JsonIgnore and JsonProperty to convert Json to Facet properly but when converting from Facet to Json only write ID and Blacklist.
-  @JsonIgnore @JsonProperty("name") var name: Option[String],
-  @JsonIgnore @JsonProperty("type") var `type`: Option[String],
-  @JsonIgnore @JsonProperty("uiType") var uiType: Option[String],
-  @JsonIgnore @JsonProperty("isMultiSelect") var isMultiSelect: Option[Boolean],
-  @JsonIgnore @JsonProperty("fieldName") var fieldName: Option[String],
-  @JsonIgnore @JsonProperty("minBuckets") var minBuckets: Option[Int],
-  @JsonIgnore @JsonProperty("isMixedSorting") var isMixedSorting: Option[Boolean],
-  @JsonIgnore @JsonProperty("minCount") var minCount: Option[Int],
-  @JsonIgnore @JsonProperty("sort") var sort: Option[String],
-  @JsonIgnore @JsonProperty("isMissing") var isMissing: Option[Boolean],
-  @JsonIgnore @JsonProperty("limit") var limit: Option[Int],
-  @JsonIgnore @JsonProperty("start") var start: Option[String],
-  @JsonIgnore @JsonProperty("end") var end: Option[String],
-  @JsonIgnore @JsonProperty("gap") var gap: Option[String],
-  @JsonIgnore @JsonProperty("isHardened") var isHardened: Option[Boolean],
-  @JsonIgnore @JsonProperty("queries") var queries: Option[Array[String]],
-  @JsonProperty("blackList") var blackList: Option[Seq[String]],
-  @JsonIgnore @JsonProperty("filters")  var filters: Option[Seq[Filter]]) {
+  @JsonIgnore @JsonProperty("name") var name: Option[String] = None,
+  @JsonIgnore @JsonProperty("type") var `type`: Option[String] = None,
+  @JsonIgnore @JsonProperty("uiType") var uiType: Option[String] = None,
+  @JsonIgnore @JsonProperty("isMultiSelect") var isMultiSelect: Option[Boolean] = None,
+  @JsonIgnore @JsonProperty("fieldName") var fieldName: Option[String] = None,
+  @JsonIgnore @JsonProperty("minBuckets") var minBuckets: Option[Int] = None,
+  @JsonIgnore @JsonProperty("isMixedSorting") var isMixedSorting: Option[Boolean] = None,
+  @JsonIgnore @JsonProperty("minCount") var minCount: Option[Int] = None,
+  @JsonIgnore @JsonProperty("sort") var sort: Option[String] = None,
+  @JsonIgnore @JsonProperty("isMissing") var isMissing: Option[Boolean] = None,
+  @JsonIgnore @JsonProperty("limit") var limit: Option[Int] = None,
+  @JsonIgnore @JsonProperty("start") var start: Option[String] = None,
+  @JsonIgnore @JsonProperty("end") var end: Option[String] = None,
+  @JsonIgnore @JsonProperty("gap") var gap: Option[String] = None,
+  @JsonIgnore @JsonProperty("isHardened") var isHardened: Option[Boolean] = None,
+  @JsonIgnore @JsonProperty("queries") var queries: Option[Array[String]] = None,
+  @JsonProperty("blackList") var blackList: Option[Seq[String]] = None,
+  @JsonIgnore @JsonProperty("filters")  var filters: Option[Seq[Filter]] = None) {
 
-
-  // @todo (jmendez) fix this avoid using the Solr binder
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(id = None)
 
   def getId : String = { id.get }
 
@@ -187,7 +184,7 @@ object Facet {
   val IsMissing = "isMissing"
   val Limit = "limit"
 
-  def getInstance() = new Facet(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def getInstance() = new Facet()
 
   def fromDefinition(facetDefinition: NamedList[String]): Facet = {
     val minBuckets = facetDefinition.get(MinBuckets)

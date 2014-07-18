@@ -31,7 +31,11 @@ import org.opencommercesearch.client.ProductApi;
  */
 public class SearchRequest extends BaseRequest {
 
-  
+  public SearchRequest() {}
+
+  public SearchRequest(String query) {
+    setQuery(query);
+  }
 
   public void setQuery(String query) {
     setParam("q", query);

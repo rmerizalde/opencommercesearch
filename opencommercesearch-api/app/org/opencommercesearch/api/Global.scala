@@ -19,21 +19,24 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.{Play, Logger, Application}
+import play.api.{Application, Logger, Play}
 import play.api.libs.json.Json
-import play.filters.gzip.GzipFilter
-import play.api.mvc.{WithFilters, RequestHeader}
+import play.api.mvc.{RequestHeader, WithFilters}
 import play.api.mvc.Results._
+import play.filters.gzip.GzipFilter
 import play.modules.statsd.api.StatsdFilter
 
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
+
+import org.opencommercesearch.api.models.Availability._
+import org.opencommercesearch.api.service.MongoStorageFactory
+import org.opencommercesearch.api.util.{BigDecimalConverter, CountryConverter}
 
 import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
-import org.opencommercesearch.api.service.MongoStorageFactory
-import org.opencommercesearch.api.util.{CountryConverter, BigDecimalConverter}
-import com.wordnik.swagger.converter.ModelConverters
 
+import com.wordnik.swagger.converter.ModelConverters
 
 object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLog) {
   lazy val RealTimeRequestHandler = getConfig("realtimeRequestHandler", "/get")
@@ -55,7 +58,8 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
   lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
-  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", true)
+  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = true)
+  lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
@@ -83,8 +87,8 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   def storageFactory_=(storageFactory: MongoStorageFactory) = { _storageFactory = storageFactory }
 
   override def beforeStart(app: Application): Unit = {
-    ModelConverters.addConverter(new BigDecimalConverter(), true)
-    ModelConverters.addConverter(new CountryConverter(), true)
+    ModelConverters.addConverter(new BigDecimalConverter(), first = true)
+    ModelConverters.addConverter(new CountryConverter(), first = true)
   }
 
   override def onStart(app: Application) {
@@ -99,10 +103,9 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   override def onError(request: RequestHeader, ex: Throwable) = {
     Future.successful(ex.getCause match {
    	  case e:IllegalArgumentException => BadRequest(e.getMessage)
-   	  case other => {
+   	  case other =>
         Logger.error("Unexpected error",  other)
         InternalServerError(other.getMessage)
-      }
    	})
   }
 
@@ -127,7 +130,16 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   
   def getConfig(name: String, default: Boolean) = {
     Play.current.configuration.getBoolean(name).getOrElse(default)
-  }  
+  }
+
+  def availabilityStatusSummaryConfig = {
+    val summary = Play.current.configuration.getStringList("product.availability.status.summary").getOrElse(
+      java.util.Arrays.asList(InStock, Backorderable, Preorderable, OutOfStock, PermanentlyOutOfStock)
+    )
+
+    val order = 1 to summary.size
+    Map(summary.zip(order):_*) withDefaultValue Int.MaxValue
+  }
 }
 
 

@@ -20,11 +20,15 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import play.api.Logger
 import play.api.libs.json._
 
 import java.util
 import java.util.Date
 
+import org.opencommercesearch.api.Global.{IndexOemProductsEnabled, ProductAvailabilityStatusSummary}
+import org.opencommercesearch.api.Implicits._
+import org.opencommercesearch.api.models.ProductList._
 import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.IndexableElement
@@ -34,13 +38,11 @@ import org.apache.solr.common.SolrInputDocument
 
 import org.jongo.marshall.jackson.oid.Id
 
-import ProductList._
-import play.api.Logger
-import org.opencommercesearch.api.Global.IndexOemProductsEnabled
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
 
 object Product {
-  def getInstance() =  new Product(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  @JsonCreator
+  def getInstance() =  new Product()
 
   implicit val readsProduct = Json.reads[Product]
   implicit val writesProduct = Json.writes[Product]
@@ -48,26 +50,28 @@ object Product {
 
 
 case class Product (
-  @Id var id: Option[String],
-  @JsonProperty("title") var title: Option[String],
-  @JsonProperty("description") var description: Option[String],
-  @JsonProperty("shortDescription") var shortDescription: Option[String],
-  @JsonProperty("brand") var brand: Option[Brand],
-  @JsonProperty("gender") var gender: Option[String],
-  @JsonProperty("sizingChart") var sizingChart: Option[String],
-  @JsonProperty("detailImages") var detailImages: Option[Seq[Image]],
-  @JsonProperty("bulletPoints") var bulletPoints: Option[Seq[String]],
-  @JsonProperty("attributes") var attributes: Option[Seq[Attribute]],
-  @JsonProperty("features") var features: Option[Seq[Attribute]],
-  @JsonProperty("listRank") var listRank: Option[Int],
-  @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview],
-  @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]],
-  @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean],
-  @JsonProperty("categories") var categories: Option[Seq[Category]],
-  @JsonProperty("skus") var skus: Option[Seq[Sku]],
-  @JsonProperty("activationDate") var activationDate: Option[Date],
-  @JsonProperty("isPackage") var isPackage: Option[Boolean],
-  @JsonProperty("isOem") var isOem: Option[Boolean]) extends IndexableElement
+  @Id var id: Option[String] = None,
+  @JsonProperty("title") var title: Option[String] = None,
+  @JsonProperty("description") var description: Option[String] = None,
+  @JsonProperty("shortDescription") var shortDescription: Option[String] = None,
+  @JsonProperty("brand") var brand: Option[Brand] = None,
+  @JsonProperty("gender") var gender: Option[String] = None,
+  @JsonProperty("sizingChart") var sizingChart: Option[String] = None,
+  @JsonProperty("detailImages") var detailImages: Option[Seq[Image]] = None,
+  @JsonProperty("bulletPoints") var bulletPoints: Option[Seq[String]] = None,
+  @JsonProperty("attributes") var attributes: Option[Seq[Attribute]] = None,
+  @JsonProperty("features") var features: Option[Seq[Attribute]] = None,
+  @JsonProperty("listRank") var listRank: Option[Int] = None,
+  @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview] = None,
+  @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]] = None,
+  @deprecated(message = "Use availabilityStatus", since = "0.5.0")
+  @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean] = None,
+  @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
+  @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
+  @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,
+  @JsonProperty("activationDate") var activationDate: Option[Date] = None,
+  @JsonProperty("isPackage") var isPackage: Option[Boolean] = None,
+  @JsonProperty("isOem") var isOem: Option[Boolean] = None) extends IndexableElement
 {
   def getId : String = { this.id.get }
 
@@ -90,6 +94,19 @@ case class Product (
         accum ++ iterable.catalogs.getOrElse(Seq.empty[String])
     }.toSeq
   }
+
+  def populateAvailabilityStatus() = {
+    val order = ProductAvailabilityStatusSummary
+
+    skus match {
+      case Some(s) =>
+        val sku = s.sortWith((a,b) => order(a.availabilityStatus.orNull) < order(b.availabilityStatus.orNull) ).head
+        availabilityStatus = sku.availabilityStatus
+      case None => availabilityStatus = None
+    }
+  }
+
+  populateAvailabilityStatus()
 }
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
@@ -163,20 +180,18 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 for (code <- country.code) {
                   doc.addField("country", code)
 
-                  var allowBackorder = false
-                  for (ab <- country.allowBackorder) {
-                    allowBackorder = ab
-                    doc.setField("allowBackorder" + code, ab)
-                  }
-
                   for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
 
                   for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
                   for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
                   for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
-                  for (stockLevel <- country.stockLevel) {
-                    doc.setField("stockLevel" + code, stockLevel)
-                    doc.setField("isToos", stockLevel == 0 && !allowBackorder)
+
+                  for (availability <- country.availability) {
+                    for (status <- availability.status; stockLevel <- availability.stockLevel) {
+                      doc.setField("stockLevel" + code, stockLevel)
+                      doc.setField("isToos", status == Availability.OutOfStock)
+                    }
+                    doc.setField("allowBackorder" + code,  country.isBackorderable.getOrElse(false))
                   }
                   for (url <- country.url) { doc.setField("url" + code, url) }
                 }

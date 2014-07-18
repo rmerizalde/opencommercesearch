@@ -1,26 +1,23 @@
 package org.opencommercesearch.api.common
 
-import org.specs2.mutable.Specification
-import org.specs2.mock.Mockito
-import org.mockito.Matchers
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.response.{FacetField, QueryResponse}
-import org.apache.solr.common.util.NamedList
-import org.opencommercesearch.api.service.Storage
-import com.mongodb.WriteResult
-import java.net.{URLEncoder, URLDecoder}
-import org.opencommercesearch.api.models.{Facet, BreadCrumb}
-import org.opencommercesearch.api.controllers.BaseSpec
-import scala.collection.mutable.ArrayBuffer
-import scala.collection.mutable
-import scala.concurrent.Future
-import java.util
 import play.api.test._
 import play.api.test.Helpers._
 
-/**
- * Created by atguser on 2/11/14.
- */
+import scala.concurrent.Future
+
+import java.util
+import java.net.URLEncoder
+
+import org.opencommercesearch.api.controllers.BaseSpec
+import org.opencommercesearch.api.models.{BreadCrumb, Facet}
+import org.opencommercesearch.api.service.Storage
+
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.response.{FacetField, QueryResponse}
+import org.apache.solr.common.util.NamedList
+
+import com.mongodb.WriteResult
+
 class FacetHandlerSpec extends BaseSpec {
 
   var facetHandler : FacetHandler = null;

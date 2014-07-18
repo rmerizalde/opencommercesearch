@@ -19,6 +19,7 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
@@ -37,6 +38,10 @@ public class Category {
   private String url;
   private boolean isRuleBased;
   private Set<String> sites;
+
+  public Category() {}
+
+  public Category(String id) { this.id = id; }
 
   public void setId(String id) {
     this.id = id;
@@ -70,6 +75,7 @@ public class Category {
     this.childCategories = childCategories;
   }
 
+  @JsonIgnore
   public boolean isRuleBased() {
     return isRuleBased;
   }
@@ -80,7 +86,13 @@ public class Category {
 
   public String getUrl() { return url; }
 
-  public void setUrl(String url) { this.url = "/" + url; }
+  public void setUrl(String url) {
+    if (url.startsWith("/")) {
+      this.url = url;
+    } else {
+      this.url = "/" + url;
+    }
+  }
 
   public Set<String> getSites() {
     return sites;

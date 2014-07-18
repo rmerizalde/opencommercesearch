@@ -27,14 +27,16 @@ import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.SearchServerException;
 import org.opencommercesearch.api.ProductService;
-import org.opencommercesearch.model.Product;
-import org.opencommercesearch.model.ProductList;
-import org.opencommercesearch.model.Sku;
+import org.opencommercesearch.client.Product;
+import org.opencommercesearch.client.ProductList;
+import org.opencommercesearch.client.impl.Sku;
 import org.opencommercesearch.service.localeservice.FeedLocaleService;
 import org.restlet.Request;
 import org.restlet.Response;
@@ -230,8 +232,9 @@ public abstract class SearchFeed extends GenericService {
     public void doStartService() throws ServiceException {
         super.doStartService();
         endpointUrl = getProductService().getUrl4Endpoint(Endpoint.PRODUCTS);
-        mapper = new ObjectMapper();
-        mapper.setDateFormat(new ISO8601DateFormat());
+        mapper = new ObjectMapper()
+          .setDateFormat(new ISO8601DateFormat())
+          .setSerializationInclusion(JsonInclude.Include.NON_NULL);
         if (getWorkerCount() <= 0) {
             if (isLoggingInfo()) {
                 logInfo("At least one worker is required to process the feed, setting number of workers to 1");
@@ -263,6 +266,32 @@ public abstract class SearchFeed extends GenericService {
 
     public void terminate() {
         running = false;
+    }
+
+    public static class FeedSku extends Sku {
+
+        @JsonIgnore
+        private int customSort;
+
+        @JsonIgnore
+        private boolean isAssigned;
+
+        public int getCustomSort() {
+            return customSort;
+        }
+
+        public void setCustomSort(int customSort) {
+          this.customSort = customSort;
+        }
+
+        @JsonIgnore
+        public boolean isAssigned() {
+            return isAssigned;
+        }
+
+        public void setAssigned(boolean isAssigned) {
+           this.isAssigned = isAssigned;
+       }
     }
 
     /**
@@ -785,7 +814,7 @@ public abstract class SearchFeed extends GenericService {
      *            If the product is belongs to a category in any of those
      *            catalogs then that category is part of the returned value.
      */
-    public void checkSkuAssigned(Sku sku, RepositoryItem product,
+    public void checkSkuAssigned(FeedSku sku, RepositoryItem product,
                 Set<RepositoryItem> skuCatalogAssignments) {
         if (product != null) {
             try {
@@ -822,7 +851,7 @@ public abstract class SearchFeed extends GenericService {
      * @param catalogAssignments
      *            The list of catalogs to restrict the category token generation
      */
-    private void checkAssigned(Sku sku, RepositoryItem category, Set<RepositoryItem> catalogAssignments) {
+    private void checkAssigned(FeedSku sku, RepositoryItem category, Set<RepositoryItem> catalogAssignments) {
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue("fixedParentCategories");
 
         if (parentCategories != null && parentCategories.size() > 0) {

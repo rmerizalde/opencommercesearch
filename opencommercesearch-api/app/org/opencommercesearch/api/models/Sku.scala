@@ -19,37 +19,39 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import java.util.Date
+
 import play.api.libs.json.Json
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import org.jongo.marshall.jackson.oid.Id
-import com.fasterxml.jackson.annotation.JsonProperty
-import java.util.Date
 
 case class Sku(
-  var id: Option[String],
-  var season: Option[String],
-  var year: Option[String],
-  var image: Option[Image],
-  var countries: Option[Seq[Country]],
-  var isPastSeason: Option[Boolean],
-  var color: Option[Color],
-  var title: Option[java.lang.String],
-  var isRetail: Option[Boolean],
-  var isCloseout: Option[Boolean],
-  var isOutlet: Option[Boolean],
-  var size: Option[Size],
-  var catalogs: Option[Seq[String]],
-  var listPrice: Option[BigDecimal],
-  var salePrice: Option[BigDecimal],
-  var discountPercent: Option[Int],
-  var onSale: Option[Boolean],
-  var stockLevel: Option[Int],
-  var url: Option[String],
-  var allowBackorder: Option[Boolean],
-  var availableDate: Option[Date])
+  var id: Option[String] = None,
+  var season: Option[String] = None,
+  var year: Option[String] = None,
+  var image: Option[Image] = None,
+  var countries: Option[Seq[Country]] = None,
+  var isPastSeason: Option[Boolean] = None,
+  var color: Option[Color] = None,
+  var title: Option[java.lang.String] = None,
+  var isRetail: Option[Boolean] = None,
+  var isCloseout: Option[Boolean] = None,
+  var isOutlet: Option[Boolean] = None,
+  var size: Option[Size] = None,
+  var catalogs: Option[Seq[String]] = None,
+  var listPrice: Option[BigDecimal] = None,
+  var salePrice: Option[BigDecimal] = None,
+  var discountPercent: Option[Int] = None,
+  var onSale: Option[Boolean] = None,
+  var url: Option[String] = None,
+  var allowBackorder: Option[Boolean] = None,
+  var availableDate: Option[Date] = None,
+  var availability: Option[Availability] = None)
 {
-
+  def availabilityStatus = availability match {
+    case Some(a) => a.status
+    case None => None
+  }
 }
 
 object Sku {
@@ -60,9 +62,11 @@ object Sku {
   val Stocklevel = "stockLevel"
 
   @JsonCreator
-  def getInstance() = new Sku(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def getInstance() = new Sku()
 
   implicit val readsSku = Json.reads[Sku]
   implicit val writesSku = Json.writes[Sku]
 }
+
+
 

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.opencommercesearch.client.ProductSummary;
 import org.opencommercesearch.client.impl.*;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,46 +34,49 @@ import java.util.Set;
  * @author jmendez
  */
 public interface Product {
-  public String getActivationDate();
 
-  public String getId();
+  String getId();
 
-  public String getTitle();
+  String getTitle();
 
-  public String getDescription();
+  String getDescription();
 
-  public String getShortDescription();
+  String getShortDescription();
 
-  public Brand getBrand();
+  Brand getBrand();
 
-  public String getGender();
+  String getGender();
 
-  public String getSizingChart();
+  String getSizingChart();
 
-  public CustomerReview getCustomerReviews();
+  CustomerReview getCustomerReviews();
 
-  public List<Image> getDetailImages();
+  List<Image> getDetailImages();
 
-  public List<String> getBulletPoints();
+  List<String> getBulletPoints();
 
-  public List<Attribute> getFeatures();
+  List<Attribute> getFeatures();
 
-  public List<Attribute> getAttributes();
+  List<Attribute> getAttributes();
 
-  public int getListRank();
+  Integer getListRank();
 
-  public Map<String, Boolean> getHasFreeGift();
+  Map<String, Boolean> getHasFreeGift();
 
-  public boolean isOutOfStock();
+  Boolean isOutOfStock();
 
-  public boolean isPackage();
+  Boolean isPackage();
 
-  public boolean isOem();
+  Boolean isOem();
 
-  public Set<Category> getCategories();
+  Set<Category> getCategories();
 
-  public List<Sku> getSkus();
+  List<Sku> getSkus();
+
+  Date getActivationDate();
+  
+  Availability.Status getAvailabilityStatus();
 
   @JsonIgnore
-  public ProductSummary getSummary();
+  ProductSummary getSummary();
 }

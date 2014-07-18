@@ -20,20 +20,20 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.ProductSummary;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Default product implementation.
  *
  * @author jmendez
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DefaultProduct implements Product {
   private String id;
   private String title;
@@ -47,23 +47,16 @@ public class DefaultProduct implements Product {
   private List<String> bulletPoints;
   private List<Attribute> features;
   private List<Attribute> attributes;
-  private int listRank;
+  private Integer listRank;
   private Map<String, Boolean> hasFreeGift;
-  private boolean isOutOfStock;
-  private boolean isPackage;
-  private boolean isOem;
+  private Boolean isOutOfStock;
+  private Boolean isPackage;
+  private Boolean isOem;
   private Set<Category> categories;
   private List<Sku> skus;
-  private String activationDate;
+  private Date activationDate;
+  private Availability.Status availabilityStatus;
   private ProductSummary summary;
-
-  public String getActivationDate() {
-    return activationDate;
-  }
-
-  public void setActivationDate(String activationDate) {
-    this.activationDate = activationDate;
-  }
 
   public String getId() {
     return id;
@@ -145,15 +138,36 @@ public class DefaultProduct implements Product {
     this.bulletPoints = bulletPoints;
   }
 
+  public void addBulletPoint(String bulletPoint) {
+    if (bulletPoints == null) {
+      bulletPoints = new ArrayList<String>();
+    }
+    bulletPoints.add(bulletPoint);
+  }
+
   public List<Attribute> getFeatures() {
     return features;
+  }
+
+  public void addFeature(String name, String value) {
+      if (features == null) {
+          features = new ArrayList<Attribute>();
+      }
+      features.add(new Attribute(name, value));
   }
 
   public List<Attribute> getAttributes() {
     return attributes;
   }
 
-  public int getListRank() {
+  public void addAttribute(String name, String value) {
+    if (attributes == null) {
+      attributes = new ArrayList<Attribute>();
+    }
+    attributes.add(new Attribute(name, value));
+  }
+
+  public Integer getListRank() {
     return listRank;
   }
 
@@ -169,30 +183,41 @@ public class DefaultProduct implements Product {
     this.hasFreeGift = hasFreeGift;
   }
 
-  public boolean isOutOfStock() {
+  @JsonProperty("isOutOfStock")
+  public Boolean isOutOfStock() {
     return isOutOfStock;
   }
 
-  public void setIsOutOfStock(boolean isOutOfStock) {
+  public void setIsOutOfStock(Boolean isOutOfStock) {
     this.isOutOfStock = isOutOfStock;
   }
 
-  public boolean isOem() {
+  public Boolean isOem() {
     return isOem;
   }
 
   @JsonProperty("isOem")
-  public void setOem(boolean isOem) {
+  public void setOem(Boolean isOem) {
     this.isPackage = isOem;
   }
 
-  public boolean isPackage() {
+  @JsonProperty("isPackage")
+  public Boolean isPackage() {
     return isPackage;
   }
 
-  public void setIsPackage(boolean isPackage) {
+  /**
+   * @deprecated As of release 0.5.0, replace by {@link #setPackage}
+   * @param isPackage
+   */
+  @JsonIgnore
+  public void setIsPackage(Boolean isPackage) {
     this.isPackage = isPackage;
   }
+
+  public void setPackage(Boolean isPackage) {
+      this.isPackage = isPackage;
+    }
 
   public Set<Category> getCategories() {
     return categories;
@@ -200,6 +225,13 @@ public class DefaultProduct implements Product {
 
   public void setCategories(Set<Category> categories) {
     this.categories = categories;
+  }
+
+  public void addCategory(String categoryId) {
+      if (categories == null) {
+          categories = new HashSet<Category>();
+      }
+      categories.add(new Category(categoryId));
   }
 
   public void setAttributes(List<Attribute> attributes) {
@@ -216,6 +248,29 @@ public class DefaultProduct implements Product {
 
   public void setSkus(List<Sku> skus) {
     this.skus = skus;
+  }
+
+  public void addSku(Sku sku) {
+      if (skus == null) {
+          skus = new ArrayList<Sku>();
+      }
+      skus.add(sku);
+  }
+
+  public Date getActivationDate() {
+    return activationDate;
+  }
+
+  public void setActivationDate(Date activationDate) {
+    this.activationDate = activationDate;
+  }
+
+  public Availability.Status getAvailabilityStatus() {
+    return availabilityStatus;
+  }
+
+  public void setAvailabilityStatus(Availability.Status availabilityStatus) {
+    this.availabilityStatus = availabilityStatus;
   }
 
   @JsonIgnore

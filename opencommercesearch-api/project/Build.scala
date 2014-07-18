@@ -7,14 +7,14 @@ import JacocoPlugin._
 object ApplicationBuild extends Build {
 
   val appName         = "opencommercesearch-api"
-  val appVersion      = "0.4-SNAPSHOT"
+  val appVersion      = "0.5.0-SNAPSHOT"
 
   lazy val s = playScalaSettings ++ Seq(jacoco.settings:_*)
 
   val appDependencies: Seq[sbt.ModuleID] = Seq(
     cache, filters,
     "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT",
-    "org.opencommercesearch" %% "opencommercesearch-common" % "0.4-SNAPSHOT"  changing(),
+    "org.opencommercesearch" %% "opencommercesearch-common" % "0.5.0-SNAPSHOT"  changing(),
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
     "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
@@ -36,6 +36,7 @@ object ApplicationBuild extends Build {
   val main = play.Project(appName, appVersion, appDependencies, settings = s).settings(
   // @todo: publish play-solrj as maven style??
     scalacOptions ++= Seq("-feature"),
+    resolvers += Resolver.file("Local repo", file(System.getProperty("user.home") + "/.ivy2/local"))(Resolver.ivyStylePatterns),
     resolvers += "sbt-plugin-releases" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/",
     resolvers += "sbt-plugin-snapshots" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-snapshots/",
     resolvers += "sonatype-snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",

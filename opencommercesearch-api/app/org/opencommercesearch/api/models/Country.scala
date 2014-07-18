@@ -1,12 +1,5 @@
 package org.opencommercesearch.api.models
 
-import play.api.libs.json.Json
-import com.fasterxml.jackson.annotation.{JsonProperty, JsonCreator}
-import com.fasterxml.jackson.databind.annotation.{JsonDeserialize, JsonSerialize}
-
-import org.opencommercesearch.api.util.BigDecimalSerializer
-import org.opencommercesearch.api.util.BigDecimalDeserializer
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -26,23 +19,41 @@ import org.opencommercesearch.api.util.BigDecimalDeserializer
 * under the License.
 */
 
+
+import play.api.libs.json.Json
+
+import org.opencommercesearch.api.util.{BigDecimalDeserializer, BigDecimalSerializer}
+
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.databind.annotation.{JsonDeserialize, JsonSerialize}
+
 case class Country(
-  @JsonProperty("code") var code: Option[String],
-  //TODO gsegura: there were issues deserializing bigdecimals, even with the @JsonDeserialize annotation
+  @JsonProperty("code") var code: Option[String] = None,
   @JsonProperty("listPrice")
   @JsonSerialize(using = classOf[BigDecimalSerializer])
   @JsonDeserialize(using = classOf[BigDecimalDeserializer])
-  var listPrice: Option[BigDecimal],
+  var listPrice: Option[BigDecimal] = None,
   @JsonProperty("salePrice")
   @JsonSerialize(using = classOf[BigDecimalSerializer])
   @JsonDeserialize(using = classOf[BigDecimalDeserializer])
-  var salePrice: Option[BigDecimal],
-  @JsonProperty("discountPercent") var discountPercent: Option[Int],
-  @JsonProperty("onSale") var onSale: Option[Boolean],
-  @JsonProperty("stockLevel") var stockLevel: Option[Int],
-  @JsonProperty("url") var url: Option[String],
-  @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean]) {
+  var salePrice: Option[BigDecimal] = None,
+  @JsonProperty("discountPercent") var discountPercent: Option[Int] = None,
+  @JsonProperty("onSale") var onSale: Option[Boolean] = None,
+  @JsonProperty("stockLevel") var stockLevel: Option[Int] = None,
+  @deprecated(message = "Use availability.backorderLevel or isBackorderable", since = "0.5.0")
+  @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean] = None,
+  @JsonProperty("url") var url: Option[String] = None,
+  @JsonProperty("availability") var availability: Option[Availability] = None) {
 
+  import Availability._
+
+  def isBackorderable = availability match {
+    case Some(a) => a.backorderLevel match {
+      case Some(l) => Option(l == InfiniteStock || l > 0)
+      case None => None
+    }
+    case None => None
+  }
 }
 
 
