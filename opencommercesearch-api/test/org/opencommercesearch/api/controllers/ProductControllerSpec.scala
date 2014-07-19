@@ -3,21 +3,26 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.json.{JsError, Json}
 import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
-import scala.Some
+
 import scala.concurrent.Future
+
 import java.util
+
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.response._
 import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.apache.solr.common.util.NamedList
-import org.specs2.mutable.Before
-import com.mongodb.WriteResult
+
 import org.junit.runner.RunWith
+import org.specs2.mutable.Before
 import org.specs2.runner.JUnitRunner
+
+import com.mongodb.WriteResult
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -516,6 +521,52 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
+    "send 201 when trying to bulk create POOS products with missing sku fields" in new Products {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
+        val (updateResponse) = setupUpdate
+        val (expectedId, expectedTitle) = ("PRD0001", "A Product")
+        val jsonBrand = Json.obj("id" -> "1000")
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "products" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "title" -> expectedTitle,
+              "brand" -> jsonBrand,
+              "isOutOfStock" -> true,
+              "isOem" -> false,
+              "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "PermanentlyOutOfStock")
+                ))
+              ))),
+            Json.obj(
+              "id" -> (expectedId + "2"),
+              "title" -> expectedTitle,
+              "brand" -> jsonBrand,
+              "isOutOfStock" -> true,
+              "isOem" -> false,
+              "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "PermanentlyOutOfStock")
+                ))
+              )))))
+
+        val url = routes.ProductController.bulkCreateOrUpdate().url
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+
+        val result = route(fakeRequest)
+        validateUpdateResult(result.get, CREATED)
+      }
+    }
 
     "send 400 when trying to bulk create products with missing sku fields" in new Products {
       running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
@@ -534,7 +585,10 @@ class ProductControllerSpec extends BaseSpec {
               "listRank" -> 1,
               "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
-                "id" -> (expectedId + "0" + "BLK")
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "InStock")
+                ))
               ))),
             Json.obj(
               "id" -> (expectedId + "2"),
@@ -545,7 +599,10 @@ class ProductControllerSpec extends BaseSpec {
               "listRank" -> 1,
               "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
-                "id" -> (expectedId + "0" + "BLK")
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "InStock")
+                ))
               )))))
 
         val url = routes.ProductController.bulkCreateOrUpdate().url
@@ -585,7 +642,7 @@ class ProductControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateFailedUpdateResult(result.get, BAD_REQUEST, "Cannot store a product without skus. Check that the required fields of the products are set")
+        validateFailedUpdateResult(result.get, BAD_REQUEST, "Missing required fields for product")
         validateFailedUpdate(updateResponse)
       }
     }

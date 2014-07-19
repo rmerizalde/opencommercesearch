@@ -128,6 +128,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
     var expectedDocCount = 0
     var currentDocCount = 0
+    var currentNonIndexableProductCount = 0
 
     for (product: Product <- products) {
       for (productId <- product.id; title <- product.title; brand <- product.brand;
@@ -149,11 +150,11 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
           for (sku: Sku <- skus) {
             if (hasNonPoos(sku)) {
-              currentDocCount += 1
               expectedDocCount += 1
 
               for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
                    isCloseout <- sku.isCloseout; countries <- sku.countries) {
+                currentDocCount += 1
                 val doc = new SolrInputDocument()
 
                 doc.setField("id", id)
@@ -271,17 +272,20 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
             }
           }
         } else {
+          currentNonIndexableProductCount += 1
+
           if (nonPoosSku.isEmpty) {
             Logger.info(s"Product $productId is permanently out of stock and won't be index in search")
           } else {
             Logger.info(s"Product $productId is original equipment manufacturer and won't be index in search")
           }
         }
-
-        if (expectedDocCount != currentDocCount) {
-          throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
-        }
       }
+
+      if ((expectedDocCount != currentDocCount) || (expectedDocCount == 0 && currentNonIndexableProductCount == 0)) {
+        throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
+      }
+
     }
     skuDocuments
   }
