@@ -193,7 +193,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   /**
-   * Checks if the given fiel is include in the fields
+   * Checks if the given field is include in the fields
    * @param field the field to check
    * @param fields the field list
    * @param isDefault true if the field should be include when no field list is empty. Otherwise false

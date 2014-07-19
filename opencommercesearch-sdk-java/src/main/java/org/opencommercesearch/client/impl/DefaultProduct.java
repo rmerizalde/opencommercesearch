@@ -184,25 +184,25 @@ public class DefaultProduct implements Product {
   }
 
   @JsonProperty("isOutOfStock")
-  public Boolean isOutOfStock() {
+  public Boolean getOutOfStock() {
     return isOutOfStock;
   }
 
-  public void setIsOutOfStock(Boolean isOutOfStock) {
-    this.isOutOfStock = isOutOfStock;
+  public void setIsOutOfStock(Boolean outOfStock) {
+    this.isOutOfStock = outOfStock;
   }
 
-  public Boolean isOem() {
+  public Boolean getOem() {
     return isOem;
   }
 
   @JsonProperty("isOem")
-  public void setOem(Boolean isOem) {
-    this.isPackage = isOem;
+  public void setOem(Boolean oem) {
+    this.isOem = oem;
   }
 
   @JsonProperty("isPackage")
-  public Boolean isPackage() {
+  public Boolean getPackage() {
     return isPackage;
   }
 

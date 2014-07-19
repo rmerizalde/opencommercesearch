@@ -98,7 +98,7 @@ public class Country {
     this.url = url;
   }
 
-  public Boolean isAllowBackorder() {
+  public Boolean getAllowBackorder() {
     return allowBackorder;
   }
 

@@ -80,75 +80,75 @@ public class Sku {
   }
 
   @JsonProperty("isPastSeason")
-  public Boolean isPastSeason() {
+  public Boolean getPastSeason() {
       return isPastSeason;
   }
 
     /**
      * @deprecated As of release 0.5.0, replace by {@link #setPastSeason}
-     * @param isPastSeason
+     * @param pastSeason
      */
   @JsonIgnore
-  public void setIsPastSeason(Boolean isPastSeason) {
-      this.isPastSeason = isPastSeason;
+  public void setIsPastSeason(Boolean pastSeason) {
+      this.isPastSeason = pastSeason;
   }
 
-  public void setPastSeason(Boolean isPastSeason) {
-          this.isPastSeason = isPastSeason;
+  public void setPastSeason(Boolean pastSeason) {
+          this.isPastSeason = pastSeason;
       }
 
   @JsonProperty("isRetail")
-  public Boolean isRetail() {
+  public Boolean getRetail() {
       return isRetail;
   }
 
   /**
    * @deprecated As of release 0.5.0, replace by {@link #setRetail}
-   * @param isRetail
+   * @param retail
    */
   @JsonIgnore
-  public void setIsRetail(Boolean isRetail) {
-      this.isRetail = isRetail;
+  public void setIsRetail(Boolean retail) {
+      this.isRetail = retail;
   }
 
-  public void setRetail(Boolean isRetail) {
-          this.isRetail = isRetail;
+  public void setRetail(Boolean retail) {
+          this.isRetail = retail;
       }
 
   @JsonProperty("isCloseout")
-  public Boolean isCloseout() {
+  public Boolean getCloseout() {
       return isCloseout;
   }
 
   /**
    * @deprecated As of release 0.5.0, replace by {@link #setCloseout}
-   * @param isCloseout
+   * @param closeout
    */
   @JsonIgnore
-  public void setIsCloseout(Boolean isCloseout) {
-      this.isCloseout = isCloseout;
+  public void setIsCloseout(Boolean closeout) {
+      this.isCloseout = closeout;
   }
 
-  public void setCloseout(Boolean isCloseout) {
-      this.isCloseout = isCloseout;
+  public void setCloseout(Boolean closeout) {
+      this.isCloseout = closeout;
   }
 
   @JsonProperty("isOutlet")
-  public Boolean isOutlet() {
+  public Boolean getOutlet() {
       return isOutlet;
   }
 
   /**
    * @deprecated As of release 0.5.0, replace by {@link #setOutlet}
-   * @param isOutlet
+   * @param outlet
    */
   @JsonIgnore
-  public void setIsOutlet(Boolean isOutlet) {
-      this.isOutlet = isOutlet;
+  public void setIsOutlet(Boolean outlet) {
+      this.isOutlet = outlet;
   }
 
-  public void setOutlet(Boolean isOutlet) {
-      this.isOutlet = isOutlet;
+  public void setOutlet(Boolean outlet) {
+      this.isOutlet = outlet;
   }
 
   public Double getSalePrice() {
@@ -175,7 +175,7 @@ public class Sku {
       this.url = url;
   }
 
-  public Boolean isAllowBackorder() {
+  public Boolean getAllowBackorder() {
       return allowBackorder;
   }
 

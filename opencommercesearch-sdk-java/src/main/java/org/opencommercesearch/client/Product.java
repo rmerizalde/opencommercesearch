@@ -63,11 +63,11 @@ public interface Product {
 
   Map<String, Boolean> getHasFreeGift();
 
-  Boolean isOutOfStock();
+  Boolean getOutOfStock();
 
-  Boolean isPackage();
+  Boolean getPackage();
 
-  Boolean isOem();
+  Boolean getOem();
 
   Set<Category> getCategories();
 

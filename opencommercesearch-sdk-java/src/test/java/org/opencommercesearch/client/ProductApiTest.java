@@ -384,9 +384,9 @@ public class ProductApiTest {
         assertEquals("Dont let a little sprinkle stop your ride. Just pull on the Castelli Mens Goccia Rain Jacket and get after it.", firstProduct.getShortDescription());
         assertEquals("557", firstProduct.getSizingChart());
         assertEquals(Integer.valueOf(1), firstProduct.getListRank());
-        assertFalse(firstProduct.isOutOfStock());
+        assertFalse(firstProduct.getOutOfStock());
         assertEquals("1969-12-31T18:00:00Z", new ISO8601DateFormat().format(firstProduct.getActivationDate()));
-        assertFalse(firstProduct.isPackage());
+        assertFalse(firstProduct.getPackage());
 
         validateFeatures(firstProduct.getFeatures());
         validateCostumerReviews(firstProduct.getCustomerReviews());
@@ -445,18 +445,18 @@ public class ProductApiTest {
         assertEquals("CST0180-BK-L", sku1.getId());
         assertNotNull(sku1.getImage());
         assertEquals("/images/items/medium/CST/CST0180/BK.jpg", sku1.getImage().getUrl());
-        assertFalse(sku1.isPastSeason());
+        assertFalse(sku1.getPastSeason());
         assertEquals("Black, L", sku1.getTitle());
-        assertTrue(sku1.isRetail());
-        assertFalse(sku1.isCloseout());
-        assertTrue(sku1.isOutlet());
+        assertTrue(sku1.getRetail());
+        assertFalse(sku1.getCloseout());
+        assertTrue(sku1.getOutlet());
         assertEquals(119.95, sku1.getListPrice(), 0.001);
         assertEquals(49.95, sku1.getSalePrice(), 0.001);
         assertEquals(Integer.valueOf(58), sku1.getDiscountPercent());
         assertEquals(Long.valueOf(14), sku1.getAvailability().getStockLevel());
         assertEquals(Availability.Status.InStock, sku1.getAvailability().getStatus());
         assertEquals("/Store/catalog/productLanding.jsp?productId=CST0180", sku1.getUrl());
-        assertFalse(sku1.isAllowBackorder());
+        assertFalse(sku1.getAllowBackorder());
 
     }
 

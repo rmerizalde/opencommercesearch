@@ -111,8 +111,20 @@ case class Product (
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
+  private def isPoos(country: Country): Boolean = country.availability match {
+    case Some(availability) => availability.status.orNull == Availability.PermanentlyOutOfStock
+    case None => false
+  }
+
+  private def hasNonPoos(sku: Sku): Boolean = sku.countries match {
+    case Some(countries) => countries.collectFirst {
+      case country if !isPoos(country) => true
+    }.getOrElse(false)
+    case None => false
+  }
+
   def toDocuments(service: CategoryService)(implicit context: Context) : util.List[SolrInputDocument] = {
-    val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
+   val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
 
     var expectedDocCount = 0
     var currentDocCount = 0
@@ -121,9 +133,11 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
       for (productId <- product.id; title <- product.title; brand <- product.brand;
            skus <- product.skus; listRank <- product.listRank) {
         val isOem = product.isOem.getOrElse(false)
-        if (IndexOemProductsEnabled || !isOem) {
-          expectedDocCount += skus.size
+        val nonPoosSku = skus.collectFirst {
+          case sku: Sku if hasNonPoos(sku) => sku
+        }
 
+        if (nonPoosSku.isDefined && (IndexOemProductsEnabled || !isOem)) {
           var gender: String = null
           var activationDate: Date = null
 
@@ -134,88 +148,134 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           var skuSort = 0
 
           for (sku: Sku <- skus) {
-            for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
-                 isCloseout <- sku.isCloseout; countries <- sku.countries) {
-              val doc = new SolrInputDocument()
+            if (hasNonPoos(sku)) {
+              currentDocCount += 1
+              expectedDocCount += 1
 
-              doc.setField("id", id)
-              doc.setField("productId", productId)
-              doc.setField("title", title)
-              for (brandId <- brand.id) { doc.setField("brandId", brandId) }
-              for (brandName <- brand.name) { doc.setField("brand", brandName) }
-              for (imageUrl <- image.url) { doc.setField("image", imageUrl) }
-              doc.setField("listRank", listRank)
-              doc.setField("isRetail", isRetail)
-              doc.setField("skuCount", skuCount)
-              doc.setField("isCloseout", isCloseout)
-              for (isOutlet <- sku.isOutlet) { doc.setField("isOutlet", isOutlet) }
-              for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
-              if (gender != null) { doc.setField("gender", gender) }
-              if (activationDate != null) { doc.setField("activationDate", activationDate) }
+              for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
+                   isCloseout <- sku.isCloseout; countries <- sku.countries) {
+                val doc = new SolrInputDocument()
 
-              for (year <- sku.year) { doc.setField("year", year) }
-              for (season <- sku.season) { doc.setField("season", season) }
-
-              for (color <- sku.color) {
-                for (name <- color.name; family <- color.family) {
-                  doc.setField("colorFamily", family)
-                  doc.setField("color", name)
+                doc.setField("id", id)
+                doc.setField("productId", productId)
+                doc.setField("title", title)
+                for (brandId <- brand.id) {
+                  doc.setField("brandId", brandId)
                 }
-              }
+                for (brandName <- brand.name) {
+                  doc.setField("brand", brandName)
+                }
+                for (imageUrl <- image.url) {
+                  doc.setField("image", imageUrl)
+                }
+                doc.setField("listRank", listRank)
+                doc.setField("isRetail", isRetail)
+                doc.setField("skuCount", skuCount)
+                doc.setField("isCloseout", isCloseout)
+                for (isOutlet <- sku.isOutlet) {
+                  doc.setField("isOutlet", isOutlet)
+                }
+                for (isPastSeason <- sku.isPastSeason) {
+                  doc.setField("isPastSeason", isPastSeason)
+                }
+                if (gender != null) {
+                  doc.setField("gender", gender)
+                }
+                if (activationDate != null) {
+                  doc.setField("activationDate", activationDate)
+                }
 
-              for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs) }
+                for (year <- sku.year) {
+                  doc.setField("year", year)
+                }
+                for (season <- sku.season) {
+                  doc.setField("season", season)
+                }
 
-              for (size <- sku.size) {
-                for (sizeName <- size.name) { doc.setField("size", sizeName) }
-                for (scale <- size.scale) { doc.setField("scale", scale) }
-              }
-
-              for (reviews <- product.customerReviews) {
-                doc.setField("reviews", reviews.count)
-                doc.setField("reviewAverage", reviews.average)
-                doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
-              }
-
-              for (country: Country <- countries) {
-                for (code <- country.code) {
-                  doc.addField("country", code)
-
-                  for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
-
-                  for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
-                  for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
-                  for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
-
-                  for (availability <- country.availability) {
-                    for (status <- availability.status; stockLevel <- availability.stockLevel) {
-                      doc.setField("stockLevel" + code, stockLevel)
-                      doc.setField("isToos", status == Availability.OutOfStock)
-                    }
-                    doc.setField("allowBackorder" + code,  country.isBackorderable.getOrElse(false))
+                for (color <- sku.color) {
+                  for (name <- color.name; family <- color.family) {
+                    doc.setField("colorFamily", family)
+                    doc.setField("color", name)
                   }
-                  for (url <- country.url) { doc.setField("url" + code, url) }
                 }
-              }
 
-              for (hasFreeGift <- product.hasFreeGift) {
-                hasFreeGift.foreach { case (catalog, hasGift) =>
+                for (catalogs <- sku.catalogs) {
+                  service.loadCategoryPaths(doc, product, catalogs)
+                }
+
+                for (size <- sku.size) {
+                  for (sizeName <- size.name) {
+                    doc.setField("size", sizeName)
+                  }
+                  for (scale <- size.scale) {
+                    doc.setField("scale", scale)
+                  }
+                }
+
+                for (reviews <- product.customerReviews) {
+                  doc.setField("reviews", reviews.count)
+                  doc.setField("reviewAverage", reviews.average)
+                  doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
+                }
+
+                for (country: Country <- countries) {
+                  for (code <- country.code) {
+                    doc.addField("country", code)
+
+                    for (listPrice <- country.listPrice) {
+                      doc.setField("listPrice" + code, listPrice)
+                    }
+
+                    for (salePrice <- country.salePrice) {
+                      doc.setField("salePrice" + code, salePrice)
+                    }
+                    for (discountPercent <- country.discountPercent) {
+                      doc.setField("discountPercent" + code, discountPercent)
+                    }
+                    for (onSale <- country.onSale) {
+                      doc.setField("onsale" + code, onSale)
+                    }
+
+                    for (availability <- country.availability) {
+                      for (status <- availability.status; stockLevel <- availability.stockLevel) {
+                        doc.setField("stockLevel" + code, stockLevel)
+                        doc.setField("isToos", status == Availability.OutOfStock)
+                      }
+                      doc.setField("allowBackorder" + code, country.isBackorderable.getOrElse(false))
+                    }
+                    for (url <- country.url) {
+                      doc.setField("url" + code, url)
+                    }
+                  }
+                }
+
+                for (hasFreeGift <- product.hasFreeGift) {
+                  hasFreeGift.foreach { case (catalog, hasGift) =>
                     if (hasGift) {
                       doc.setField("freeGift" + catalog, hasGift)
                     }
+                  }
                 }
-              }
 
-              for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
-              for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
-              doc.setField("sort", skuSort)
-              skuSort += 1
-              doc.setField("indexStamp", feedTimestamp)
-              skuDocuments.add(doc)
-              currentDocCount += 1
+                for (features <- product.features) {
+                  setAttributes(doc, features, FeatureFieldNamePrefix)
+                }
+                for (attributes <- product.attributes) {
+                  setAttributes(doc, attributes, AttrFieldNamePrefix)
+                }
+                doc.setField("sort", skuSort)
+                skuSort += 1
+                doc.setField("indexStamp", feedTimestamp)
+                skuDocuments.add(doc)
+              }
             }
           }
         } else {
-          Logger.info(s"Product $productId is original equipment manufacturer and won't be index in search")
+          if (nonPoosSku.isEmpty) {
+            Logger.info(s"Product $productId is permanently out of stock and won't be index in search")
+          } else {
+            Logger.info(s"Product $productId is original equipment manufacturer and won't be index in search")
+          }
         }
 
         if (expectedDocCount != currentDocCount) {

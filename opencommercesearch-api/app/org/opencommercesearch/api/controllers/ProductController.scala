@@ -527,30 +527,23 @@ object ProductController extends BaseController {
       } else {
         try {
           val skuDocs = productList.toDocuments(categoryService)
-          def countProduct(product: Product) = if (product.isOem.getOrElse(false)) 0 else 1
-          val productCount = productList.products.foldLeft(0)((total, product) => total + countProduct(product))
-          if (productCount > 0 && skuDocs.isEmpty) {
-              Future.successful(BadRequest(Json.obj(
-              "message" -> "Cannot store a product without skus. Check that the required fields of the products are set")))
-          } else {
-            val storage = withNamespace(storageFactory)
-            val productFuture = storage.saveProduct(products:_*)
-            var futureList: List[Future[AnyRef]] = List(productFuture)
+          val storage = withNamespace(storageFactory)
+          val productFuture = storage.saveProduct(products:_*)
+          var futureList: List[Future[AnyRef]] = List(productFuture)
 
-            if (!skuDocs.isEmpty) {
-              val productUpdate = new ProductUpdate
-              productUpdate.add(skuDocs)
-              val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-              val suggestionFuture = IndexableElement.addToIndex(products)
-              futureList = List(productFuture, searchFuture, suggestionFuture)
-            }
-
-            val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
-              Created
-            }
-
-            withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
+          if (!skuDocs.isEmpty) {
+            val productUpdate = new ProductUpdate
+            productUpdate.add(skuDocs)
+            val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
+            val suggestionFuture = IndexableElement.addToIndex(products)
+            futureList = List(productFuture, searchFuture, suggestionFuture)
           }
+
+          val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
+            Created
+          }
+
+          withErrorHandling(future, s"Cannot store products with ids [${products map (_.id.get) mkString ","}]")
         } catch {
           case e: IllegalArgumentException =>
             Logger.error(e.getMessage)

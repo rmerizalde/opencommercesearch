@@ -228,8 +228,8 @@ public class ProductApiCli {
         assertNull("features", product.getFeatures());
         assertNull("attributes", product.getAttributes());
         assertNull("bulletPoints", product.getBulletPoints());
-        assertNull("isPackage", product.isPackage());
-        assertNull("isOem", product.isOem());
+        assertNull("isPackage", product.getPackage());
+        assertNull("isOem", product.getOem());
         assertNull("activationDate", product.getActivationDate());
       }
 
@@ -242,23 +242,23 @@ public class ProductApiCli {
       assertNotNull("skus.title", sku.getTitle());
       assertNotNull("skus.image", sku.getImage());
       assertNotNull("skus.image.url", sku.getImage().getUrl());
-      assertNotNull("skus.isPastSeason", sku.isPastSeason());
+      assertNotNull("skus.isPastSeason", sku.getPastSeason());
       if (query.startsWith("isPastSeason") && fromSearch) {
         Sku pastSeasonSku = sku;
         for (Sku s : product.getSkus()) {
-          if (BooleanUtils.toBoolean(sku.isPastSeason())) {
+          if (BooleanUtils.toBoolean(sku.getPastSeason())) {
             pastSeasonSku = s;
           }
         }
-        assertEquals("skus.isPastSeason", Boolean.TRUE, pastSeasonSku.isPastSeason());
+        assertEquals("skus.isPastSeason", Boolean.TRUE, pastSeasonSku.getPastSeason());
       }
-      assertNotNull("skus.isOutlet", sku.isOutlet());
+      assertNotNull("skus.isOutlet", sku.getOutlet());
       if (fromSearch) {
-        assertNotNull("skus.isCloseout", sku.isCloseout());
-        assertNotNull("skus.isRetail", sku.isRetail());
+        assertNotNull("skus.isCloseout", sku.getCloseout());
+        assertNotNull("skus.isRetail", sku.getRetail());
       } else if (!allFields) {
-        assertNull("skus.isCloseout", sku.isCloseout());
-        assertNull("skus.isRetail", sku.isRetail());
+        assertNull("skus.isCloseout", sku.getCloseout());
+        assertNull("skus.isRetail", sku.getRetail());
       }
       assertNotNull("skus.listPrice", sku.getListPrice());
       assertNotNull("skus.salePrice", sku.getSalePrice());
@@ -274,7 +274,7 @@ public class ProductApiCli {
         assertNotNull("skus.availability.status", sku.getAvailability().getStatus());
         assertNotNull("availabilityStatus", product.getAvailabilityStatus()); // new field
         assertEquals("skus.availability.status", product.getAvailabilityStatus(), sku.getAvailability().getStatus());
-        assertNotNull("isOutOfStock", product.isOutOfStock()); // the API is currently broken a not return this for search
+        assertNotNull("isOutOfStock", product.getOutOfStock()); // the API is currently broken a not return this for search
       } else {
         // temporal, is stockLevel == 0 in search is likely backorderable. API not returning TOOS for search currently
         // only backorderable products indexed with the new structure will have the status populated for search all the time.
@@ -291,12 +291,12 @@ public class ProductApiCli {
       }
 
       if (fromSearch) {
-        assertNull("sku.allowBackorder", sku.isAllowBackorder());
+        assertNull("sku.allowBackorder", sku.getAllowBackorder());
         assertNull("sku.size", sku.getSize());
         assertNull("sku.color", sku.getColor());
       } else if (!allFields) {
         if (product.getAvailabilityStatus() == Availability.Status.Backorderable)
-          assertEquals("sku.allowBackorder", Boolean.TRUE, sku.isAllowBackorder());
+          assertEquals("sku.allowBackorder", Boolean.TRUE, sku.getAllowBackorder());
       }
 
       return true;

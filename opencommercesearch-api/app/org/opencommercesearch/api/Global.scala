@@ -58,7 +58,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
   lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
-  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = true)
+  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = false)
   lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
@@ -101,6 +101,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
+    
     Future.successful(ex.getCause match {
    	  case e:IllegalArgumentException => BadRequest(e.getMessage)
    	  case other =>
