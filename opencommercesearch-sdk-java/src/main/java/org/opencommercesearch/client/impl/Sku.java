@@ -20,12 +20,14 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Sku {
   private String id;
   private String title;
@@ -46,6 +48,8 @@ public class Sku {
   private String season;
   private Availability availability;
   private Set<Country> countries;
+  private Long stockLevel;
+  private Date availableDate;
 
   public String getId() {
       return id;
@@ -239,5 +243,33 @@ public class Sku {
         countries = new HashSet<Country>();
     }
     countries.add(country);
+  }
+
+  /**
+   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
+   */
+  public Long getStockLevel() {
+    return stockLevel;
+  }
+
+  /**
+   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
+   */
+  public void setStockLevel(Long stockLevel) {
+    this.stockLevel = stockLevel;
+  }
+
+  /**
+   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
+   */
+  public Date getAvailableDate() {
+    return availableDate;
+  }
+
+  /**
+   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
+   */
+  public void setAvailableDate(Date availableDate) {
+    this.availableDate = availableDate;
   }
 }
