@@ -33,6 +33,7 @@ import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
 import org.restlet.*;
+import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
@@ -56,6 +57,7 @@ import java.util.Set;
 public class ProductApi {
   private static Logger logger = LoggerFactory.getLogger(ProductApi.class);
 
+  private static String RESTLET_HTTP_HEADER = "org.restlet.http.headers";
   private final static Set<Status> OK_STATUS_SET = new HashSet<Status>();
 
   static {
@@ -112,12 +114,18 @@ public class ProductApi {
   private ObjectMapper mapper;
 
   /**
+   * Cache enables
+   */
+  private Boolean cacheEnabled;
+  
+  /**
    * Creates a new ProductApi instance with properties existing in the class path. If no properties are found, an exception is thrown.
    *
    * @throws IOException if no properties are found in the class path.
    */
   public ProductApi() throws IOException {
     this.configProperties = loadProperties();
+    cacheEnabled = true;
 
     initProperties();
     initMapper();
@@ -130,9 +138,24 @@ public class ProductApi {
    */
   public ProductApi(Properties properties) {
     this.configProperties = properties;
+    cacheEnabled = true;
 
     initProperties();
     initMapper();
+  }
+
+  /**
+   * Creates a new ProductApi instance with the given properties.
+   *
+   * @param properties Map of configuration properties understood by the ApiClient.
+   * @param enableCache 
+   */
+  public ProductApi(Properties properties, boolean enableCache) {
+        this.configProperties = properties;
+        this.cacheEnabled = enableCache;
+
+        initProperties();
+        initMapper();      
   }
 
   /**
@@ -239,6 +262,29 @@ public class ProductApi {
   public BrowseResponse browseByCategory(BrowseCategoryRequest request) throws ProductApiException {
     return (BrowseResponse) handle(request, BrowseResponse.class);
   }
+  
+  /**
+   * 
+   * @param restletRequest Restlet request whose header to be modified
+   * @param name Name of the parameter to be added
+   * @param value Value of the parameter
+   */
+  public void setHttpHeaderParameter(org.restlet.Request restletRequest, String name, String value) {
+    try {
+        Map<String, Object> attrs = restletRequest.getAttributes();
+        Form headers = (Form) attrs.get(RESTLET_HTTP_HEADER);
+        if (headers == null) {
+            headers = new Form();
+            headers.add(name, value);
+        }
+        attrs.put(RESTLET_HTTP_HEADER, headers);
+        restletRequest.setAttributes(attrs);
+    } catch (Exception ex) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Not able to set parameter in http header", ex);
+        }
+    }
+  }
 
   /**
    * Receives an API request, translates it into a valid HTTP request which is sent to the product API server and then processes the result by unmarshalling any
@@ -263,13 +309,16 @@ public class ProductApi {
         if (url == null) {
           throw new IllegalArgumentException("Request " + request.getClass() + " has a null endpoint");
         }
-
+        
         restletRequest = convertToRestlet(url, request);
+
+        if(!getCacheEnabled()) {
+            setHttpHeaderParameter(restletRequest, "X-Cache-Refresh", "true");
+        }
 
         if (logger.isDebugEnabled()) {
           logger.debug("Sending API request with base URL: " + restletRequest.getResourceRef());
         }
-
         response = client.handle(restletRequest);
 
         if (logger.isDebugEnabled()) {
@@ -490,4 +539,13 @@ public class ProductApi {
   public void setMaxRetries(int maxRetries) {
     this.maxRetries = maxRetries;
   }
+
+public Boolean getCacheEnabled() {
+	return cacheEnabled;
+}
+
+public void setCacheEnabled(Boolean cacheEnabled) {
+	this.cacheEnabled = cacheEnabled;
+}
+
 }
