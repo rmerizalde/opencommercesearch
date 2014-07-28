@@ -19,6 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import org.apache.solr.common.SolrDocumentList
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json}
@@ -93,7 +94,12 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brand is created" in new Brands {
       running(FakeApplication()) {
-        setupQuery
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+
         setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
@@ -206,9 +212,14 @@ class BrandControllerSpec extends BaseSpec {
       }
     }
 
-    "send 201 when a brands are created" in new Brands {
+    "send 201 when brands are created" in new Brands {
       running(FakeApplication()) {
-        setupQuery
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+
         setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val (expectedId2, expectedName2, expectedLogo2) = ("1001", "Another Brand", "/brands/logo2.jpg")

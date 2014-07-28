@@ -1,7 +1,6 @@
 package org.opencommercesearch.api
 
 import play.api.mvc.{AnyContent, Request}
-import org.opencommercesearch.api.Global._
 import java.net.URLDecoder
 import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
 import org.opencommercesearch.api.common.FilterQuery
@@ -21,18 +20,18 @@ import play.api.Play
  *
  * @author rmerizalde
  */
-sealed class ProductQuery(q: String, site: String)(implicit context: Context, request: Request[AnyContent]) extends SolrQuery(q) {
+sealed class ProductQuery(q: String, site: String = null)(implicit context: Context, request: Request[AnyContent] = null) extends SolrQuery(q) {
   import Collection._
   import Query._
 
   private var _filterQueries: Array[FilterQuery] = null
-  private var closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
   
   protected def init() : Unit = {
     setFields("id")
     setParam("collection", searchCollection.name(context.lang))
 
-    if (closeoutSites.contains(site)) {
+    if (site == null || closeoutSites.contains(site)) {
       addFilterQuery("isRetail:true")
     }
 
@@ -55,8 +54,14 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
     var offset = 0
     var limit = DefaultPaginationLimit
 
-    for (o <- request.getQueryString("offset")) { offset = o.toInt }
-    for (l <- request.getQueryString("limit")) { limit = l.toInt }
+    if (request != null) {
+      for (o <- request.getQueryString("offset")) {
+        offset = o.toInt
+      }
+      for (l <- request.getQueryString("limit")) {
+        limit = l.toInt
+      }
+    }
 
     withPagination(offset, limit)
   }
@@ -80,7 +85,8 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
   }
 
   def withSorting() : ProductQuery = {
-    val sortParam = URLDecoder.decode(request.getQueryString("sort").getOrElse(""), "UTF-8")
+    val encodedSortParam = if(request != null) request.getQueryString("sort").getOrElse("") else ""
+    val sortParam = URLDecoder.decode(encodedSortParam, "UTF-8")
     val sortSpecs = StringUtils.split(sortParam, ",")
     if (sortSpecs != null && sortSpecs.length > 0) {
       val country = context.lang.country
@@ -171,6 +177,11 @@ sealed class ProductQuery(q: String, site: String)(implicit context: Context, re
     }
     this
   }
+
+  def withoutToos() : ProductQuery = {
+    addFilterQuery("isToos:false")
+    this
+  }
 }
 
 private object Query {
@@ -223,7 +234,7 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
      request.getQueryString("outlet") match {
       case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
       case _ =>
-        val isOnSaleParam = "onsale" + context.lang.country;
+        val isOnSaleParam = "onsale" + context.lang.country
         val isOnSale = request.getQueryString("onsale")
         isOnSale match {
           case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
@@ -249,7 +260,7 @@ class SingleProductQuery(productId : String, site : String)(implicit context: Co
     addFilterQuery(s"productId:$productId")
     setRows(1)
 
-    if(site != null) {
+    if (site != null) {
        addFilterQuery(s"categoryPath:$site")
      }
   }

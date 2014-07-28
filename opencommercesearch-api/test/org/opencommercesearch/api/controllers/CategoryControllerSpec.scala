@@ -30,10 +30,10 @@ import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
-import org.apache.solr.client.solrj.{AsyncSolrServer, SolrRequest}
+import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer, SolrRequest}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.response.FacetField
-import org.apache.solr.common.SolrDocument
+import org.apache.solr.common.{SolrDocumentList, SolrDocument}
 
 import org.specs2.mutable._
 
@@ -45,7 +45,6 @@ class CategoryControllerSpec extends BaseSpec {
 
   trait Categories extends Before {
     def before = {
-      // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
 
@@ -230,6 +229,12 @@ class CategoryControllerSpec extends BaseSpec {
 
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+
         setupUpdate
         val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
           ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
@@ -259,6 +264,7 @@ class CategoryControllerSpec extends BaseSpec {
         val result = route(fakeRequest)
         Await.ready(result.get, Duration.Inf)
         validateUpdateResult(result.get, CREATED)
+        there was one(solrServer).query(any[SolrQuery]) //Notice one category is rule based, so should be ignored when querying the suggestion collection
         there was two(solrServer).request(any[SolrRequest]) //One for the category collection, and other for the suggestion collection
       }
     }
