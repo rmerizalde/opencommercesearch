@@ -23,18 +23,24 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.{Controller, SimpleResult}
 import play.api.Logger
 import play.api.libs.json.Json
-
 import scala.concurrent.Future
+import org.apache.solr.client.solrj.beans.BindingException
 
 trait ErrorHandling {
   self: Controller =>
 
   def withErrorHandling(f: Future[SimpleResult], message: String) : Future[SimpleResult]  = {
-    f.recover { case t: Throwable =>
-      Logger.error(message, t)
-      InternalServerError(Json.obj(
-        // @Todo refine developer messages ??
-        "message" -> message))
+    f.recover { 
+     case e : BindingException =>
+       //Handle bind exceptions
+       BadRequest(Json.obj(
+         "message" -> ("Illegal fields: " + message),
+         "detail" -> e.getMessage))
+      case t : Throwable =>
+        Logger.error(message, t)
+        InternalServerError(Json.obj(
+          // @Todo refine developer messages ??
+          "message" -> message))
     }
   }
 }
