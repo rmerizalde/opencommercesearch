@@ -37,7 +37,7 @@ import org.apache.commons.lang.StringUtils
  * @author rmerizalde
  */
 class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
-
+  val NoSite = null
   var jongo: Jongo = null
   var gridfs: GridFS = null
 
@@ -57,15 +57,15 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   val DefaultSearchProjection =
     """
-      |title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1, hasFreeGift:1,
+      | title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1, hasFreeGift:1,
       | skus.countries.availability.stockLevel:1, skus.countries.availability.status:1, skus.isPastSeason:1, skus.countries.code:1,
       | skus.countries.listPrice:1, skus.countries.salePrice:1, skus.countries.discountPercent:1, skus.countries.onSale:1,
-      | skus.countries.url:1,
+      | skus.countries.url:1, skus.catalogs:1, skus.image:1, skus.title:1, skus.isRetail:1, skus.isCloseout:1, skus.isOutlet:1, skus.id:1
     """.stripMargin
 
   val DefaultProductProject =
     """
-      |listRank:0, categories:0, skus.season:0, skus.year:0, skus.isRetail: 0, skus.isCloseout: 0, skus.catalogs: 0
+      |listRank:0, skus.season:0, skus.year:0, skus.isRetail:0, skus.isCloseout:0
     """.stripMargin
 
   val DefaultCategoryProject =
@@ -108,43 +108,42 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
-    findProducts(ids, null, country, fields, isSearch)
+    findProducts(ids, NoSite, country, fields, isSearch)
   }
 
   def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
     Future {
       if (ids.size > 0) {
+
+        // the product query is like {$and: [{$or: [{_id:#},...,{_id:#}]}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+
         val productCollection = jongo.getCollection("products")
         val query = new StringBuilder(128)
+          .append("{ $and: [")
           .append("{ $or: [")
 
         //for ids
         ids.foreach(t => query.append("{_id:#},"))
 
         query.setLength(query.length - 1)
-        query.append("]")
+        query.append("]}, { skus: { $elemMatch: { countries.code:#")
 
         var products: Iterable[Product] = null
         val skuCount = if (minimumFields) ids.size else 0
         val parameters = new ArrayBuffer[Object](ids.size + 1)
-        //ids
+
         parameters.appendAll(ids.map(t => t._1))
+        parameters.append(country)
 
         if (site != null) {
-          query.append(", skus.catalogs:#")
+          query.append(", catalogs:#")
           parameters.append(site)
         }
-
-        if (country != null) {
-          query.append(", skus.countries.code:#")
-          parameters.append(country)
-        }
-
-        query.append("}")
+        query.append(" }}}]}")
 
         products = productCollection.find(query.toString(), parameters: _*)
-          .projection(projectProduct(fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product])
-        products.map(p => filterSearchProduct(country, p, minimumFields, fields))
+          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product])
+        products.map(p => filterSearchProduct(site, country, p, minimumFields, fields))
       } else {
         Seq.empty[Product]
       }
@@ -154,8 +153,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country,
-        productCollection.findOne("{_id:#}, skus.countries.code:#}", id, country).projection(projectProduct(fields)).as(classOf[Product]),
+      filterSkus(NoSite, country,
+        productCollection.findOne("{_id:#}, skus.countries.code:#}", id, country).projection(projectProduct(NoSite, fields)).as(classOf[Product]),
         fields)
     }
   }
@@ -163,8 +162,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
     Future {
       val productCollection = jongo.getCollection("products")
-      filterSkus(country,
-        productCollection.findOne("{_id:#}, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(fields)).as(classOf[Product]),
+      filterSkus(site, country,
+        productCollection.findOne("{_id:#}, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(site, fields)).as(classOf[Product]),
         fields)
     }
   }
@@ -175,33 +174,57 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param product the product which skus will be filtered
    * @return the product
    */
-  private def filterSkus(country: String, product: Product, fields: Seq[String]) : Product = {
+  private def filterSkus(site: String, country: String, product: Product, fields: Seq[String]) : Product = {
     if (product != null) {
       for (skus <- product.skus) {
-        product.skus = Some(skus.filter((s: Sku) => {
-          flattenCountries(country, s)
-        }))
+        product.skus = Option(skus.filter { s =>
+          var includeSku = true
+
+          if (site != NoSite) {
+            includeSku = s.catalogs match {
+              case Some (catalogs) =>
+                catalogs.contains(site)
+              case None =>
+                Logger.warn(s"Cannot filter by site '$site', no sites found for sku '${s.id.orNull}'")
+                false
+            }
+          }
+          if (!includesSkuField("skus.catalogs", fields, isDefault = false)) {
+            s.catalogs = None
+          }
+          includeSku && flattenCountries(country, s)
+        })
       }
 
+      if (includesProductField("availabilityStatus", fields, isDefault = true)) {
+        product.populateAvailabilityStatus()
+      }
       setToos(product, fields)
     }
 
-    if (includesField("availabilityStatus", fields, isDefault = true)) {
-      product.populateAvailabilityStatus()
-    }
     product
   }
 
+  private def includesProductField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
+    includesField(field, fields, "*", isDefault)
+  }
+
+  private def includesSkuField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
+    includesField(field, fields, "skus", isDefault)
+  }
+
   /**
-   * Checks if the given field is include in the fields
+   * Checks if the given field is included in the fields
    * @param field the field to check
    * @param fields the field list
+   * @param nestedStarField the * representation for a nested field. For example, skus.* -> skus
    * @param isDefault true if the field should be include when no field list is empty. Otherwise false
    * @return true if the the field declaration includes the given field. If not, returns false
    */
-  private def includesField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
+  private def includesField(field: String, fields: Seq[String], nestedStarField: String, isDefault: Boolean = false) = {
     def includes(fields: Seq[String]): Boolean = fields match {
       case "*" +: xs => true
+      case `nestedStarField` +: xs => true
       case x +: xs => if (x.equals(field)) true else includes(xs)
       case Seq() => false
     }
@@ -228,7 +251,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     // this method will go away in favor of just hiding availability if it was not requested
     for (skus <- product.skus) {
       val hasProductOutOfStock = fields.contains("isOutofStock")
-      if (hasProductOutOfStock || includesField("isOutofStock", fields, isDefault = true)) {
+      if (hasProductOutOfStock || includesProductField("isOutofStock", fields, isDefault = true)) {
+
         //Artificial property calculated from storage
         product.isOutOfStock = product.availabilityStatus match {
           case Some(status) => Some(status == Availability.OutOfStock)
@@ -249,27 +273,21 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     product
   }
 
-  private def filterSearchProduct(country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
-    val filteredProduct = filterSkus(country, product, fields)
+  private def filterSearchProduct(site: String, country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
+    def isSkusFieldIn(field: String) = field.equals("*") || field.equals("skus") || field.startsWith("skus.")
 
-    for (skus <- filteredProduct.skus) {
-      skus.foreach(s => {
-        // @todo mixing exclude and includes in a project is currently not supported
-        // https://jira.mongodb.org/browse/SERVER-391
-        // In the meanwhile, we force hiding some sku properties that are usually not needed in search
-        if(minimumFields) {
-          s.size = None
-          s.catalogs = None
-          s.color = None
-          s.year = None
-          s.season = None
-        }
-      })
-    }
-    
-    setToos(product, fields)
-    if (includesField("availabilityStatus", fields, isDefault = false)) {
-      product.populateAvailabilityStatus()
+    val filteredProduct = filterSkus(site, country, product, fields)
+
+    if(minimumFields) {
+      //Clean up product data if skus weren't requested originally
+      val skuFields = fields.isEmpty || (fields collectFirst {
+        case field: String if isSkusFieldIn(field) => true
+      }).getOrElse(false)
+
+      if (!skuFields) {
+        product.skus = None
+      }
+
     }
     product
   }
@@ -327,8 +345,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @return the projection
    */
-  private def projectProduct(fields: Seq[String]) : String = {
-    projectProduct(fields, 0)
+  private def projectProduct(site: String, fields: Seq[String]) : String = {
+    projectProduct(site, fields, 0)
   }
 
   /**
@@ -336,13 +354,15 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * the elemMatch to target a single sku for each product. Additionally, the default included fields in the projection
    * vary depending on sku count. Usually, sku count greater than zero is used for searches.
    *
+   * @param site is the site to filter by
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @param skuCount indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projectProduct(fields: Seq[String], skuCount: Int) : String = {
+  private def projectProduct(site: String, fields: Seq[String], skuCount: Int) : String = {
     val projection = new StringBuilder(128)
-    
+    var projectionFields = new StringBuilder(128)
+
     if(fields.contains("*")) {
       projection.append("{}")
     }
@@ -350,14 +370,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         projection.append("{")
         if (fields.size > 0) {
           var includeSkus = false
-          fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
+
+          fields.foreach(field => {
+            val f = ProjectionMappings.getOrElse(field, field)
 
             if(f == "isOutofStock") {
               includeSkus = true
-              projection.append("skus.countries.availability.status:1,")
+              projectionFields.append("skus.countries.availability.status:1,")
             }
             else {
-              projection.append(f).append(":1,")
+              projectionFields.append(f).append(":1,")
             }
 
             if (f.startsWith("skus.")) {
@@ -368,14 +390,17 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
             // we can't use elemMatch on nested fields. The country list is small so all countries are loaded and filtered
             // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
             // Country properties are flatten into the sku level so the code will never be part of the response
-            projection.append("skus.countries.code:1,")
+            projectionFields.append("skus.countries.code:1,")
+            if (site != NoSite) {
+              projectionFields.append("skus.catalogs:1,")
+            }
           }
+
         } else {
           if (skuCount > 0) {
-            projection.append(DefaultSearchProjection)
-    
+            projectionFields.append(DefaultSearchProjection)
           } else {
-            projection.append(DefaultProductProject)
+            projectionFields.append(DefaultProductProject)
           }
         }
     }
@@ -386,9 +411,10 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         projection.append("{id:#},")
       }
       projection.setLength(projection.length - 1)
-      projection.append("]}}}")
+      projection.append("]}},")
     }
 
+    projection.append(projectionFields.toString())
     projection.append("}")
     projection.toString()
   }
@@ -409,7 +435,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.append("{")
     if (fields.size > 0) {
       var includeSkus = false
-      fields.map(f => ProjectionMappings.get(f).getOrElse(f)).foreach(f => {
+      fields.foreach(field => {
+        val f = ProjectionMappings.getOrElse(field, field)
         projection.append(f).append(":1,")
         if (f.startsWith("skus.")) {
           includeSkus = true
@@ -422,7 +449,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projection.toString()
   }
   
-  private def projectionCategory(fields: Seq[String]) : String = {    
+  private def projectionCategory(fields: Seq[String]) : String = {
     projectionAux(fields, DefaultCategoryProject)
   }
     
