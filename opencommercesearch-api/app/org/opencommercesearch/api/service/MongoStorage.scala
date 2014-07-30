@@ -128,7 +128,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         query.setLength(query.length - 1)
         query.append("]}, { skus: { $elemMatch: { countries.code:#")
 
-        var products: Iterable[Product] = null
         val skuCount = if (minimumFields) ids.size else 0
         val parameters = new ArrayBuffer[Object](ids.size + 1)
 
@@ -141,9 +140,16 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         }
         query.append(" }}}]}")
 
-        products = productCollection.find(query.toString(), parameters: _*)
-          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product])
-        products.map(p => filterSearchProduct(site, country, p, minimumFields, fields))
+
+        val products = productCollection.find(query.toString(), parameters: _*)
+          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product]).toSeq
+        val productSort = Map(ids.map { case (productId, _) => productId } zip (1 to ids.size): _*)
+        products.map { p => filterSearchProduct(site, country, p, minimumFields, fields) } sortWith { case (p1, p2) =>
+          (p1.id, p2.id) match {
+            case (Some(id1), Some(id2)) => productSort(id1) <= productSort(id2)
+            case _ => true
+          }
+        }
       } else {
         Seq.empty[Product]
       }
@@ -154,7 +160,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       filterSkus(NoSite, country,
-        productCollection.findOne("{_id:#}, skus.countries.code:#}", id, country).projection(projectProduct(NoSite, fields)).as(classOf[Product]),
+        productCollection.findOne("{$and: [{_id:#}, {skus.countries.code:#}]}", id, country).projection(projectProduct(NoSite, fields)).as(classOf[Product]),
         fields)
     }
   }
@@ -163,8 +169,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val productCollection = jongo.getCollection("products")
       filterSkus(site, country,
-        productCollection.findOne("{_id:#}, skus.catalogs:#, skus.countries.code:#}", id, site, country).projection(projectProduct(site, fields)).as(classOf[Product]),
-        fields)
+        productCollection.findOne("{$and: [{_id:#}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}", id, country, site)
+          .projection(projectProduct(site, fields)).as(classOf[Product]), fields)
     }
   }
 
