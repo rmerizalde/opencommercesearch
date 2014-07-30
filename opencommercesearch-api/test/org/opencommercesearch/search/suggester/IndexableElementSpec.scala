@@ -66,7 +66,6 @@ class IndexableElementSpec extends Specification with Mockito {
         val queryResponse2 = setupQueryResponse(2)
         val queryResponse33 = setupQueryResponse(33)
 
-
         solrServer.query(any[SolrQuery]) returns Future(queryResponse2) thenReturns Future(queryResponse33)
 
         val suggestion1 = mock[TestElement]
@@ -81,7 +80,7 @@ class IndexableElementSpec extends Specification with Mockito {
 
         (response must not beNull)
         there was one(solrServer).request(any[SolrRequest])
-        there was two(solrServer).query(any[SolrQuery])
+        there was one(solrServer).query(any[SolrQuery])
 
         there was one(suggestion1).toSolrDoc(anyLong, ===(2))
         there was one(suggestion2).toSolrDoc(anyLong, ===(33))
@@ -99,11 +98,22 @@ class IndexableElementSpec extends Specification with Mockito {
     docList.setNumFound(count)
     docList.add(doc)
 
+    val categoryValues = new NamedList[Object]
+    categoryValues.add("id1", new Integer(2))
+    categoryValues.add("id2", new Integer(33))
+    val categoryFacet = new NamedList[Object]
+    categoryFacet.add("ancestorCategoryId", categoryValues)
+
+    val facets = new NamedList[Object]()
+    facets.add("facet_fields", categoryFacet)
+
     val queryResponseList = new NamedList[Object]()
     queryResponseList.add("response", docList)
+    queryResponseList.add("facet_counts", facets)
 
     val queryResponse = new QueryResponse()
     queryResponse.setResponse(queryResponseList)
+
     queryResponse
   }
 
@@ -114,13 +124,9 @@ class IndexableElementSpec extends Specification with Mockito {
     responseHeader.add("status", "0")
     responseHeader.add("QTime", "91")
 
-    val doc = new NamedList[Object]()
-    doc.add("id", "element0")
-
     val response = new NamedList[Object]()
     response.add("numFound", "1")
     response.add("start", "0")
-    response.add("docs", Seq(doc))
 
     result.add("responseHeader", responseHeader)
     result.add("response", response)
