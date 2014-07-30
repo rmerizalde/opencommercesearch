@@ -128,44 +128,79 @@ object IndexableElement {
   }
 
   private def getDocsToIndex(elements: Seq[IndexableElement], fetchCount: Boolean, feedTimeStamp: Long)(implicit context: Context): Future[Seq[SolrInputDocument]] = {
-    def getQuery(e : IndexableElement) : String = {
-      e.getType match {
-        case "brand" => s"brandId:${e.id.get}"
-        case "category" => s"ancestorCategoryId:${e.id.get}"
-      }
+    if(elements.size == 0) {
+      Future.successful(Seq.empty)
     }
-
-    val docsToIndex = elements map { e =>
-      if (fetchCount) {
-        val productQuery = new ProductQuery(getQuery(e))
-        productQuery.withoutToos()
-        productQuery.setRows(0)
-        val responseFuture = solrServer.query(productQuery)
-
-        responseFuture flatMap { response =>
-          response.getResults.getNumFound match {
-            case 0 =>
-              //Actually, delete this one from suggestions collection
-              val update = withSuggestCollection(new AsyncUpdateRequest())
-              val id = getSuggestionId(e.getType, e.id.get)
-              update.deleteById(id)
-              Logger.debug(s"Suggestion element $id was deleted because it no longer has products on stock.")
-              Future(None)
-            case _ =>
-              //Add the count to the element
-              Future(Some(e.toSolrDoc(feedTimeStamp, response.getResults.getNumFound.toInt)))
-          }
+    else {
+      def toSolrInputDocuments = {
+        elements map { e =>
+          Future(Some(e.toSolrDoc(feedTimeStamp)))
         }
       }
-      else {
-        Future(Some(e.toSolrDoc(feedTimeStamp)))
+
+      val docsToIndex =
+        if (fetchCount) {
+          getElementsInStock(elements) map { elementsInStock =>
+            val update = withSuggestCollection(new AsyncUpdateRequest())
+
+            elements map { e =>
+              try {
+                elementsInStock.getOrElse(e.id.get, 0L) match {
+                  case count: Long if count > 0 =>
+                    //Add the count to the element
+                    Logger.debug(s"Element $e has products on stock")
+                    Future(Some(e.toSolrDoc(feedTimeStamp, count.toInt)))
+                  case _ =>
+                    //Actually, delete this one from suggestions collection
+                    val id = getSuggestionId(e.getType, e.id.get)
+                    update.deleteById(id)
+                    update.process(solrServer) map { delete =>
+                      Logger.debug(s"Suggestion element $id was deleted because it no longer has products on stock.")
+                      None
+                    }
+                }
+              }
+              catch {
+                case exception: Exception =>
+                  Logger.error(s"Failed to check stock for elements $e", exception)
+                  Future(Option(e.toSolrDoc(feedTimeStamp)))
+              }
+            }
+          }
+        }
+        else {
+          Future.successful(toSolrInputDocuments)
+        }
+
+      docsToIndex flatMap { docs =>
+        Future.sequence(docs) map (docs => {
+          docs.collect {
+            case doc: Some[SolrInputDocument] => doc.get
+          }
+        })
+      }
+    }
+  }
+
+  private def getElementsInStock(elements: Seq[IndexableElement])(implicit context: Context) : Future[Map[String, Long]] = {
+    def getField(elements : Seq[IndexableElement]) : String = {
+      elements(0).getType match {
+        case "brand" => "brandId"
+        case "category" => "ancestorCategoryId"
       }
     }
 
-    Future.sequence(docsToIndex) map (docs => {
-      docs.collect {
-        case d : Some[SolrInputDocument] => d.get
-      }
-    })
+    val productQuery = new ProductQuery("*:*")
+    productQuery.withoutToos()
+    productQuery.setRows(0)
+    productQuery.withFaceting(getField(elements), Option(MaxFacetPaginationLimit))
+
+    solrServer.query(productQuery) map { response =>
+      response.getFacetFields.flatMap({ facet =>
+        facet.getValues map { value =>
+          value.getName -> value.getCount
+        }
+      }).toMap
+    }
   }
 }

@@ -72,10 +72,15 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
-  def withFaceting() : ProductQuery = {
+  def withFaceting(field: String = "category", limit: Option[Int] = None) : ProductQuery = {
     setFacet(true)
-    addFacetField("category")
+    addFacetField(field)
     setFacetMinCount(1)
+
+    limit foreach { l =>
+      setFacetLimit(l)
+    }
+
     this
   }
 

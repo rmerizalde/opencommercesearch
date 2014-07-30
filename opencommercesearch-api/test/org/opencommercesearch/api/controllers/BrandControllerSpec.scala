@@ -19,6 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import org.apache.solr.client.solrj.response.FacetField
 import org.apache.solr.common.SolrDocumentList
 import play.api.test._
 import play.api.test.Helpers._
@@ -99,6 +100,7 @@ class BrandControllerSpec extends BaseSpec {
         val documentList = mock[SolrDocumentList]
         documentList.getNumFound returns 5
         queryResponse.getResults returns documentList
+        queryResponse.getFacetFields returns getFacetFields
 
         setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
@@ -219,6 +221,7 @@ class BrandControllerSpec extends BaseSpec {
         val documentList = mock[SolrDocumentList]
         documentList.getNumFound returns 5
         queryResponse.getResults returns documentList
+        queryResponse.getFacetFields returns getFacetFields
 
         setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
@@ -243,10 +246,19 @@ class BrandControllerSpec extends BaseSpec {
         val result = route(fakeRequest)
         validateUpdateResult(result.get, CREATED)
 
-        there was two(solrServer).query(any[SolrQuery])
+        there was one(solrServer).query(any[SolrQuery])
         there was one(solrServer).request(any[SolrRequest])
         there was one(storage).saveBrand(any)
       }
     }
+  }
+
+  private def getFacetFields = {
+    val facetFields = new java.util.LinkedList[FacetField]()
+    val brandFacet = new FacetField("brand")
+    brandFacet.add("1000", 3)
+    brandFacet.add("1001", 2)
+    facetFields.add(brandFacet)
+    facetFields
   }
 }
