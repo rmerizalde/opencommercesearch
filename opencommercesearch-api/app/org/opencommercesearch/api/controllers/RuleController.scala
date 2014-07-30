@@ -23,24 +23,21 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.Logger
 import play.api.libs.json.{JsError, JsArray, Json}
+
 import scala.concurrent.Future
+
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.util.Util
-import org.opencommercesearch.api.models.{Category, Rule, RuleList}
+import org.opencommercesearch.api.models.{Rule, RuleList}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
 import org.apache.solr.common.SolrDocument
 import Util._
-import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.api.service.CategoryService.Taxonomy
-import scala.util.Success
 
 object RuleController extends BaseController {
 
-  var categoryService = new CategoryService(solrServer, storageFactory)
-  
   def findById(version: Int, id: String, preview: Boolean) = Action.async { implicit request =>
     val query = withRuleCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
 
@@ -93,36 +90,36 @@ object RuleController extends BaseController {
     }.get
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = ContextAction.async (parse.json(maxLength = 1024 * 2000)) { 
-    implicit context => request =>
-      Json.fromJson[RuleList](request.body).map { ruleList =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { request =>
+    Json.fromJson[RuleList](request.body).map { ruleList =>
       val rules = ruleList.rules
+      try {
         if (rules.length > MaxRuleIndexBatchSize) {
           Future.successful(BadRequest(Json.obj(
             "message" -> s"Exceeded number of Rules. Maximum is $MaxRuleIndexBatchSize")))
         } else {
           val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
-          val storage = withNamespace(storageFactory)
-          
-          val future = categoryService.getTaxonomy(storage, context.isPreview).flatMap(taxonomy => {
-            rules.foreach(rule => {
-                if (rule.category != null && rule.category.isDefined) {
-                    val categoryPaths = rule.getCategory.flatMap({ categoryId => ruleCategoryPathMapper(categoryId, taxonomy) })
-                    rule.category = Option(categoryPaths)
-                }
-                update.add(solrServer.binder.toSolrInputDocument(rule))
-              }
-            )
-            update.process(solrServer).map( response => {
-                    Created(Json.obj(
-                      "locations" -> JsArray(
-                        rules map (b => Json.toJson(routes.RuleController.findById(b.id.get).url))
-                      )))
-            }) 
+          rules map { rule =>
+              update.add(solrServer.binder.toSolrInputDocument(rule))
+          }
+
+          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+            Created(Json.obj(
+              "locations" -> JsArray(
+                rules map (b => Json.toJson(routes.RuleController.findById(b.id.get).url))
+              )))
           })
-          
+
           withErrorHandling(future, s"Cannot store Rules with ids [${rules map (_.id.get) mkString ","}]")
         }
+      }
+      catch {
+        case e : BindingException =>
+          //Handle bind exceptions
+          Future.successful(BadRequest(Json.obj(
+            "message" -> s"Illegal Rule fields [${rules map (_.id.get) mkString ","}] ",
+            "detail" -> e.getMessage)))
+      }
     }.recover {
       case e => Future.successful(BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
@@ -131,24 +128,6 @@ object RuleController extends BaseController {
     }.get
   }
 
-  /**
-   * Helper method that maps a given category id to it's corresponding 
-   * set of category paths using both, the namePath and the idPath formats
-   * @param The id of the category to lookup in the taxonomy
-   * @param the object holding the taxonomy
-   */
-  private def ruleCategoryPathMapper(category: String, taxonomy: Taxonomy) : Seq[String] = {
-    val categoryObj = taxonomy.get(category)
-    if ("__all__".equals(category)) {
-      Seq("__all__")
-    } else if(categoryObj != null && categoryObj.isDefined) {
-      val paths = categoryService.getPaths(categoryObj.get, taxonomy)
-      paths.map(f =>  f.idPath) ++ paths.map(f => f.namePath)
-    } else {
-      Seq.empty
-    }
-  }
-  
   /**
    * Post method for the rules endpoint. Will send commit or rollback to Solr accordingly.
    * @param commit true if a commit should be done.

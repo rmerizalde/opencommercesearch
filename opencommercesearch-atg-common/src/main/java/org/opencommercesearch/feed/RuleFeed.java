@@ -24,8 +24,6 @@ import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
-
-import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.RuleConstants;
 import org.opencommercesearch.RulesBuilder;
@@ -37,6 +35,7 @@ import java.sql.Timestamp;
 import java.util.*;
 
 import static org.opencommercesearch.repository.RankingRuleProperty.*;
+import static org.opencommercesearch.repository.RankingRuleProperty.ATTRIBUTE;
 
 /**
  * This class represents a feed from ATG to the OpenCommerceSearch REST API.
@@ -137,15 +136,37 @@ public class RuleFeed extends BaseRestFeed {
         @SuppressWarnings("unchecked")
         Set<RepositoryItem> categories = (Set<RepositoryItem>) rule.getPropertyValue(RuleProperty.CATEGORIES);
 
-        Boolean includeSubcategories = BooleanUtils.toBoolean((Boolean) rule.getPropertyValue(RuleProperty.INCLUDE_SUBCATEGORIES));
-        
         if (categories != null && categories.size() > 0) {
-            JSONArray categoryIds = new JSONArray();
-            ruleJsonObj.put(RuleConstants.FIELD_CATEGORY, categoryIds);
-            
-            for (RepositoryItem category:categories) {
-                boolean isNormalCategory = CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName());
-                setCategoryIds(ruleJsonObj, category, isNormalCategory ? includeSubcategories : false);   
+            Boolean includeSubcategories = (Boolean) rule.getPropertyValue(RuleProperty.INCLUDE_SUBCATEGORIES);
+
+            if (includeSubcategories == null) {
+                includeSubcategories = Boolean.FALSE;
+            }
+
+            try {
+                for (RepositoryItem category : categories) {
+                    if (CategoryProperty.ITEM_DESCRIPTOR.equals(category.getItemDescriptor().getItemDescriptorName())) {
+                        setCategorySearchTokens(ruleJsonObj, category, includeSubcategories);
+                        setCategoryCategoryPaths(ruleJsonObj, category, includeSubcategories);
+                    }
+                    else {
+                        setCategoryCategoryPaths(ruleJsonObj, category, false);
+                    }
+                }
+            }
+            catch(RepositoryException e) {
+                //Can't load categories
+                if(isLoggingError()) {
+                    logError("Can't load categories for rule " + rule.getRepositoryId(), e);
+                }
+            }
+
+            if (ruleJsonObj.get(RuleConstants.FIELD_CATEGORY) == null || ((JSONArray) ruleJsonObj.get(RuleConstants.FIELD_CATEGORY)).isEmpty()) {
+                //Don't index this rule, it has no category information.
+                if(isLoggingWarning()) {
+                    logWarning("Rule " + rule.getRepositoryId() + " has no valid category data associated to it.");
+                    return null;
+                }
             }
         }
         else {
@@ -305,21 +326,49 @@ public class RuleFeed extends BaseRestFeed {
     }
 
     /**
-     * Helper method to set the category fields for a rule JSON object.
+     * Helper method to set the category path fields for a rule JSON object.
      * @param ruleJsonObj JSON object representing the given rule.
      * @param category the category's repository item.
      * @param includeSubcategories Whether or not subcategories should be included.
      * @throws JSONException If there are issues formatting category data to JSON.
      */
-    private void setCategoryIds(JSONObject ruleJsonObj, RepositoryItem category, boolean includeSubcategories) throws JSONException {
-        getCategoriesIfPresent(ruleJsonObj).add(category.getRepositoryId());
+    private void setCategoryCategoryPaths(JSONObject ruleJsonObj, RepositoryItem category, boolean includeSubcategories) throws JSONException {
+        Set<String> categoryPaths = Utils.buildCategoryPrefix(category);
+        addAll(getCategoriesIfPresent(ruleJsonObj), categoryPaths);
 
         if (includeSubcategories) {
             @SuppressWarnings("unchecked")
             List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
             if (childCategories != null) {
                 for (RepositoryItem childCategory : childCategories) {
-                    setCategoryIds(ruleJsonObj, childCategory, includeSubcategories);
+                    setCategoryCategoryPaths(ruleJsonObj, childCategory, includeSubcategories);
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper method to set the category search token for a rule JSON object.
+     *
+     * @param ruleJsonObj JSON object representing the given rule.
+     * @param category the category's repository item.
+     * @throws RepositoryException if an exception occurs while retrieving category info.
+     * @throws JSONException If there are issues formatting category data to JSON.
+     */
+    private void setCategorySearchTokens(JSONObject ruleJsonObj, RepositoryItem category, boolean includeSubcategories) throws RepositoryException, JSONException {
+        @SuppressWarnings("unchecked")
+        Set<String> searchTokens = (Set<String>) category.getPropertyValue(CategoryProperty.SEARCH_TOKENS);
+        if (searchTokens != null) {
+            addAll(getCategoriesIfPresent(ruleJsonObj), searchTokens);
+        }
+
+        if (includeSubcategories) {
+            @SuppressWarnings("unchecked")
+            List<RepositoryItem> childCategories = (List<RepositoryItem>) category.getPropertyValue(CategoryProperty.CHILD_CATEGORIES);
+
+            if (childCategories != null) {
+                for (RepositoryItem childCategory : childCategories) {
+                    setCategorySearchTokens(ruleJsonObj, childCategory, includeSubcategories);
                 }
             }
         }

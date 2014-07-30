@@ -33,7 +33,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.opencommercesearch.RuleConstants;
 import org.opencommercesearch.RuleManager;
 import org.opencommercesearch.RulesBuilder;
 import org.opencommercesearch.Utils;
@@ -130,12 +129,9 @@ public class RuleFeedTest {
 
         // cateCchildx search tokens...
         when(cateCchild1.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild1:token", })));
-        when(cateCchild1.getRepositoryId()).thenReturn("cate:charlie:child1");
         when(cateCchild2.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild2:token", })));
-        when(cateCchild2.getRepositoryId()).thenReturn("cate:charlie:child2");
         when(cateCchild3.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild3:token:INVISIBLE!!!!", })));
-        when(cateCchild3.getRepositoryId()).thenReturn("cate:charlie:child3");
-        
+
         // cateCchild1childx search tokens...
         when(cateCchild1child1.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild1.cateCchild1child1:token", })));
         when(cateCchild1child2.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild1.cateCchild1child2:token", })));
@@ -166,9 +162,12 @@ public class RuleFeedTest {
 
         ruleFeed = new RuleFeed();
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
+        Set<String> paths = new HashSet<String>();
+        paths.add("cataC.cateCchild3");
+        paths.add("cataB.cateCchild3");
         List<String> calculatedPaths = (List<String>)doc.get("category");
-        assertEquals("cateCchild3", calculatedPaths.get(0));
-        assertEquals(1, calculatedPaths.size());
+        assertEquals(paths.toArray()[0], calculatedPaths.get(0));
+        assertEquals(paths.toArray()[1], calculatedPaths.get(1));
     }
 
     @Test
@@ -262,12 +261,11 @@ public class RuleFeedTest {
         JSONArray categories = (JSONArray) doc.get("category");
         List<String> categoryList = Lists.newArrayList(categories);
         for (String token : new String[] {
-                "cate:alpha",
-                "cate:beta",
-                "cate:charlie",
-                "cate:charlie:child1",
-                "cate:charlie:child2",
-                "cate:charlie:child3",
+                "cateA:token1",
+                "cateA:token2",
+                "cateB:token",
+                "cateCchild1:token",
+                "cateCchild2:token",
         }) {
             assertThat(categoryList, CoreMatchers.hasItem(token));
         }
@@ -442,16 +440,19 @@ public class RuleFeedTest {
         when(cataB.getRepositoryId()).thenReturn("cataB");
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
-        
-        List<String> categoryList = (List<String>) doc.get("category");
-        for (String token : new String[] {
-                "cateCchild1",
-                "cateCchild1child1",
-                "cateCchild1child2",
-                "cateCchild1child3"
-        }) {
-            assertThat(categoryList, CoreMatchers.hasItem(token));
-        }
+        List<String> calculatedPaths = (List<String>)doc.get("category");
+        assertEquals("cateCchild1:token", calculatedPaths.get(0));
+        assertEquals("cateCchild1.cateCchild1child1:token", calculatedPaths.get(1));
+        assertEquals("cateCchild1.cateCchild1child2:token", calculatedPaths.get(2));
+        assertEquals("cateCchild1.cateCchild1child3:token", calculatedPaths.get(3));
+        assertEquals("cataC.cateCchild1", calculatedPaths.get(4));
+        assertEquals("cataB.cateCchild1", calculatedPaths.get(5));
+        assertEquals("cataC.cateCchild1.cateCchild1child1", calculatedPaths.get(6));
+        assertEquals("cataB.cateCchild1.cateCchild1child1", calculatedPaths.get(7));
+        assertEquals("cataC.cateCchild1.cateCchild1child2", calculatedPaths.get(8));
+        assertEquals("cataB.cateCchild1.cateCchild1child2", calculatedPaths.get(9));
+        assertEquals("cataC.cateCchild1.cateCchild1child3", calculatedPaths.get(10));
+        assertEquals("cataB.cateCchild1.cateCchild1child3", calculatedPaths.get(11));
     }
 
     @Test
@@ -468,7 +469,8 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         List<String> calculatedPaths = (List<String>)doc.get("category");
-        assertEquals("cateCchild1", calculatedPaths.get(0));
-        assertEquals(1, calculatedPaths.size());
+        assertEquals("cateCchild1:token", calculatedPaths.get(0));
+        assertEquals("cataC.cateCchild1", calculatedPaths.get(1));
+        assertEquals("cataB.cateCchild1", calculatedPaths.get(2));
     }
 }

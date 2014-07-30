@@ -23,7 +23,9 @@ import play.api.mvc.SimpleResult
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json, JsArray}
+
 import scala.concurrent.Future
+
 import org.specs2.mutable._
 import org.specs2.mock.Mockito
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
@@ -32,38 +34,17 @@ import org.apache.solr.client.solrj.response.QueryResponse
 import org.apache.solr.common.util.NamedList
 import org.apache.solr.common.{SolrDocumentList, SolrDocument}
 import org.opencommercesearch.api.models.Rule
+
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.api.service.Storage
-import org.opencommercesearch.api.models.Category
 
-
-@RunWith(classOf[JUnitRunner])
 class RuleControllerSpec extends Specification with Mockito {
 
   trait Rules extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
       storageFactory = mock[MongoStorageFactory]
-      val categoryService = mock[CategoryService]
-      val taxonomy = mock[CategoryService.Taxonomy]
-      taxonomy.get(anyString) answers { catId => {
-          if ("__all__".equals(catId)) { None }
-          else {
-            val category = Category.getInstance(Some(catId.toString))
-            category.isRuleBased = Option(false)
-            category.sites = Option(Seq("mysite"))
-            category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
-            Option(category)
-          }
-        }
-      }
-      categoryService.getTaxonomy(any[MongoStorage], any)  returns Future.successful(taxonomy)
-      RuleController.categoryService = categoryService
       storageFactory.getInstance(anyString) returns mock[MongoStorage]
     }
   }
@@ -216,7 +197,7 @@ class RuleControllerSpec extends Specification with Mockito {
 
         val response = route(fakeRequest)
         validateFailedUpdate(updateResponse)
-        validateUpdateResultWithMessage(response.get, BAD_REQUEST, "Illegal fields")
+        validateUpdateResultWithMessage(response.get, BAD_REQUEST, "Illegal Rule fields")
       }
     }
 
@@ -298,7 +279,6 @@ class RuleControllerSpec extends Specification with Mockito {
                 "\"sortPriority\": 0," +
                 "\"query\": \"[purses on sale]\"," +
                 "\"catalogId\": [\"__all__\"]," +
-                "\"category\": [\"__all__\"]," +
                 "\"brandId\": [\"__all__\"]," +
                 "\"experimental\": false," +
                 "\"target\": [\"searchpages\"]," +
