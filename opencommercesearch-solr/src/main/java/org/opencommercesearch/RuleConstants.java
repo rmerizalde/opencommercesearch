@@ -152,12 +152,6 @@ public class RuleConstants {
      * to find out what's the current category.
      */
     public static final String FIELD_ANCESTOR_CATEGORY = "ancestorCategoryId";
-    
-    /**
-     * Flag to indicate if the rule should include all the children categories from the ones in the 
-     * category field
-     */
-    public static final String FIELD_INCLUDE_SUBCATEGORIES = "includeSubcategories";
 
     /**
      * Combine mode value that when specified replaces all existing rule values of the same type.

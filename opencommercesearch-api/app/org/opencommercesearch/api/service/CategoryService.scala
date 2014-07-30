@@ -69,11 +69,6 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   private val StatsdPruneTaxonomyGraphMetric = "api.search.internal.service.pruneTaxonomyGraph"
 
   /**
-   * Case class to hold the searchTokens and categoryPath fields for a given category
-   */
-  case class Path(namePath: String, idPath: String)
-  
-  /**
    * Generate the category tokens to create a hierarchical facet in Solr. Each
    * token is formatted such that encodes the depth information for each node
    * that appears as part of the path, and include the hierarchy separated by
@@ -486,35 +481,6 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
     }
   }
 
-  /**
-   * Get all the paths from the top of the taxonomy to a given category.
-   * These paths are in the format of searchTokens (1.site.category name.subcat name) and categoryPaths
-   * (site.categoryId.subcategoryId)
-   * @param currentCategory  the category to generate the paths from
-   * @param taxonomy the taxonomy obj which holds the entire site taxonomy
-   */
-  def getPaths(currentCategory: Category, taxonomy: Taxonomy): Seq[Path] = {
-    return getPaths(currentCategory, taxonomy, Seq.empty, 0) 
-  }
-  
-  private def getPaths(currentCategory: Category, taxonomy: Taxonomy, path: Seq[Path], depth: Int): Seq[Path] = {
-        if(currentCategory == null || currentCategory.parentCategories.getOrElse(Seq.empty).isEmpty) {
-          return path match {
-            case x :: xs => (path.map (p => new Path(depth + "." + currentCategory.sites.getOrElse(Seq("")).last + "." + p.namePath, 
-                                     currentCategory.sites.getOrElse(Seq("")).last + "." + p.idPath)))
-            case _ =>  (Seq.empty)  
-          }
-        } 
-        currentCategory.parentCategories.get.flatMap(parentCat => {
-          val paths = path match {
-            case x :: xs => (path.map (p => new Path(currentCategory.getName + "." + p.namePath,
-                                 currentCategory.getId + "." + p.idPath)))
-            case Nil =>  (Seq(new Path(currentCategory.getName, currentCategory.getId)))
-          }
-          
-          return getPaths(taxonomy.get(parentCat.getId).getOrElse(null), taxonomy, paths, depth + 1)
-        })
-      }
   /**
    * Scans the taxonomy to find the root nodes. Root nodes are inserted into the map with the site id as key.
    *
