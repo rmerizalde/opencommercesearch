@@ -115,18 +115,17 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       if (ids.size > 0) {
 
-        // the product query is like {$and: [{$or: [{_id:#},...,{_id:#}]}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+        // the product query is like {$and: [{_id: {$in: [#,..,#]}}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
 
         val productCollection = jongo.getCollection("products")
         val query = new StringBuilder(128)
-          .append("{ $and: [")
-          .append("{ $or: [")
+          .append("{ $and: [{_id: {$in: [")
 
         //for ids
-        ids.foreach(t => query.append("{_id:#},"))
+        ids.foreach(t => query.append("#,"))
 
         query.setLength(query.length - 1)
-        query.append("]}, { skus: { $elemMatch: { countries.code:#")
+        query.append("]}}, { skus: { $elemMatch: { countries.code:#")
 
         val skuCount = if (minimumFields) ids.size else 0
         val parameters = new ArrayBuffer[Object](ids.size + 1)
@@ -139,7 +138,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
           parameters.append(site)
         }
         query.append(" }}}]}")
-
 
         val products = productCollection.find(query.toString(), parameters: _*)
           .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product]).toSeq
