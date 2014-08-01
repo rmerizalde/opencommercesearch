@@ -8,17 +8,18 @@
                   {
                      "listPrice" :
                         {
-                           "min" : "129.0",
-                           "max" : "129.0"
+                           "min" : 129.0,
+                           "max" : 129.0
                         },
                      "color" :
                         {
-                           "count" : "2"
+                           "count" : 2,
+                           "families" : ["green"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "20.0",
-                           "max" : "25.0"
+                           "min" : 20.0,
+                           "max" : 25.0
                         },
                      "colorFamily" :
                         {
@@ -26,25 +27,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "96.75",
-                           "max" : "103.2"
+                           "min" : 96.75,
+                           "max" : 103.2
                         }
                   },
                "TNF5261" :
                   {
                      "listPrice" :
                         {
-                           "min" : "178.95",
-                           "max" : "198.95"
+                           "min" : 178.95,
+                           "max" : 198.95
                         },
                      "color" :
                         {
-                           "count" : "4"
+                           "count" : 4,
+                           "families" : ["black","blue","gray"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "0.0",
-                           "max" : "51.0"
+                           "min" : 0.0,
+                           "max" : 51.0
                         },
                      "colorFamily" :
                         {
@@ -52,25 +54,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "87.5",
-                           "max" : "198.95"
+                           "min" : 87.5,
+                           "max" : 198.95
                         }
                   },
                "TNF2833" :
                   {
                      "listPrice" :
                         {
-                           "min" : "89.95",
-                           "max" : "109.95"
+                           "min" : 89.95,
+                           "max" : 109.95
                         },
                      "color" :
                         {
-                           "count" : "8"
+                           "count" : 8,
+                           "families" : ["green","gray","black","yellow","red","orange","blue"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "0.0",
-                           "max" : "30.0"
+                           "min" : 0.0,
+                           "max" : 30.0
                         },
                      "colorFamily" :
                         {
@@ -78,25 +81,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "62.97",
-                           "max" : "109.95"
+                           "min" : 62.97,
+                           "max" : 109.95
                         }
                   },
                "SIC0119" :
                   {
                      "listPrice" :
                         {
-                           "min" : "259.0",
-                           "max" : "259.0"
+                           "min" : 259.0,
+                           "max" : 259.0
                         },
                      "color" :
                         {
-                           "count" : "3"
+                           "count" : 3,
+                           "families" : ["black","blue"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "0.0",
-                           "max" : "45.0"
+                           "min" : 0.0,
+                           "max" : 45.0
                         },
                      "colorFamily" :
                         {
@@ -104,25 +108,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "142.45",
-                           "max" : "259.0"
+                           "min" : 142.45,
+                           "max" : 259.0
                         }
                   },
                "TNF7097" :
                   {
                      "listPrice" :
                         {
-                           "min" : "98.95",
-                           "max" : "98.95"
+                           "min" : 98.95,
+                           "max" : 98.95
                         },
                      "color" :
                         {
-                           "count" : "2"
+                           "count" : 2,
+                           "families" : ["black","green"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "0.0",
-                           "max" : "30.0"
+                           "min" : 0.0,
+                           "max" : 30.0
                         },
                      "colorFamily" :
                         {
@@ -130,8 +135,8 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "69.27",
-                           "max" : "98.95"
+                           "min" : 69.27,
+                           "max" : 98.95
                         }
                   },
                "CST0180" :
@@ -143,12 +148,13 @@
                         },
                      "color" :
                         {
-                           "count" : "2"
+                           "count" : 2,
+                           "families" : ["yellow","black"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "58.0",
-                           "max" : "60.0"
+                           "min" : 58.0,
+                           "max" : 60.0
                         },
                      "colorFamily" :
                         {
@@ -156,25 +162,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "47.98",
-                           "max" : "49.95"
+                           "min" : 47.98,
+                           "max" : 49.95
                         }
                   },
                "TNF5884" :
                   {
                      "listPrice" :
                         {
-                           "min" : "89.95",
-                           "max" : "89.95"
+                           "min" : 89.95,
+                           "max" : 89.95
                         },
                      "color" :
                         {
-                           "count" : "3"
+                           "count" : 3,
+                           "families" : ["black","green","white"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "0.0",
-                           "max" : "0.0"
+                           "min" : 0.0,
+                           "max" : 0.0
                         },
                      "colorFamily" :
                         {
@@ -182,25 +189,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "89.95",
-                           "max" : "89.95"
+                           "min" : 89.95,
+                           "max" : 89.95
                         }
                   },
                "TNF6816" :
                   {
                      "listPrice" :
                         {
-                           "min" : "288.95",
-                           "max" : "288.95"
+                           "min" : 288.95,
+                           "max" : 288.95
                         },
                      "color" :
                         {
-                           "count" : "2"
+                           "count" : 2,
+                           "families" : ["black","brown"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "40.0",
-                           "max" : "50.0"
+                           "min" : 40.0,
+                           "max" : 50.0
                         },
                      "colorFamily" :
                         {
@@ -208,25 +216,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "144.48",
-                           "max" : "173.37"
+                           "min" : 144.48,
+                           "max" : 173.37
                         }
                   },
                "TNF3731" :
                   {
                      "listPrice" :
                         {
-                           "min" : "319.95",
-                           "max" : "319.95"
+                           "min" : 319.95,
+                           "max" : 319.95
                         },
                      "color" :
                         {
-                           "count" : "2"
+                           "count" : 2,
+                           "families" : ["green","brown"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "30.0",
-                           "max" : "45.0"
+                           "min" : 30.0,
+                           "max" : 45.0
                         },
                      "colorFamily" :
                         {
@@ -234,25 +243,26 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "175.97",
-                           "max" : "223.97"
+                           "min" : 175.97,
+                           "max" : 223.97
                         }
                   },
                "PAT2512" :
                   {
                      "listPrice" :
                         {
-                           "min" : "449.0",
-                           "max" : "449.0"
+                           "min" : 449.0,
+                           "max" : 449.0
                         },
                      "color" :
                         {
-                           "count" : "1"
+                           "count" : 1,
+                           "families" : ["black"]
                         },
                      "discountPercent" :
                         {
-                           "min" : "30.0",
-                           "max" : "45.0"
+                           "min" : 30.0,
+                           "max" : 45.0
                         },
                      "colorFamily" :
                         {
@@ -260,8 +270,8 @@
                         },
                      "salePrice" :
                         {
-                           "min" : "246.95",
-                           "max" : "314.3"
+                           "min" : 246.95,
+                           "max" : 314.3
                         }
                   }
             },

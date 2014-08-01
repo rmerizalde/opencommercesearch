@@ -1,4 +1,5 @@
 package org.opencommercesearch.api.controllers
+
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -21,6 +22,7 @@ package org.opencommercesearch.api.controllers
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
+import play.api.libs.json.Json.JsValueWrapper
 import play.api.mvc._
 
 import scala.collection.JavaConversions._
@@ -85,15 +87,40 @@ object ProductController extends BaseController {
       productFuture = storage.findProducts(productIds, context.lang.country, fields, minimumFields = false)
     }
 
-    val future = productFuture flatMap { productList =>
+    val future = productFuture flatMap { products =>
+      def createResponse(products: Iterable[Product]) = {
+        if (products.size > 0) {
+          def createMetadataFields(): Seq[(String, JsValueWrapper)] = {
+            val metadataFields: Seq[(String, JsValueWrapper)] = Seq("found" -> JsNumber(products.size), "time" -> JsNumber(System.currentTimeMillis() - startTime))
+            val summary = createProductSummary(products)
 
-      if (productList != null) {
+            if (summary.isDefined) {
+              val s: JsValueWrapper = summary.get
+              metadataFields :+ ("productSummary" -> s)
+            } else {
+              metadataFields
+            }
+          }
 
-        //Check if we should include the category taxonomy or not
+          withCacheHeaders(
+            Ok(Json.obj(
+            "metadata" -> Json.obj(createMetadataFields(): _*),
+            "products" -> products)), id)
+        } else {
+          withCacheHeaders(NotFound(Json.obj(
+            "metadata" -> Json.obj(
+              "found" -> 0,
+              "time" -> (System.currentTimeMillis() - startTime)),
+            "message" -> "No products found")), id)
+        }
+      }
+
+      if (products != null) {
+       //Check if we should include the category taxonomy or not
         val includeTaxonomy = fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories"))
 
-        if(includeTaxonomy) {
-          val productListFuture = productList map { product =>
+        if (includeTaxonomy) {
+          val productListFuture = products map { product =>
             categoryService.getProductTaxonomy(product.getId, site, getCategoryFields(fields)) map { categories =>
               product.categories = Option(categories)
               product
@@ -101,20 +128,9 @@ object ProductController extends BaseController {
           }
 
           //Combine all futures in a single one (wait until they all finish)
-          Future.sequence(productListFuture).map(productResponse => {
-            withCacheHeaders(Ok(Json.obj(
-              "metadata" -> Json.obj(
-                "found" -> productResponse.size,
-                "time" -> (System.currentTimeMillis() - startTime)),
-              "products" -> productResponse)), id)
-          })
-        }
-        else {
-          Future(withCacheHeaders(Ok(Json.obj(
-            "metadata" -> Json.obj(
-              "found" -> productList.size,
-              "time" -> (System.currentTimeMillis() - startTime)),
-            "products" -> Json.toJson(productList))), id))
+          Future sequence productListFuture  map { products => createResponse(products) }
+        } else {
+          Future(createResponse(products))
         }
       } else {
         Logger.debug(s"Products with ids [$id] not found")
@@ -125,6 +141,29 @@ object ProductController extends BaseController {
     }
 
     withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
+  }
+
+
+
+  /**
+   * Helper method to calculate a summary for the given list of products
+   */
+  private def createProductSummary(products: Iterable[Product]): Option[JsValue] = {
+    var hasSummary = false
+    val summaries: Iterable[(String, JsValueWrapper)] = products withFilter { product =>
+      product.skus.getOrElse(Seq[Sku]()).size > 0
+    } map { product =>
+      val productSummary = new ProductSummary
+
+      product.skus map { skus: Seq[Sku] =>
+        for (sku <- skus) {
+          hasSummary = productSummary.process(sku)
+        }
+      }
+      val jsonSummary: JsValueWrapper = Json.toJson(productSummary)
+      (product.id.get, jsonSummary)
+    }
+    if (hasSummary) Some(Json.obj(summaries.toSeq: _*)) else None
   }
 
   /**
@@ -145,22 +184,49 @@ object ProductController extends BaseController {
    * @return an array for products containing its summary
    */
   private def processGroupSummary(groupSummary: NamedList[Object])(implicit context: Context) : JsObject = {
+    def namedList(value: AnyRef) = value.asInstanceOf[NamedList[AnyRef]]
+
+    // todo: this is a workaround and will be deleted in a future version
+    def patchColorSummaries(summaries: NamedList[AnyRef]) {
+      def patch(colorSummary: NamedList[AnyRef], colorFamilySummary: NamedList[AnyRef]) = if (colorFamilySummary != null) {
+        val families = colorFamilySummary.get("families")
+        if (families != null) {
+          if (colorSummary != null) {
+            colorSummary.add("families", families)
+          }
+          colorFamilySummary.add("families", families.toString)
+        }
+      }
+
+      patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
+    }
+
+    implicit val implicitAnyRefWrites = new Writes[Any] {
+      def writes(any: Any): JsValue = any match {
+        case f: Float => JsNumber(BigDecimal(any.toString))
+        case i: Int => JsNumber(any.asInstanceOf[Int])
+        case a: util.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString) }) // todo: support list types other than String
+        case _ => JsString(any.toString)
+      }
+    }
+
     val groups = new ArrayBuffer[(String, JsValue)]()
 
     if(groupSummary != null) {
-      val productSummaries = groupSummary.get("productId").asInstanceOf[NamedList[Object]]
+      val productSummaries = namedList(groupSummary.get("productId"))
 
       if(productSummaries != null) {
        productSummaries map { productSummary =>
-         val parameterSummaries = productSummary.getValue.asInstanceOf[NamedList[Object]]
+         val parameterSummaries = namedList(productSummary.getValue)
          val productSeq = ArrayBuffer[(String,JsValue)]()
 
+         patchColorSummaries(parameterSummaries)
          parameterSummaries map { parameterSummary =>
-           val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[Object]]
-           val parameterSeq = ArrayBuffer[(String,JsString)]()
+           val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[AnyRef]]
+           val parameterSeq = ArrayBuffer[(String, JsValue)]()
 
            statSummaries map { statSummary =>
-             parameterSeq += ((statSummary.getKey, new JsString(statSummary.getValue.toString)))
+             parameterSeq += ((statSummary.getKey, Json.toJson(statSummary.getValue)))
            }
 
            //Remove country from parameters
@@ -172,11 +238,11 @@ object ProductController extends BaseController {
            productSeq += ((parameter, new JsObject(parameterSeq)))
          }
 
+
          groups += ((productSummary.getKey, new JsObject(productSeq)))
        }
       }
     }
-
     new JsObject(groups)
   }
 
@@ -205,10 +271,11 @@ object ProductController extends BaseController {
               product.setField("productId", group.getGroupValue)
               products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
+
             val storage = withNamespace(storageFactory)
-            storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map( products => {
+            storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
               (command.getNGroups, products, groupSummary)
-            })
+            }
           } else {
             Future.successful((0, null, null))
           }
@@ -273,8 +340,8 @@ object ProductController extends BaseController {
               withCacheHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "productSummary" -> processGroupSummary(groupSummary),
                   "time" -> (System.currentTimeMillis() - startTime),
+                  "productSummary" -> processGroupSummary(groupSummary),
                   "facets" -> facetHandler.getFacets,
                   "breadCrumbs" -> facetHandler.getBreadCrumbs),
                 "products" -> Json.toJson(
@@ -285,8 +352,7 @@ object ProductController extends BaseController {
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
-                  "productSummary" -> processGroupSummary(groupSummary),
-                "products" -> Json.arr()
+                "message" -> "No products found"
               ))
             }
           } else {

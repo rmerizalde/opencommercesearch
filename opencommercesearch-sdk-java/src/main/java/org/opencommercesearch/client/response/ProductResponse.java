@@ -19,8 +19,10 @@ package org.opencommercesearch.client.response;
 * under the License.
 */
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.impl.DefaultProduct;
+import org.opencommercesearch.client.impl.DefaultProductSummary;
 
 /**
  * A response the contains one or more products
@@ -28,13 +30,34 @@ import org.opencommercesearch.client.impl.DefaultProduct;
  * @author rmerizalde
  */
 public class ProductResponse extends DefaultResponse {
+
   protected DefaultProduct[] products = new DefaultProduct[0];
+  private boolean boundSummaries = false;
 
   public Product[] getProducts() {
+    if (!boundSummaries) {
+      bindSummaries();
+    }
     return products;
   }
 
   protected void setProducts(DefaultProduct[] products) {
     this.products = products;
+  }
+
+  /**
+   * Adds to each product in the response, its corresponding product summary information.
+   */
+  private void bindSummaries() {
+    if (getMetadata() != null) {
+      JsonNode summaries = getMetadata().getProductSummary();
+
+      if (summaries != null && products != null) {
+        for (DefaultProduct product : products) {
+          DefaultProductSummary productSummary = new DefaultProductSummary(summaries.get(product.getId()));
+          product.setSummary(productSummary);
+        }
+      }
+    }
   }
 }

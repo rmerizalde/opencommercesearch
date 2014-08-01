@@ -5,6 +5,8 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductSummary;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 /*
@@ -66,8 +68,19 @@ public class DefaultProductSummary implements ProductSummary {
   }
 
   public List<String> getColorFamilies() {
-    JsonNode colorFamilies = getValue("colorFamily", "families");
-    return colorFamilies != null ? Arrays.asList(StringUtils.split(colorFamilies.asText(), "[], ")) : null;
+    JsonNode colorFamilies = getValue("color", "families");
+
+    if (colorFamilies == null) {
+      colorFamilies = getValue("colorFamily", "families");
+      return colorFamilies != null ? Arrays.asList(StringUtils.split(colorFamilies.asText(), "[], ")) : null;
+    } else {
+      List<String> families = new LinkedList<String>();
+
+      for (JsonNode colorFamily : colorFamilies) {
+        families.add(colorFamily.asText());
+      }
+      return families;
+    }
   }
 
   public Integer getColorCount() {

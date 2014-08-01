@@ -61,6 +61,7 @@ public class DefaultResponse implements Response {
     try {
       return ow.writeValueAsString(this);
     } catch (JsonProcessingException ex) {
+      ex.printStackTrace();
       return "InvalidObject";
     }
   }

@@ -4,6 +4,7 @@ import org.apache.commons.cli.*;
 import org.apache.commons.lang.BooleanUtils;
 import org.opencommercesearch.client.impl.Availability;
 import org.opencommercesearch.client.impl.Sku;
+import org.opencommercesearch.client.request.BaseRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
@@ -27,6 +28,7 @@ public class ProductApiCli {
 
   public ProductApiCli() {
     requestToResponses.put(ProductRequest.class, ProductResponse.class);
+    requestToResponses.put(SearchRequest.class, SearchResponse.class);
   }
 
   public void run(String[] args) throws IOException, ProductApiException {
@@ -55,19 +57,19 @@ public class ProductApiCli {
     } catch (MissingArgumentException e) {
       System.out.println("Missing required options: " + e.getMessage());
       printUsage(options);
-    }catch (ParseException e) {
+    } catch (ParseException e) {
       System.out.println(e.getMessage());
       printUsage(options);
     } catch (ProductApiException e) {
       System.err.println("Connect process request to " + api.getHost());
       System.out.println(e.getMessage());
-    }  catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException e) {
       System.out.println("Invalid argument: " + e.getMessage());
       printUsage(options);
     } catch (Exception e) {
       System.out.println(e.getMessage());
       printUsage(options);
-    }finally {
+    } finally {
       api.stop();
     }
   }
@@ -82,17 +84,24 @@ public class ProductApiCli {
     if (requestType == null) {
       throw new MissingArgumentException("rt");
     }
-    Request request = null;
+
+    BaseRequest request = null;
 
     if ("findProductById".equals(requestType)) {
       request = new ProductRequest(commandLine.getOptionValues("i"));
+    } else if ("search".equals(requestType)) {
+      request = new SearchRequest(commandLine.getOptionValue("q"));
     } else {
       throw new IllegalArgumentException(requestType);
     }
 
-    if (commandLine.hasOption('f') && request instanceof ProductRequest) {
+    if (commandLine.hasOption('f') && request instanceof BaseRequest) {
       String[] fields = commandLine.getOptionValues('f');
-      ((ProductRequest) request).setFields(fields);
+      ((BaseRequest) request).setFields(fields);
+    }
+
+    if (commandLine.hasOption('s')) {
+      request.setSite(commandLine.getOptionValue('s'));
     }
 
     return request;
