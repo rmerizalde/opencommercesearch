@@ -53,6 +53,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * @author jmendez
+ * @author rmerizalde
  */
 
 @RunWith(PowerMockRunner.class)

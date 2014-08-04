@@ -22,7 +22,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 * under the License.
 */
 
-case class Attribute(var name: Option[String] = None, var value: Option[String] = None) {
+case class Attribute(var name: Option[String] = None, var value: Option[String] = None, var searchable: Option[Boolean] = None) {
 }
 
 object Attribute {

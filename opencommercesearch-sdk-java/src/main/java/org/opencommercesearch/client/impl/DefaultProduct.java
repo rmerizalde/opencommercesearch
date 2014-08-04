@@ -32,6 +32,7 @@ import java.util.*;
  * Default product implementation.
  *
  * @author jmendez
+ * @author rmerizalde
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DefaultProduct implements Product {
@@ -150,10 +151,14 @@ public class DefaultProduct implements Product {
   }
 
   public void addFeature(String name, String value) {
+    addFeature(name, value, null);
+  }
+
+  public void addFeature(String name, String value, Boolean searchable) {
       if (features == null) {
           features = new ArrayList<Attribute>();
       }
-      features.add(new Attribute(name, value));
+      features.add(new Attribute(name, value, searchable));
   }
 
   public List<Attribute> getAttributes() {
@@ -161,10 +166,14 @@ public class DefaultProduct implements Product {
   }
 
   public void addAttribute(String name, String value) {
+    addAttribute(name, value, null);
+  }
+
+  public void addAttribute(String name, String value, Boolean searchable) {
     if (attributes == null) {
       attributes = new ArrayList<Attribute>();
     }
-    attributes.add(new Attribute(name, value));
+    attributes.add(new Attribute(name, value, searchable));
   }
 
   public Integer getListRank() {

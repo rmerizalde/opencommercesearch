@@ -65,7 +65,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   val DefaultProductProject =
     """
-      |listRank:0, skus.season:0, skus.year:0, skus.isRetail:0, skus.isCloseout:0
+      |listRank:0, attributes.searchable:0, features.searchable:0, skus.season:0, skus.year:0, skus.isRetail:0, skus.isCloseout:0
     """.stripMargin
 
   val DefaultCategoryProject =

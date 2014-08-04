@@ -23,16 +23,23 @@ package org.opencommercesearch.client.impl;
  * Represents a product attribute.
  *
  * @author jmendez
+ * @author rmerizalde
  */
 public class Attribute {
   private String name;
   private String value;
+  private Boolean searchable;
 
   public Attribute() {}
 
   public Attribute(String name, String value) {
+    this(name, value, null);
+  }
+
+  public Attribute(String name, String value, Boolean searchable) {
     this.name = name;
     this.value = value;
+    this.searchable = searchable;
   }
 
   public String getName() {
@@ -49,5 +56,13 @@ public class Attribute {
 
   public void setValue(String value) {
     this.value = value;
+  }
+
+  public Boolean getSearchable() {
+    return searchable;
+  }
+
+  public void setSearchable(Boolean searchable) {
+    this.searchable = searchable;
   }
 }

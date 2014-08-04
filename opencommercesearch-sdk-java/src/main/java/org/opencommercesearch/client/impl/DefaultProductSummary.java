@@ -32,6 +32,7 @@ import java.util.List;
  * Represents API product summary information for a product.
  *
  * @author jmendez
+ * @author rmerizalde
  */
 public class DefaultProductSummary implements ProductSummary {
   /**

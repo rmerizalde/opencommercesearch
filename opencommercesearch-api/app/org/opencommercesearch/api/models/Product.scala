@@ -290,18 +290,14 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
     skuDocuments
   }
 
-  def setAttributes(fieldName: String, doc: SolrInputDocument, features: Seq[Attribute]) : Unit = {
-    for (feature <- features) {
-      for (name <- feature.name; value <- feature.value) {
-        doc.addField(fieldName, name + FieldSeparator + value)
-      }
-    }  
-  }
+  def setAttributes(doc: SolrInputDocument, attributes: Seq[Attribute], prefix: String) : Unit = {
+    for (attribute <- attributes) {
+      val searchable = attribute.searchable.getOrElse(true)
 
-  def setAttributes(doc: SolrInputDocument, features: Seq[Attribute], prefix: String) : Unit = {
-    for (feature <- features) {
-      for (name <- feature.name; value <- feature.value) {
-        doc.addField(prefix + name.toLowerCase.replaceAll(AttrNameCleanupPattern, ""), value)
+      for (name <- attribute.name; value <- attribute.value) {
+        if (searchable) {
+          doc.addField(prefix + name.toLowerCase.replaceAll(AttrNameCleanupPattern, ""), value)
+        }
       }
     }
   }
