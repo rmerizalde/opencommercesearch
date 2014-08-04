@@ -48,6 +48,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 case class Category (
   @Id var id: Option[String] = None,
   @JsonProperty("name") var name: Option[String] = None,
+  @JsonProperty("alias") var alias: Option[String] = None,
   @JsonProperty("seoUrlToken") var seoUrlToken: Option[String] = None,
   @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean] = None,
   @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]] = None,
@@ -103,6 +104,10 @@ object Category {
 
     if(isCopyField("name")) {
       copy.name = category.name
+    }
+
+    if(isCopyField("alias")) {
+      copy.alias = category.alias
     }
 
     if(isCopyField("seoUrlToken")) {
@@ -191,6 +196,7 @@ object Category {
   implicit val readsCategory : Reads[Category] = (
     (__ \ "id").readNullable[String] ~
     (__ \ "name").readNullable[String] ~
+    (__ \ "alias").readNullable[String] ~
     (__ \ "seoUrlToken").readNullable[String] ~
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "ruleFilters").readNullable[Seq[String]] ~
@@ -203,6 +209,7 @@ object Category {
   implicit val writesCategory : Writes[Category] = (
     (__ \ "id").writeNullable[String] ~
     (__ \ "name").writeNullable[String] ~
+    (__ \ "alias").writeNullable[String] ~
     (__ \ "seoUrlToken").writeNullable[String] ~
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "ruleFilters").writeNullable[Seq[String]] ~

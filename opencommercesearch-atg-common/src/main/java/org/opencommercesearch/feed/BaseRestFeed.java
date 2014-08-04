@@ -19,6 +19,7 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
+import atg.beans.DynamicPropertyDescriptor;
 import atg.json.JSONArray;
 import atg.json.JSONException;
 import atg.json.JSONObject;
@@ -27,6 +28,7 @@ import atg.nucleus.ServiceException;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.RepositoryItemDescriptor;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
@@ -46,6 +48,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.opencommercesearch.api.ProductService.Endpoint;
 
@@ -112,6 +117,14 @@ public abstract class BaseRestFeed extends GenericService {
     private ProductService productService;
 
     private String endpointUrl;
+
+    private Map<String, String> customPropertyMappings;
+
+    /**
+     * The custom property mappings loaded based on customPropertyMappings. For example
+     * category.shortDisplayName -> alias becomes category -> (shortDisplayName -> alias)
+     */
+    private Map<String, Map<String,String>> itemDescriptorCustomPropertyMappings;
 
     public Repository getRepository() {
         return repository;
@@ -185,12 +198,95 @@ public abstract class BaseRestFeed extends GenericService {
         this.errorThreshold = errorThreshold;
     }
 
+
     @Override
     public void doStartService() throws ServiceException {
         if (getProductService() == null) {
             throw new ServiceException("No productService found");
         }
         endpointUrl = getProductService().getUrl4Endpoint(getEndpoint());
+
+        if (getCustomPropertyMappings() != null && getCustomPropertyMappings().size() > 0) {
+            initializeCustomPropertyMappings();
+        }
+    }
+
+    /**
+     * Helper method to initialize the custom properties for each item descriptor
+     */
+    private void initializeCustomPropertyMappings() {
+        try {
+            itemDescriptorCustomPropertyMappings = new HashMap<String, Map<String, String>>();
+            for (Map.Entry<String, String> entry : getCustomPropertyMappings().entrySet()) {
+                String[] parts = StringUtils.split(entry.getKey(), '.');
+
+                if (parts.length == 2) {
+                    String itemDescriptorName = parts[0];
+                    String propertyName = parts[1];
+                    String propertyAlias = entry.getValue();
+
+                    processMapping(itemDescriptorName, propertyName, propertyAlias);
+                } else {
+                    throw new IllegalArgumentException(entry.getKey());
+                }
+            }
+        } catch (RepositoryException ex) {
+            if (isLoggingError()) {
+                logDebug("Cannot load category descriptor", ex);
+            }
+        }
+    }
+
+    /**
+     * Helper method to process a mapping for an item descriptor
+     *
+     * @param itemDescriptorName is the item descriptor name
+     * @param propertyName is the property name in the item descriptor
+     * @param propertyAlias is the property alias to be used in the JSON objects
+     */
+    private void processMapping(String itemDescriptorName, String propertyName, String propertyAlias) throws RepositoryException {
+        RepositoryItemDescriptor itemDescriptor = getRepository().getItemDescriptor(itemDescriptorName);
+
+        if (itemDescriptor != null) {
+            DynamicPropertyDescriptor propertyDescriptor = itemDescriptor.getPropertyDescriptor(propertyName);
+
+            if (propertyDescriptor != null) {
+                Map<String, String> mappings = itemDescriptorCustomPropertyMappings.get(itemDescriptorName);
+
+                if (mappings == null) {
+                    mappings = new LinkedHashMap<String, String>();
+                    itemDescriptorCustomPropertyMappings.put(itemDescriptorName, mappings);
+                }
+                mappings.put(propertyName, propertyAlias);
+            } else {
+                if (isLoggingError()) {
+                    logError("Property descriptor not found for '" + propertyName + "' in item descriptor '" + itemDescriptor.getItemDescriptorName()  + "'");
+                }
+            }
+        } else {
+            if (isLoggingError()) {
+                logError("Item descriptor not found '" + itemDescriptorName + "'");
+            }
+        }
+    }
+
+    /**
+     * Helper method to populate custom properties from a repository item into a jsonObject
+     */
+    protected void setCustomProperties(RepositoryItem item, JSONObject json) throws RepositoryException, JSONException {
+        if (itemDescriptorCustomPropertyMappings == null || itemDescriptorCustomPropertyMappings.size() == 0) {
+            return;
+        }
+
+        String itemDescriptorName = item.getItemDescriptor().getItemDescriptorName();
+        Map<String, String> mappings = itemDescriptorCustomPropertyMappings.get(itemDescriptorName);
+        if (mappings != null) {
+            for (Map.Entry<String, String> entry : mappings.entrySet()) {
+                String jsonPropertyName = entry.getValue();
+                Object propertyValue = item.getPropertyValue(entry.getKey());
+                json.put(jsonPropertyName, propertyValue);
+            }
+        }
     }
 
     /**
@@ -313,6 +409,7 @@ public abstract class BaseRestFeed extends GenericService {
 
             for (RepositoryItem item : itemList) {
                 JSONObject json = repositoryItemToJson(item);
+                setCustomProperties(item, json);
 
                 if(json == null) {
                     if (isLoggingDebug()) {
@@ -542,6 +639,22 @@ public abstract class BaseRestFeed extends GenericService {
         }
 
         return message;
+    }
+
+    /**
+     * The mappings for custom properties. For example, category.name -> alias
+     * @return custom property mappings
+     */
+    public Map<String, String> getCustomPropertyMappings() {
+      return customPropertyMappings;
+    }
+
+    /**
+     * Sets the list of custom property mappings
+     * @param customPropertyMappings
+     */
+    public void setCustomPropertyMappings(Map<String, String> customPropertyMappings) {
+      this.customPropertyMappings = customPropertyMappings;
     }
 
     /**
