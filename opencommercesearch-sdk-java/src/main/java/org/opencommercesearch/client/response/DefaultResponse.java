@@ -25,13 +25,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.opencommercesearch.client.impl.Metadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Base API response class.
  *
  * @author jmendez
+ * @author rmerizalde
  */
 public class DefaultResponse implements Response {
+
+  private static Logger logger = LoggerFactory.getLogger(DefaultResponse.class);
 
   private Metadata metadata;
   private String message;
@@ -61,7 +66,9 @@ public class DefaultResponse implements Response {
     try {
       return ow.writeValueAsString(this);
     } catch (JsonProcessingException ex) {
-      ex.printStackTrace();
+      if (logger.isErrorEnabled()) {
+        logger.error("Cannot convert to string", ex);
+      }
       return "InvalidObject";
     }
   }
