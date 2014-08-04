@@ -34,6 +34,8 @@ import org.opencommercesearch.client.impl.Facet;
 import org.opencommercesearch.client.impl.Image;
 import org.opencommercesearch.client.impl.Metadata;
 import org.opencommercesearch.client.impl.Sku;
+import org.opencommercesearch.client.impl.spellcheck.SpellCheck;
+import org.opencommercesearch.client.impl.spellcheck.Term;
 import org.opencommercesearch.client.request.BaseRequest;
 import org.opencommercesearch.client.request.BrandCategoryRequest;
 import org.opencommercesearch.client.request.BrandRequest;
@@ -63,7 +65,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +87,8 @@ public class ProductApiTest {
     private static final String SEARCH_RESPONSE_JSON = "data/searchResponse-full.json";
     private static final String CATEGORY_RESPONSE_JSON = "data/categoryResponse-full.json";
     private static final String BRAND_RESPONSE_JSON = "data/brandResponse-full.json";
-    
+    private static final String SPELLCHECK_JSON = "data/spellcheck.json";
+
     Client client = PowerMockito.mock(Client.class);
 
     @Test
@@ -271,6 +273,47 @@ public class ProductApiTest {
         searchRequest.setSite("bcs");
         searchRequest.addField("*");
         doTestSearchAndBrowse(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class), SearchResponse.class);
+    }
+
+    @Test
+    public void testSearchSpellCheck() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setQuery("nort fase");
+        searchRequest.setSite("bcs");
+        searchRequest.addField("*");
+
+        SearchResponse response = (SearchResponse) callMethod(searchRequest, ProductApi.class.getMethod("search", SearchRequest.class), SearchResponse.class, SPELLCHECK_JSON);
+        Metadata metadata = response.getMetadata();
+        SpellCheck spellCheck = metadata.getSpellCheck();
+        assertNotNull(spellCheck.getCollation());
+        assertEquals("north face", spellCheck.getCollation());
+        assertNull(spellCheck.getSimilarResults());
+
+        Term[] terms = spellCheck.getTerms();
+        assertNotNull(terms);
+        assertEquals(2, terms.length);
+
+        Term north = terms[0];
+        assertEquals("nort", north.getTerm());
+        assertEquals(10, north.getFound());
+        assertEquals(0, north.getStartOffset());
+        assertEquals(4, north.getEndOffset());
+        String[] northSuggestions = north.getSuggestions();
+        assertNotNull(northSuggestions);
+        assertEquals(10, northSuggestions.length);
+        assertEquals("north", northSuggestions[0]);
+        assertEquals("norte", northSuggestions[1]);
+
+        Term face = terms[1];
+        assertEquals("fase", face.getTerm());
+        assertEquals(10, face.getFound());
+        assertEquals(5, face.getStartOffset());
+        assertEquals(9, face.getEndOffset());
+        String[] faceSuggestions = face.getSuggestions();
+        assertNotNull(faceSuggestions);
+        assertEquals(10, faceSuggestions.length);
+        assertEquals("face", faceSuggestions[0]);
+        assertEquals("fast", faceSuggestions[1]);
     }
 
     @Test

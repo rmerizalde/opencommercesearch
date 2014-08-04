@@ -44,7 +44,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MaxProductIndexBatchSize = getConfig("index.product.batchsize.max", 100)
   lazy val MaxCategoryIndexBatchSize = getConfig("index.category.batchsize.max", 100)
   lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
-  lazy val MaxUpdateFacetBatchSize = getConfig("facet.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfig("index.facet.batchsize.max", 100)
   // @todo deprecate category collections
   lazy val CategoryPreviewCollection = getConfig("preview.collection.category", "categoriesPreview")
   lazy val CategoryPublicCollection = getConfig("public.collection.category", "categoriesPublic")
@@ -60,6 +60,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
   lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = false)
   lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
+  lazy val SpellCheckMinimumMatch = getConfig("spellcheck.minimummatch", "2<-1 3<-2 5<80%")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
