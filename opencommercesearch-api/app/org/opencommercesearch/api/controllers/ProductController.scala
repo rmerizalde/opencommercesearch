@@ -88,7 +88,7 @@ object ProductController extends BaseController {
     }
 
     val future = productFuture flatMap { products =>
-      def createResponse(products: Iterable[Product]) = {
+      def createResponse() = {
         if (products.size > 0) {
           def createMetadataFields(): Seq[(String, JsValueWrapper)] = {
             val metadataFields: Seq[(String, JsValueWrapper)] = Seq("found" -> JsNumber(products.size), "time" -> JsNumber(System.currentTimeMillis() - startTime))
@@ -128,9 +128,9 @@ object ProductController extends BaseController {
           }
 
           //Combine all futures in a single one (wait until they all finish)
-          Future sequence productListFuture  map { products => createResponse(products) }
+          Future sequence productListFuture  map { products => createResponse() }
         } else {
-          Future(createResponse(products))
+          Future(createResponse())
         }
       } else {
         Logger.debug(s"Products with ids [$id] not found")
