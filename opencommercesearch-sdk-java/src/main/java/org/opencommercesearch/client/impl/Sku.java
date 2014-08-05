@@ -23,8 +23,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -49,7 +51,7 @@ public class Sku {
   private Availability availability;
   private Set<Country> countries;
   private Long stockLevel;
-  private Date availableDate;
+  private List<Attribute> attributes;
 
   public String getId() {
       return id;
@@ -259,17 +261,14 @@ public class Sku {
     this.stockLevel = stockLevel;
   }
 
-  /**
-   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
-   */
-  public Date getAvailableDate() {
-    return availableDate;
+  public List<Attribute> getAttributes() {
+    return attributes;
   }
 
-  /**
-   * @deprecated  As of release 0.5.0, replaced by {@link #getAvailability().}
-   */
-  public void setAvailableDate(Date availableDate) {
-    this.availableDate = availableDate;
+  public void addAttribute(String name, String value) {
+    if (attributes == null) {
+      attributes = new ArrayList<Attribute>();
+    }
+    attributes.add(new Attribute(name, value));
   }
 }

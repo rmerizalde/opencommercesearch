@@ -45,7 +45,7 @@ case class Sku(
   var onSale: Option[Boolean] = None,
   var url: Option[String] = None,
   var allowBackorder: Option[Boolean] = None,
-  var availableDate: Option[Date] = None,
+  var attributes: Option[Seq[Attribute]] = None,
   var availability: Option[Availability] = None)
 {
   def availabilityStatus = availability match {

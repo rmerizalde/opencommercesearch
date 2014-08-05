@@ -322,7 +322,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
       if (sku.availability.isEmpty) {
         // support backward compatibility
-        if (sku.availableDate.isDefined || country.stockLevel.isDefined) {
+        if (country.stockLevel.isDefined) {
           val skuStatus = country.stockLevel match {
             case Some(0) | Some(Availability.InfiniteStock) => country.allowBackorder match {
               case Some(allowed) => Some(if (allowed) Availability.Backorderable else Availability.OutOfStock)
@@ -333,10 +333,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
           }
           sku.availability = Some(new Availability(
             status = skuStatus,
-            stockLevel = country.stockLevel,
-            date = sku.availableDate
+            stockLevel = country.stockLevel
           ))
-          sku.availableDate = None
         }
       }
     }
