@@ -20,6 +20,7 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
@@ -28,10 +29,13 @@ import java.util.Set;
  * Represents a product category.
  *
  * @author jmendez
+ * @author rmerizalde
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Category {
   private String id;
   private String name;
+  private String alias;
   private Category[] parentCategories;
   private Category[] childCategories;
   @JsonProperty("seoUrlToken")
@@ -53,6 +57,14 @@ public class Category {
 
   public String getName() {
     return name;
+  }
+
+  public String getAlias() {
+    return alias;
+  }
+
+  public void setAlias(String alias) {
+    this.alias = alias;
   }
 
   public void setName(String name) {

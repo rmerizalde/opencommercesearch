@@ -5,6 +5,7 @@
     "category": {
         "id": "catId001",
         "name": "Cat-001",
+        "alias": "Cat-001",
         "seoUrlToken": "cat-001",
         "sites": [ "site" ],
         "childCategories": [
