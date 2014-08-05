@@ -40,20 +40,10 @@ case class Country(
   @JsonProperty("discountPercent") var discountPercent: Option[Int] = None,
   @JsonProperty("onSale") var onSale: Option[Boolean] = None,
   @JsonProperty("stockLevel") var stockLevel: Option[Int] = None,
-  @deprecated(message = "Use availability.backorderLevel or isBackorderable", since = "0.5.0")
   @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean] = None,
   @JsonProperty("url") var url: Option[String] = None,
   @JsonProperty("availability") var availability: Option[Availability] = None) {
 
-  import Availability._
-
-  def isBackorderable = availability match {
-    case Some(a) => a.backorderLevel match {
-      case Some(l) => Option(l == InfiniteStock || l > 0)
-      case None => None
-    }
-    case None => None
-  }
 }
 
 

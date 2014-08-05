@@ -242,7 +242,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                         doc.setField("stockLevel" + code, stockLevel)
                         doc.setField("isToos", status == Availability.OutOfStock)
                       }
-                      doc.setField("allowBackorder" + code, country.isBackorderable.getOrElse(false))
+                      doc.setField("allowBackorder" + code, country.allowBackorder.getOrElse(false))
                     }
                     for (url <- country.url) {
                       doc.setField("url" + code, url)
