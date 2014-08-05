@@ -11,7 +11,7 @@
     <inceptionYear>2014</inceptionYear>
 
     <properties>
-        <org.restlet.jee.version>2.1.1</org.restlet.jee.version>
+        <org.restlet.jee.version>2.0.5</org.restlet.jee.version>
         <junit.version>4.11</junit.version>
         <mockito.version>1.9.5</mockito.version>
         <powermock.version>1.5</powermock.version>
