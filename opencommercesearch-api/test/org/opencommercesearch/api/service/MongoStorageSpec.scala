@@ -65,8 +65,8 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     implicit val context = Context(preview = true, lang)
 
-	     val category = new Category(Some("id"),Some("name"),Some("urlToken"),Some(false),
-	    		 					 Some(Seq()),Some(Seq("site1")),Some(Seq("token1")), Some(Seq()),Some(Seq())) 
+	     val category = new Category(Some("id"), Some("name"), Some("alias"), Some("urlToken"), Some(false),
+	    		 					 Some(Seq()), Some(Seq("site1")), Some(Seq("token1")), Some(Seq()), Some(Seq()))
 	     Await.result(storage.saveCategory(category), Duration.Inf)
 	     
 	     val response: Future[Category] = storage.findCategory("id",Seq("*"))
@@ -91,8 +91,8 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     val brand = new Brand(Some("id"), Some("name"), Some("logo"), Some("url"), sites) 
 	     
-	     val category = new Category(Some("id"),Some("name"),Some("urlToken"),Some(false),
-	    		 					 Some(Seq()),Some(Seq("site1")),Some(Seq("token1")), Some(Seq()),Some(Seq()))
+	     val category = new Category(Some("id"), Some("name"), Some("alias"), Some("urlToken"), Some(false),
+	    		 					 Some(Seq()), Some(Seq("site1")), Some(Seq("token1")), Some(Seq()), Some(Seq()))
 	     
 	     val usCountry = new Country(code = Some("US"), url = Some("url"), availability = Some(new Availability(status = Some(Availability.OutOfStock), stockLevel = Some(0), backorderLevel = Some(0))))
        val caCountry = new Country(code = Some("CA"), url = Some("url"), availability = Some(new Availability(status = Some(Availability.InStock), stockLevel = Some(2), backorderLevel = Some(0))))
