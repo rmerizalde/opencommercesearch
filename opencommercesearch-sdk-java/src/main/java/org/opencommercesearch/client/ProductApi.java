@@ -150,9 +150,9 @@ public class ProductApi {
    * @param properties Map of configuration properties understood by the ApiClient.
    * @param enableCache 
    */
-  public ProductApi(Properties properties, boolean enableCache) {
+  public ProductApi(Properties properties, boolean cacheEnabled) {
         this.configProperties = properties;
-        this.cacheEnabled = enableCache;
+        this.cacheEnabled = cacheEnabled;
 
         initProperties();
         initMapper();      
