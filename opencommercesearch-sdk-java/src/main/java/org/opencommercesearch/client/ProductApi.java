@@ -41,6 +41,7 @@ import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.SearchResponse;
 import org.restlet.Client;
 import org.restlet.Context;
+import org.restlet.data.Form;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
@@ -155,7 +156,7 @@ public class ProductApi {
    * Creates a new ProductApi instance with the given properties.
    *
    * @param properties Map of configuration properties understood by the ApiClient.
-   * @param enableCache 
+   * @param cacheEnabled
    */
   public ProductApi(Properties properties, boolean cacheEnabled) {
         this.configProperties = properties;
