@@ -1,9 +1,8 @@
 package org.opencommercesearch.client.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.opencommercesearch.client.impl.Category;
 import org.opencommercesearch.client.impl.Metadata;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Simple data holder that represents a response from category endpoint

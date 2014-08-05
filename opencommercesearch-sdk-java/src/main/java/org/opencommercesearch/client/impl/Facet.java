@@ -20,9 +20,8 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.opencommercesearch.FilterQuery;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.opencommercesearch.FilterQuery;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -102,6 +102,15 @@ public abstract class BaseRequest implements Request {
     return queryString.toString();
   }
 
+  @Override
+  public String toString() {
+    try {
+      return getEndpoint() + "?" + getQueryString();
+    } catch (ProductApiException ex) {
+      return ex.toString();
+    }
+  }
+
   /**
    * Replaces the fields param in this request with the given fields
    * @param fields is the new field list

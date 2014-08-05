@@ -21,14 +21,29 @@ package org.opencommercesearch.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
-
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.opencommercesearch.client.impl.*;
-import org.opencommercesearch.client.request.*;
+import org.opencommercesearch.client.impl.Attribute;
+import org.opencommercesearch.client.impl.Availability;
+import org.opencommercesearch.client.impl.Brand;
+import org.opencommercesearch.client.impl.Category;
+import org.opencommercesearch.client.impl.CustomerReview;
+import org.opencommercesearch.client.impl.Facet;
+import org.opencommercesearch.client.impl.Image;
+import org.opencommercesearch.client.impl.Metadata;
+import org.opencommercesearch.client.impl.Sku;
+import org.opencommercesearch.client.request.BaseRequest;
+import org.opencommercesearch.client.request.BrandCategoryRequest;
+import org.opencommercesearch.client.request.BrandRequest;
+import org.opencommercesearch.client.request.BrowseBrandCategoryRequest;
+import org.opencommercesearch.client.request.BrowseBrandRequest;
+import org.opencommercesearch.client.request.BrowseCategoryRequest;
+import org.opencommercesearch.client.request.CategoryRequest;
 import org.opencommercesearch.client.request.Request;
+import org.opencommercesearch.client.request.SearchRequest;
+import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.BrowseResponse;
 import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.DefaultResponse;
@@ -36,18 +51,27 @@ import org.opencommercesearch.client.response.SearchResponse;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.restlet.*;
+import org.restlet.Client;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.StreamRepresentation;
 import org.restlet.representation.StringRepresentation;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -61,6 +85,7 @@ import static org.mockito.Mockito.*;
 public class ProductApiTest {
     private static final String SEARCH_RESPONSE_JSON = "data/searchResponse-full.json";
     private static final String CATEGORY_RESPONSE_JSON = "data/categoryResponse-full.json";
+    private static final String BRAND_RESPONSE_JSON = "data/brandResponse-full.json";
     
     Client client = PowerMockito.mock(Client.class);
 
@@ -255,6 +280,13 @@ public class ProductApiTest {
         request.setMaxLevels(2);
         doTestCategory(request, ProductApi.class.getMethod("findCategory", CategoryRequest.class));
     }
+
+    @Test
+    public void testBrandById() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        BrandRequest request = new BrandRequest("88");
+        request.addField("*");
+        doTestBrand(request, ProductApi.class.getMethod("findBrand", BrandRequest.class));
+    }
     
     @Test
     public void testTopCategories() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
@@ -301,6 +333,25 @@ public class ProductApiTest {
         
         validateCategories(categories);
         
+    }
+
+    public void doTestBrand(Request request, Method method) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {
+        BrandResponse response = (BrandResponse) callMethod(request, method, BrandResponse.class, BRAND_RESPONSE_JSON);
+
+        Metadata metadata = response.getMetadata();
+        Brand brand = response.getBrand();
+
+        verify(client, times(1)).handle(any(org.restlet.Request.class));
+        assertNotNull("Metadata not found in the response", metadata);
+        assertNotNull("Brand not found in the response", brand);
+
+        //Check metadata
+        assertEquals("Search time matches", 1, metadata.getTime());
+        assertEquals("88", brand.getId());
+        assertEquals("The North Face", brand.getName());
+        assertEquals("/images/brand/thumb/NorthFacelogo2010.jpg", brand.getLogo());
+        assertEquals("/Store/catalog/brandLanding.jsp?brandId=88", brand.getUrl());
+        assertEquals(Arrays.asList("site1", "site2"), brand.getSites());
     }
     
     public <T> void doTestSearchAndBrowse(Request request, Method method, Class<T> clazz) throws IOException, ProductApiException, InvocationTargetException, IllegalAccessException {

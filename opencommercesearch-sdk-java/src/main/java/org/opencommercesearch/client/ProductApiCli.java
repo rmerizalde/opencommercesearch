@@ -1,18 +1,30 @@
 package org.opencommercesearch.client;
 
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingArgumentException;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.PosixParser;
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.impl.Availability;
 import org.opencommercesearch.client.impl.Sku;
 import org.opencommercesearch.client.request.BaseRequest;
+import org.opencommercesearch.client.request.BrandRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
+import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -29,6 +41,7 @@ public class ProductApiCli {
   public ProductApiCli() {
     requestToResponses.put(ProductRequest.class, ProductResponse.class);
     requestToResponses.put(SearchRequest.class, SearchResponse.class);
+    requestToResponses.put(BrandRequest.class, BrandResponse.class);
   }
 
   public void run(String[] args) throws IOException, ProductApiException {
@@ -91,13 +104,18 @@ public class ProductApiCli {
       request = new ProductRequest(commandLine.getOptionValues("i"));
     } else if ("search".equals(requestType)) {
       request = new SearchRequest(commandLine.getOptionValue("q"));
+    } else if ("findBrandById".equals(requestType)) {
+       request = new BrandRequest(commandLine.getOptionValue("i"));
     } else {
       throw new IllegalArgumentException(requestType);
     }
 
     if (commandLine.hasOption('f') && request instanceof BaseRequest) {
-      String[] fields = commandLine.getOptionValues('f');
-      ((BaseRequest) request).setFields(fields);
+      String fields = commandLine.getOptionValue('f');
+      if (fields.equals("all")) {
+        fields = "*";
+      }
+      ((BaseRequest) request).setFields(StringUtils.split(fields, ','));
     }
 
     if (commandLine.hasOption('s')) {
@@ -361,7 +379,7 @@ public class ProductApiCli {
             .create("p");
 
     Option requestType = OptionBuilder
-            .withArgName("findProductById|search|browse")
+            .withArgName("findProductById|findBrandById|search|browse")
             .hasArgs(1)
             .withDescription("The request type")
             .withLongOpt("requestType")
@@ -378,7 +396,7 @@ public class ProductApiCli {
             .create("i");
 
     Option fields = OptionBuilder
-            .withArgName("field[,field]*")
+            .withArgName("field[,field]*|all")
             .hasArgs(1)
             .withDescription("Is the field list")
             .withValueSeparator(',')

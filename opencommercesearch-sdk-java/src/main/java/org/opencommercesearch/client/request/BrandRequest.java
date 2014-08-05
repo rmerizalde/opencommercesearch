@@ -1,8 +1,5 @@
 package org.opencommercesearch.client.request;
 
-import org.opencommercesearch.client.ProductApi;
-import org.opencommercesearch.client.ProductApi.RequestMethod;
-
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -22,31 +19,28 @@ import org.opencommercesearch.client.ProductApi.RequestMethod;
 * under the License.
 */
 
+import org.opencommercesearch.client.ProductApi;
+
 /**
- * A request to retrieve the categories from a given brand
+ * A request to retrieve one or more products by id
  *
- * @author gsegura@backcountry.com
+ * @author rmerizalde
  */
-public class BrandCategoryRequest extends BaseRequest {
+public class BrandRequest extends BaseRequest {
 
-    private String brandId;
-    
-    public BrandCategoryRequest(String brandId) {
-        this.brandId = brandId;
-    }
-    
-    public String getBrandId() {
-        return brandId;
-    }
+  private String endpoint;
 
-    @Override
-    public String getEndpoint() {
-        return "/brands/" + brandId + "/categories";
-    }
+  public BrandRequest(String id) {
+    endpoint = "/brands/" + id;
+  }
 
-    @Override
-    public RequestMethod getMethod() {
-        return ProductApi.RequestMethod.GET;
-    }
+  @Override
+  public String getEndpoint() {
+    return endpoint;
+  }
 
+  @Override
+  public ProductApi.RequestMethod getMethod() {
+    return ProductApi.RequestMethod.GET;
+  }
 }

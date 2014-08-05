@@ -75,7 +75,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   
   val DefaultBrandProject =
     """
-      |logo:0, url:0
+      |logo:0, url:0, sites:0
     """.stripMargin
 
   val DefaultFacetProject = StringUtils.EMPTY
@@ -457,7 +457,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projectionAux(fields, DefaultCategoryProject)
   }
     
-  private def projectionBrand(fields: Seq[String]) : String = {    
+  private def projectionBrand(fields: Seq[String]) : String = {
     projectionAux(fields, DefaultBrandProject)
   }
 

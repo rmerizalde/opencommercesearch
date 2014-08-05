@@ -22,18 +22,25 @@ package org.opencommercesearch.client;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
 import org.apache.commons.lang.StringUtils;
-import org.opencommercesearch.client.request.*;
+import org.opencommercesearch.client.request.BrandCategoryRequest;
+import org.opencommercesearch.client.request.BrandRequest;
+import org.opencommercesearch.client.request.BrowseBrandCategoryRequest;
+import org.opencommercesearch.client.request.BrowseBrandRequest;
+import org.opencommercesearch.client.request.BrowseCategoryRequest;
+import org.opencommercesearch.client.request.CategoryRequest;
+import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
+import org.opencommercesearch.client.request.SearchRequest;
+import org.opencommercesearch.client.response.Response;
+import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.BrowseResponse;
 import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.ProductResponse;
-import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
-import org.restlet.*;
-import org.restlet.data.Form;
+import org.restlet.Client;
+import org.restlet.Context;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
 import org.restlet.data.Status;
@@ -208,7 +215,17 @@ public class ProductApi {
   public CategoryResponse findCategory(CategoryRequest request) throws ProductApiException {
     return (CategoryResponse) handle(request, CategoryResponse.class);
   }
-  
+
+  /**
+   * Finds one brand
+   * @param request is the brand request
+   * @return a brand response
+   @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public BrandResponse findBrand(BrandRequest request) throws ProductApiException {
+    return (BrandResponse) handle(request, BrandResponse.class);
+  }
+
   /**
    * Find the categories from a given brand
    * @param request is the brand category request

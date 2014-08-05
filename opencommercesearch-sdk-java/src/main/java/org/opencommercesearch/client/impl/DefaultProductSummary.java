@@ -5,7 +5,6 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductSummary;
 
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 

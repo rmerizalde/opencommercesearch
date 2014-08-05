@@ -57,15 +57,19 @@ object BrandController extends BaseController with FacetQuery {
     id: String) = ContextAction.async { implicit context => implicit request =>
 
     Logger.debug("Query brand " + id)
+
+    val startTime = System.currentTimeMillis()
     val storage = withNamespace(storageFactory)
     val storageFuture = storage.findBrand(id, fieldList(allowStar = true)).map( brand => {
       if (brand != null) {
         Logger.debug("Found brand " + id)
         Ok(Json.obj(
+          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
           "brand" -> Json.toJson(brand)))
       } else {
         Logger.debug("Brand " + id + " not found")
         NotFound(Json.obj(
+          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
           "message" -> s"Cannot find brand with id [$id]"
         ))
       }

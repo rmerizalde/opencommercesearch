@@ -1,0 +1,16 @@
+{
+    "metadata": {
+        "time": 1
+    },
+    "brand": {
+        "id": "88",
+        "name": "The North Face",
+        "logo": "/images/brand/thumb/NorthFacelogo2010.jpg",
+        "url": "/Store/catalog/brandLanding.jsp?brandId=88",
+        "sites": [
+            "site1",
+            "site2"
+        ]
+    }
+
+}

@@ -1,12 +1,7 @@
 package org.opencommercesearch.client.request;
 
-import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductApi;
 import org.opencommercesearch.client.ProductApiException;
-
-import java.io.UnsupportedEncodingException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * Represents a set of parameters than can be passed to {@link org.opencommercesearch.client.ProductApi}.

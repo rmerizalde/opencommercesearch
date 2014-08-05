@@ -20,8 +20,13 @@ package org.opencommercesearch.client;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.opencommercesearch.client.ProductSummary;
-import org.opencommercesearch.client.impl.*;
+import org.opencommercesearch.client.impl.Attribute;
+import org.opencommercesearch.client.impl.Availability;
+import org.opencommercesearch.client.impl.Brand;
+import org.opencommercesearch.client.impl.Category;
+import org.opencommercesearch.client.impl.CustomerReview;
+import org.opencommercesearch.client.impl.Image;
+import org.opencommercesearch.client.impl.Sku;
 
 import java.util.Date;
 import java.util.List;

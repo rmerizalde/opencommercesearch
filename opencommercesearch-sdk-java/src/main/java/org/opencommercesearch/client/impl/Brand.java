@@ -19,14 +19,23 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.util.List;
+
 /**
  * Data holder for a product brand.
  *
  * @author jmendez
+ * @author rmerizalde
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Brand {
   private String id;
   private String name;
+  private String logo;
+  private String url;
+  private List<String> sites;
 
   public Brand() {}
 
@@ -53,5 +62,29 @@ public class Brand {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String getLogo() {
+    return logo;
+  }
+
+  public void setLogo(String logo) {
+    this.logo = logo;
+  }
+
+  public String getUrl() {
+    return url;
+  }
+
+  public void setUrl(String url) {
+    this.url = url;
+  }
+
+  public List<String> getSites() {
+    return sites;
+  }
+
+  public void setSites(List<String> sites) {
+    this.sites = sites;
   }
 }
