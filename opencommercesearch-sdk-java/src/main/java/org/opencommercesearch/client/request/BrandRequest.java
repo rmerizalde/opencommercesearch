@@ -22,7 +22,7 @@ package org.opencommercesearch.client.request;
 import org.opencommercesearch.client.ProductApi;
 
 /**
- * A request to retrieve one or more products by id
+ * A request to retrieve one brand
  *
  * @author rmerizalde
  */

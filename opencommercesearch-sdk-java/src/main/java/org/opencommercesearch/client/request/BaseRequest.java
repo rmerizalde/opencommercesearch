@@ -2,6 +2,8 @@ package org.opencommercesearch.client.request;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -18,7 +20,9 @@ import java.util.Map;
 public abstract class BaseRequest implements Request {
 
   public static final String FILTER_QUERY_SEPARATOR = "|";
-	
+
+  private static Logger logger = LoggerFactory.getLogger(BaseRequest.class);
+
   /**
    * The URI of the current request. For example: /api-docs
    */
@@ -75,7 +79,7 @@ public abstract class BaseRequest implements Request {
    * @return A query string conformed of all parameters stored in this request.
    * @throws UnsupportedEncodingException 
    */
-  public String getQueryString() throws ProductApiException {
+  public String getQueryString() {
     if (params.isEmpty()) {
       return StringUtils.EMPTY;
     }
@@ -91,8 +95,10 @@ public abstract class BaseRequest implements Request {
         try {
             queryString.append(URLEncoder.encode(params.get(paramName), "UTF-8"));
         } catch (UnsupportedEncodingException e) {
-            throw new ProductApiException("Error encoding parameter: " + paramName 
-                                          + " with value: " + params.get(paramName), e);
+            if (logger.isErrorEnabled()) {
+              logger.error("Cannot encode '" + params.get(paramName) + "'", e);
+            }
+            queryString.append(params.get(paramName));
         }
         queryString.append("&");
       }
@@ -104,11 +110,7 @@ public abstract class BaseRequest implements Request {
 
   @Override
   public String toString() {
-    try {
       return getEndpoint() + "?" + getQueryString();
-    } catch (ProductApiException ex) {
-      return ex.toString();
-    }
   }
 
   /**

@@ -22,7 +22,7 @@ package org.opencommercesearch.client.response;
 import org.opencommercesearch.client.impl.Brand;
 
 /**
- * A response the contains one or more products
+ * A response the contains one brand
  *
  * @author rmerizalde
  */
