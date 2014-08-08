@@ -68,7 +68,7 @@ object CategoryController extends BaseController with FacetQuery {
       outlet: Boolean) = ContextAction.async {  implicit context => implicit request =>
 
     val startTime = System.currentTimeMillis()
-    val site = request.getQueryString("site").getOrElse(null)
+    val site = request.getQueryString("site").orNull
     val categoryFacetQuery = new ProductFacetQuery("categoryPath", site)
       .withAncestorCategory(id)
       .withFilterQueries()
@@ -271,7 +271,7 @@ object CategoryController extends BaseController with FacetQuery {
       NoContent
     })
 
-    withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
+    withErrorHandling(future, s"Cannot delete categories before feed timestamp [$feedTimestamp]")
   }
 
   @ApiOperation(value = "Suggests categories", notes = "Returns category suggestions for given partial category name", response = classOf[Category], httpMethod = "GET")

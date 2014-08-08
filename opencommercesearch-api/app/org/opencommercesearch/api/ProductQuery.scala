@@ -84,6 +84,11 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
+  def withSpellCheck(enabled: Boolean = true) = {
+    this.setParam("spellcheck", enabled)
+    this
+  }
+
   def withFilterQueries() : ProductQuery = {
     _filterQueries = setFilterQueriesFor(this)
     this

@@ -20,7 +20,7 @@ DELETE        /v1/brands                                                 org.ope
 
 # product routes
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String)
-GET           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, site: String, outlet: Boolean ?= false)
+GET           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, site: String, outlet: Boolean ?= false, spellCheck: String ?= "auto")
 GET           /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.findById(version: Int = 1, id: String, site: String ?= null)
 GET           /v1/categories/:id/products                                org.opencommercesearch.api.controllers.ProductController.browse(version: Int = 1, site: String, id: String, outlet: Boolean ?= false)
 GET           /v1/brands/:brandId/products                               org.opencommercesearch.api.controllers.ProductController.browseBrand(version: Int = 1, site: String, brandId: String, outlet: Boolean ?= false)

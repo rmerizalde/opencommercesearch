@@ -20,6 +20,7 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.opencommercesearch.client.impl.spellcheck.SpellCheck;
 
 /**
  * Simple data holder for response metadata.
@@ -33,6 +34,7 @@ public class Metadata {
     private Facet[] facets;
     private BreadCrumb[] breadCrumbs;
     private String redirectUrl;
+    private SpellCheck spellCheck;
 
     /**
      * Gets the number of items found.
@@ -92,5 +94,11 @@ public class Metadata {
         this.breadCrumbs = breadCrumbs;
     }
 
+    public SpellCheck getSpellCheck() {
+        return spellCheck;
+    }
 
+    public void setSpellCheck(SpellCheck spellCheck) {
+        this.spellCheck = spellCheck;
+    }
 }

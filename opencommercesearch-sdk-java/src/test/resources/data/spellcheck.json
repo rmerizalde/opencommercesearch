@@ -1,0 +1,48 @@
+{
+    "metadata": {
+        "found": 0,
+        "time": 120,
+        "spellCheck": {
+            "terms": [
+                {
+                    "term": "nort",
+                    "found": 10,
+                    "startOffset": 0,
+                    "endOffset": 4,
+                    "suggestions": [
+                        "north",
+                        "norte",
+                        "nord",
+                        "norm",
+                        "nora",
+                        "not",
+                        "nrt",
+                        "none",
+                        "next",
+                        "nose"
+                    ]
+                },
+                {
+                    "term": "fase",
+                    "found": 10,
+                    "startOffset": 5,
+                    "endOffset": 9,
+                    "suggestions": [
+                        "face",
+                        "fast",
+                        "fade",
+                        "fave",
+                        "fuse",
+                        "fate",
+                        "fame",
+                        "faye",
+                        "faze",
+                        "fake"
+                    ]
+                }
+            ],
+            "collation": "north face"
+        }
+    },
+    "message": "No products found"
+}
