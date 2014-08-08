@@ -150,6 +150,7 @@ public class RuleFeed extends BaseRestFeed {
                         setCategoryCategoryPaths(ruleJsonObj, category, includeSubcategories);
                     }
                     else {
+                        setCategorySearchTokens(ruleJsonObj, category, false);
                         setCategoryCategoryPaths(ruleJsonObj, category, false);
                     }
                 }
