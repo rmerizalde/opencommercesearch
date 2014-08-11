@@ -130,7 +130,7 @@ public class RuleFeedTest {
         // cateCchildx search tokens...
         when(cateCchild1.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild1:token", })));
         when(cateCchild2.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild2:token", })));
-        when(cateCchild3.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild3:token:INVISIBLE!!!!", })));
+        when(cateCchild3.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild3:token:rule", })));
 
         // cateCchild1childx search tokens...
         when(cateCchild1child1.getPropertyValue(CategoryProperty.SEARCH_TOKENS)).thenReturn(new HashSet<String>(Arrays.asList(new String[]{ "cateCchild1.cateCchild1child1:token", })));
@@ -163,11 +163,13 @@ public class RuleFeedTest {
         ruleFeed = new RuleFeed();
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         Set<String> paths = new HashSet<String>();
+        paths.add("cateCchild3:token:rule");
         paths.add("cataC.cateCchild3");
         paths.add("cataB.cateCchild3");
         List<String> calculatedPaths = (List<String>)doc.get("category");
         assertEquals(paths.toArray()[0], calculatedPaths.get(0));
         assertEquals(paths.toArray()[1], calculatedPaths.get(1));
+        assertEquals(paths.toArray()[2], calculatedPaths.get(2));
     }
 
     @Test

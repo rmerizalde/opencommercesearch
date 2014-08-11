@@ -23,6 +23,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.params.*;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
@@ -176,7 +177,7 @@ public class RuleManagerComponentTest {
         prepareRuleDocs(TestSetType.boostRules);
         setBaseParams();
         params.set(RuleManagerParams.RULE_PAGE, "true");
-        params.set(RuleManagerParams.CATEGORY_FILTER, "rule_cat_page");
+        params.set(RuleManagerParams.CATEGORY_FILTER, ClientUtils.escapeQueryChars("rule cat page"));
         
         //Should set boost for given products
         component.prepare(rb);
@@ -342,7 +343,7 @@ public class RuleManagerComponentTest {
                 Document boostRule2 = new Document();
                 boostRule2.add(new Field(RuleConstants.FIELD_ID, "1", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
-                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "rule_cat_page", defaultFieldType));
+                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "rule cat page", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product3", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
 

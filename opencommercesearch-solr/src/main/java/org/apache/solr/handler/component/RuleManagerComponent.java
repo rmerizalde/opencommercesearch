@@ -979,7 +979,9 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             if (StringUtils.isNotBlank(categoryFilter) && BooleanUtils.toBoolean(isRulePage)) {
                 String[] categories = doc.getValues(RuleConstants.FIELD_CATEGORY);
                 for (String category: categories) {
-                    if (category.equals(categoryFilter)) {
+                    //the categoryFilter comes already escaped, so we need to escape the category before comparing
+                    //otherwise all of them will be filtered
+                    if (ClientUtils.escapeQueryChars(category).equals(categoryFilter)) {
                         return false;
                     }
                 }
