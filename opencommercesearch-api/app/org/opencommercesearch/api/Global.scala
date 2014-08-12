@@ -102,12 +102,13 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
-    
     Future.successful(ex.getCause match {
-   	  case e:IllegalArgumentException => BadRequest(e.getMessage)
+   	  case e:IllegalArgumentException => BadRequest(Json.obj(
+        "message" -> e.getMessage))
    	  case other =>
         Logger.error("Unexpected error",  other)
-        InternalServerError(other.getMessage)
+        InternalServerError(Json.obj(
+          "message" -> "Internal error"))
    	})
   }
 

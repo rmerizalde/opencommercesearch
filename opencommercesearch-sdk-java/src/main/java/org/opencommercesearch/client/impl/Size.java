@@ -19,15 +19,20 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Size data holder class.
  *
  * @author jmendez
+ * @author rmerizalde
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Size {
 
   private String name;
   private String scale;
+  private Size preferred;
 
   public Size() {}
 
@@ -50,6 +55,14 @@ public class Size {
 
   public void setScale(String scale) {
     this.scale = scale;
+  }
+
+  public Size getPreferred() {
+    return preferred;
+  }
+
+  public void setPreferred(Size preferred) {
+    this.preferred = preferred;
   }
 
 }

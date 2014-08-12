@@ -23,12 +23,16 @@ import com.fasterxml.jackson.annotation.JsonProperty
 * under the License.
 */
 case class Size(
-    @JsonProperty("name") var name: Option[String], 
-    @JsonProperty("scale") var scale: Option[String]) {
+    var name: Option[String] = None,
+    var scale: Option[String] = None,
+    var preferred: Option[Size] = None) {
 
 }
 
 object Size {
+  @JsonCreator
+  def getInstance() = new Size()
+
   implicit val readsSize = Json.reads[Size]
   implicit val writesSize = Json.writes[Size]
 }

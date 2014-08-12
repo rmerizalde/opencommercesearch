@@ -124,7 +124,16 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
   }
 
   def toDocuments(service: CategoryService)(implicit context: Context) : util.List[SolrInputDocument] = {
-   val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
+    def setSize(doc: SolrInputDocument, size: Size) = {
+      for (sizeName <- size.name) {
+        doc.setField("size", sizeName)
+      }
+      for (scale <- size.scale) {
+        doc.setField("scale", scale)
+      }
+    }
+
+    val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
 
     var expectedDocCount = 0
     var currentDocCount = 0
@@ -205,12 +214,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 }
 
                 for (size <- sku.size) {
-                  for (sizeName <- size.name) {
-                    doc.setField("size", sizeName)
-                  }
-                  for (scale <- size.scale) {
-                    doc.setField("scale", scale)
-                  }
+                  setSize(doc, size.preferred.getOrElse(size))
                 }
 
                 for (reviews <- product.customerReviews) {
