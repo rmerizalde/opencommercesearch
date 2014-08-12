@@ -227,7 +227,7 @@ public abstract class BaseRestFeed extends GenericService {
 
                     processMapping(itemDescriptorName, propertyName, propertyAlias);
                 } else {
-                    throw new IllegalArgumentException(entry.getKey());
+                    throw new IllegalArgumentException("Invalid nested property '" + entry.getKey() + "'");
                 }
             }
         } catch (RepositoryException ex) {

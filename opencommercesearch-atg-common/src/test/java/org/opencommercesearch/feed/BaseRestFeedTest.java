@@ -19,12 +19,14 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
+import atg.beans.DynamicPropertyDescriptor;
 import atg.json.JSONArray;
 import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.RepositoryItemDescriptor;
 import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 import org.junit.Before;
@@ -40,6 +42,7 @@ import org.restlet.data.Status;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Collections;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.Assert.assertEquals;
@@ -67,6 +70,12 @@ public class BaseRestFeedTest {
 
     @Mock
     private RepositoryItem itemB;
+
+    @Mock
+    private RepositoryItemDescriptor itemDescriptor;
+
+    @Mock
+    private DynamicPropertyDescriptor propertyDescriptor;
 
     @Mock
     private ProductService productService;
@@ -107,11 +116,14 @@ public class BaseRestFeedTest {
         feed.doStartService();
         feed.setErrorThreshold(0.5);
         feed.setBatchSize(2);
+        feed.setCustomPropertyMappings(null);
 
         when(repository.getView("TestDescriptor")).thenReturn(repositoryView);
 
         when(itemA.getRepositoryId()).thenReturn("itemA");
+        when(itemA.getItemDescriptor()).thenReturn(itemDescriptor);
         when(itemB.getRepositoryId()).thenReturn("itemB");
+        when(itemB.getItemDescriptor()).thenReturn(itemDescriptor);
     }
 
     @Test
@@ -130,6 +142,63 @@ public class BaseRestFeedTest {
 
     @Test
     public void testIndexItems() throws Exception {
+        indexItems(true);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testIndexItemsWithNestedCustomProperty() throws Exception {
+        feed.setCustomPropertyMappings(Collections.singletonMap("brand.logo.url", "alias"));
+        feed.doStartService();
+    }
+
+    @Test
+    public void testIndexItemsWithInvalidCustomProperty() throws Exception {
+        indexItemWithCustomProperty(false);
+    }
+
+    @Test
+    public void testIndexItemsWithValidCustomProperty() throws Exception {
+        indexItemWithCustomProperty(true);
+    }
+
+    /**
+     * Helper method to test indexing of items with custom property
+     * @param validCustomProperty indicate if the custom property should be added. If false, the mapping is added but the
+     *                            property is left undefined in the item
+     */
+    private void indexItemWithCustomProperty(boolean validCustomProperty) throws Exception {
+        when(repository.getItemDescriptor("brand")).thenReturn(itemDescriptor);
+        when(itemDescriptor.getItemDescriptorName()).thenReturn("brand");
+        if (validCustomProperty) {
+            when(itemDescriptor.getPropertyDescriptor("shortDisplayName")).thenReturn(propertyDescriptor);
+        }
+
+        feed.setLoggingError(false);
+        feed.setCustomPropertyMappings(Collections.singletonMap("brand.shortDisplayName", "alias"));
+        feed.doStartService();
+        indexItems(false);
+        verify(repository, times(1)).getItemDescriptor("brand");
+        verify(itemDescriptor, times(1)).getPropertyDescriptor("shortDisplayName");
+        if (validCustomProperty) {
+            verify(itemDescriptor, times(2)).getItemDescriptorName();
+            verify(itemA, times(1)).getPropertyValue("shortDisplayName");
+            verify(itemB, times(1)).getPropertyValue("shortDisplayName");
+            verify(itemA, times(1)).getItemDescriptor();
+            verify(itemB, times(1)).getItemDescriptor();
+        }
+        verifyNoMoreInteractions(itemA);
+        verifyNoMoreInteractions(itemB);
+        verifyZeroInteractions(itemDescriptor);
+        verifyNoMoreInteractions(repository);
+    }
+
+    /**
+     * Helper method to test item indexing
+     * @param verifyAllInterations indicates if all interactions should be modified. If false, the caller can still execute
+     *                             verifications on the repository, itemA & itemB mocks
+     * @throws Exception
+     */
+    private void indexItems(boolean verifyAllInterations) throws Exception {
         ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
         when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(2);
         when(rql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{itemA, itemB}).thenReturn(null);
@@ -155,6 +224,19 @@ public class BaseRestFeedTest {
 
         assertEquals(((JSONObject)items.get(0)).get("id"), "itemA");
         assertEquals(((JSONObject)items.get(1)).get("id"), "itemB");
+
+        verify(rqlCount, times(1)).executeCountQuery(any(RepositoryView.class), any(Object[].class));
+        verifyNoMoreInteractions(rqlCount);
+        verify(rql, times(2)).executeQueryUncached(any(RepositoryView.class), any(Object[].class));
+        verify(itemA, times(1)).getRepositoryId();
+        verify(itemB, times(1)).getRepositoryId();
+        verifyNoMoreInteractions(rql);
+        verify(repository, times(1)).getView("TestDescriptor");
+        if (verifyAllInterations) {
+            verifyNoMoreInteractions(repository);
+            verifyNoMoreInteractions(itemA);
+            verifyNoMoreInteractions(itemB);
+        }
 
         assertEquals(Method.POST, argument.getValue().getMethod());
         assertEquals("http://localhost:9000/v1/brands/commit", argument.getValue().getResourceRef().toString());
