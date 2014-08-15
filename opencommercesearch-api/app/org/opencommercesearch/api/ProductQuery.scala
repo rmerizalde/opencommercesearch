@@ -4,11 +4,13 @@ import play.api.mvc.{AnyContent, Request}
 import java.net.URLDecoder
 import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
 import org.opencommercesearch.api.common.FilterQuery
+import org.opencommercesearch.api.Global._
 import org.opencommercesearch.common.Context
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.common.params.GroupParams
 import play.api.Play
+import scala.collection.JavaConversions._
 
 /**
  * The base query to retrieve product results
@@ -192,6 +194,18 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     addFilterQuery("isToos:false")
     this
   }
+
+  def withCustomParams() : ProductQuery  = {
+    SearchCustomParams.map(param =>
+        request.queryString.map(qparam =>
+          if(qparam._1.equalsIgnoreCase(param)) {
+            setParam(qparam._1, qparam._2:_*)
+          }
+        )
+    )
+    this
+  }
+
 }
 
 private object Query {

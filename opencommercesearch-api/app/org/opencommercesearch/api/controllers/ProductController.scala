@@ -328,6 +328,7 @@ object ProductController extends BaseController {
       .withSorting()
       .withGrouping()
       .withOutlet()
+      .withCustomParams()
       .withSpellCheck(spellCheckMode != "no")
 
     Logger.debug(s"Searching for '$q', spell checking set to '$spellCheckMode'")
@@ -630,6 +631,7 @@ object ProductController extends BaseController {
       .withPagination()
       .withSorting()
       .withGrouping()
+      .withCustomParams()
 
     val storage = withNamespace(storageFactory)
     storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>

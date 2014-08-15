@@ -22,6 +22,7 @@ package org.apache.solr.handler.component;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder;
 import org.apache.solr.client.solrj.util.ClientUtils;
@@ -395,6 +396,25 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     while(ruleIterator.hasNext()) {
                         ruleCounter++;
                         Document ruleDoc = rulesSearcher.get().doc(ruleIterator.nextDoc());
+                        String ruleId = ruleDoc.getField("id").stringValue();
+                        String excludeRuleParam = requestParams.get("excludeRules");
+                        if (excludeRuleParam != null) {
+                            List<String> excludeRules = Arrays.asList(excludeRuleParam.split(","));
+                            if (excludeRules.contains(ruleId)) {
+                                continue;
+                            }
+                        }
+                        IndexableField experimentalField = ruleDoc.getField(RuleConstants.FIELD_EXPERIMENTAL);
+                        if (experimentalField != null) {
+                            Boolean experimental = (BooleanUtils.toBooleanObject(experimentalField.stringValue()));
+                            String includeRuleParam = requestParams.get("includeRules");
+                            if (experimental && includeRuleParam != null) {
+                                List<String> includeRules = Arrays.asList(includeRuleParam.split(","));
+                                if (!includeRules.contains(ruleId)) {
+                                    continue;
+                                }
+                            }
+                        }
 
                         if (PageType.search == pageType && !filterExactMatch(qParam, ruleDoc)) {
                             // Skip this rule as an exact match was required, but got only a partial match.
@@ -784,13 +804,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     
                     String[] facetField = rule.getValues(RuleConstants.FIELD_FACET_FIELD);
                     if(facetField != null) {
-	                    String facetsQueryString = getQueryString(rule);
-	                    if(StringUtils.isBlank(facetsQueryString)) {
-	                        continue;
-	                    }
-	                    
-	                    facetHandler.addFacet(facetField);
-	                    searchFacets(component, facetsQueryString, facetHandler);
+                        String facetsQueryString = getQueryString(rule);
+                        if(StringUtils.isBlank(facetsQueryString)) {
+                            continue;
+                        }
+                        
+                        facetHandler.addFacet(facetField);
+                        searchFacets(component, facetsQueryString, facetHandler);
                     }
                 }
 

@@ -52,7 +52,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.Assert.*;
-import static org.junit.matchers.JUnitMatchers.hasItem;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -171,6 +170,37 @@ public class RuleManagerComponentTest {
         assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
+    
+    @Test
+    public void testExcludeBoostRulesExperiment() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set("excludeRules", "0,1");
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+
+    @Test
+    public void testIncludeBoostRulesExperiment() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set("includeRules", "1");
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,fixedBoost(productId,'product3') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+
 
     @Test
     public void testBoostRulesRuleCatPage() throws IOException {
@@ -339,6 +369,7 @@ public class RuleManagerComponentTest {
                 boostRule1.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product2", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
+                boostRule1.add(new Field(RuleConstants.FIELD_EXPERIMENTAL, "true", defaultFieldType));
 
                 Document boostRule2 = new Document();
                 boostRule2.add(new Field(RuleConstants.FIELD_ID, "1", defaultFieldType));
@@ -346,7 +377,8 @@ public class RuleManagerComponentTest {
                 boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "rule cat page", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product3", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
-
+                boostRule2.add(new Field(RuleConstants.FIELD_EXPERIMENTAL, "true", defaultFieldType));
+                
                 when(rulesIndexSearcher.doc(0)).thenReturn(boostRule1);
                 when(rulesIndexSearcher.doc(1)).thenReturn(boostRule2);
                 break;

@@ -44,7 +44,9 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MaxProductIndexBatchSize = getConfig("index.product.batchsize.max", 100)
   lazy val MaxCategoryIndexBatchSize = getConfig("index.category.batchsize.max", 100)
   lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
-  lazy val MaxUpdateFacetBatchSize = getConfig("index.facet.batchsize.max", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfig("facet.maxUpdateBatchSize", 100)
+  lazy val SearchCustomParams = searchRequestCustomParams
+
   // @todo deprecate category collections
   lazy val CategoryPreviewCollection = getConfig("preview.collection.category", "categoriesPreview")
   lazy val CategoryPublicCollection = getConfig("public.collection.category", "categoriesPublic")
@@ -133,6 +135,11 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   
   def getConfig(name: String, default: Boolean) = {
     Play.current.configuration.getBoolean(name).getOrElse(default)
+  }
+
+  def searchRequestCustomParams = {
+    val customParams = Play.current.configuration.getStringList("search.params.custom").getOrElse(java.util.Arrays.asList())
+    customParams.toSeq
   }
 
   def availabilityStatusSummaryConfig = {
