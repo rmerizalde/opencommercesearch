@@ -190,6 +190,13 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
+  def withRedirects() : ProductQuery = {
+    if(!(request != null && request.getQueryString("redirects").getOrElse("true").toBoolean)) {
+      setParam("redirects", "false")
+    }
+    this
+  }
+
   def withoutToos() : ProductQuery = {
     addFilterQuery("isToos:false")
     this

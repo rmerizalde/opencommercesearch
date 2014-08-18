@@ -519,6 +519,14 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
         catalogFilter.append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId);
         ruleParams.addFilterQuery(catalogFilter.toString());
+        
+        String redirectRuleParam = requestParams.get("redirects");
+        if(redirectRuleParam != null) {
+          Boolean isApplyRedirectRules = BooleanUtils.toBoolean(redirectRuleParam);
+          if(!isApplyRedirectRules) {
+            ruleParams.addFilterQuery("-ruleType:redirectRule");
+          }
+        }
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
