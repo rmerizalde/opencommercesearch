@@ -301,7 +301,6 @@ public class ProductApiCli {
         assertNotNull("skus.availability.status", sku.getAvailability().getStatus());
         assertNotNull("availabilityStatus", product.getAvailabilityStatus()); // new field
         assertEquals("skus.availability.status", product.getAvailabilityStatus(), sku.getAvailability().getStatus());
-        assertNotNull("isOutOfStock", product.getOutOfStock()); // the API is currently broken a not return this for search
       } else {
         // temporal, is stockLevel == 0 in search is likely backorderable. API not returning TOOS for search currently
         // only backorderable products indexed with the new structure will have the status populated for search all the time.

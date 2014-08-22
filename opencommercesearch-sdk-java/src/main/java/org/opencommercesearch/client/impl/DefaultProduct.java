@@ -54,7 +54,6 @@ public class DefaultProduct implements Product {
   private List<Attribute> attributes;
   private Integer listRank;
   private Map<String, Boolean> hasFreeGift;
-  private Boolean isOutOfStock;
   private Boolean isPackage;
   private Boolean isOem;
   private Set<Category> categories;
@@ -194,15 +193,6 @@ public class DefaultProduct implements Product {
 
   public void setHasFreeGift(Map<String, Boolean> hasFreeGift) {
     this.hasFreeGift = hasFreeGift;
-  }
-
-  @JsonProperty("isOutOfStock")
-  public Boolean getOutOfStock() {
-    return isOutOfStock;
-  }
-
-  public void setIsOutOfStock(Boolean outOfStock) {
-    this.isOutOfStock = outOfStock;
   }
 
   public Boolean getOem() {

@@ -203,7 +203,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       if (includesProductField("availabilityStatus", fields, isDefault = true)) {
         product.populateAvailabilityStatus()
       }
-      setToos(product, fields)
     }
 
     product
@@ -236,45 +235,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       case Nil => isDefault
       case _ => includes(fields)
     }
-  }
-
-  /**
-   * Calculate if the product is TOOS (temporarily out of stock)
-   * @param product The product
-   * @param fields The fields requested from the product
-   * @return The product, with the out of stock property set if the product is TOOS. If the field was not requested, then no calculation is done.
-   */
-  private def setToos(product: Product, fields: Seq[String]) : Product = {
-    def isAvailabilityFieldIn(field: String) = field match {
-      case "skus" => true
-      case "skus.availability" => true
-      case "skus.avaialability.status" => true
-      case _ => false
-    }
-
-    // this method will go away in favor of just hiding availability if it was not requested
-    for (skus <- product.skus) {
-      val hasProductOutOfStock = fields.contains("isOutofStock")
-      if (hasProductOutOfStock || includesProductField("isOutofStock", fields, isDefault = true)) {
-
-        //Artificial property calculated from storage
-        product.isOutOfStock = product.availabilityStatus match {
-          case Some(status) => Some(status == Availability.OutOfStock)
-          case None => None
-        }
-
-        //Clean up product data if skus weren't requested originally
-        val skuFields = fields collectFirst {
-          case field: String if isAvailabilityFieldIn(field) => true
-        }
-
-        if(hasProductOutOfStock && !skuFields.getOrElse(false)) {
-          product.skus = None
-        }
-      }
-    }
-
-    product
   }
 
   private def filterSearchProduct(site: String, country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
@@ -365,6 +325,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     val projection = new StringBuilder(128)
     var projectionFields = new StringBuilder(128)
 
+    def isAvailabilityFieldIn(field: String) = field match {
+      case "skus" => true
+      case "skus.availability" => true
+      case "skus.avaialability.status" => true
+      case _ => false
+    }
+
     if(fields.contains("*")) {
       projection.append("{}")
     }
@@ -375,15 +342,12 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
           fields.foreach(field => {
             val f = ProjectionMappings.getOrElse(field, field)
-
-            if(f == "isOutofStock") {
-              includeSkus = true
+            if(isAvailabilityFieldIn(f)) {
+              includeSkus=true
               projectionFields.append("skus.countries.availability.status:1,")
-            }
-            else {
+            } else {
               projectionFields.append(f).append(":1,")
             }
-
             if (f.startsWith("skus.")) {
               includeSkus = true
             }
