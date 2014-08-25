@@ -325,13 +325,6 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     val projection = new StringBuilder(128)
     var projectionFields = new StringBuilder(128)
 
-    def isAvailabilityFieldIn(field: String) = field match {
-      case "skus" => true
-      case "skus.availability" => true
-      case "skus.avaialability.status" => true
-      case _ => false
-    }
-
     if(fields.contains("*")) {
       projection.append("{}")
     }
@@ -342,12 +335,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
           fields.foreach(field => {
             val f = ProjectionMappings.getOrElse(field, field)
-            if(isAvailabilityFieldIn(f)) {
-              includeSkus=true
-              projectionFields.append("skus.countries.availability.status:1,")
-            } else {
-              projectionFields.append(f).append(":1,")
-            }
+            projectionFields.append(f).append(":1,")
             if (f.startsWith("skus.")) {
               includeSkus = true
             }

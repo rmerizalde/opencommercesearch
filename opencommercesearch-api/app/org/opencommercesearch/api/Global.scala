@@ -44,7 +44,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MaxProductIndexBatchSize = getConfig("index.product.batchsize.max", 100)
   lazy val MaxCategoryIndexBatchSize = getConfig("index.category.batchsize.max", 100)
   lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
-  lazy val MaxUpdateFacetBatchSize = getConfig("facet.maxUpdateBatchSize", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfig("index.facet.batchsize.max", 100)
   lazy val SearchCustomParams = searchRequestCustomParams
 
   // @todo deprecate category collections
