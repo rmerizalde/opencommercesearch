@@ -109,7 +109,7 @@ class MongoStorageSpec extends Specification with Mockito  {
 
 	     val productToos = new Product(
 	       id = Some("id"), title = Some("title"), description = Some("description"), shortDescription = Some("shortDesc"), brand = Some(brand), gender = Some("gender"),
-         sizingChart = Some("sizeChart"), listRank = Some(1), isOutOfStock = Some(true), availabilityStatus = Some(Availability.InStock),
+         sizingChart = Some("sizeChart"), listRank = Some(1), availabilityStatus = Some(Availability.InStock),
          categories = Some(Seq(category)), skus = Some(Seq(sku, skuInStock)), activationDate = Some(new Date()), isPackage = Some(false))
 
 	     Await.result(storage.saveCategory(category), Duration.Inf)
@@ -121,9 +121,6 @@ class MongoStorageSpec extends Specification with Mockito  {
 	     
 	     val headProduct = savedProdIterable.head
 	     headProduct.getId must beEqualTo("id")
-       println(headProduct.skus)
-	     headProduct.isOutOfStock.getOrElse(false) must beEqualTo(true)
-	     
 	     savedProdIterable.size must beEqualTo(1)
 	     
      }

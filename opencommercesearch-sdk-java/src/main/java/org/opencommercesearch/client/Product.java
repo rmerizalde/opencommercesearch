@@ -68,8 +68,6 @@ public interface Product {
 
   Map<String, Boolean> getHasFreeGift();
 
-  Boolean getOutOfStock();
-
   Boolean getPackage();
 
   Boolean getOem();

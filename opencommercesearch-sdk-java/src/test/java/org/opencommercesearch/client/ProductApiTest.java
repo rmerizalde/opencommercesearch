@@ -479,7 +479,6 @@ public class ProductApiTest {
         assertEquals("Dont let a little sprinkle stop your ride. Just pull on the Castelli Mens Goccia Rain Jacket and get after it.", firstProduct.getShortDescription());
         assertEquals("557", firstProduct.getSizingChart());
         assertEquals(Integer.valueOf(1), firstProduct.getListRank());
-        assertFalse(firstProduct.getOutOfStock());
         assertEquals("1969-12-31T18:00:00Z", new ISO8601DateFormat().format(firstProduct.getActivationDate()));
         assertFalse(firstProduct.getPackage());
 

@@ -22,6 +22,7 @@ package org.apache.solr.handler.component;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder;
 import org.apache.solr.client.solrj.util.ClientUtils;
@@ -395,6 +396,25 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     while(ruleIterator.hasNext()) {
                         ruleCounter++;
                         Document ruleDoc = rulesSearcher.get().doc(ruleIterator.nextDoc());
+                        String ruleId = ruleDoc.getField("id").stringValue();
+                        String excludeRuleParam = requestParams.get("excludeRules");
+                        if (excludeRuleParam != null) {
+                            List<String> excludeRules = Arrays.asList(excludeRuleParam.split(","));
+                            if (excludeRules.contains(ruleId)) {
+                                continue;
+                            }
+                        }
+                        IndexableField experimentalField = ruleDoc.getField(RuleConstants.FIELD_EXPERIMENTAL);
+                        if (experimentalField != null) {
+                            Boolean experimental = (BooleanUtils.toBooleanObject(experimentalField.stringValue()));
+                            String includeRuleParam = requestParams.get("includeRules");
+                            if (experimental && includeRuleParam != null) {
+                                List<String> includeRules = Arrays.asList(includeRuleParam.split(","));
+                                if (!includeRules.contains(ruleId)) {
+                                    continue;
+                                }
+                            }
+                        }
 
                         if (PageType.search == pageType && !filterExactMatch(qParam, ruleDoc)) {
                             // Skip this rule as an exact match was required, but got only a partial match.
@@ -499,6 +519,14 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
         catalogFilter.append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId);
         ruleParams.addFilterQuery(catalogFilter.toString());
+        
+        String redirectRuleParam = requestParams.get("redirects");
+        if(redirectRuleParam != null) {
+          Boolean isApplyRedirectRules = BooleanUtils.toBoolean(redirectRuleParam);
+          if(!isApplyRedirectRules) {
+            ruleParams.addFilterQuery("-ruleType:redirectRule");
+          }
+        }
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
@@ -784,13 +812,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     
                     String[] facetField = rule.getValues(RuleConstants.FIELD_FACET_FIELD);
                     if(facetField != null) {
-	                    String facetsQueryString = getQueryString(rule);
-	                    if(StringUtils.isBlank(facetsQueryString)) {
-	                        continue;
-	                    }
-	                    
-	                    facetHandler.addFacet(facetField);
-	                    searchFacets(component, facetsQueryString, facetHandler);
+                        String facetsQueryString = getQueryString(rule);
+                        if(StringUtils.isBlank(facetsQueryString)) {
+                            continue;
+                        }
+                        
+                        facetHandler.addFacet(facetField);
+                        searchFacets(component, facetsQueryString, facetHandler);
                     }
                 }
 

@@ -64,8 +64,6 @@ case class Product (
   @JsonProperty("listRank") var listRank: Option[Int] = None,
   @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview] = None,
   @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]] = None,
-  @deprecated(message = "Use availabilityStatus", since = "0.5.0")
-  @JsonProperty("isOutOfStock") var isOutOfStock: Option[Boolean] = None,
   @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
   @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
   @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,

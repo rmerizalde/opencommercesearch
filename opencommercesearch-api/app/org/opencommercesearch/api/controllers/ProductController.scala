@@ -316,8 +316,10 @@ object ProductController extends BaseController {
       outlet: Boolean,
       @ApiParam(defaultValue="auto", allowableValues="auto,yes,no", value = "Whether or not query spell checking should be done. If set to auto and the original " +
         "query returns zero results, the search is retried with the spell check corrected terms. If set to yes, only correctedTerms and suggested terms is returned, no search is retried.", required = false)
-      @QueryParam("outlet")
-      spellCheckParam: String) = ContextAction.async { implicit context =>  implicit request =>
+      @QueryParam("spellCheckParam")
+      spellCheckParam: String,
+      @QueryParam("redirects")
+      redirects: Boolean) = ContextAction.async { implicit context =>  implicit request =>
 
     val startTime = System.currentTimeMillis()
     val spellCheckMode = spellCheckParam.toLowerCase
@@ -328,6 +330,8 @@ object ProductController extends BaseController {
       .withSorting()
       .withGrouping()
       .withOutlet()
+      .withRedirects()
+      .withCustomParams()
       .withSpellCheck(spellCheckMode != "no")
 
     Logger.debug(s"Searching for '$q', spell checking set to '$spellCheckMode'")
@@ -630,6 +634,7 @@ object ProductController extends BaseController {
       .withPagination()
       .withSorting()
       .withGrouping()
+      .withCustomParams()
 
     val storage = withNamespace(storageFactory)
     storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>
