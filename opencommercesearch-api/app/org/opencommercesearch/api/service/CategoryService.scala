@@ -63,10 +63,10 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   private val CategoryPathSeparator = "\\."
   private val TaxonomyCacheKey = "AllCategoryTaxonomy"
   private val CategoryKeyPrefix = "category."
-  private val StatsdBuildTaxonomyGraphMetric = "api.search.internal.service.buildTaxonomyGraph"
-  private val StatsdBuildBrandTaxonomyGraphMetric = "api.search.internal.service.buildBrandTaxonomyGraph"
-  private val StatsdBuildProductTaxonomyGraphMetric = "api.search.internal.service.buildProductTaxonomyGraph"
-  private val StatsdPruneTaxonomyGraphMetric = "api.search.internal.service.pruneTaxonomyGraph"
+  private val StatsdBuildTaxonomyGraphMetric = "internal.service.buildTaxonomyGraph"
+  private val StatsdBuildBrandTaxonomyGraphMetric = "internal.service.buildBrandTaxonomyGraph"
+  private val StatsdBuildProductTaxonomyGraphMetric = "internal.service.buildProductTaxonomyGraph"
+  private val StatsdPruneTaxonomyGraphMetric = "internal.service.pruneTaxonomyGraph"
 
   /**
    * Generate the category tokens to create a hierarchical facet in Solr. Each
