@@ -79,7 +79,10 @@ public interface Product {
   Date getActivationDate();
   
   Availability.Status getAvailabilityStatus();
-
+  
+  @JsonIgnore
+  Boolean getOutOfStock();
+  
   @JsonIgnore
   ProductSummary getSummary();
 }
