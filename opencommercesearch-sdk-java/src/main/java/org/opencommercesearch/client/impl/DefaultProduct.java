@@ -22,6 +22,7 @@ package org.opencommercesearch.client.impl;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.ProductSummary;
 
@@ -286,5 +287,14 @@ public class DefaultProduct implements Product {
     this.summary = summary;
   }
 
+  @JsonIgnore
+  public Boolean getOutOfStock() {
+	Availability.Status status = getAvailabilityStatus();
+	if(status != null) {
+		return status == Availability.Status.OutOfStock 
+				|| status == Availability.Status.PermanentlyOutOfStock;
+	}
+	return null;
+  }
 
 }
