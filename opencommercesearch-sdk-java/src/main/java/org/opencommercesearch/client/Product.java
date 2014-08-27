@@ -80,6 +80,8 @@ public interface Product {
   
   Availability.Status getAvailabilityStatus();
   
+  List<Product> getRelatedProducts();
+  
   @JsonIgnore
   Boolean getOutOfStock();
   
