@@ -60,6 +60,7 @@ public class DefaultProduct implements Product {
   private Set<Category> categories;
   private List<Sku> skus;
   private Date activationDate;
+  private List<Product> relatedProducts;
   private Availability.Status availabilityStatus;
   private ProductSummary summary;
 
@@ -295,6 +296,15 @@ public class DefaultProduct implements Product {
 				|| status == Availability.Status.PermanentlyOutOfStock;
 	}
 	return null;
+  }
+
+  @Override
+  public List<Product> getRelatedProducts() {
+	return relatedProducts;
+  }
+  
+  public void setRelatedProducts(List<Product> relatedProducts) {
+	  this.relatedProducts = relatedProducts;
   }
 
 }

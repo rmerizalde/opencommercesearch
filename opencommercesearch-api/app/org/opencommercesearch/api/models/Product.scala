@@ -39,13 +39,61 @@ import org.apache.solr.common.SolrInputDocument
 import org.jongo.marshall.jackson.oid.Id
 
 import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
+import play.api.libs.functional.syntax._
+import scala.Some
 
 object Product {
   @JsonCreator
   def getInstance() =  new Product()
 
-  implicit val readsProduct = Json.reads[Product]
-  implicit val writesProduct = Json.writes[Product]
+  implicit val readsProduct : Reads[Product] = (
+    (__ \ "id").readNullable[String] ~
+    (__ \ "title").readNullable[String] ~
+    (__ \ "description").readNullable[String] ~
+    (__ \ "shortDescription").readNullable[String] ~
+    (__ \ "brand").readNullable[Brand] ~
+    (__ \ "gender").readNullable[String] ~
+    (__ \ "sizingChart").readNullable[String] ~
+    (__ \ "detailImages").readNullable[Seq[Image]] ~
+    (__ \ "bulletPoints").readNullable[Seq[String]] ~
+    (__ \ "attributes").readNullable[Seq[Attribute]] ~
+    (__ \ "features").readNullable[Seq[Attribute]] ~
+    (__ \ "listRank").readNullable[Int] ~
+    (__ \ "customerReviews").readNullable[CustomerReview] ~
+    (__ \ "hasFreeGift").readNullable[Map[String, Boolean]] ~
+    (__ \ "availabilityStatus").readNullable[String] ~
+    (__ \ "categories").readNullable[Seq[Category]] ~
+    (__ \ "skus").readNullable[Seq[Sku]] ~
+    (__ \ "relatedProducts").lazyReadNullable(Reads.list[Product](readsProduct)) ~
+    (__ \ "activationDate").readNullable[Date] ~
+    (__ \ "isPackage").readNullable[Boolean] ~
+    (__ \ "isOem").readNullable[Boolean]
+  ) (Product.apply _)
+
+  implicit val writesProduct : Writes[Product] = (
+    (__ \ "id").writeNullable[String] ~
+    (__ \ "title").writeNullable[String] ~
+    (__ \ "description").writeNullable[String] ~
+    (__ \ "shortDescription").writeNullable[String] ~
+    (__ \ "brand").writeNullable[Brand] ~
+    (__ \ "gender").writeNullable[String] ~
+    (__ \ "sizingChart").writeNullable[String] ~
+    (__ \ "detailImages").writeNullable[Seq[Image]] ~
+    (__ \ "bulletPoints").writeNullable[Seq[String]] ~
+    (__ \ "attributes").writeNullable[Seq[Attribute]] ~
+    (__ \ "features").writeNullable[Seq[Attribute]] ~
+    (__ \ "listRank").writeNullable[Int] ~
+    (__ \ "customerReviews").writeNullable[CustomerReview] ~
+    (__ \ "hasFreeGift").writeNullable[Map[String, Boolean]] ~
+    (__ \ "availabilityStatus").writeNullable[String] ~
+    (__ \ "categories").writeNullable[Seq[Category]] ~
+    (__ \ "skus").writeNullable[Seq[Sku]] ~
+    (__ \ "relatedProducts").lazyWriteNullable(Writes.traversableWrites[Product](writesProduct)) ~
+    (__ \ "activationDate").writeNullable[Date] ~
+    (__ \ "isPackage").writeNullable[Boolean] ~
+    (__ \ "isOem").writeNullable[Boolean]
+    ) (unlift(Product.unapply))
+
 }
 
 
@@ -67,6 +115,7 @@ case class Product (
   @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
   @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
   @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,
+  @JsonProperty("relatedProducts") var relatedProducts : Option[Seq[Product]] = None,
   @JsonProperty("activationDate") var activationDate: Option[Date] = None,
   @JsonProperty("isPackage") var isPackage: Option[Boolean] = None,
   @JsonProperty("isOem") var isOem: Option[Boolean] = None) extends IndexableElement
