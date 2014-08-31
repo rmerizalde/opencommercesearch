@@ -261,7 +261,7 @@ public class ProductApiCli {
       }
 
       if (query.startsWith("freeGift")) {
-        assertNotNull("hasFreeGift", product.getHasFreeGift());
+        assertNotNull("freeGifts", product.getFreeGifts());
       }
 
       Sku sku = product.getSkus().get(0);
