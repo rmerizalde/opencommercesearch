@@ -60,7 +60,7 @@ object Product {
     (__ \ "features").readNullable[Seq[Attribute]] ~
     (__ \ "listRank").readNullable[Int] ~
     (__ \ "customerReviews").readNullable[CustomerReview] ~
-    (__ \ "hasFreeGift").readNullable[Map[String, Boolean]] ~
+    (__ \ "freeGifts").lazyReadNullable(Reads.map[Seq[Product]]) ~
     (__ \ "availabilityStatus").readNullable[String] ~
     (__ \ "categories").readNullable[Seq[Category]] ~
     (__ \ "skus").readNullable[Seq[Sku]] ~
@@ -84,7 +84,7 @@ object Product {
     (__ \ "features").writeNullable[Seq[Attribute]] ~
     (__ \ "listRank").writeNullable[Int] ~
     (__ \ "customerReviews").writeNullable[CustomerReview] ~
-    (__ \ "hasFreeGift").writeNullable[Map[String, Boolean]] ~
+    (__ \ "freeGifts").lazyWriteNullable(Writes.map[Seq[Product]]) ~
     (__ \ "availabilityStatus").writeNullable[String] ~
     (__ \ "categories").writeNullable[Seq[Category]] ~
     (__ \ "skus").writeNullable[Seq[Sku]] ~
@@ -111,7 +111,7 @@ case class Product (
   @JsonProperty("features") var features: Option[Seq[Attribute]] = None,
   @JsonProperty("listRank") var listRank: Option[Int] = None,
   @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview] = None,
-  @JsonProperty("hasFreeGift") var hasFreeGift: Option[Map[String, Boolean]] = None,
+  @JsonProperty("freeGifts") var freeGifts: Option[Map[String, Seq[Product]]] = None,
   @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
   @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
   @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,
@@ -301,11 +301,9 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                   }
                 }
 
-                for (hasFreeGift <- product.hasFreeGift) {
-                  hasFreeGift.foreach { case (catalog, hasGift) =>
-                    if (hasGift) {
-                      doc.setField("freeGift" + catalog, hasGift)
-                    }
+                for (freeGifts <- product.freeGifts) {
+                  freeGifts.foreach { case (catalog, gifts) =>
+                      doc.setField("freeGift" + catalog, true)
                   }
                 }
 

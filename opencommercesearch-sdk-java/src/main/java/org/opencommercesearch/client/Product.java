@@ -66,8 +66,6 @@ public interface Product {
 
   Integer getListRank();
 
-  Map<String, Boolean> getHasFreeGift();
-
   Boolean getPackage();
 
   Boolean getOem();
@@ -81,6 +79,8 @@ public interface Product {
   Availability.Status getAvailabilityStatus();
   
   List<Product> getRelatedProducts();
+  
+  Map<String, List<Product>> getFreeGifts();
   
   @JsonIgnore
   Boolean getOutOfStock();
