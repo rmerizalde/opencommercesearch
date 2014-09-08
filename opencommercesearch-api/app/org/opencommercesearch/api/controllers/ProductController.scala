@@ -941,4 +941,63 @@ object ProductController extends BaseController {
     withErrorHandling(future, s"Cannot search for [$q]")
   }
 
+  @ApiOperation(value = "Searchs Product Generations", notes = "Returns products with same generation productId", response = classOf[Product], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete product result list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of products", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def findByMasterId(
+              version: Int,
+              @ApiParam(value = "Product Id", required = true)
+              @QueryParam("id")
+              id: String,
+              @ApiParam(value = "Site to search", required = true)
+              @QueryParam("site")
+              site: String) = ContextAction.async { implicit context =>  implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val query = new ProductSearchQuery(s"generation_master:$id AND -productId:$id", site)
+      .withPagination()
+      .withGrouping(limit=1)
+      .withOutlet()
+    query.addSort("generation_number", SolrQuery.ORDER.desc)
+    val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
+      if (query.getRows > 0) {
+        processSearchResults(id, response).map { case (found, products, groupSummary) =>
+          if (products != null) {
+            if (found > 0) {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "products" -> Json.toJson(
+                  products map (Json.toJson(_)))))
+            } else {
+              Ok(Json.obj(
+                "metadata" -> Json.obj(
+                  "found" -> found,
+                  "time" -> (System.currentTimeMillis() - startTime)),
+                "products" -> Json.arr()
+              ))
+            }
+          } else {
+            Logger.debug(s"Unexpected response found for query $id")
+            InternalServerError(Json.obj(
+              "metadata" -> Json.obj(
+                "time" -> (System.currentTimeMillis() - startTime)),
+              "message" -> "Unable to execute query"))
+          }
+        }
+      } else {
+        Future.successful(Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "found" -> response.getResults.getNumFound,
+            "time" -> (System.currentTimeMillis() - startTime)))))
+      }
+    })
+    withErrorHandling(future, s"Cannot find products for [$id]")
+  }
+
 }
