@@ -54,6 +54,8 @@
   <!-- used for group sorting -->
   <field name="sort"               type="int"               indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" sortMissingLast="true" />
   <field name="indexStamp"         type="long"              indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
+  <field name="generation_number"  type="int"               indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
+  <field name="generation_master"  type="string"            indexed="true"  stored="false" required="false" multiValued="false" omitNorms="true" />
 
   <!-- catchall text field that indexes tokens both normally and in reverse for efficient
       leading wildcard queries. -->

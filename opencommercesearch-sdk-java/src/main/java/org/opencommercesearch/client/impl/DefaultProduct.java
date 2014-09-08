@@ -60,7 +60,7 @@ public class DefaultProduct implements Product {
   private Set<Category> categories;
   private List<Sku> skus;
   private Date activationDate;
-  private List<Product> relatedProducts;
+  private Generation generation;
   private Availability.Status availabilityStatus;
   private ProductSummary summary;
 
@@ -291,21 +291,21 @@ public class DefaultProduct implements Product {
   }
 
   @Override
-  public List<Product> getRelatedProducts() {
-	return relatedProducts;
-  }
-  
-  public void setRelatedProducts(List<Product> relatedProducts) {
-	  this.relatedProducts = relatedProducts;
-  }
-
-  @Override
   public Map<String, List<Product>> getFreeGifts() {
 	return freeGifts;
   }
 
   public void setFreeGifts(Map<String, List<Product>> freeGifts) {
 	this.freeGifts = freeGifts;
+  }
+  
+  @Override
+  public Generation getGeneration() {
+	return generation;
+  }
+
+  public void setGeneration(Generation generation) {
+	this.generation = generation;
   }
 
 }
