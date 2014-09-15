@@ -76,42 +76,7 @@ case class FacetHandler (
       id.asInstanceOf[String]
     }
 
-    val facetBlackLists = getFacetBlacklists(facetIds)
-
-    for (facetField <- queryResponse.getFacetFields) {
-      var facet : Option[Facet] = None
-
-      if( facetField.getName == "category") {
-        facet = createCategoryFacet(facetField.getName)
-      }
-      else {
-        facet = createFacet(facetField.getName)
-      }
-
-      for (f <- facet) {
-        val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
-        val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
-        var facetBlackList: Set[String] = Set.empty
-
-        //If this is a category facet, then the ID will be None.
-        for(facetId <- f.id) { facetBlackList = facetBlackLists(facetId) }
-
-        for (count <- facetField.getValues) {
-          val filterName: String = getCountName(count, prefix)
-          if (facetBlackList == null || !facetBlackList.contains(filterName)) {
-            val filter = new Filter(Some(filterName), Some(count.getCount),
-              Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
-              Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
-              None
-            )
-            filter.setSelected(count.getFacetField.getName, filterName, filterQueries)
-            filters.append(filter)
-          }
-        }
-        f.filters = Some(filters)
-        facetMap.put(facetField.getName, f)
-      }
-    }
+    fieldFacets(facetMap, facetIds)
     rangeFacets(facetMap)
     queryFacets(facetMap)
 
@@ -141,22 +106,47 @@ case class FacetHandler (
       facet.sort = None
       facet
     })
+  }
 
-    /*
-    for (fieldName <- Array[String]("category", "categoryPath")) {
-      val facet = facetMap.get(fieldName)
-      for (f <- facet) {
-        sortedFacets.append(f)
+  private def fieldFacets(facetMap: mutable.Map[String, Facet], facetIds: Seq[String]) : Unit = {
+    if (queryResponse.getFacetFields != null) {
+      val facetBlackLists = getFacetBlacklists(facetIds)
+
+      for (facetField <- queryResponse.getFacetFields) {
+        var facet : Option[Facet] = None
+
+        if( facetField.getName == "category") {
+          facet = createCategoryFacet(facetField.getName)
+        }
+        else {
+          facet = createFacet(facetField.getName)
+        }
+
+        for (f <- facet) {
+          val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
+          val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
+          var facetBlackList: Set[String] = Set.empty
+
+          //If this is a category facet, then the ID will be None.
+          for(facetId <- f.id) { facetBlackList = facetBlackLists(facetId) }
+
+          for (count <- facetField.getValues) {
+            val filterName: String = getCountName(count, prefix)
+            if (facetBlackList == null || !facetBlackList.contains(filterName)) {
+              val filter = new Filter(Some(filterName), Some(count.getCount),
+                Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
+                Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
+                None
+              )
+              filter.setSelected(count.getFacetField.getName, filterName, filterQueries)
+              filters.append(filter)
+            }
+          }
+          f.filters = Some(filters)
+          facetMap.put(facetField.getName, f)
+        }
       }
     }
-    import scala.collection.JavaConversions._
-    for (fieldName <- manager.facetFieldNames) {
-      val facet: Facet = facetMap.get(fieldName)
-      if (facet != null) {
-        sortedFacets.add(facet)
-      }
-    }
-    return sortedFacets*/
   }
 
   private def rangeFacets(facetMap: mutable.Map[String, Facet]) : Unit = {

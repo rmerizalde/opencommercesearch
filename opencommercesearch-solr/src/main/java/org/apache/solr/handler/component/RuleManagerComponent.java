@@ -19,6 +19,7 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
@@ -272,6 +273,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             rb.req.setParams(augmentedParams);
         }
         catch(Throwable e) {
+            e.printStackTrace();
             logger.error("Failed to handle this request", e);
         }
     }
@@ -520,12 +522,14 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         catalogFilter.append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId);
         ruleParams.addFilterQuery(catalogFilter.toString());
         
-        String redirectRuleParam = requestParams.get("redirects");
-        if(redirectRuleParam != null) {
-          Boolean isApplyRedirectRules = BooleanUtils.toBoolean(redirectRuleParam);
-          if(!isApplyRedirectRules) {
+        if(requestParams.get("redirects") != null) {
+          if(!requestParams.getBool("redirects")) {
             ruleParams.addFilterQuery("-ruleType:redirectRule");
           }
+        }
+
+        if (!BooleanUtils.toBoolean(requestParams.getBool("facet"))) {
+            ruleParams.addFilterQuery("-ruleType:facetRule");
         }
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches

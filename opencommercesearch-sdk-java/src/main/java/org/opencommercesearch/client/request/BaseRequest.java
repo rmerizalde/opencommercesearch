@@ -135,6 +135,27 @@ public abstract class BaseRequest implements Request {
   }
 
   /**
+   * Replaces the fields param in this request with the given fields
+   * @param fields is the new field list
+   */
+  public void setMetadataFields(String[] fields) {
+    if (fields == null) {
+      throw new NullPointerException("metadata");
+    }
+
+    setParam("metadata", StringUtils.join(fields, ","));
+  }
+
+  /**
+   * Adds a new metadata field to this request
+   * @param fieldName is the new field to add
+   */
+  public void addMetadataField(String fieldName) {
+    addParam("metadata", fieldName);
+  }
+
+
+  /**
    * Sets the site for this request
    * @param site is the request site
    */

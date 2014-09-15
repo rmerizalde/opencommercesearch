@@ -28,7 +28,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 
   private var _filterQueries: Array[FilterQuery] = null
   private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
-  
+  protected val metadataFields = if (request != null) StringUtils.split(request.getQueryString("metadata").getOrElse(""), ',') else Array.empty[String]
+
+
   protected def init() : Unit = {
     setFields("id")
     setParam("collection", searchCollection.name(context.lang))
@@ -74,13 +76,17 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
-  def withFaceting(field: String = "category", limit: Option[Int] = None) : ProductQuery = {
-    setFacet(true)
-    addFacetField(field)
-    setFacetMinCount(1)
+  def facets = metadataFields.isEmpty || metadataFields.contains("facets")
 
-    limit foreach { l =>
-      setFacetLimit(l)
+  def withFaceting(field: String = "category", limit: Option[Int] = None) : ProductQuery = {
+    setFacet(facets)
+    if (facets) {
+      addFacetField(field)
+      setFacetMinCount(1)
+
+      limit foreach { l =>
+        setFacetLimit(l)
+      }
     }
 
     this
@@ -126,6 +132,14 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
+  def groupTotalCount = metadataFields.isEmpty || metadataFields.contains("found")
+
+  def withGrouping() : ProductQuery = {
+    val collapse = metadataFields.isEmpty || metadataFields.contains("productSummary")
+    val limit = if (collapse) 50 else 1
+    withGrouping(groupTotalCount, limit, collapse)
+  }
+
   /**
    * Sets parameters to group skus by product
    *
@@ -135,7 +149,8 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
    *
    * @return this query
    */
-  def withGrouping(totalCount: Boolean = true, limit: Int = 50, collapse: Boolean = true) : ProductQuery = {
+  def withGrouping(totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
+
     if (getRows == null || getRows > 0) {
       set(GroupParams.GROUP, true)
       set(GroupParams.GROUP_FIELD, "productId")
@@ -239,7 +254,6 @@ private object Query {
  *
  */
 class ProductSearchQuery(q: String, site: String)(implicit context: Context, request: Request[AnyContent]) extends ProductQuery(q, site) {
-
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "search")

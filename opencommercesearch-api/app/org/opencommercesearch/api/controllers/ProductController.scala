@@ -77,7 +77,7 @@ object ProductController extends BaseController {
 
     Logger.debug(s"Query product $id")
 
-    val startTime = System.currentTimeMillis()
+    val startTime = Some(System.currentTimeMillis())
     val storage = withNamespace(storageFactory)
     var productFuture: Future[Iterable[Product]] = null
     val productIds = StringUtils.split(id, ",").map(i => (i, null))
@@ -92,29 +92,17 @@ object ProductController extends BaseController {
 
     val future = productFuture flatMap { products =>
       def createResponse() = {
+        val metadataFields = StringUtils.split(request.getQueryString("metadata").getOrElse(""), ',')
+
         if (products.size > 0) {
-          def createMetadataFields(): Seq[(String, JsValueWrapper)] = {
-            val metadataFields: Seq[(String, JsValueWrapper)] = Seq("found" -> JsNumber(products.size), "time" -> JsNumber(System.currentTimeMillis() - startTime))
-            val summary = createProductSummary(products)
+          val summary = if (metadataFields.isEmpty || metadataFields.contains("productSummary")) createProductSummary(products) else None
 
-            if (summary.isDefined) {
-              val s: JsValueWrapper = summary.get
-              metadataFields :+ ("productSummary" -> s)
-            } else {
-              metadataFields
-            }
-          }
-
-          withCacheHeaders(
-            Ok(Json.obj(
-            "metadata" -> Json.obj(createMetadataFields(): _*),
-            "products" -> products)), id)
+          withCacheHeaders(buildProductResponse(metadataFields = metadataFields, found = Some(products.size),
+            productSummary = summary, startTime = startTime,
+            products = Some(products map (Json.toJson(_)))), id)
         } else {
-          withCacheHeaders(NotFound(Json.obj(
-            "metadata" -> Json.obj(
-              "found" -> 0,
-              "time" -> (System.currentTimeMillis() - startTime)),
-            "message" -> "No products found")), id)
+          withCacheHeaders(buildProductResponse(metadataFields = metadataFields, found = Some(0), startTime = startTime,
+            message = Some("No products found")), id)
         }
       }
 
@@ -146,12 +134,39 @@ object ProductController extends BaseController {
     withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
   }
 
+  /**
+   * Helper method that constructs a product response
+   *
+   * @return a simple result containing a proper product response body.
+   */
+  private def buildProductResponse(
+                                   metadataFields: Array[String],
+                                   found: Option[Long] = None,
+                                   productSummary: Option[JsObject] = None,
+                                   startTime: Option[Long] = None,
+                                   message: Option[String] = None,
+                                   products: Option[Iterable[JsValue]] = None) : SimpleResult = {
 
+    val metadataValues = Seq[Option[(String, JsValueWrapper)]](
+      found withFilter { v => metadataFields.isEmpty || metadataFields.contains("found") } map {v => "found" -> v},
+      startTime map {v => "time" -> (System.currentTimeMillis() - v)},
+      productSummary map {v => "productSummary" -> v}
+    )
+
+    val responseValues = Seq[Option[(String, JsValueWrapper)]](
+      Some("metadata" -> Json.obj(metadataValues.flatten:_*)),
+      message map {v => "message" -> v},
+      products map {v => "products" -> products}
+    )
+
+    val json = Json.obj(responseValues.flatten:_*)
+    if (found.getOrElse(0l) > 0l) Ok(json) else NotFound(json)
+  }
 
   /**
    * Helper method to calculate a summary for the given list of products
    */
-  private def createProductSummary(products: Iterable[Product]): Option[JsValue] = {
+  private def createProductSummary(products: Iterable[Product]): Option[JsObject] = {
     var hasSummary = false
     val summaries: Iterable[(String, JsValueWrapper)] = products withFilter { product =>
       product.skus.getOrElse(Seq[Sku]()).size > 0
@@ -186,67 +201,71 @@ object ProductController extends BaseController {
    * @param groupSummary returned by Solr
    * @return an array for products containing its summary
    */
-  private def processGroupSummary(groupSummary: NamedList[Object])(implicit context: Context) : JsObject = {
-    def namedList(value: AnyRef) = value.asInstanceOf[NamedList[AnyRef]]
+  private def processGroupSummary(groupSummary: NamedList[Object])(implicit context: Context) : Option[JsObject] = {
+    if (groupSummary != null && groupSummary.size() > 0) {
+      def namedList(value: AnyRef) = value.asInstanceOf[NamedList[AnyRef]]
 
-    // todo: this is a workaround and will be deleted in a future version
-    def patchColorSummaries(summaries: NamedList[AnyRef]) {
-      def patch(colorSummary: NamedList[AnyRef], colorFamilySummary: NamedList[AnyRef]) = if (colorFamilySummary != null) {
-        val families = colorFamilySummary.get("families")
-        if (families != null) {
-          if (colorSummary != null) {
-            colorSummary.add("families", families)
+      // todo: this is a workaround and will be deleted in a future version
+      def patchColorSummaries(summaries: NamedList[AnyRef]) {
+        def patch(colorSummary: NamedList[AnyRef], colorFamilySummary: NamedList[AnyRef]) = if (colorFamilySummary != null) {
+          val families = colorFamilySummary.get("families")
+          if (families != null) {
+            if (colorSummary != null) {
+              colorSummary.add("families", families)
+            }
+            colorFamilySummary.add("families", families.toString)
           }
-          colorFamilySummary.add("families", families.toString)
+        }
+
+        patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
+      }
+
+      implicit val implicitAnyRefWrites = new Writes[Any] {
+        def writes(any: Any): JsValue = any match {
+          case f: Float => JsNumber(BigDecimal(any.toString))
+          case i: Int => JsNumber(any.asInstanceOf[Int])
+          case a: util.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString)}) // todo: support list types other than String
+          case _ => JsString(any.toString)
         }
       }
 
-      patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
-    }
+      val groups = new ArrayBuffer[(String, JsValue)]()
 
-    implicit val implicitAnyRefWrites = new Writes[Any] {
-      def writes(any: Any): JsValue = any match {
-        case f: Float => JsNumber(BigDecimal(any.toString))
-        case i: Int => JsNumber(any.asInstanceOf[Int])
-        case a: util.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString) }) // todo: support list types other than String
-        case _ => JsString(any.toString)
+      if (groupSummary != null) {
+        val productSummaries = namedList(groupSummary.get("productId"))
+
+        if (productSummaries != null) {
+          productSummaries map { productSummary =>
+            val parameterSummaries = namedList(productSummary.getValue)
+            val productSeq = ArrayBuffer[(String, JsValue)]()
+
+            patchColorSummaries(parameterSummaries)
+            parameterSummaries map { parameterSummary =>
+              val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[AnyRef]]
+              val parameterSeq = ArrayBuffer[(String, JsValue)]()
+
+              statSummaries map { statSummary =>
+                parameterSeq += ((statSummary.getKey, Json.toJson(statSummary.getValue)))
+              }
+
+              //Remove country from parameters
+              var parameter = parameterSummary.getKey
+              if (parameter.endsWith(context.lang.country)) {
+                parameter = parameter.substring(0, parameter.length - context.lang.country.length)
+              }
+
+              productSeq += ((parameter, new JsObject(parameterSeq)))
+            }
+
+
+            groups += ((productSummary.getKey, new JsObject(productSeq)))
+          }
+        }
       }
+      Some(new JsObject(groups))
+    } else {
+      None
     }
-
-    val groups = new ArrayBuffer[(String, JsValue)]()
-
-    if(groupSummary != null) {
-      val productSummaries = namedList(groupSummary.get("productId"))
-
-      if(productSummaries != null) {
-       productSummaries map { productSummary =>
-         val parameterSummaries = namedList(productSummary.getValue)
-         val productSeq = ArrayBuffer[(String,JsValue)]()
-
-         patchColorSummaries(parameterSummaries)
-         parameterSummaries map { parameterSummary =>
-           val statSummaries = parameterSummary.getValue.asInstanceOf[NamedList[AnyRef]]
-           val parameterSeq = ArrayBuffer[(String, JsValue)]()
-
-           statSummaries map { statSummary =>
-             parameterSeq += ((statSummary.getKey, Json.toJson(statSummary.getValue)))
-           }
-
-           //Remove country from parameters
-           var parameter = parameterSummary.getKey
-           if(parameter.endsWith(context.lang.country)) {
-             parameter = parameter.substring(0, parameter.length - context.lang.country.length)
-           }
-
-           productSeq += ((parameter, new JsObject(parameterSeq)))
-         }
-
-
-         groups += ((productSummary.getKey, new JsObject(productSeq)))
-       }
-      }
-    }
-    new JsObject(groups)
   }
 
   /**
@@ -266,7 +285,7 @@ object ProductController extends BaseController {
         val command = groupResponse.getValues.get(0)
         val products = new util.ArrayList[(String, String)]
         if ("productId".equals(command.getName)) {
-          if (command.getNGroups > 0) {
+          if (hasResults(command)) {
             for (group <- JIterableWrapper(command.getValues)) {
               val documentList = group.getResult
               val product  = documentList.get(0)
@@ -276,7 +295,7 @@ object ProductController extends BaseController {
 
             val storage = withNamespace(storageFactory)
             storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
-              (command.getNGroups, products, groupSummary)
+              (resultCount(command), products, groupSummary)
             }
           } else {
             Future.successful((0, null, null))
@@ -339,7 +358,7 @@ object ProductController extends BaseController {
     val future = doSearch(query, spellCheckMode, startTime) flatMap { case (spellCheckResponse, response) =>
       val redirect = response.getResponse.get("redirect_url")
       if (redirect != null && StringUtils.isNotBlank(redirect.toString)) {
-        Future.successful(buildSearchResponse(startTime = Some(startTime), redirectUrl = Some(redirect.toString)))
+        Future.successful(buildSearchResponse(query = query, startTime = Some(startTime), redirectUrl = Some(redirect.toString)))
       }
       else if(query.getRows > 0) {
         processSearchResults(q, response).map { case (found, products, groupSummary) =>
@@ -347,28 +366,30 @@ object ProductController extends BaseController {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, query.filterQueries)
               withCacheHeaders(buildSearchResponse(
+                query = query,
                 breadCrumbs = Some(facetHandler.getBreadCrumbs),
                 facets = Some(facetHandler.getFacets),
                 found = Some(found),
-                productSummary = Some(processGroupSummary(groupSummary)),
+                productSummary = processGroupSummary(groupSummary),
                 spellCheck = Option(spellCheckResponse),
                 startTime = Some(startTime),
                 products = Some(products map (Json.toJson(_)))), products map (_.getId))
             } else {
               buildSearchResponse(
+                query = query,
                 found = Some(found),
-                productSummary = Some(processGroupSummary(groupSummary)),
+                productSummary = processGroupSummary(groupSummary),
                 spellCheck = Option(spellCheckResponse),
                 startTime = Some(startTime),
                 message = Some("No products found"))
             }
           } else {
             Logger.debug(s"No results found for query '${query.getQuery}', returning spell check suggestions if any.")
-            buildSearchResponse(found = Some(0), spellCheck =  Option(spellCheckResponse), startTime = Some(startTime), message = Some("No products found"))
+            buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheckResponse), startTime = Some(startTime), message = Some("No products found"))
           }
         }
       } else {
-        Future.successful(buildSearchResponse(found = Some(response.getResults.getNumFound), spellCheck = Option(spellCheckResponse), startTime = Some(startTime)))
+        Future.successful(buildSearchResponse(query = query, found = Some(response.getResults.getNumFound), spellCheck = Option(spellCheckResponse), startTime = Some(startTime)))
       }
     }
 
@@ -498,12 +519,11 @@ object ProductController extends BaseController {
 
   /**
    * Helper method that constructs a search response
-   * @param found Number of search results found
-   * @param message Message to display in the response, if any.
-   * @param startTime The time when the search started.
-   * @return A simple result containing a proper search response body.
+   *
+   * @return a simple result containing a proper search response body.
    */
   private def buildSearchResponse(
+                                   query: ProductQuery,
                                    breadCrumbs: Option[Seq[BreadCrumb]] = None,
                                    facets: Option[Seq[Facet]] = None,
                                    found: Option[Long] = None,
@@ -516,11 +536,11 @@ object ProductController extends BaseController {
 
     val metadataValues = Seq[Option[(String, JsValueWrapper)]](
       redirectUrl map {v => "redirectUrl" ->  v},
-      found map {v => "found" -> v},
-      productSummary map {v => "productSummary" -> v},
+      found withFilter { v => query.groupTotalCount } map {v => "found" -> v},
       startTime map {v => "time" -> (System.currentTimeMillis() - v)},
-      facets map {v => "facets" -> v},
-      breadCrumbs map {v => "breadCrumbs" -> v},
+      productSummary map {v => "productSummary" -> v},
+      facets withFilter { v => v.size > 0 } map {v => "facets" -> v},
+      breadCrumbs withFilter { v => v.size > 0 } map {v => "breadCrumbs" -> v},
       spellCheck map {v => "spellCheck" -> v}
     )
 
@@ -543,12 +563,24 @@ object ProductController extends BaseController {
       val groupResponse = response.getGroupResponse
 
       groupResponse.getValues.collectFirst({
-        case command: GroupCommand if command.getNGroups > 0 => true
+        case command: GroupCommand if hasResults(command) => true
       }).getOrElse(false)
     }
     else {
       response.getResults != null && response.getResults.getNumFound > 0
     }
+  }
+
+  def hasResults(command: GroupCommand) = if (command.getNGroups == null) {
+    command.getMatches > 0
+  } else {
+    command.getNGroups > 0
+  }
+
+  def resultCount(command: GroupCommand) = if (command.getNGroups != null) {
+    command.getNGroups.intValue()
+  } else {
+    command.getMatches
   }
 
   @ApiOperation(value = "Browses brand products ", notes = "Returns products for a given brand", response = classOf[Product], httpMethod = "GET")
@@ -693,7 +725,7 @@ object ProductController extends BaseController {
               val command = groupResponse.getValues.get(0)
 
               if ("productId".equals(command.getName)) {
-                if (command.getNGroups > 0) {
+                if (hasResults(command)) {
                   val products = new util.ArrayList[(String, String)]
                   for (group <- command.getValues.toSeq) {
                     val documentList = group.getResult
@@ -704,32 +736,23 @@ object ProductController extends BaseController {
                   val storage = withNamespace(storageFactory)
                   storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
                     val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-                    withCacheHeaders(Ok(Json.obj(
-                      "metadata" -> Json.obj(
-                        "found" -> command.getNGroups.intValue(),
-                        "productSummary" -> processGroupSummary(groupSummary),
-                        "time" -> (System.currentTimeMillis() - startTime),
-                        "facets" -> facetHandler.getFacets,
-                        "breadCrumbs" -> facetHandler.getBreadCrumbs),
-                      "products" -> Json.toJson(
-                        products map (Json.toJson(_))
-                      ))
-                    ), products map (_.getId))
+                    withCacheHeaders(buildSearchResponse(
+                      query = query,
+                      breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                      facets = Some(facetHandler.getFacets),
+                      found = Some(resultCount(command)),
+                      productSummary = processGroupSummary(groupSummary),
+                      startTime = Some(startTime),
+                      products = Some(products map (Json.toJson(_)))), products map (_.getId))
                   })
                 } else {
-                  Future.successful(Ok(Json.obj(
-                    "metadata" -> Json.obj(
-                      "found" -> command.getNGroups.intValue(),
-                      "time" -> (System.currentTimeMillis() - startTime)),
-                    "products" -> Json.arr())))
+                  Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime),
+                    message = Some("No products found")))
                 }
               } else {
                 Logger.debug(s"Unexpected response found for category $categoryId")
-                Future.successful(Ok(Json.obj(
-                  "metadata" -> Json.obj(
-                    "found" -> 0,
-                    "time" -> (System.currentTimeMillis() - startTime)),
-                  "message" -> "No products found")))
+                Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime),
+                  message = Some("No products found")))
               }
             } else {
               Logger.debug(s"Unexpected response found for category $categoryId")
@@ -743,10 +766,7 @@ object ProductController extends BaseController {
           }
         }
         else {
-          Future.successful(Ok(Json.obj(
-            "metadata" -> Json.obj(
-              "found" -> response.getResults.getNumFound,
-              "time" -> (System.currentTimeMillis() - startTime)))))
+          Future.successful(buildSearchResponse(query = query, found = Some(response.getResults.getNumFound), startTime = Some(startTime)))
         }
       }
     }

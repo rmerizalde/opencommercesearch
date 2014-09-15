@@ -334,6 +334,7 @@ public class RuleManagerComponentTest {
         params.set(RuleManagerParams.PAGE_TYPE, "search");
         params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
         params.set(CommonParams.Q, "some books");
+        params.set(FacetParams.FACET, true);
     }
 
     /**
@@ -550,6 +551,7 @@ public class RuleManagerComponentTest {
         String category = "My super duper favorite Men's category";
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
         requestParams.add(CommonParams.Q, "fantastic jackets");
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -575,6 +577,7 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -598,6 +601,7 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -622,6 +626,7 @@ public class RuleManagerComponentTest {
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
         requestParams.add(CommonParams.Q, "fantastic jackets");
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
         requestParams.add(RuleManagerParams.BRAND_ID, "someBrand");
@@ -645,6 +650,7 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
