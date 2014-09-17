@@ -75,6 +75,16 @@ class FacetHandlerSpec extends BaseSpec {
         validateBreadcrumb(response(0), "activationDate", "Last 30 days", "")
       }
     }
+    
+    "return correct level when four category facets are selected" in {
+      var fq = FilterQuery.parseFilterQueries("category:4.mysite.category1.category2.category3.category4")
+      facetHandler = new FacetHandler(solrQuery, queryResponse, fq, facetData, storage)
+      val response = facetHandler.getBreadCrumbs
+      validateBreadcrumb(response(0), "category", "category1", "")
+      validateBreadcrumb(response(1), "category", "category2", "category:1.mysite.category1")
+      validateBreadcrumb(response(2), "category", "category3", "category:2.mysite.category1.category2")
+      validateBreadcrumb(response(3), "category", "category4", "category:3.mysite.category1.category2.category3")
+    }
 
     "Remove facet filters when blacklisted" in {
       val facet = Facet.getInstance()

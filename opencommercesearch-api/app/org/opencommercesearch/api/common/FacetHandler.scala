@@ -480,7 +480,7 @@ case class FacetHandler (
       var unselectPath = StringUtils.EMPTY
       if (buffer.length() > 0) {
         unselectPath += "category:" + level + FilterQuery.CategorySeparator + catalogId + buffer.toString
-        level = level
+        level += 1
       }
 
       if (StringUtils.isNotBlank(basePath)) {
