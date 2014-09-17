@@ -24,17 +24,48 @@ import play.api.mvc.{Controller, SimpleResult}
 import play.api.Logger
 import play.api.libs.json.Json
 
+import org.apache.solr.common.SolrException
+import org.apache.solr.search.SyntaxError
+
+
 import scala.concurrent.Future
 
 trait ErrorHandling {
   self: Controller =>
 
   def withErrorHandling(f: Future[SimpleResult], message: String) : Future[SimpleResult]  = {
-    f.recover { case t: Throwable =>
+    def internalServerError(t: Throwable) = {
       Logger.error(message, t)
       InternalServerError(Json.obj(
-        // @Todo refine developer messages ??
-        "message" -> message))
+        "message" -> message
+      ))
+    }
+
+    def badRequest(t: Throwable) = {
+      val syntaxErrorMessage = "Invalid query or filter queries"
+      Logger.error(syntaxErrorMessage, t)
+      BadRequest(Json.obj(
+        "message" -> syntaxErrorMessage
+      ))
+    }
+
+    f.recover {
+      case e: SolrException =>
+        println(e.getCause)
+        e.getCause match {
+          case syntaxError: SyntaxError =>
+            badRequest(syntaxError)
+          case t: Throwable =>
+            internalServerError(t)
+          case _ =>
+            if (e.getMessage.contains("org.apache.solr.search.SyntaxError")) {
+              badRequest(e)
+            } else {
+              internalServerError(e)
+            }
+        }
+      case t: Throwable =>
+        internalServerError(t)
     }
   }
 }
