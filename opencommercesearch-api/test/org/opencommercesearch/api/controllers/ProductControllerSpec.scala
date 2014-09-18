@@ -133,6 +133,32 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
+    "send 200 when a product is found when searching by query that requires partial matching" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty)
+        val skuResponseValid = setupGroupQuery(Seq(product))
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
+        
+        val result = route(FakeRequest(GET, routes.ProductController.search("term to partial match", "mysite").url))
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "metadata" \ "found" ).as[Int]  must beEqualTo(1)
+        (json \ "metadata" \ "spellCheck" \ "correctedTerms").as[String]  must beEqualTo("term to partial match")
+        (json \ "metadata" \ "spellCheck" \ "similarResults").as[Boolean]  must beEqualTo(true)
+        
+      }
+    }
+    
     "send 200 when a product is found when searching by query" in new Products {
       running(fakeApplication()) {
         val product = Product.getInstance()
