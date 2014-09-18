@@ -343,20 +343,20 @@ public class ProductApi {
           logger.debug("API response is '" + response.getStatus() + "'");
         }
 
+        Response apiResponse = unmarshall(response, clazz);
         if (OK_STATUS_SET.contains(response.getStatus())) {
-          return unmarshall(response, clazz);
+          return apiResponse;
         }
 
         //Handle special errors
-        if (Status.CLIENT_ERROR_NOT_FOUND.equals(response.getStatus()) || Status.CLIENT_ERROR_BAD_REQUEST.equals(response.getStatus())) {
-          //If 404 is returned, do not retry.
-          throw new ProductApiException("Failed to handle request as API server returned " + response.getStatus() + ". Check that version '" + getVersion() +
-              "', endpoint '" + request.getEndpoint() + "' and parameters '" + request.getQueryString() + "' are correct.");
+        int statusCode = response.getStatus().getCode();
+        String requestUrl = url + "&" + request.getQueryString();
+        String message = getResponseMessage(apiResponse, response);
+
+        if (statusCode >= 400 && statusCode < 500) {
+          throw new ProductApiException(statusCode, url, message);
         } else {
-          //If anything else, retry.
-          //If 500 is returned, retry as it may be caused by a timeout talking to the backend services.
-          //TODO: API should return 503 if it failed to contact any backend services (such as DB or Search Engine).
-          lastException = new ProductApiException("API server returned " + response.getStatus(), lastException);
+          lastException = new ProductApiException(statusCode, url, message, lastException);
         }
       } catch (JsonProcessingException e) {
         throw new ProductApiException("Found invalid JSON format in the response.", e);
@@ -379,6 +379,15 @@ public class ProductApi {
     } while (retries++ < maxRetries);
 
     throw new ProductApiException("Failed to handle API request.", lastException);
+  }
+
+  private String getResponseMessage(Response apiResponse, org.restlet.Response restletResponse) {
+    if (apiResponse != null) {
+      return apiResponse.getMessage();
+    } else if (restletResponse != null) {
+      return restletResponse.getStatus().getDescription();
+    }
+    return null;
   }
 
   /**
@@ -452,7 +461,10 @@ public class ProductApi {
    * @return An API response that matches the given HTTP data.
    */
   private <T extends Response> Response unmarshall(org.restlet.Response response, Class<T> clazz) throws IOException {
-    return mapper.readValue(response.getEntity().getStream(), clazz);
+    if (response != null && response.getEntity() != null) {
+      return mapper.readValue(response.getEntity().getStream(), clazz);
+    }
+    return null;
   }
 
   /**

@@ -160,22 +160,22 @@ public class ProductApiTest {
         TestRequest testRequest = new TestRequest();
         try {
             productApi.handle(testRequest, TestResponse.class);
-        } catch (Exception e) {
-            assertTrue("Got the correct exception type.", e instanceof ProductApiException);
-            assertTrue("Thrown exception due 404.", e.getMessage().contains("404"));
-            //Must not have chained exceptions. A JSON mapping error causes the API to return immediately.
-            assertNull("There are no chained exceptions", e.getCause());
+        } catch (ProductApiException e) {
+          assertEquals(404, e.getStatusCode());
+          assertNull("Unexected chained exceptions", e.getCause());
+        } catch (Exception ex) {
+          fail("Unexpected exception " + ex);
         }
 
         clientResponse.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
 
         try {
             productApi.handle(testRequest, TestResponse.class);
-        } catch (Exception e) {
-            assertTrue("Got the correct exception type.", e instanceof ProductApiException);
-            assertTrue("Thrown exception due 400.", e.getMessage().contains("400"));
-            //Must not have chained exceptions. A JSON mapping error causes the API to return immediately.
-            assertNull("There are no chained exceptions", e.getCause());
+        }  catch (ProductApiException e) {
+          assertEquals(400, e.getStatusCode());
+          assertNull("Found chained exceptions", e.getCause());
+        } catch (Exception ex) {
+          fail("Unexpected exception " + ex);
         }
     }
 
@@ -197,21 +197,27 @@ public class ProductApiTest {
         TestRequest testRequest = new TestRequest();
         try {
             productApi.handle(testRequest, TestResponse.class);
-        } catch (Exception e) {
-            assertTrue("Got the correct exception type.", e instanceof ProductApiException);
-            assertTrue("Thrown exception after many retires.", e.getMessage().contains("Failed to handle API request"));
+        } catch (ProductApiException e) {
+            assertEquals(-1, e.getStatusCode());
+            assertTrue("Thrown exception after many retries.", e.getMessage().contains("Failed to handle API request"));
             //Must have chained exceptions. A JSON mapping error causes the API to return immediately.
             assertNotNull("There are chained exceptions", e.getCause());
             Throwable cause1 = e.getCause();
-            assertTrue("Cause 1 is 1000", cause1 instanceof ProductApiException && cause1.getMessage().contains("1000"));
+            assertTrue("Cause 1 ProductApiException", cause1 instanceof ProductApiException);
+            assertEquals(Status.CONNECTOR_ERROR_CONNECTION.getCode(), ((ProductApiException) cause1).getStatusCode());
             assertNotNull(cause1.getCause());
-            Throwable cause2 = cause1.getCause();
 
-            assertTrue("Cause 2 is 1001", cause2 instanceof ProductApiException && cause2.getMessage().contains("1001"));
-            assertNotNull(cause2.getCause());
+            Throwable cause2 = cause1.getCause();
+            assertTrue("Cause 2 ProductApiException", cause2 instanceof ProductApiException);
+            assertEquals(Status.CONNECTOR_ERROR_COMMUNICATION.getCode(), ((ProductApiException) cause2).getStatusCode());
+            assertNotNull(cause1.getCause());
+
             Throwable cause3 = cause2.getCause();
-            assertTrue("Cause 3 is 500", cause3 instanceof ProductApiException && cause3.getMessage().contains("500"));
+            assertTrue("Cause 2 ProductApiException", cause3 instanceof ProductApiException);
+            assertEquals(Status.SERVER_ERROR_INTERNAL.getCode(), ((ProductApiException) cause3).getStatusCode());
             assertNull("No more than 3 retries", cause3.getCause());
+        } catch (Exception ex) {
+          fail("Unexpected exception " + ex);
         }
     }
 

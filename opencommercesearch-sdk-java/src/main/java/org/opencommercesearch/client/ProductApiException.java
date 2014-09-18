@@ -26,14 +26,47 @@ package org.opencommercesearch.client;
  */
 public class ProductApiException extends Exception {
 
+  private int statusCode = -1;
+  private String url = null;
+
+  public int getStatusCode() {
+    return statusCode;
+  }
+
+  private String getUrl() {
+    return url;
+  }
+
   /**
    * Constructs a new product API exception with the specified detail message.
    *
+   * @param statusCode is the HTTP status code from the response
+   * @param url is the HTTP request URL
    * @param message the detail message. The detail message is saved for
    *                later retrieval by the {@link #getMessage()} method.
    */
-  public ProductApiException(String message) {
-    super(message);
+  public ProductApiException(int statusCode, String url, String message) {
+    this(statusCode, url, message, null);
+  }
+
+  /**
+   * Constructs a new product API exception with the specified detail message and
+   * cause.  <p>Note that the detail message associated with
+   * <code>cause</code> is <i>not</i> automatically incorporated in
+   * this exception's detail message.
+   *
+   * @param statusCode is the HTTP status code from the response
+   * @param url is the HTTP request URL
+   * @param message the detail message (which is saved for later retrieval
+   *                by the {@link #getMessage()} method).
+   * @param cause   the cause (which is saved for later retrieval by the
+   *                {@link #getCause()} method).  (A <tt>null</tt> value is
+   *                permitted, and indicates that the cause is nonexistent or
+   *                unknown.)
+   */
+  public ProductApiException(int statusCode, String url, String message, Throwable cause) {
+    super("Request for '" + url + "' failed with status code '" + statusCode + "' and message '" +  message + "'", cause);
+    this.statusCode = statusCode;
   }
 
   /**

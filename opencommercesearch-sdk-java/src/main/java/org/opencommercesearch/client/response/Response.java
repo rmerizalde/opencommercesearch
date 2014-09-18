@@ -19,11 +19,14 @@ package org.opencommercesearch.client.response;
 * under the License.
 */
 
+import org.opencommercesearch.client.impl.Metadata;
+
 /**
  * Base API response class.
  *
  * @author jmendez
  */
 public interface Response {
-
+  String getMessage();
+  Metadata getMetadata();
 }
