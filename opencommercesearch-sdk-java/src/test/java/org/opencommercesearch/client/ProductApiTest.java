@@ -287,7 +287,7 @@ public class ProductApiTest {
         SpellCheck spellCheck = metadata.getSpellCheck();
         assertNotNull(spellCheck.getCollation());
         assertEquals("north face", spellCheck.getCollation());
-        assertNull(spellCheck.getSimilarResults());
+        assertNull(metadata.getPartialMatch());
 
         Term[] terms = spellCheck.getTerms();
         assertNotNull(terms);
