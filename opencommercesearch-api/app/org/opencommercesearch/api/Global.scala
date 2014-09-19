@@ -62,7 +62,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
   lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = false)
   lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
-  lazy val SpellCheckMinimumMatch = getConfig("spellcheck.minimummatch", "2<-1 3<-2 5<80%")
+  lazy val SearchMinimumMatch = getConfig("search.minimummatch", "2<-1 3<-2 5<80%")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null

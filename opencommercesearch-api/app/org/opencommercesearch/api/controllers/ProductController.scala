@@ -335,7 +335,7 @@ object ProductController extends BaseController {
       outlet: Boolean,
       @ApiParam(defaultValue="auto", allowableValues="auto,yes,no", value = "Whether or not query spell checking should be done. If set to auto and the original " +
         "query returns zero results, the search is retried with the spell check corrected terms. If set to yes, only correctedTerms and suggested terms is returned, no search is retried.", required = false)
-      @QueryParam("spellCheckParam")
+      @QueryParam("spellCheck")
       spellCheckParam: String,
       @QueryParam("redirects")
       redirects: Boolean) = ContextAction.async { implicit context =>  implicit request =>
@@ -355,7 +355,7 @@ object ProductController extends BaseController {
 
     Logger.debug(s"Searching for '$q', spell checking set to '$spellCheckMode'")
 
-    val future = doSearch(query, spellCheckMode, startTime) flatMap { case (spellCheckResponse, response) =>
+    val future = doSearch(query, spellCheckMode, startTime) flatMap { case (spellCheck, partialMatch, response) =>
       val redirect = response.getResponse.get("redirect_url")
       if (redirect != null && StringUtils.isNotBlank(redirect.toString)) {
         Future.successful(buildSearchResponse(query = query, startTime = Some(startTime), redirectUrl = Some(redirect.toString)))
@@ -371,7 +371,8 @@ object ProductController extends BaseController {
                 facets = Some(facetHandler.getFacets),
                 found = Some(found),
                 productSummary = processGroupSummary(groupSummary),
-                spellCheck = Option(spellCheckResponse),
+                spellCheck = Option(spellCheck),
+                partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
                 products = Some(products map (Json.toJson(_)))), products map (_.getId))
             } else {
@@ -379,17 +380,18 @@ object ProductController extends BaseController {
                 query = query,
                 found = Some(found),
                 productSummary = processGroupSummary(groupSummary),
-                spellCheck = Option(spellCheckResponse),
+                spellCheck = Option(spellCheck),
+                partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
                 message = Some("No products found"))
             }
           } else {
             Logger.debug(s"No results found for query '${query.getQuery}', returning spell check suggestions if any.")
-            buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheckResponse), startTime = Some(startTime), message = Some("No products found"))
+            buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheck), startTime = Some(startTime), message = Some("No products found"))
           }
         }
       } else {
-        Future.successful(buildSearchResponse(query = query, found = Some(response.getResults.getNumFound), spellCheck = Option(spellCheckResponse), startTime = Some(startTime)))
+        Future.successful(buildSearchResponse(query = query, found = Some(response.getResults.getNumFound), spellCheck = Option(spellCheck), startTime = Some(startTime)))
       }
     }
 
@@ -403,7 +405,7 @@ object ProductController extends BaseController {
    * @param startTime Time when this search request started.
    * @return A spellcheck response (can be null) and a query response.
    */
-  def doSearch(query: ProductQuery, spellCheck: String, startTime: Long) : Future[(JsObject, QueryResponse)] = {
+  def doSearch(query: ProductQuery, spellCheck: String, startTime: Long) : Future[(JsObject, Boolean, QueryResponse)] = {
     val q = query.getQuery
 
     solrServer.query(query) flatMap { response =>
@@ -412,18 +414,35 @@ object ProductController extends BaseController {
         redirect != null && StringUtils.isNotBlank(redirect.toString)
       }
 
-      if (spellCheck != "no" && query.getRows > 0 && StringUtils.isNotBlank(q) && !isRedirect && !hasResults(response)) {
-        //Do spellchecking
-        if (spellCheck == "auto") {
-          handleSpellCheck(query, response)
-        }
+      if (query.getRows > 0 && StringUtils.isNotBlank(q) && !isRedirect && !hasResults(response)) {
+        if (spellCheck != "no") {
+          //Do spell checking
+          if (spellCheck == "auto") {
+            handleSpellCheck(query, response) flatMap { case (spellCheck, partialMatch, tentativeResponse) =>
+              if (spellCheck != null && hasResults(tentativeResponse)) {
+                Future(spellCheck, partialMatch, tentativeResponse)
+              } else {
+                handlePartialMatching(query, response) map {
+                  case (partialMatch, tentativeResponse) => (spellCheck, partialMatch, tentativeResponse)
+                } 
+              }
+            }
+          }
+          else {
+            handlePartialMatching(query, response) flatMap { case (partialMatch, tentativeResponse) =>
+              //Return spell check suggestions is any, let the client handle it.
+              Future((spellCheckToJson(response.getSpellCheckResponse), partialMatch, tentativeResponse))
+            }
+          }
+        } 
         else {
-          //Return spell check suggestions is any, let the client handle it.
-          Future((spellCheckToJson(response.getSpellCheckResponse), response))
+          handlePartialMatching(query, response) map {
+            case (partialMatch, tentativeResponse) => (null, partialMatch, tentativeResponse)
+          } 
         }
       }
       else {
-        Future((null, response))
+        Future((null, false, response))
       }
     }
   }
@@ -453,67 +472,51 @@ object ProductController extends BaseController {
   }
 
   /**
+   * Retries the search trying to match any terms (by default, Solr results must match ALL terms in the query).
+   * @param query A query that returned zero results.
+   * @param response The response of the given query
+   * @return The products from doing an OR query in solr for each individual term
+   */
+  private def handlePartialMatching(query: ProductQuery, response: QueryResponse): Future[(Boolean, QueryResponse)] = {
+    query.setParam("q.op", OrOperator)
+    query.setParam("mm", SearchMinimumMatch)
+
+    Logger.debug(s"Searching using partial matching '${query.getQuery}'")
+    solrServer.query(query) map { tentativeResponse =>
+      if (hasResults(tentativeResponse)) {
+        (true, tentativeResponse)
+      } else {
+        (false, response)
+      }
+    }
+  }
+
+  /**
    * Retries the search with the best spell check suggestion (if any). If that doesn't give results, then try again matching any term (by default, Solr results must match ALL terms in
    * the query).
    * @param query A query that returned zero results.
    * @param response The response of the given query
-   * @param queryOp The query operator to use. The default value is 'AND', which will match all terms in the query. Can also use 'OR', to match any term in the query.
    * @return The best query response. If spell checking didn't return anything useful, it returns the original query response.
    */
-  private def handleSpellCheck(query: ProductQuery, response: QueryResponse, queryOp: String = AndOperator) : Future[(JsObject, QueryResponse)] = {
+  private def handleSpellCheck(query: ProductQuery, response: QueryResponse) : Future[(JsObject, Boolean, QueryResponse)] = {
     val spellCheckResponse = response.getSpellCheckResponse
 
     if (spellCheckResponse != null && StringUtils.isNotBlank(spellCheckResponse.getCollatedResult)) {
       //Check if we have any spelling suggestion
       val tentativeQuery = spellCheckResponse.getCollatedResult
 
-      //if we have spelling suggestions, try doing another search using
-      //q.op as the specified queryOp param (the default one is AND so we only add it if it's OR)
-      //and use q="corrected phrase" to see if we can get results
-      if (OrOperator == queryOp) {
-        query.setParam("q.op", OrOperator)
-        query.setParam("mm", SpellCheckMinimumMatch)
-      }
-
       query.setQuery(tentativeQuery)
-      Logger.debug(s"Searching spell check suggestion '$tentativeQuery' with query operator '$queryOp'")
+      Logger.debug(s"Searching spell check suggestion '$tentativeQuery'")
       solrServer.query(query) flatMap { tentativeResponse =>
-        if(!hasResults(tentativeResponse)) {
-          handleSpellCheck(query, tentativeResponse, OrOperator)
+        if (hasResults(tentativeResponse)) {
+          Future(Json.obj(
+            "correctedTerms" -> tentativeQuery), false, tentativeResponse)
         } else {
-          if(OrOperator == queryOp) {
-            Future(Json.obj(
-              "correctedTerms" -> tentativeQuery,
-              "similarResults" -> true), tentativeResponse)
-          }
-          else {
-            Future(Json.obj(
-              "correctedTerms" -> tentativeQuery), tentativeResponse)
-          }
+          Future(null, false, response)
         }
       }
-    } else if(OrOperator == queryOp) {
-        //for the match any terms scenario with no corrected terms do another query
-        query.setParam("q.op", OrOperator)
-        query.setParam("mm", SpellCheckMinimumMatch)
-
-        Logger.debug(s"Searching spell check suggestion '${query.getQuery}' with query operator '$queryOp'")
-        solrServer.query(query) map { tentativeResponse =>
-          if(hasResults(tentativeResponse)) {
-            val spellCheck = Json.obj(
-                "correctedTerms" -> query.getQuery,
-                "similarResults" -> true)
-
-            (spellCheck, tentativeResponse)
-          } else {
-            (null, response)
-          }
-        }
-    }
-    else {
-      //if we didn't got any corrected terms and are not in the match any term scenario,
-      //then return null
-      Future((null, response))
+    } else {
+      Future(null, false, response)
     }
   }
 
@@ -530,6 +533,7 @@ object ProductController extends BaseController {
                                    productSummary: Option[JsObject] = None,
                                    redirectUrl: Option[String] = None,
                                    spellCheck: Option[JsObject] = None,
+                                   partialMatch: Option[Boolean] = None,
                                    startTime: Option[Long] = None,
                                    message: Option[String] = None,
                                    products: Option[Iterable[JsValue]] = None) : SimpleResult = {
@@ -541,7 +545,8 @@ object ProductController extends BaseController {
       productSummary map {v => "productSummary" -> v},
       facets withFilter { v => v.size > 0 } map {v => "facets" -> v},
       breadCrumbs withFilter { v => v.size > 0 } map {v => "breadCrumbs" -> v},
-      spellCheck map {v => "spellCheck" -> v}
+      spellCheck map {v => "spellCheck" -> v},
+      partialMatch map {v => "partialMatch" -> v}
     )
 
     val responseValues = Seq[Option[(String, JsValueWrapper)]](

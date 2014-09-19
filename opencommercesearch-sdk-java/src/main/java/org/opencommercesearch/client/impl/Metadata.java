@@ -20,6 +20,7 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import org.opencommercesearch.client.impl.spellcheck.SpellCheck;
 
 /**
@@ -35,6 +36,7 @@ public class Metadata {
     private BreadCrumb[] breadCrumbs;
     private String redirectUrl;
     private SpellCheck spellCheck;
+    private Boolean partialMatch;
 
     /**
      * Gets the number of items found.
@@ -100,5 +102,22 @@ public class Metadata {
 
     public void setSpellCheck(SpellCheck spellCheck) {
         this.spellCheck = spellCheck;
+    }
+    
+    /**
+     * This method indicates if similar results are returned.
+     * <p/>
+     * For example, a search for "term1 term2" would usually return products that contain both
+     * 'term1' and 'term2'. If this method returns true, is because the original search did not produce
+     * any results and similar results were returned (if any). If set to true, products returned match 'token1' or
+     * 'token2', but not necessarily both of them as opposed to exact match results.
+     * @return Whether or not the results include similar results.
+     */
+    public Boolean getPartialMatch() {
+        return partialMatch;
+    }
+
+    public void setPartialMatch(Boolean partialMatch) {
+        this.partialMatch = partialMatch;
     }
 }
