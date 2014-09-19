@@ -170,7 +170,7 @@ class ProductControllerSpec extends BaseSpec {
         
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
         val result = route(FakeRequest(GET, routes.ProductController.search(q = "term to partial match", site = "mysite", spellCheck = "no").url))
-        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, "term to partial match") 
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
     }
     
@@ -192,7 +192,7 @@ class ProductControllerSpec extends BaseSpec {
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
         
         val result = route(FakeRequest(GET, routes.ProductController.search("term to partial match", "mysite").url))
-        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, "term to partial match") 
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null) 
       }
     }
     
@@ -237,7 +237,7 @@ class ProductControllerSpec extends BaseSpec {
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseCollationEmpty) thenReturn Future.successful(skuResponseValid)
         
         val result = route(FakeRequest(GET, routes.ProductController.search("wrong term", "mysite").url))
-        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, "right term")
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
     }
     

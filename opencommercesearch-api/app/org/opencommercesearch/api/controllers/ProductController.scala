@@ -422,17 +422,23 @@ object ProductController extends BaseController {
               if (spellCheck != null && hasResults(tentativeResponse)) {
                 Future(spellCheck, partialMatch, tentativeResponse)
               } else {
-                handlePartialMatching(query, response)
+                handlePartialMatching(query, response) map {
+                  case (partialMatch, tentativeResponse) => (spellCheck, partialMatch, tentativeResponse)
+                } 
               }
             }
           }
           else {
-            //Return spell check suggestions is any, let the client handle it.
-            Future((spellCheckToJson(response.getSpellCheckResponse), false, response))
+            handlePartialMatching(query, response) flatMap { case (partialMatch, tentativeResponse) =>
+              //Return spell check suggestions is any, let the client handle it.
+              Future((spellCheckToJson(response.getSpellCheckResponse), partialMatch, tentativeResponse))
+            }
           }
         } 
         else {
-          handlePartialMatching(query, response)
+          handlePartialMatching(query, response) map {
+            case (partialMatch, tentativeResponse) => (null, partialMatch, tentativeResponse)
+          } 
         }
       }
       else {
@@ -471,18 +477,16 @@ object ProductController extends BaseController {
    * @param response The response of the given query
    * @return The products from doing an OR query in solr for each individual term
    */
-  private def handlePartialMatching(query: ProductQuery, response: QueryResponse): Future[(JsObject, Boolean, QueryResponse)] = {
+  private def handlePartialMatching(query: ProductQuery, response: QueryResponse): Future[(Boolean, QueryResponse)] = {
     query.setParam("q.op", OrOperator)
-    query.setParam("mm", SpellCheckMinimumMatch)
+    query.setParam("mm", SearchMinimumMatch)
 
     Logger.debug(s"Searching using partial matching '${query.getQuery}'")
     solrServer.query(query) map { tentativeResponse =>
       if (hasResults(tentativeResponse)) {
-        val spellCheck = Json.obj(
-          "correctedTerms" -> query.getQuery)
-        (spellCheck, true, tentativeResponse)
+        (true, tentativeResponse)
       } else {
-        (null, false, response)
+        (false, response)
       }
     }
   }
