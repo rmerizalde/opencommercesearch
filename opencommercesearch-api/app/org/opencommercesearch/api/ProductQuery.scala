@@ -233,8 +233,32 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 private object Query {
   val Score = "score"
 
+  /**
+   * handles multiple encodings and special characters
+   * like +, % etc.
+   * @param url the encoded Url
+   * @param encoding the encoding type
+   *
+   * @return the decoded Url
+   */
+  def decodeUrl(url: String, encoding: String): String = {
+    try {
+      if (url == null || url.indexOf('%') == -1) {
+        return url
+      }
+      val decoded = URLDecoder.decode(url,encoding)
+      if (decoded == url) {
+        return url
+      }
+      return decodeUrl(decoded, encoding)
+    } catch {
+      case iae: IllegalArgumentException =>
+        return url
+    }
+  }
+
   def setFilterQueriesFor(query : SolrQuery)(implicit request: Request[AnyContent]) = {
-    val filterQueries = FilterQuery.parseFilterQueries(URLDecoder.decode(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
+    val filterQueries = FilterQuery.parseFilterQueries(decodeUrl(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
 
     query.remove("rule.fq")
     filterQueries.foreach(fq => {

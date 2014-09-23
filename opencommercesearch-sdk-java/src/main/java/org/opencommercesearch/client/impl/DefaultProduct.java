@@ -54,12 +54,13 @@ public class DefaultProduct implements Product {
   private List<Attribute> features;
   private List<Attribute> attributes;
   private Integer listRank;
-  private Map<String, Boolean> hasFreeGift;
+  private Map<String, List<Product>> freeGifts;
   private Boolean isPackage;
   private Boolean isOem;
   private Set<Category> categories;
   private List<Sku> skus;
   private Date activationDate;
+  private Generation generation;
   private Availability.Status availabilityStatus;
   private ProductSummary summary;
 
@@ -188,14 +189,6 @@ public class DefaultProduct implements Product {
     this.listRank = listRank;
   }
 
-  public Map<String, Boolean> getHasFreeGift() {
-    return hasFreeGift;
-  }
-
-  public void setHasFreeGift(Map<String, Boolean> hasFreeGift) {
-    this.hasFreeGift = hasFreeGift;
-  }
-
   public Boolean getOem() {
     return isOem;
   }
@@ -295,6 +288,24 @@ public class DefaultProduct implements Product {
 				|| status == Availability.Status.PermanentlyOutOfStock;
 	}
 	return null;
+  }
+
+  @Override
+  public Map<String, List<Product>> getFreeGifts() {
+	return freeGifts;
+  }
+
+  public void setFreeGifts(Map<String, List<Product>> freeGifts) {
+	this.freeGifts = freeGifts;
+  }
+  
+  @Override
+  public Generation getGeneration() {
+	return generation;
+  }
+
+  public void setGeneration(Generation generation) {
+	this.generation = generation;
   }
 
 }

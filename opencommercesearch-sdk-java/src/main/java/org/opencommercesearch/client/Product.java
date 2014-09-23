@@ -20,11 +20,13 @@ package org.opencommercesearch.client;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import org.opencommercesearch.client.impl.Attribute;
 import org.opencommercesearch.client.impl.Availability;
 import org.opencommercesearch.client.impl.Brand;
 import org.opencommercesearch.client.impl.Category;
 import org.opencommercesearch.client.impl.CustomerReview;
+import org.opencommercesearch.client.impl.Generation;
 import org.opencommercesearch.client.impl.Image;
 import org.opencommercesearch.client.impl.Sku;
 
@@ -66,8 +68,6 @@ public interface Product {
 
   Integer getListRank();
 
-  Map<String, Boolean> getHasFreeGift();
-
   Boolean getPackage();
 
   Boolean getOem();
@@ -80,9 +80,14 @@ public interface Product {
   
   Availability.Status getAvailabilityStatus();
   
+  Generation getGeneration();
+  
+  Map<String, List<Product>> getFreeGifts();
+  
   @JsonIgnore
   Boolean getOutOfStock();
   
   @JsonIgnore
   ProductSummary getSummary();
+
 }
