@@ -960,7 +960,7 @@ object ProductController extends BaseController {
     val startTime = System.currentTimeMillis()
     val query = new ProductSearchQuery(s"generation_master:$id AND -productId:$id", site)
       .withPagination()
-      .withGrouping(limit=1)
+      .withGrouping()
       .withOutlet()
     query.addSort("generation_number", SolrQuery.ORDER.desc)
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
