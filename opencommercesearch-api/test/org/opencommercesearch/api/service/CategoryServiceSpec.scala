@@ -26,13 +26,16 @@ import scala.concurrent.Future
 
 import org.specs2.mutable._
 import org.specs2.mock.Mockito
+import org.mockito.Mockito.doReturn
 import org.mockito.Matchers
+import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.models.{Category, Product}
 import org.apache.solr.common.{SolrDocument, SolrInputDocument}
 import org.apache.solr.common.util.NamedList
 import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.response.QueryResponse
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import play.api.i18n.Lang
+import com.mongodb.WriteResult
 
 class CategoryServiceSpec extends Specification with Mockito {
   private val catalogOutdoor:String = "outdoorCatalog"
@@ -50,6 +53,7 @@ class CategoryServiceSpec extends Specification with Mockito {
   private val catSnowshoeFootwear = mock[Category]
   private val catSnowshoeBoots = mock[Category]
   private val categoryCatalogs = Seq(catalogOutdoor)
+  private val lang = new Lang("en", "US")
 
   val otherCatalog = "otherCatalog"
   val rootOtherCategory = mock[Category]
@@ -90,67 +94,42 @@ class CategoryServiceSpec extends Specification with Mockito {
 
   private def setupService() : CategoryService = {
     val server = mock[AsyncSolrServer]
-    val binder = mock[DocumentObjectBinder]
-    val service = spy(new CategoryService(server))
-    val categoryDocMap = Map(
-      "catRoot" -> mock[SolrDocument],
-      "catRulesBased" -> mock[SolrDocument],
-      "outdoorCat4000003" -> mock[SolrDocument],
-      "outdoorCat4100004" -> mock[SolrDocument],
-      "outdoorCat100003" -> mock[SolrDocument],
-      "outdoorCat11000219" -> mock[SolrDocument],
-      "outdoorCat41100024" -> mock[SolrDocument],
-      "outdoorCat41110026" -> mock[SolrDocument],
-      "outdoorCat41110025" -> mock[SolrDocument],
-      "outdoorCat11000003" -> mock[SolrDocument],
-      "outdoorCat111000028" -> mock[SolrDocument],
-      "outdoorCat111100030" -> mock[SolrDocument],
-      "outdoorCat111110031" -> mock[SolrDocument],
-      "rootOtherCategory" -> mock[SolrDocument],
-      "otherCategory" -> mock[SolrDocument])
+    val storage = mock[MongoStorage]
+    val storageFactory = mock[MongoStorageFactory]
+    val service = spy(new CategoryService(server, storageFactory))
+
     val categoryMap = Map(
-      categoryDocMap.get("catRoot").get -> catRoot,
-      categoryDocMap.get("catRulesBased").get -> catRulesBased,
-      categoryDocMap.get("outdoorCat4000003").get -> catShoesFootwear,
-      categoryDocMap.get("outdoorCat4100004").get -> catMensShoesBoots,
-      categoryDocMap.get("outdoorCat100003").get -> catMensClothing,
-      categoryDocMap.get("outdoorCat11000219").get -> catMensShoesFootwear,
-      categoryDocMap.get("outdoorCat41100024").get -> catMensRainBootsShoes,
-      categoryDocMap.get("outdoorCat41110026").get -> catMensRainShoes,
-      categoryDocMap.get("outdoorCat41110025").get -> catMensRainBoots,
-      categoryDocMap.get("outdoorCat11000003").get -> catSnowshoe,
-      categoryDocMap.get("outdoorCat111000028").get -> catSnowshoeAccessories,
-      categoryDocMap.get("outdoorCat111100030").get -> catSnowshoeFootwear,
-      categoryDocMap.get("outdoorCat111110031").get -> catSnowshoeBoots,
-      categoryDocMap.get("rootOtherCategory").get -> rootOtherCategory,
-      categoryDocMap.get("otherCategory").get -> otherCategory)
+      "catRoot" -> catRoot,
+      "catRulesBased" -> catRulesBased,
+      "outdoorCat4000003" -> catShoesFootwear,
+      "outdoorCat4100004" -> catMensShoesBoots,
+      "outdoorCat100003" -> catMensClothing,
+      "outdoorCat11000219" -> catMensShoesFootwear,
+      "outdoorCat41100024" -> catMensRainBootsShoes,
+      "outdoorCat41110026" -> catMensRainShoes,
+      "outdoorCat41110025" -> catMensRainBoots,
+      "outdoorCat11000003" -> catSnowshoe,
+      "outdoorCat111000028" -> catSnowshoeAccessories,
+      "outdoorCat111100030" -> catSnowshoeFootwear,
+      "outdoorCat111110031" -> catSnowshoeBoots,
+      "rootOtherCategory" -> rootOtherCategory,
+      "otherCategory" -> otherCategory)
 
-    server.query(any[SolrQuery]) answers { q =>
-      val query = q.asInstanceOf[SolrQuery]
-      val queryResponse = mock[QueryResponse]
-      val response = mock[NamedList[Object]]
-
-      queryResponse.getResponse returns response
-      queryResponse.getResponse.get("doc") returns categoryDocMap.get(query.get("id")).get
-      Future.successful(queryResponse)
+    storage.findCategory(any[String], any[Seq[String]]) answers { id =>
+      Future.successful(categoryMap.get(id.asInstanceOf[String]).get)
     }
 
-    server.binder returns binder
-
-    binder.getBean(Matchers.eq(classOf[Category]), any[SolrDocument]) answers { (args, mock) =>
-      val arguments = args.asInstanceOf[Array[AnyRef]]
-      val doc = arguments(1).asInstanceOf[SolrDocument]
-      categoryMap.get(doc).get
-    }
+    doReturn(storage).when(service).withNamespace(any[StorageFactory[WriteResult]])(any[Context])
 
     service
   }
 
   private def mockCategory(category: Category, categoryId: String, displayName: String, categoryCatalogs: Seq[String],
     parentCategories: Seq[Category] , isRuleBased: Boolean) : Unit = {
+    category.getId returns categoryId
     category.id returns Some(categoryId)
     category.name returns Some(displayName)
-    category.catalogs returns Some(categoryCatalogs)
+    category.sites returns Some(categoryCatalogs)
     if (parentCategories != null) {
       category.parentCategories returns Some(parentCategories)
     } else {
@@ -171,11 +150,12 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catSnowshoeBoots.id.get, catRulesBased.id.get))
+        product.categories returns Some(Seq(catSnowshoeBoots, catRulesBased))
 
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
 
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Snowshoe")
@@ -218,10 +198,11 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catMensRainShoes.id.get, catMensRainBoots.id.get, catSnowshoeBoots.id.get))
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        product.categories returns Some(Seq(catMensRainShoes, catMensRainBoots, catSnowshoeBoots))
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
         
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Shoes & Footwear")
@@ -292,10 +273,11 @@ class CategoryServiceSpec extends Specification with Mockito {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
         val categoryService = setupService()
+        implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
-        product.categories returns Some(Seq(catSnowshoeBoots.id.get, otherCategory.id.get))
-        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor), preview = true)
+        product.categories returns Some(Seq(catSnowshoeBoots, otherCategory))
+        categoryService.loadCategoryPaths(doc, product, Seq(catalogOutdoor))
 
         there was one(doc).addField("category", "0.outdoorCatalog")
         there was one(doc).addField("category", "1.outdoorCatalog.Snowshoe")

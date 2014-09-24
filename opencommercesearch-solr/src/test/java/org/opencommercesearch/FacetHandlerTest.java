@@ -29,6 +29,9 @@ import org.junit.Test;
 import org.mockito.Mock;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -60,7 +63,7 @@ public class FacetHandlerTest {
         initMocks(this);
 
         fieldFacet.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
-        fieldFacet.add(new Field(FacetConstants.FIELD_NAME, "fieldName", defaultFieldType));
+        fieldFacet.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName", defaultFieldType));
         fieldFacet.add(new Field(FacetConstants.FIELD_MULTISELECT, "T", defaultFieldType));
         fieldFacet.add(new Field(FacetConstants.FIELD_LIMIT, "100", defaultFieldType));
         fieldFacet.add(new Field(FacetConstants.FIELD_MIN_COUNT, "1", defaultFieldType));
@@ -68,7 +71,7 @@ public class FacetHandlerTest {
         fieldFacet.add(new Field(FacetConstants.FIELD_MISSING, "F", defaultFieldType));
 
         rangeFacet.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_RANGE, defaultFieldType));
-        rangeFacet.add(new Field(FacetConstants.FIELD_NAME, "rangeName", defaultFieldType));
+        rangeFacet.add(new Field(FacetConstants.FIELD_FIELD_NAME, "rangeName", defaultFieldType));
         rangeFacet.add(new Field(FacetConstants.FIELD_START, "0", defaultFieldType));
         rangeFacet.add(new Field(FacetConstants.FIELD_END, "1000", defaultFieldType));
         rangeFacet.add(new Field(FacetConstants.FIELD_GAP, "50", defaultFieldType));
@@ -76,7 +79,7 @@ public class FacetHandlerTest {
         rangeFacet.add(new Field(FacetConstants.FIELD_HARDENED, "F", defaultFieldType));
 
         queryFacet.add(new Field(FacetConstants.FIELD_TYPE, "queryFacet", defaultFieldType));
-        queryFacet.add(new Field(FacetConstants.FIELD_NAME, "queryName", defaultFieldType));
+        queryFacet.add(new Field(FacetConstants.FIELD_FIELD_NAME, "queryName", defaultFieldType));
         queryFacet.add(new Field(FacetConstants.FIELD_MULTISELECT, "T", defaultFieldType));
         queryFacet.add(new Field(FacetConstants.FIELD_QUERIES, "valQueryFacet", defaultFieldType));
 
@@ -107,14 +110,16 @@ public class FacetHandlerTest {
     @Test
     public void testGetFacets() throws IOException {
         addFacets();
-        NamedList[] facets = facetHandler.getFacets();
-        assertEquals(3, facets.length);
-        assertEquals("rangeName", facets[0].get(FacetConstants.FIELD_NAME));
-        assertEquals("queryName", facets[1].get(FacetConstants.FIELD_NAME));
-        assertEquals("fieldName", facets[2].get(FacetConstants.FIELD_NAME));
+        Map<String, NamedList> facets = facetHandler.getFacets();
+        assertEquals(3, facets.size());
+        List<NamedList> facetList = new ArrayList<NamedList>(facets.values());
+        assertEquals("queryName", facetList.get(0).get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("fieldName", facetList.get(1).get(FacetConstants.FIELD_FIELD_NAME));
+        assertEquals("rangeName", facetList.get(2).get(FacetConstants.FIELD_FIELD_NAME));
     }
 
     private void addFacets(){
+        facetHandler.addFacet(new String[]{"queryName", "fieldName","rangeName" });
         facetHandler.addFacet(fieldFacet);
         facetHandler.addFacet(rangeFacet);
         facetHandler.addFacet(queryFacet);

@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.opencommercesearch</groupId>
+    <artifactId>opencommercesearch-atg-pub</artifactId>
+    <packaging>jar</packaging>
+    <version>0.6.0-SNAPSHOT</version>
+    <inceptionYear>2012</inceptionYear>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <properties>
+        <solr.version>4.6.1</solr.version>
+        <atg.version>10.0.1</atg.version>
+        <junit.version>4.10</junit.version>
+        <mockito.version>1.9.0</mockito.version>
+        <powermock.version>1.4.12</powermock.version>
+        <jacoco.version>0.6.0.201210061924</jacoco.version>
+    </properties>
+
+    <scm>
+        <connection>scm:git:git@github.com:rmerizalde/ecommercesearch.git</connection>
+        <developerConnection>scm:git:git@github.com:rmerizalde/ecommercesearch.git</developerConnection>
+        <url>http://github.com/rmerizalde/ecommercesearch</url>
+    </scm>
+
+    <dependencies>
+      
+      <!-- ATG Dynamo Application Server -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>das</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DAS/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG Dynamo Personalization Server -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>dps</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/DPS/lib/classes.jar</systemPath>        
+      </dependency>
+      <!-- ATG BCC -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>bcc</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/BCC/lib/classes.jar</systemPath>
+      </dependency>
+      <!-- ATG WebUI -->
+      <dependency>
+          <groupId>atg</groupId>
+          <artifactId>webui</artifactId>
+          <version>${atg.version}</version>
+          <scope>system</scope>
+          <systemPath>${env.ATG_HOME}/WebUI/lib/classes.jar</systemPath>
+      </dependency>
+
+      <!-- provided -->
+      <dependency>
+        <groupId>org.opencommercesearch</groupId>
+        <artifactId>opencommercesearch-atg-common</artifactId>
+        <version>0.6.0-SNAPSHOT</version>
+      </dependency>
+
+      <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>servlet-api</artifactId>
+        <version>2.4</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-fileupload</groupId>
+        <artifactId>commons-fileupload</artifactId>
+        <version>1.2.2</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-lang</groupId>
+        <artifactId>commons-lang</artifactId>
+        <version>2.6</version>
+        <scope>provided</scope>
+      </dependency>
+
+      <!-- Test depedencies -->
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>org.powermock</groupId>
+        <artifactId>powermock-module-junit4</artifactId>
+        <version>${powermock.version}</version>
+        <scope>test</scope>
+      </dependency>
+      
+      <dependency>
+        <groupId>org.powermock</groupId>
+        <artifactId>powermock-api-mockito</artifactId>
+        <version>${powermock.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+    </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/java</directory>
+            </resource>
+            <resource>
+                <directory>${basedir}/config</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+        </resources>
+    
+        <testResources>
+            <testResource>
+                <directory>${basedir}/src/test/java</directory>
+            </testResource>
+        </testResources>
+
+        <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <version>2.12.3</version>
+              <configuration>
+                <parallel>methods</parallel>
+                <threadCount>10</threadCount>
+              </configuration>
+            </plugin>
+          
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <includes>
+                        <include>**/*.class</include>
+                        <include>**/*.xml</include>
+                        <include>**/*.properties</include>
+                    </includes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <destFile>${basedir}/target/coverage-reports/jacoco-unit.exec</destFile>
+                    <dataFile>${basedir}/target/coverage-reports/jacoco-unit.exec</dataFile>
+                    <output>file</output>
+                    <append>true</append>
+                </configuration>
+                <executions>
+                  <execution>
+                      <id>jacoco-initialize</id>
+                      <goals>
+                          <goal>prepare-agent</goal>
+                      </goals>
+                  </execution>
+                  <execution>
+                      <id>jacoco-site</id>
+                      <phase>verify</phase>
+                      <goals>
+                          <goal>report</goal>
+                      </goals>
+                  </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    
+</project>

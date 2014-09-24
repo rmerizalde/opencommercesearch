@@ -30,6 +30,8 @@ import org.apache.solr.common.util.NamedList;
 
 import java.util.*;
 
+import static org.opencommercesearch.FacetConstants.*;
+
 /**
  * This class provides functionality to enhance a query with facet params.
  * 
@@ -44,21 +46,21 @@ public class FacetHandler {
 
     static {
         ignoredFields.add("_version_");
-        ignoredFields.add(FacetConstants.FIELD_ID);
+        ignoredFields.add(FacetConstants.FIELD_QUERIES);
     }
 
     /**
      * List of facets registered on this facet handler. The list is indexed by facet field name.
      */
-    private Map<String, Document> facets = new HashMap<String, Document>();
-
+    private LinkedHashMap<String, Document> facets = new LinkedHashMap<String, Document>();
+    
     /**
      * Enum of valid facet types known to the facet handler.
      */
     enum FacetType {
         fieldFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 String localParams = "";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -79,7 +81,7 @@ public class FacetHandler {
         },
         rangeFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 int start = facet.get(FacetConstants.FIELD_START) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_START)) : 0;
                 int end = facet.get(FacetConstants.FIELD_END) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_END)) : 0;
                 int gap = facet.get(FacetConstants.FIELD_GAP) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_GAP)) : 0;
@@ -114,7 +116,7 @@ public class FacetHandler {
         },
         queryFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_NAME);
+                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
                 String localParams = "";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -169,7 +171,7 @@ public class FacetHandler {
      * @param value A Solr boolean field value.
      * @return The corresponding boolean value for the given Solr boolean field value.
      */
-    private static boolean getBooleanFromField(String value) {
+    public static boolean getBooleanFromField(String value) {
         return value != null && value.toLowerCase().equals("t");
     }
 
@@ -184,7 +186,7 @@ public class FacetHandler {
      *            the facet item from the repository
      */
     public void addFacet(Document facet) {
-        String fieldName = facet.get(FacetConstants.FIELD_NAME);
+        String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
         addField(fieldName, facet);
     }
 
@@ -193,10 +195,25 @@ public class FacetHandler {
      */
     public void clear() {
         if (facets != null) {
-            facets.clear();
+        	facets.clear();
         }
     }
 
+    /**
+     * Helper method to keep the order that the facets should be returned.
+     * Because there could be many facet rules, the first facets added will be the ones 
+     * from the first facet rule that gets processed
+     * 
+     * @param facetFields Array that represents the order that the facets should have.
+     */
+    public void addFacet(String[] facetFields) {
+    	if(facetFields != null) {
+    		for(String facetField: facetFields) {
+    			facets.put(facetField, null);
+    		}
+    	}
+    }
+    
     /**
      * Add facet parameters to the given query.
      * @param query the query object
@@ -206,10 +223,12 @@ public class FacetHandler {
             return;
         }
 
-        for (String s : facets.keySet()) {
-            Document facet = facets.get(s);
-            FacetType type = FacetType.valueOf(facet.get(FacetConstants.FIELD_TYPE));
-            type.setParams(query, facet);
+        for (String key : facets.keySet()) {
+        	Document facet = facets.get(key);
+        	if(facet != null) {
+	            FacetType type = FacetType.valueOf(facet.get(FacetConstants.FIELD_TYPE));
+	            type.setParams(query, facet);
+        	}
         }
     }
 
@@ -222,7 +241,11 @@ public class FacetHandler {
      * @param fieldFacet the facet object
      */
     private void addField(String fieldName, Document fieldFacet) {
+        if( ! facets.containsKey(fieldName)) {
+            addFacet(new String[]{fieldName});
+        }
         facets.put(fieldName, fieldFacet);
+        
     }
 
     /**
@@ -238,19 +261,20 @@ public class FacetHandler {
      * Gets facets as an array of named lists.
      * @return All facets registered on this handler, as an array of named lists.
      */
-    public NamedList[] getFacets() {
-        NamedList[] result = new NamedList[facets.size()];
-        int index = 0;
+    public Map<String, NamedList> getFacets() {
+        Map<String, NamedList> result = new LinkedHashMap<String, NamedList>();
         for(String fieldName : facets.keySet()) {
             NamedList<String> namedList = new NamedList<String>();
 
-            for (IndexableField field : facets.get(fieldName)) {
-                if(!ignoredFields.contains(field.name())) {
-                    namedList.add(field.name(), field.stringValue());
+            Document facet = getFacetItem(fieldName);
+            if(facet != null) {
+                for (IndexableField field : facet) {
+                    if(!ignoredFields.contains(field.name())) {
+                        namedList.add(field.name(), field.stringValue());
+                    }
                 }
+                result.put(fieldName, namedList);
             }
-
-            result[index++] = namedList;
         }
 
         return result;

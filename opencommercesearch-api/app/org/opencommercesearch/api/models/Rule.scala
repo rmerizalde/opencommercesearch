@@ -43,26 +43,28 @@ import java.util.Date
  * @param ruleType type of rule
  */
 case class Rule(
-  var id: Option[String],
-  var query: Option[String],
-  var sortPriority: Option[Int],
-  var combineMode: Option[String],
-  var startDate: Option[String],
-  var endDate: Option[String],
-  var target: Option[Array[String]],
-  var subTarget: Option[Array[String]],
-  var siteId: Option[Array[String]],
-  var catalogId: Option[Array[String]],
-  var category: Option[Array[String]],
-  var brandId: Option[Array[String]],
-  var boostFunction: Option[String],
-  var facetField: Option[Array[String]],
-  var facetId: Option[Array[String]],
-  var boostedProducts: Option[Array[String]],
-  var blockedProducts: Option[Array[String]],
-  var ruleType: Option[String]) {
+  var id: Option[String] = None,
+  var query: Option[String] = None,
+  var sortPriority: Option[Int] = None,
+  var combineMode: Option[String] = None,
+  var startDate: Option[String] = None,
+  var endDate: Option[String] = None,
+  var target: Option[Array[String]] = None,
+  var subTarget: Option[Array[String]] = None,
+  var siteId: Option[Array[String]] = None,
+  var catalogId: Option[Array[String]] = None,
+  var category: Option[Array[String]] = None,
+  var brandId: Option[Array[String]] = None,
+  var experimental: Option[Boolean] = None,
+  var boostFunction: Option[String] = None,
+  var facetField: Option[Array[String]] = None,
+  var facetId: Option[Array[String]] = None,
+  var boostedProducts: Option[Array[String]] = None,
+  var blockedProducts: Option[Array[String]] = None,
+  var ruleType: Option[String] = None,
+  var redirectUrl: Option[String] = None) {
 
-  def  this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+  def this() = this(id = None)
 
   def getId : String = { id.get }
 
@@ -126,7 +128,12 @@ case class Rule(
   @Field
   def setBrandId(brandId: Array[String]) : Unit = { this.brandId = Option.apply(brandId) }
 
-def getBoostFunction : String = { boostFunction.getOrElse(null) }
+  def getExperimental : Boolean = { experimental.getOrElse(false) }
+
+  @Field
+  def setExperimental(experimental: Boolean) : Unit = { this.experimental = Option.apply(experimental) }
+
+  def getBoostFunction : String = { boostFunction.getOrElse(null) }
 
   @Field
   def setBoostFunction(boostFunction: String) : Unit = { this.boostFunction = Option.apply(boostFunction) }
@@ -155,6 +162,11 @@ def getBoostFunction : String = { boostFunction.getOrElse(null) }
 
   @Field
   def setRuleType(ruleType: String) : Unit = { this.ruleType = Option.apply(ruleType) }
+
+  def getUrl : String = { redirectUrl.getOrElse(null) }
+
+  @Field("redirectUrl")
+  def setUrl(url: String) : Unit = { this.redirectUrl = Option.apply(url) }
 }
 
 object Rule {

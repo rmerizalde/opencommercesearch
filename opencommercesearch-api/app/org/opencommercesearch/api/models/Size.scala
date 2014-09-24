@@ -1,6 +1,8 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -20,9 +22,17 @@ import play.api.libs.json.Json
 * specific language governing permissions and limitations
 * under the License.
 */
-case class Size(var name: Option[String], var scale: Option[String]) {}
+case class Size(
+    var name: Option[String] = None,
+    var scale: Option[String] = None,
+    var preferred: Option[Size] = None) {
+
+}
 
 object Size {
+  @JsonCreator
+  def getInstance() = new Size()
+
   implicit val readsSize = Json.reads[Size]
   implicit val writesSize = Json.writes[Size]
 }

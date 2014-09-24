@@ -19,68 +19,80 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.{Play, Logger, Application}
+import play.api.{Application, Logger, Play}
 import play.api.libs.json.Json
+import play.api.mvc.{RequestHeader, WithFilters}
+import play.api.mvc.Results._
+import play.filters.gzip.GzipFilter
+import play.modules.statsd.api.StatsdFilter
+
+import scala.collection.JavaConversions._
+import scala.concurrent.Future
+
+import org.opencommercesearch.api.models.Availability._
+import org.opencommercesearch.api.service.MongoStorageFactory
+import org.opencommercesearch.api.util.{BigDecimalConverter, CountryConverter}
 
 import org.apache.solr.client.solrj.AsyncSolrServer
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
-import play.api.mvc.{Result, WithFilters, RequestHeader}
-import play.api.mvc.Results._
-import play.modules.statsd.api.StatsdFilter
 
+import com.wordnik.swagger.converter.ModelConverters
 
-object Global extends WithFilters(new StatsdFilter()) {
-  lazy val RealTimeRequestHandler = getConfigString("realtimeRequestHandler", "/get")
-  lazy val MaxUpdateBrandBatchSize = getConfigInt("brand.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateProductBatchSize = getConfigInt("product.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateCategoryBatchSize = getConfigInt("category.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateRuleBatchSize = getConfigInt("rule.maxUpdateBatchSize", 100)
-  lazy val MaxUpdateFacetBatchSize = getConfigInt("facet.maxUpdateBatchSize", 100)
-  lazy val BrandPreviewCollection = getConfigString("preview.brandCollection", "brandsPreview")
-  lazy val BrandPublicCollection = getConfigString("public.brandCollection", "brandsPublic")
-  lazy val SearchPreviewCollection = getConfigString("preview.searchCollection", "catalogPreview")
-  lazy val SearchPublicCollection = getConfigString("public.searchCollection", "catalogPublic")
-  lazy val ProductPreviewCollection = getConfigString("preview.productCollection", "productsPreview")
-  lazy val ProductPublicCollection = getConfigString("public.productCollection", "productsPublic")
-  lazy val CategoryPreviewCollection = getConfigString("preview.categoryCollection", "categoriesPreview")
-  lazy val CategoryPublicCollection = getConfigString("public.categoryCollection", "categoriesPublic")
-  lazy val QueryCollection = getConfigString("public.queryCollection", "autocomplete")
-  lazy val CategoryCacheTtl = getConfigInt("category.cache.ttl", 60 * 10)
-  lazy val MaxPaginationLimit = getConfigInt("maxPaginationLimit", 40)
-  lazy val DefaultPaginationLimit = getConfigInt("maxPaginationLimit", 10)
-  lazy val MinSuggestQuerySize = getConfigInt("minSuggestQuerySize", 2)
+object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLog) {
+  lazy val RealTimeRequestHandler = getConfig("realtimeRequestHandler", "/get")
+  lazy val MaxBrandIndexBatchSize = getConfig("index.brand.batchsize.max", 100)
+  lazy val MaxProductIndexBatchSize = getConfig("index.product.batchsize.max", 100)
+  lazy val MaxCategoryIndexBatchSize = getConfig("index.category.batchsize.max", 100)
+  lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
+  lazy val MaxUpdateFacetBatchSize = getConfig("index.facet.batchsize.max", 100)
+  lazy val SearchCustomParams = searchRequestCustomParams
 
-  /**
-   * Rule preview collection from configuration.
-   */
-  lazy val RulePreviewCollection = getConfigString("preview.ruleCollection", "rulePreview")
-
-  /**
-   * * Rule public collection from configuration.
-   */
-  lazy val RulePublicCollection = getConfigString("public.ruleCollection", "rulePublic")
-
-  /**
-   * Facet preview collection from configuration.
-   */
-  lazy val FacetPreviewCollection = getConfigString("preview.facetCollection", "facetsPreview")
-
-  /**
-   * * Facet public collection from configuration.
-   */
-  lazy val FacetPublicCollection = getConfigString("public.facetCollection", "facetsPublic")
+  // @todo deprecate category collections
+  lazy val CategoryPreviewCollection = getConfig("preview.collection.category", "categoriesPreview")
+  lazy val CategoryPublicCollection = getConfig("public.collection.category", "categoriesPublic")
+  lazy val RulePreviewCollection = getConfig("preview.collection.rule", "rulePreview")
+  lazy val RulePublicCollection = getConfig("public.collection.rule", "rulePublic")
+  lazy val FacetPreviewCollection = getConfig("preview.collection.facet", "facetsPreview")
+  lazy val FacetPublicCollection = getConfig("public.collection.facet", "facetsPublic") 
+  lazy val SuggestCollection = getConfig("public.collection.suggest", "autocomplete")
+  lazy val CategoryCacheTtl = getConfig("category.cache.ttl", 60 * 10)
+  lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 40)
+  lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
+  lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)
+  lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
+  lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = false)
+  lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
+  lazy val SearchMinimumMatch = getConfig("search.minimummatch", "2<-1 3<-2 5<80%")
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null
+  private var _storageFactory: MongoStorageFactory = null
 
   def solrServer = {
     if (_solrServer == null) {
-      _solrServer = AsyncCloudSolrServer(getConfigString("zkHost", "localhost:2181"))
+      _solrServer = AsyncCloudSolrServer(getConfig("zkHost", "localhost:2181"))
     }
     _solrServer
   }
 
   def solrServer_=(server: AsyncSolrServer) = { _solrServer = server }
+
+
+  def storageFactory =  {
+    if (_storageFactory == null) {
+      _storageFactory = new MongoStorageFactory
+      _storageFactory.setConfig(Play.current.configuration)
+      _storageFactory.setClassLoader(Play.current.classloader)
+    }
+    _storageFactory
+  }
+
+  def storageFactory_=(storageFactory: MongoStorageFactory) = { _storageFactory = storageFactory }
+
+  override def beforeStart(app: Application): Unit = {
+    ModelConverters.addConverter(new BigDecimalConverter(), first = true)
+    ModelConverters.addConverter(new CountryConverter(), first = true)
+  }
 
   override def onStart(app: Application) {
     Logger.info("OpenCommerceSearch API has started")
@@ -88,34 +100,56 @@ object Global extends WithFilters(new StatsdFilter()) {
 
   override def onStop(app: Application) {
     Logger.info("OpenCommerceSearch API shutdown...")
+    storageFactory.close
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
-    ex.getCause match {
-   	  case e:IllegalArgumentException => BadRequest(e.getMessage)
-   	  case other => {
+    Future.successful(ex.getCause match {
+   	  case e:IllegalArgumentException => BadRequest(Json.obj(
+        "message" -> e.getMessage))
+   	  case other =>
         Logger.error("Unexpected error",  other)
-        InternalServerError(other.getMessage)
-      }
-   	}
+        InternalServerError(Json.obj(
+          "message" -> "Internal error"))
+   	})
   }
 
-  override def onHandlerNotFound(request: RequestHeader): Result = {
-    NotFound(Json.obj(
-      "message" -> "Resource not found"))
+  override def onHandlerNotFound(request: RequestHeader) = {
+    Future.successful(NotFound(Json.obj(
+      "message" -> "Resource not found")))
   }
 
   override def onBadRequest(request: RequestHeader, error: String) = {
-    BadRequest(Json.obj(
+    Future.successful(BadRequest(Json.obj(
       "message" -> error
-    ))
+    )))
   }
 
-  def getConfigString(name: String, default: String) = {
+  def getConfig(name: String, default: String) = {
     Play.current.configuration.getString(name).getOrElse(default)
   }
 
-  def getConfigInt(name: String, default: Int) = {
+  def getConfig(name: String, default: Int) = {
     Play.current.configuration.getInt(name).getOrElse(default)
   }
+  
+  def getConfig(name: String, default: Boolean) = {
+    Play.current.configuration.getBoolean(name).getOrElse(default)
+  }
+
+  def searchRequestCustomParams = {
+    val customParams = Play.current.configuration.getStringList("search.params.custom").getOrElse(java.util.Arrays.asList())
+    customParams.toSeq
+  }
+
+  def availabilityStatusSummaryConfig = {
+    val summary = Play.current.configuration.getStringList("product.availability.status.summary").getOrElse(
+      java.util.Arrays.asList(InStock, Backorderable, Preorderable, OutOfStock, PermanentlyOutOfStock)
+    )
+
+    val order = 1 to summary.size
+    Map(summary.zip(order):_*) withDefaultValue Int.MaxValue
+  }
 }
+
+

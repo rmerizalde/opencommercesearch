@@ -19,8 +19,11 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder;
 import org.apache.solr.client.solrj.util.ClientUtils;
@@ -42,6 +45,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Component that will read rules from the configured core and filter or modify search results accordingly.
@@ -56,6 +60,16 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     public static final int PAGE_SIZE = 40;
 
+    /**
+     * Ranking separator used to split a ranking rule into a boost rule and a customRankingRule
+     */
+    public static final String RANKING_SEPARATOR = "|";
+    
+    /**
+     * Name of the parameter used when we split a ranking rule using the custom separator 
+     */
+    public static final String CUSTOM_RANKING_PARAM_NAME = "customRankingRule";
+    
     /**
      * Logger instance
      */
@@ -189,7 +203,10 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
             //Check if there are any redirect rules
             if(rulesMap.containsKey(RuleType.redirectRule)) {
-                augmentedParams = new MergedSolrParams();
+                //we need a bunch of the request param default values to avoid exceptions, but to
+                //cut the rest of calculations and return only the redirect we are putting the q to be empty
+                augmentedParams = new MergedSolrParams(requestParams);
+                augmentedParams.set(CommonParams.Q, StringUtils.EMPTY);
                 List<Document> redirects = rulesMap.get(RuleType.redirectRule);
                 if(redirects != null && redirects.size() > 0) {
                     rb.rsp.add("redirect_url", redirects.get(0).get(RuleConstants.FIELD_REDIRECT_URL));
@@ -227,7 +244,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
 
                 //Initialize facet manager
                 FacetHandler facetHandler = new FacetHandler();
-
+                
                 for (Map.Entry<RuleType, List<Document>> rule: rulesMap.entrySet()) {
                     RuleType type = rule.getKey();
 
@@ -237,11 +254,13 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     }
                 }
 
-                //Finally add the score field to the sorting spec. Score will be a tie breaker when other sort specs are added
+                //Finally add the score and version fields to the sorting spec. These will be a tie breaker when other sort specs are added
                 augmentedParams.addSort("score", SolrQuery.ORDER.desc);
+                augmentedParams.addSort("_version_", SolrQuery.ORDER.desc);
 
-                setFilterQueries(requestParams, augmentedParams);
-                rb.rsp.add("rule_facets", facetHandler.getFacets());
+                Map<String, NamedList> facets = facetHandler.getFacets();
+                setFilterQueries(facets, requestParams, augmentedParams);
+                rb.rsp.add("rule_facets", facets.values());
             }
 
             logger.debug("Augmented request: " + augmentedParams.toString());
@@ -254,6 +273,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             rb.req.setParams(augmentedParams);
         }
         catch(Throwable e) {
+            e.printStackTrace();
             logger.error("Failed to handle this request", e);
         }
     }
@@ -378,6 +398,25 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     while(ruleIterator.hasNext()) {
                         ruleCounter++;
                         Document ruleDoc = rulesSearcher.get().doc(ruleIterator.nextDoc());
+                        String ruleId = ruleDoc.getField("id").stringValue();
+                        String excludeRuleParam = requestParams.get("excludeRules");
+                        if (excludeRuleParam != null) {
+                            List<String> excludeRules = Arrays.asList(excludeRuleParam.split(","));
+                            if (excludeRules.contains(ruleId)) {
+                                continue;
+                            }
+                        }
+                        IndexableField experimentalField = ruleDoc.getField(RuleConstants.FIELD_EXPERIMENTAL);
+                        if (experimentalField != null) {
+                            Boolean experimental = (BooleanUtils.toBooleanObject(experimentalField.stringValue()));
+                            String includeRuleParam = requestParams.get("includeRules");
+                            if (experimental && includeRuleParam != null) {
+                                List<String> includeRules = Arrays.asList(includeRuleParam.split(","));
+                                if (!includeRules.contains(ruleId)) {
+                                    continue;
+                                }
+                            }
+                        }
 
                         if (PageType.search == pageType && !filterExactMatch(qParam, ruleDoc)) {
                             // Skip this rule as an exact match was required, but got only a partial match.
@@ -476,12 +515,22 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         ruleParams.addFilterQuery(getTargetFilter(reusableStringBuilder, pageType, requestParams.get(CommonParams.Q)));
         ruleParams.addFilterQuery(getCategoryFilter(reusableStringBuilder, requestParams.get(RuleManagerParams.CATEGORY_FILTER)));
         ruleParams.addFilterQuery(getSiteFilter(reusableStringBuilder, requestParams.getParams(RuleManagerParams.SITE_IDS)));
-        ruleParams.addFilterQuery(getBrandFilter(reusableStringBuilder, getBrandIdFromFilterQuery(requestParams.getParams(CommonParams.FQ))));
+        ruleParams.addFilterQuery(getBrandFilter(reusableStringBuilder, requestParams.get(RuleManagerParams.BRAND_ID)));
         ruleParams.addFilterQuery(getSubTargetFilter(reusableStringBuilder, isOutletRequest(requestParams.getParams(CommonParams.FQ))));
 
         StringBuilder catalogFilter = reuseStringBuilder(reusableStringBuilder);
         catalogFilter.append(RuleConstants.FIELD_CATALOG_ID).append(":").append(RuleConstants.WILDCARD).append(" OR ").append(RuleConstants.FIELD_CATALOG_ID).append(":").append(catalogId);
         ruleParams.addFilterQuery(catalogFilter.toString());
+        
+        if(requestParams.get("redirects") != null) {
+          if(!requestParams.getBool("redirects")) {
+            ruleParams.addFilterQuery("-ruleType:redirectRule");
+          }
+        }
+
+        if (!BooleanUtils.toBoolean(requestParams.getBool("facet"))) {
+            ruleParams.addFilterQuery("-ruleType:facetRule");
+        }
 
         //Notice how the current datetime (NOW wildcard on Solr) is rounded to days (NOW/DAY). This allows filter caches
         //to be reused and hopefully improve performance. If you don't round to day, NOW is very precise (up to milliseconds); so every query
@@ -628,26 +677,6 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     }
 
     /**
-     * Inspects a list of filter queries to find out what the current brand id is.
-     * <p/>
-     * The current brand id comes in the filter query "brandId" for a brand earch requests.
-     * @param filterQueries Array of filter queries to inspect.
-     * @return The brand ID set on the brandId filter, null if not found.
-     */
-    private String getBrandIdFromFilterQuery(String[] filterQueries) {
-        if(filterQueries != null) {
-            for(String filterQuery : filterQueries) {
-                int index = filterQuery.indexOf(RuleConstants.FIELD_BRAND_ID + ":");
-                    if(index >= 0) {
-                        return filterQuery.substring(index + RuleConstants.FIELD_BRAND_ID.length() + 1);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * Get core for facet fields.
      * @return SolrCore for facet fields, or null if not found.
      */
@@ -677,20 +706,85 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * @param requestParams Original request params
      * @param ruleParams The new query parameters added by the rules component.
      */
-    private void setFilterQueries(SolrParams requestParams, MergedSolrParams ruleParams) {
+    private void setFilterQueries(Map<String, NamedList> facets, SolrParams requestParams, MergedSolrParams ruleParams) {
+        
+        String isRulePage = requestParams.get("rulePage");
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
 
         String categoryFilter = requestParams.get(RuleManagerParams.CATEGORY_FILTER);
-        if (categoryFilter == null) {
+        //if we don't have a category filter, or we are in a rule page, skip adding the facet prefix
+        //to the category facet. This is cause we don't index the rule path in the category facet
+        if(StringUtils.isNotBlank(categoryFilter) && !BooleanUtils.toBoolean(isRulePage)) {
+            int index = categoryFilter.indexOf(SearchConstants.CATEGORY_SEPARATOR);
+            if (index != -1) {
+                int level = Integer.parseInt(categoryFilter.substring(0, index));
+
+                categoryFilter = ++level + FilterQuery.unescapeQueryChars(categoryFilter.substring(index)) + ".";
+                ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, categoryFilter);
+            }
+        }
+        
+        String[] filterQueries = requestParams.getParams("rule.fq");
+        if (filterQueries == null) {
             return;
         }
+        
+        Map<String, Set<String>> multiExpressionFilters = new HashMap<String, Set<String>>();
+        for(String filterQuery: filterQueries) {
+            
+            String[] parts = StringUtils.split(filterQuery, ":", 2);
+            if (parts.length != 2) {
+                logger.error("Invalid filter query: " + filterQuery);
+                continue;
+            } else {
+                String fieldName = parts[0];
+                String fieldExpression = parts[1];
+                
+                if (fieldName.equals("category")) {
+                    int index = fieldExpression.indexOf(SearchConstants.CATEGORY_SEPARATOR);
+                    if (index != -1) {
+                        int level = Integer.parseInt(fieldExpression.substring(0, index));
 
-        ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":" + categoryFilter);
-        int levelIndex = categoryFilter.indexOf('.');
-        int categoryFacetPrefixLevel = Integer.valueOf(categoryFilter.substring(0, levelIndex)) + 1;
-        ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, categoryFacetPrefixLevel + "." + categoryFilter.substring(levelIndex + 1) + ".");
+                        fieldExpression = ++level + FilterQuery.unescapeQueryChars(fieldExpression.substring(index)) + ".";
+                        ruleParams.setFacetPrefix("category", fieldExpression);
+                    }
+                }
+                NamedList facetItem = facets.get(fieldName);
+                if(facetItem != null) {
+                    String multiSelect = (String) facetItem.get("isMultiSelect");
+                    if (facetItem != null && StringUtils.isNotBlank(multiSelect)) {
+                        if (FacetHandler.getBooleanFromField(multiSelect)) {
+                            Set<String> expressions = multiExpressionFilters.get(fieldName);
+                            if (expressions == null) {
+                                expressions = new HashSet<String>();
+                                multiExpressionFilters.put(fieldName, expressions);
+                            }
+                            expressions.add(fieldExpression);
+                            continue;
+                        }
+                    }
+                }
+                
+            }
+            
+            ruleParams.addFilterQuery(filterQuery);
+        }
+        
+        StringBuilder b = new StringBuilder();
+        for (Entry<String, Set<String>> entry : multiExpressionFilters.entrySet()) {
+            String operator = " OR ";
+            String fieldName = entry.getKey();
+            b.append("{!tag=").append(fieldName).append("}");
+            for (String expression : entry.getValue()) {
+                b.append(fieldName).append(FilterQuery.SEPARATOR).append(expression).append(operator);
+            }
+            b.setLength(b.length() - operator.length());
+            ruleParams.addFilterQuery(b.toString());
+            b.setLength(0);
+        }
+
     }
 
     /**
@@ -719,13 +813,17 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     if(RuleConstants.COMBINE_MODE_REPLACE.equals(rule.get(RuleConstants.FIELD_COMBINE_MODE))) {
                         facetHandler.clear();
                     }
-
-                    String facetsQueryString = getQueryString(rule);
-                    if(facetsQueryString == null) {
-                        continue;
+                    
+                    String[] facetField = rule.getValues(RuleConstants.FIELD_FACET_FIELD);
+                    if(facetField != null) {
+                        String facetsQueryString = getQueryString(rule);
+                        if(StringUtils.isBlank(facetsQueryString)) {
+                            continue;
+                        }
+                        
+                        facetHandler.addFacet(facetField);
+                        searchFacets(component, facetsQueryString, facetHandler);
                     }
-
-                    searchFacets(component, facetsQueryString, facetHandler);
                 }
 
                 facetHandler.setParams(ruleParams);
@@ -790,10 +888,10 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
              */
             private String getQueryString(Document rule) {
                 String[] facetIds = rule.getValues(RuleConstants.FIELD_FACET_ID);
-
+                
                 if(facetIds.length > 0) {
                     StringBuilder facetsQueryString = new StringBuilder();
-
+  
                     for(String facetId : facetIds) {
                         facetsQueryString.append(RuleConstants.FIELD_ID).append(":").append(facetId).append(" OR ");
                     }
@@ -816,18 +914,27 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 }
 
                 if(rules.size() >= 1) {
-                    String[] products = rules.get(0).getValues(RuleConstants.FIELD_BOOSTED_PRODUCTS);
-
-                    if (products != null && products.length > 0) {
-                        StringBuilder b = new StringBuilder("fixedBoost(productId,");
-
-                        for (String product : products) {
-                            b.append("'").append(product).append("',");
+                    
+                    for(Document rule : rules) {
+                        
+                        if (filterRule(query, rule)) {
+                            continue;
                         }
-
-                        b.setLength(b.length() - 1);
-                        b.append(")");
-                        query.addSort(b.toString(), SolrQuery.ORDER.asc);
+                        
+                        String[] products = rule.getValues(RuleConstants.FIELD_BOOSTED_PRODUCTS);
+    
+                        if (products != null && products.length > 0) {
+                            StringBuilder b = new StringBuilder("fixedBoost(productId,");
+    
+                            for (String product : products) {
+                                b.append("'").append(product).append("',");
+                            }
+    
+                            b.setLength(b.length() - 1);
+                            b.append(")");
+                            query.addSort(b.toString(), SolrQuery.ORDER.asc);
+                            break;
+                        }
                     }
 
                     //TODO handle multiple boost rules
@@ -859,16 +966,62 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         rankingRule() {
             @Override
             void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) {
+                                                            
                 for (Document rule : rules) {
+                    
+                    if(filterRule(query, rule)) {
+                        continue;
+                    }
+                    
                     String boostFunction = rule.get(RuleConstants.FIELD_BOOST_FUNCTION);
-
+                    
                     if (boostFunction != null) {
-                        query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                        if(StringUtils.contains(boostFunction, RANKING_SEPARATOR)) {
+                            // If the ranking rule has our custom ranking separator, split the rule by that
+                            // separator.
+                            // Set the first part of the rule as a regular boost param  in the solr query
+                            // and set the second part using the CUSTOM_BOOST_PARAM_NAME
+                            // This is useful to provide a solr expression to a custom component so that you can take advantage of
+                            // the a/b test framework to test many variations of the same expression
+                            String[] boostRules = StringUtils.split(boostFunction, RANKING_SEPARATOR);
+                            if(boostRules.length == 2) {
+                                query.add(RuleConstants.FIELD_BOOST, boostRules[0]);
+                                query.add(CUSTOM_RANKING_PARAM_NAME, boostRules[1]);
+                            } else {
+                                logger.error("Incorrect use of the '"+ RANKING_SEPARATOR + "' operator in the following ranking rule:" + boostFunction);
+                            }
+                        } else {
+                            query.add(RuleConstants.FIELD_BOOST, boostFunction);
+                        }
                     }
                 }
             }
         };
 
+        /**
+         * Filter a rule if we are processing a rule category page and the rule 
+         * field: 'category' doesn't contain the rule category path
+         * @param query The solr params 
+         * @param doc The rule to process
+         */
+        boolean filterRule(MergedSolrParams query, Document doc) {
+            String isRulePage = query.get(RuleManagerParams.RULE_PAGE);
+            String categoryFilter = query.get(RuleManagerParams.CATEGORY_FILTER);
+            
+            if (StringUtils.isNotBlank(categoryFilter) && BooleanUtils.toBoolean(isRulePage)) {
+                String[] categories = doc.getValues(RuleConstants.FIELD_CATEGORY);
+                for (String category: categories) {
+                    //the categoryFilter comes already escaped, so we need to escape the category before comparing
+                    //otherwise all of them will be filtered
+                    if (ClientUtils.escapeQueryChars(category).equals(categoryFilter)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
+        
         abstract void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) throws IOException;
     }
 }

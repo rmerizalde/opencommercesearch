@@ -19,25 +19,40 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import play.api.libs.json.{JsError, Json}
 import play.api.test._
 import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json}
 
-import org.specs2.mutable._
-import org.apache.solr.client.solrj.AsyncSolrServer
-import org.apache.solr.common.SolrDocument
-import org.opencommercesearch.api.models.Category
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.Duration
 
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.Category
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+
+import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer, SolrRequest}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.response.FacetField
+import org.apache.solr.common.{SolrDocumentList, SolrDocument}
+
+import org.specs2.mutable._
+
+import com.mongodb.WriteResult
 
 class CategoryControllerSpec extends BaseSpec {
 
+  val storage = mock[MongoStorage]
+
   trait Categories extends Before {
     def before = {
-      // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
+
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveCategory(any) returns Future.successful(writeResult)
+
       CategoryController.categoryService.server = solrServer
     }
   }
@@ -52,14 +67,19 @@ class CategoryControllerSpec extends BaseSpec {
       }
     }
 
-    "send 404 when a category is not found"  in new Categories {
+    "send 404 when a category is not found" in new Categories {
       running(FakeApplication()) {
         val (queryResponse, namedList) = setupQuery
+        val doc = mock[SolrDocument]
         val expectedId = "1000"
 
+        namedList.get("doc") returns doc
+        doc.get("id") returns expectedId
+
+        storage.findCategory(anyString, any) returns Future.successful(null)
+
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
-        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find category with id [$expectedId]")
+        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot retrieve category with id $expectedId")
       }
     }
 
@@ -68,19 +88,68 @@ class CategoryControllerSpec extends BaseSpec {
         val (queryResponse, namedList) = setupQuery
         val doc = mock[SolrDocument]
         val (expectedId, expectedName) = ("1000", "A Category")
-        val category = new Category(Some(expectedId), Some(expectedName), None, None, None, None)
+        val categoryB = new Category(id = Some("rootCategory"), name = Some(expectedName), sites = Some(Seq("siteB")))
+        val categoryA = new Category(id = Some(expectedId), name = Some(expectedName), sites = Some(Seq("siteA")), parentCategories = Some(Seq(categoryB)))
 
         namedList.get("doc") returns doc
-        solrServer.binder.getBean(classOf[Category], doc) returns category
+        doc.get("id") returns expectedId
+
+        var facetFields = new java.util.LinkedList[FacetField]()
+        val facetField = new FacetField("categoryPath")
+        facetField.add("rootCategory", 10)
+        facetField.add("1000", 10)
+
+        facetFields.add(facetField)
+
+        queryResponse.getResponse returns namedList
+        queryResponse.getFacetFields returns facetFields
+
+        storage.findAllCategories(any) returns Future.successful(Seq(categoryA, categoryB))
 
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
         validateQueryResult(result.get, OK, "application/json")
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "category").validate[Category].map { category =>
           category.id.get must beEqualTo(expectedId)
-          category.name.get must beEqualTo(expectedName)
+        } recoverTotal {
+          e => failure("Invalid JSON for category: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when a category is found by site" in new Categories {
+      running(FakeApplication()) {
+        val (queryResponse, namedList) = setupQuery
+        val doc = mock[SolrDocument]
+        val (expectedId, expectedName) = ("1000", "A Category")
+        val categoryA = new Category(id = Some(expectedId), name = Some(expectedName), sites = Some(Seq("siteA")), parentCategories = Some(Seq(new Category(id = Some("rootCategory")))))
+        val categoryB = new Category(id = Some("rootCategory"), sites = Some(Seq("siteA")), childCategories = Some(Seq(new Category(id = Some(expectedId)))))
+
+        namedList.get("doc") returns doc
+        doc.get("id") returns expectedId
+
+        val facetFields = new java.util.LinkedList[FacetField]()
+        val facetField = new FacetField("categoryPath")
+        facetField.add("1000", 10)
+        facetField.add("rootCategory", 10)
+
+        facetFields.add(facetField)
+
+        queryResponse.getResponse returns namedList
+        queryResponse.getFacetFields returns facetFields
+
+        storage.findAllCategories(any) returns Future.successful(Seq(categoryA, categoryB))
+
+        val result = route(FakeRequest(GET, routes.CategoryController.findBySite("siteA").url))
+        validateQueryResult(result.get, OK, "application/json")
+
+        val json = Json.parse(contentAsString(result.get))
+
+        (json \ "categories").validate[Seq[Category]].map { categoryList =>
+          categoryList map {category =>
+            category.id.get must beEqualTo(expectedId)
+          }
         } recoverTotal {
           e => failure("Invalid JSON for category: " + JsError.toFlatJson(e))
         }
@@ -90,9 +159,8 @@ class CategoryControllerSpec extends BaseSpec {
     "send 400 when not sending a JSON body" in new Categories {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
-        val expectedId = "1000"
 
-        val url = routes.CategoryController.bulkCreateOrUpdate(false).url
+        val url = routes.CategoryController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 
@@ -103,7 +171,7 @@ class CategoryControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum categories an a bulk create" in new Categories {
-      running(FakeApplication(additionalConfiguration = Map("category.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.category.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedIsRuleBased) = ("1000", "A Category", true)
         val json = Json.obj(
@@ -161,32 +229,79 @@ class CategoryControllerSpec extends BaseSpec {
 
     "send 201 when a categories are created" in new Categories {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
-        val (expectedId, expectedName, expectedIsRuleBased) = ("1000", "A Category", true)
-        val (expectedId2, expectedName2, expectedIsRuleBased2) = ("1001", "Another Category", false)
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+
+        setupUpdate
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
+          ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2, hierarchyTokens2) =
+          ("1001", "Another Category", "/another-category", false, Seq("1.mysite.cat1", "1.mysite.cat2"))
         val json = Json.obj(
           "feedTimestamp" -> 1001,
           "categories" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
               "name" -> expectedName,
-              "isRuleBased" -> expectedIsRuleBased),
+              "seoUrlToken" -> expectedSeoUrlToken,
+              "isRuleBased" -> expectedIsRuleBased,
+              "ruleFilters" -> Seq("en_US:(filter:value)"),
+              "hierarchyTokens" -> hierarchyTokens),
             Json.obj(
               "id" -> expectedId2,
               "name" -> expectedName2,
-              "isRuleBased" -> expectedIsRuleBased2)))
+              "seoUrlToken" -> expectedSeoUrlToken2,
+              "isRuleBased" -> expectedIsRuleBased2,
+              "hierarchyTokens" -> hierarchyTokens2)))
 
-        val url = routes.CategoryController.bulkCreateOrUpdate().url
+        val url = routes.CategoryController.bulkCreateOrUpdate().url + "?preview=false"
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "application/json"))
           .withJsonBody(json)
-
         val result = route(fakeRequest)
+        Await.ready(result.get, Duration.Inf)
         validateUpdateResult(result.get, CREATED)
-        validateUpdate(updateResponse)
+        there was one(solrServer).query(any[SolrQuery]) //Notice one category is rule based, so should be ignored when querying the suggestion collection
+        there was two(solrServer).request(any[SolrRequest]) //One for the category collection, and other for the suggestion collection
+      }
+    }
+
+    "send 201 when categories are created, but don't send to autocomplete collection if only rule based categories" in new Categories {
+      running(FakeApplication()) {
+        setupUpdate
+        val (expectedId, expectedName, expectedSeoUrlToken, expectedIsRuleBased, hierarchyTokens) =
+          ("1000", "A Category", "/a-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val (expectedId2, expectedName2, expectedSeoUrlToken2, expectedIsRuleBased2, hierarchyTokens2) =
+          ("1001", "Another Category", "/another-category", true, Seq("1.mysite.cat1", "1.mysite.cat2"))
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "categories" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "name" -> expectedName,
+              "seoUrlToken" -> expectedSeoUrlToken,
+              "isRuleBased" -> expectedIsRuleBased,
+              "ruleFilters" -> Seq("en_US:(filter:value)"),
+              "hierarchyTokens" -> hierarchyTokens),
+            Json.obj(
+              "id" -> expectedId2,
+              "name" -> expectedName2,
+              "seoUrlToken" -> expectedSeoUrlToken2,
+              "isRuleBased" -> expectedIsRuleBased2,
+              "hierarchyTokens" -> hierarchyTokens2)))
+
+        val url = routes.CategoryController.bulkCreateOrUpdate().url + "?preview=false"
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+        val result = route(fakeRequest)
+        Await.ready(result.get, Duration.Inf)
+        validateUpdateResult(result.get, CREATED)
+        there was one(solrServer).request(any[SolrRequest])
       }
     }
   }
-
-
 }

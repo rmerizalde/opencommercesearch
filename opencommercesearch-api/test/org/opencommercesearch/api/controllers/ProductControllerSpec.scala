@@ -1,24 +1,27 @@
 package org.opencommercesearch.api.controllers
 
 import play.api.libs.json.{JsError, Json}
+import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
-import play.api.test.{FakeRequest, FakeApplication}
-import play.api.mvc.{Result, AsyncResult}
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.SECONDS
-
+import scala.concurrent.Future
+import scala.collection.JavaConversions._
 import java.util
-
-import org.specs2.mutable.Before
 import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
+import org.opencommercesearch.api.models._
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.{Sku, Product}
-import org.apache.solr.client.solrj.response.{Group, GroupCommand, GroupResponse, QueryResponse}
+import org.apache.solr.client.solrj.response._
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.apache.solr.common.util.NamedList
+import org.junit.runner.RunWith
+import org.specs2.mutable.Before
+import org.specs2.runner.JUnitRunner
+import com.mongodb.WriteResult
+import play.api.mvc.SimpleResult
+import play.api.libs.json.JsValue
+import play.api.libs.json.JsObject
+import play.api.libs.json.JsArray
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -38,78 +41,237 @@ import org.apache.solr.common.util.NamedList
 * specific language governing permissions and limitations
 * under the License.
 */
-
+@RunWith(classOf[JUnitRunner])
 class ProductControllerSpec extends BaseSpec {
+
   trait Products extends Before {
     def before = {
       // @todo: use di
       solrServer = mock[AsyncSolrServer]
       solrServer.binder returns mock[DocumentObjectBinder]
+      storageFactory = mock[MongoStorageFactory]
+      val storage = mock[MongoStorage]
+      storageFactory.getInstance(anyString) returns storage
+      ProductController.categoryService.storageFactory = storageFactory
+      val writeResult = mock[WriteResult]
+      storage.saveProduct(any) returns Future.successful(writeResult)
+
+      val category = Category.getInstance(Some("someCategory"))
+      category.isRuleBased = Option(false)
+      category.sites = Option(Seq("mysite"))
+      category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
+      storage.findCategory(any, any) returns Future.successful(category)
+
+      val facet = Facet.getInstance()
+      facet.id = Some("facetId")
+      facet.blackList = Some(Seq.empty[String])
+      storage.findFacets(any, any) returns Future.successful(Seq(facet))
     }
   }
 
+  def fakeApplication() = FakeApplication(additionalConfiguration = Map("sites.closeout" -> "mysite"))
   sequential
 
   "Product Controller" should {
 
     "send 404 when a product is not found"  in new Products {
       running(FakeApplication()) {
-        val (productResponse, namedList) = setupQuery
-        val skuResponse = setupSkuQuery(null)
         val expectedId = "PRD1000"
-        var productQuery:SolrQuery = null
 
-        solrServer.query(any[SolrQuery]) answers { q =>
-          val query:SolrQuery = q.asInstanceOf[SolrQuery]
-          if (query.get("id") != null) {
-            productQuery = query
-            Future.successful(productResponse)
-          } else {
-            Future.successful(skuResponse)
-          }
-        }
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any, any) returns Future.successful(null)
+        storage.findProducts(any, any, any, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
-        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find product with id [$expectedId]")
-        productQuery.get("id") must beEqualTo(expectedId)
+        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find products with ids [$expectedId]")
       }
     }
 
     "send 200 when a product is found when searching by id" in new Products {
       running(FakeApplication()) {
-        val product = new Product()
-        val productResponse = setupProductQuery(product)
-        val skuResponse = setupSkuQuery(product)
+        val facetResponse = setupAncestorCategoryQuery()
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          Future.successful(facetResponse)
+        }
+
+        val product = Product.getInstance()
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = Sku.getInstance()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val category = Category.getInstance(Some("someCategory"))
+        category.sites = Option(Seq("mysite"))
+
+        storage.findAllCategories(any) returns Future.successful(Seq(category))
+
+        val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
+        validateQueryResult(result.get, OK, "application/json")
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "products").as[Seq[Product]].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              sku.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+
+          val categories = product.categories
+          categories.size must beEqualTo(1)
+          categories.get.size must beEqualTo(1)
+          categories.get(0).getId must beEqualTo("someCategory")
+        }
+      }
+    }
+
+    "send 200 when spellcheck=yes just return the spell checking information" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty, "correct")
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty)
+        
+        val result = route(FakeRequest(GET, routes.ProductController.search(q = "incorrect", site = "mysite", spellCheck = "yes").url))
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 0, false, null, "correct") 
+      }
+    }
+    
+    "send 200 when spellcheck=no fallback to partial matching" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty)
+        val skuResponseValid = setupGroupQuery(Seq(product))
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
+        val result = route(FakeRequest(GET, routes.ProductController.search(q = "term to partial match", site = "mysite", spellCheck = "no").url))
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
+      }
+    }
+    
+    "send 200 when spellcheck=auto and no collation terms so fallback to partial matching" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty)
+        val skuResponseValid = setupGroupQuery(Seq(product))
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
+        
+        val result = route(FakeRequest(GET, routes.ProductController.search("term to partial match", "mysite").url))
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null) 
+      }
+    }
+    
+    "send 200 when spellcheck=auto and collation term generate results" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty, "right term")
+        val skuResponseValid = setupGroupQuery(Seq(product))
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
+        
+        val result = route(FakeRequest(GET, routes.ProductController.search("wrong term", "mysite").url))
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, false, "right term")
+      }
+    }
+    
+    "send 200 when spellcheck=auto and collation term generate no results so fallback to partial matching" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        product.id = Some("PRD1000")
+        product.title = Some("A Product")
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        
+        var productQuery:SolrQuery = null
+        val skuResponseEmpty = setupGroupQuery(Seq.empty, "right term")
+        val skuResponseCollationEmpty = setupGroupQuery(Seq.empty)
+        val skuResponseValid = setupGroupQuery(Seq(product))
+        
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+        
+        solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseCollationEmpty) thenReturn Future.successful(skuResponseValid)
+        
+        val result = route(FakeRequest(GET, routes.ProductController.search("wrong term", "mysite").url))
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
+      }
+    }
+    
+    "send 200 when a product is found when searching by query" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
 
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-
-
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
         solrServer.query(any[SolrQuery]) answers { q =>
-          val query:SolrQuery = q.asInstanceOf[SolrQuery]
-          if (query.get("id") != null) {
-            productQuery = query
-            Future.successful(productResponse)
-          } else {
-            Future.successful(skuResponse)
-          }
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url))
         validateQueryResult(result.get, OK, "application/json")
-        productQuery.get("id") must beEqualTo(expectedId)
+        validateCommonQueryParams(productQuery)
+        validateSearchParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
-          product.id.get must beEqualTo(expectedId)
-          product.title.get must beEqualTo(expectedTitle)
           for (skus <- product.skus) {
             for (sku <- skus) {
               product.id.get must beEqualTo(expectedSku.id.get)
@@ -121,10 +283,10 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-    "send 200 when a product is found when searching by query" in new Products {
-      running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+    "send 200 when a product is found when searching by query with sort options" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -133,7 +295,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -142,15 +304,16 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url + "&sort=discountPercent desc"))
         validateQueryResult(result.get, OK, "application/json")
         productQuery.getQuery must beEqualTo("term")
-        productQuery.getBool("rule", true)
-        productQuery.getBool("isRetail", true)
-        productQuery.getBool("isCloseout", true)
-        productQuery.getBool("onsaleUS", false)
-        productQuery.get("pageType", "search")
-        validateCommonQueryParams(productQuery)
+        validateCommonQueryParams(productQuery, expectedGroupSorting = true)
+        validateSearchParams(productQuery)
+
+        productQuery.get("sort") must beEqualTo("discountPercentUS desc")
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
@@ -166,9 +329,9 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a category" in new Products {
-      running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -177,7 +340,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -186,9 +349,12 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = false, preview = false).url))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -204,10 +370,19 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-    "send 200 when a product is found when browsing an closeout category" in new Products {
-      running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+    "send 200 when a product is found when browsing a rule based category" in new Products {
+      running(fakeApplication()) {
+
+        val category = Category.getInstance(Some("someCategory"))
+        category.isRuleBased = Option(true)
+        category.hierarchyTokens = Option(Seq("1.mysite.cat1"))
+        category.ruleFilters = Option(Seq("en_US:(category:cat1 AND category:cat2)", "fr_CA:(category:cat1)"))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findCategory(any, any) returns Future.successful(null)
+        storage.findCategory(any, any) returns Future.successful(category)
+
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -216,7 +391,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -225,9 +400,53 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", null, closeout = true, preview = false).url))
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = false).url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isCloseout = true)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = false, ruleFilter = "category:cat1 AND category:cat2", escapedCategoryFilter = "1.mysite.cat1")
+        validateCommonQueryParams(productQuery)
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "product").validate[Product].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              product.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+        } recoverTotal {
+          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when a product is found when browsing an outlet category" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product))
+        var productQuery:SolrQuery = null
+
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = Sku.getInstance()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
+        }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browse("mysite", "cat1", outlet = true).url))
+        validateQueryResult(result.get, OK, "application/json")
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", null, isOutlet = true, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -244,9 +463,9 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 200 when a product is found when browsing a brand category" in new Products {
-      running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -255,7 +474,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -264,9 +483,12 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1", preview = false).url))
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browseBrandCategory("mysite", "brand1", "cat1").url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", "cat1", "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -282,10 +504,10 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-    "send 200 when a product is found when browsing a brand category" in new Products {
-      running(FakeApplication()) {
-        val product = new Product()
-        val sku = new Sku()
+    "send 200 when a product is found when browsing a brand" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
         product.skus = Some(Seq(sku))
         val skuResponse = setupGroupQuery(Seq(product))
         var productQuery:SolrQuery = null
@@ -294,7 +516,7 @@ class ProductControllerSpec extends BaseSpec {
         product.id = Some(expectedId)
         product.title = Some(expectedTitle)
 
-        val expectedSku = new Sku()
+        val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
 
@@ -303,9 +525,14 @@ class ProductControllerSpec extends BaseSpec {
           Future.successful(skuResponse)
         }
 
-        val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1", preview = false).url))
+        val storage = storageFactory.getInstance("namespace")
+        //scenario were we have only a brandId, so this api will return null
+        storage.findCategory(any, any) returns Future.successful(null)
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.browseBrand("mysite", "brand1").url))
         validateQueryResult(result.get, OK, "application/json")
-        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isCloseout = false)
+        validateBrowseQueryParams(productQuery, "mysite", null, "brand1", isOutlet = false, escapedCategoryFilter = "2.mysite.category.subcategory")
         validateCommonQueryParams(productQuery)
 
         val json = Json.parse(contentAsString(result.get))
@@ -325,7 +552,7 @@ class ProductControllerSpec extends BaseSpec {
       running(FakeApplication()) {
         val (updateResponse) = setupUpdate
 
-        val url = routes.ProductController.bulkCreateOrUpdate(preview = false).url
+        val url = routes.ProductController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
           .withHeaders((CONTENT_TYPE, "text/plain"))
 
@@ -336,7 +563,7 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum products an a bulk create" in new Products {
-      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName) = ("PRD100", "A Product")
         val jsonBrand = Json.obj("id" -> "1000")
@@ -347,8 +574,8 @@ class ProductControllerSpec extends BaseSpec {
               "id" -> (expectedId + "0"),
               "title" -> expectedName,
               "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK"),
                 "image" -> "/images/black.jpg",
@@ -361,8 +588,8 @@ class ProductControllerSpec extends BaseSpec {
               "id" -> (expectedId + "1"),
               "title" -> (expectedName + " X"),
               "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "1" + "RED"),
                 "image" -> "/images/red.jpg",
@@ -375,8 +602,8 @@ class ProductControllerSpec extends BaseSpec {
               "id" -> (expectedId + "2"),
               "title" -> (expectedName + " Y"),
               "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "2" + "BLU"),
                 "image" -> "/images/blue.jpg",
@@ -399,9 +626,8 @@ class ProductControllerSpec extends BaseSpec {
       }
     }
 
-
-    "send 400 when trying to bulk create products with missing fields" in new Products {
-      running(FakeApplication(additionalConfiguration = Map("product.maxUpdateBatchSize" -> 2))) {
+    "send 201 when trying to bulk create POOS products with missing sku fields" in new Products {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedTitle) = ("PRD0001", "A Product")
         val jsonBrand = Json.obj("id" -> "1000")
@@ -412,17 +638,101 @@ class ProductControllerSpec extends BaseSpec {
               "id" -> expectedId,
               "title" -> expectedTitle,
               "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
+              "isOem" -> false,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "PermanentlyOutOfStock")
+                ))
+              ))),
+            Json.obj(
+              "id" -> (expectedId + "2"),
+              "title" -> expectedTitle,
+              "brand" -> jsonBrand,
+              "isOem" -> false,
+              "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "PermanentlyOutOfStock")
+                ))
+              )))))
+
+        val url = routes.ProductController.bulkCreateOrUpdate().url
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+
+        val result = route(fakeRequest)
+        validateUpdateResult(result.get, CREATED)
+      }
+    }
+
+    "send 400 when trying to bulk create products with missing sku fields" in new Products {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
+        val (updateResponse) = setupUpdate
+        val (expectedId, expectedTitle) = ("PRD0001", "A Product")
+        val jsonBrand = Json.obj("id" -> "1000")
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "products" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "title" -> expectedTitle,
+              "brand" -> jsonBrand,
+              "isOem" -> false,
+              "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "InStock")
+                ))
+              ))),
+            Json.obj(
+              "id" -> (expectedId + "2"),
+              "title" -> expectedTitle,
+              "brand" -> jsonBrand,
+              "isOem" -> false,
+              "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
+              "skus" -> Json.arr(Json.obj(
+                "id" -> (expectedId + "0" + "BLK"),
+                "countries" -> Json.arr(Json.obj(
+                  "availability" -> Json.obj("status" -> "InStock")
+                ))
+              )))))
+
+        val url = routes.ProductController.bulkCreateOrUpdate().url
+        val fakeRequest = FakeRequest(PUT, url)
+          .withHeaders((CONTENT_TYPE, "application/json"))
+          .withJsonBody(json)
+
+        val result = route(fakeRequest)
+        validateFailedUpdateResult(result.get, BAD_REQUEST, "Missing required fields")
+        validateFailedUpdate(updateResponse)
+      }
+    }
+
+    "send 400 when trying to bulk create products with missing product fields" in new Products {
+      running(FakeApplication(additionalConfiguration = Map("index.product.batchsize.max" -> 2))) {
+        val (updateResponse) = setupUpdate
+        val (expectedId, expectedTitle) = ("PRD0001", "A Product")
+        val json = Json.obj(
+          "feedTimestamp" -> 1001,
+          "products" -> Json.arr(
+            Json.obj(
+              "id" -> expectedId,
+              "title" -> expectedTitle,
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK")
               ))),
             Json.obj(
               "id" -> (expectedId + "2"),
               "title" -> expectedTitle,
-              "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
-              "listRank" -> 1,
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK")
               )))))
@@ -433,7 +743,7 @@ class ProductControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateFailedUpdateResult(result.get, BAD_REQUEST, "Missing required fields")
+        validateFailedUpdateResult(result.get, BAD_REQUEST, "Missing required fields for product")
         validateFailedUpdate(updateResponse)
       }
     }
@@ -450,8 +760,9 @@ class ProductControllerSpec extends BaseSpec {
               "id" -> (expectedId + "0"),
               "title" -> expectedName,
               "brand" -> jsonBrand,
-              "isOutOfStock" -> true,
+              "isOem" -> false,
               "listRank" -> 1,
+              "activationDate" -> "2010-07-31T00:00:00Z",
               "skus" -> Json.arr(Json.obj(
                 "id" -> (expectedId + "0" + "BLK"),
                 "image" -> "/images/black.jpg",
@@ -460,6 +771,7 @@ class ProductControllerSpec extends BaseSpec {
                 "countries" -> Seq(Json.obj("code" -> "US"))
               ))
             )))
+
 
         val url = routes.ProductController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
@@ -472,57 +784,125 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+  "send 201 when a OEM products are created" in new Products {
+    running(FakeApplication()) {
+      setupUpdate
+      val (expectedId, expectedName) = ("PRD0001", "A Product")
+      val jsonBrand = Json.obj("id" -> "PRD0001")
+      val json = Json.obj(
+        "feedTimestamp" -> 1001,
+        "products" -> Json.arr(
+          Json.obj(
+            "id" -> (expectedId + "0"),
+            "title" -> expectedName,
+            "brand" -> jsonBrand,
+            "isOem" -> true,
+            "listRank" -> 1,
+            "activationDate" -> "2010-07-31T00:00:00Z",
+            "skus" -> Json.arr(Json.obj(
+              "id" -> (expectedId + "0" + "BLK"),
+              "image" -> "/images/black.jpg",
+              "isRetail" -> true,
+              "isCloseout" -> false,
+              "countries" -> Seq(Json.obj("code" -> "US"))
+            ))
+          )))
+
+
+      val url = routes.ProductController.bulkCreateOrUpdate().url
+      val fakeRequest = FakeRequest(PUT, url)
+        .withHeaders((CONTENT_TYPE, "application/json"))
+        .withJsonBody(json)
+
+      val result = route(fakeRequest)
+      validateUpdateResult(result.get, CREATED)
+    }
+  }
+
+
+  /**
+   * Helper method to validate search parameters
+   * @param productQuery
+   */
+  def validateSearchParams(productQuery: SolrQuery) {
+    productQuery.getQuery must beEqualTo("term")
+    productQuery.getBool("rule") must beEqualTo(true)
+    productQuery.getFilterQueries contains "isRetail:true" must beTrue
+    productQuery.getFilterQueries contains "isCloseout:false" must beFalse
+    productQuery.getFilterQueries contains "isOutlet:false" must beFalse
+    productQuery.getFilterQueries contains "isCloseout:true" must beFalse
+    productQuery.getFilterQueries contains "isOutlet:true" must beFalse
+    productQuery.getFilterQueries contains "country:onsaleUS" must beFalse
+    productQuery.get("pageType") must beEqualTo("search")
+  }
+
   /**
    * Helper method to validate common browse params
    * @param productQuery the query
    * @param categoryId an optional category id
    * @param brandId and optional brand id
+   * @param ruleFilter and optional string to that represents the filter of a rule based category
    */
-  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String, isCloseout: Boolean) : Unit = {
+  private def validateBrowseQueryParams(productQuery: SolrQuery, site: String, categoryId: String, brandId: String,
+                                        isOutlet: Boolean, ruleFilter: String = null, escapedCategoryFilter: String) : Unit = {
     var expected = 3
-    if (categoryId == null && brandId != null) {
-      productQuery.get("pageType") must beEqualTo("brand")
+    var isRuleCategory = false
+    
+    productQuery.get("pageType") must beEqualTo("category")
+
+    if (ruleFilter == null) {
+      //scenario for non rule based categories
+      if (categoryId != null) {
+        expected += 2
+        productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId" must beTrue
+        productQuery.getFilterQueries contains "category:" + escapedCategoryFilter must beTrue
+      }
+
+      if (brandId != null) {
+        expected += 1
+        productQuery.getFilterQueries contains s"brandId:$brandId" must beTrue
+        productQuery.get("brandId") must beEqualTo(brandId)
+      }
     } else {
-      productQuery.get("pageType") must beEqualTo("category")
+      //scenario for rule based categories
+      isRuleCategory = true
+      productQuery.getFilterQueries contains ruleFilter
+      productQuery.getBool("rulePage") must beEqualTo(true)
+      productQuery.get("q") must beEqualTo("*:*")
     }
-
+    
     if (categoryId != null) {
-      expected += 1
-      productQuery.getFilterQueries contains s"ancestorCategoryId:$categoryId"
+        productQuery.get("categoryFilter") must beEqualTo(escapedCategoryFilter)
     }
-
-    if (brandId != null) {
-      expected += 1
-      productQuery.getFilterQueries contains s"brand:$brandId"
-    }
-
-    if (isCloseout) {
-      expected += 1
-      productQuery.getFilterQueries contains "onsaleUS:true"
-    }
-
-    productQuery.getBool("rule", true)
-    productQuery.get("siteId", site)
+                
+    productQuery.getBool("rule") must beEqualTo(true)
+    productQuery.get("siteId") must beEqualTo(site)
     productQuery.getFilterQueries.size must beEqualTo(expected)
-    productQuery.getFilterQueries contains "country:US"
-    productQuery.getFilterQueries contains "isRetail:true"
-    productQuery.getFilterQueries contains s"isCloseout:$isCloseout"
+    productQuery.getFilterQueries contains "country:US" must beTrue
+    productQuery.getFilterQueries contains "isRetail:true" must beTrue
+    if (!isRuleCategory) { //rule base categoris won't filter by isOutlet
+      productQuery.getFilterQueries contains s"isOutlet:$isOutlet" must beTrue
+    }
   }
 
   /**
    * Helper method to validate common query params
    * @param query the query
    */
-  private def validateCommonQueryParams(query: SolrQuery) : Unit = {
+  private def validateCommonQueryParams(query: SolrQuery, expectedGroupSorting: Boolean = true) : Unit = {
     query.getBool("facet") must beEqualTo(true)
     query.getBool("group") must beEqualTo(true)
     query.getBool("group.ngroups") must beEqualTo(true)
     query.getInt("group.limit") must beEqualTo(50)
     query.get("group.field") must beEqualTo("productId")
     query.getBool("group.facet") must beEqualTo(false)
-    query.get("group.sort") must beEqualTo("isCloseout asc, score desc, sort asc")
+    if (expectedGroupSorting) {
+      query.get("group.sort") must beEqualTo("isCloseout asc, salePriceUS asc, sort asc, score desc")
+    } else {
+      query.get("group.sort") must beNull
+    }
     query.getBool("groupcollapse") must beEqualTo(true)
-    query.get("groupcollapse.fl") must beEqualTo("listPriceUS,salePriceUS,discountPercentUS")
+    query.get("groupcollapse.fl") must beEqualTo("listPriceUS,salePriceUS,discountPercentUS,color,colorFamily")
     query.get("groupcollapse.ff") must beEqualTo("isCloseout")
     val facetFields = query.getFacetFields
     facetFields.size must beEqualTo(1)
@@ -530,20 +910,41 @@ class ProductControllerSpec extends BaseSpec {
   }
 
   /**
+   * Helper method to validate the spellchecking json within the metadata response. If any parameter is null then it won't be reviewed against the json 
+   */
+  private def validateSpellChecking(json: JsValue, numFound: Int, partialMatch: Boolean, correctedTerm: String, collationTerm: String = null): Unit = {
+   
+    (json \ "metadata" \ "found" ).as[Int]  must beEqualTo(numFound)
+    if  (correctedTerm != null) {
+      (json \ "metadata" \ "spellCheck" \ "correctedTerms").as[String]  must beEqualTo(correctedTerm)
+    }
+    if  (collationTerm != null) {
+      val spellCheck = (json \ "metadata" \ "spellCheck" ).as[JsObject]
+      (spellCheck \ "collation").as[String] must beEqualTo(collationTerm)
+    }
+    val wasPartialMatch =(json \ "metadata" \ "partialMatch").asOpt[Boolean] 
+    if(wasPartialMatch.isDefined || partialMatch) {
+        wasPartialMatch.get must beEqualTo(partialMatch)
+    }
+  }
+  
+  /**
    * Helper method to mock the response for findById calls
-   * @param product the product use to mock the response
    * @return a query response mock
    */
-  protected def setupProductQuery(product: Product) = {
+  protected def setupAncestorCategoryQuery() = {
     val queryResponse = mock[QueryResponse]
-    val namedList = mock[NamedList[AnyRef]]
+    val solrDocument = mock[SolrDocument]
 
-    queryResponse.getResponse returns namedList
-    solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
+    val categoryValues = new java.util.ArrayList[AnyRef]()
+    categoryValues.add("someCategory")
 
-    val doc = mock[SolrDocument]
-    namedList.get("doc") returns doc
-    solrServer.binder.getBean(classOf[Product], doc) returns product
+    solrDocument.getFieldValues("ancestorCategoryId") returns categoryValues
+    solrDocument.containsKey("ancestorCategoryId") returns true
+
+    val solrDocuments = new SolrDocumentList
+    solrDocuments.add(solrDocument)
+    queryResponse.getResults returns solrDocuments
 
     queryResponse
   }
@@ -581,7 +982,7 @@ class ProductControllerSpec extends BaseSpec {
    * @param products is the list of products used to build the mock response
    * @return
    */
-  private def setupGroupQuery(products: Seq[Product]) = {
+  private def setupGroupQuery(products: Seq[Product], collectedTerms: String = null) = {
     val queryResponse = mock[QueryResponse]
 
     solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
@@ -606,17 +1007,31 @@ class ProductControllerSpec extends BaseSpec {
           documentList.add(mock[SolrDocument])
           skuList.add(sku)
         }
-        solrServer.binder.getBeans(classOf[Sku], documentList) returns skuList
       }
-      solrServer.binder.getBean(classOf[Product], documentList.get(0)) returns product
       group.getResult returns documentList
       groupValues.add(group)
-
     }
 
+    if(collectedTerms != null) {
+      val spellCheckResponse = mock[SpellCheckResponse] 
+      val suggestion = mock[SpellCheckResponse.Suggestion]
+      spellCheckResponse.getSuggestions() returns List(suggestion)
+      spellCheckResponse.getCollatedResult returns collectedTerms
+      queryResponse.getSpellCheckResponse returns spellCheckResponse
+    }
+    
+    val summary = mock[NamedList[Object]]
+    val groupSummary = mock[NamedList[Object]]
+    summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary
+
+    groupSummary.get("productId").asInstanceOf[NamedList[Object]] returns null
+
     val groupResponse = mock[GroupResponse]
+
     groupResponse.getValues returns commandValues
     queryResponse.getGroupResponse returns groupResponse
+    queryResponse.getResponse returns summary
+    
     queryResponse
   }
 }

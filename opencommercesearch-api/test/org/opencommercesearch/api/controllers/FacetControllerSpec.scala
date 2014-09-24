@@ -19,7 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.Result
+import play.api.mvc.SimpleResult
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json, JsArray}
@@ -37,12 +37,20 @@ import org.opencommercesearch.api.models.Facet
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import com.mongodb.WriteResult
 
 class FacetControllerSpec extends Specification with Mockito {
+
+  val storage = mock[MongoStorage]
 
   trait Facets extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveFacet(any) returns Future.successful(writeResult)
     }
   }
 
@@ -80,6 +88,12 @@ class FacetControllerSpec extends Specification with Mockito {
         val doc = mock[SolrDocument]
         val (expectedId) = ("1000")
 
+        val facet = Facet.getInstance
+        facet.setId("1000")
+        facet.setBlackList(Seq.empty[String])
+        storage.findFacet(anyString, any) returns Future.successful(facet)
+
+        docList.getNumFound returns 1
         docList.get(0) returns doc
         doc.get("id") returns expectedId
         doc.getFieldValue("id") returns expectedId
@@ -121,7 +135,8 @@ class FacetControllerSpec extends Specification with Mockito {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
         val json = Json.obj(
-          "id" -> expectedId
+          "id" -> expectedId,
+          "name" -> "facet"
         )
 
         val url = routes.FacetController.createOrUpdate(expectedId).url
@@ -152,7 +167,7 @@ class FacetControllerSpec extends Specification with Mockito {
 
     // @todo test bulk update
     "send 400 when exceeding maximum facets an a bulk create" in new Facets {
-      running(FakeApplication(additionalConfiguration = Map("facet.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.facet.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
         val expectedId2 = "1001"
@@ -181,9 +196,11 @@ class FacetControllerSpec extends Specification with Mockito {
         val json = Json.obj(
           "facets" -> Json.arr(
             Json.obj(
-              "id" -> expectedId),
+              "id" -> expectedId,
+              "name" -> "facet1"),
             Json.obj(
-              "id" -> (expectedId + "2"))))
+              "id" -> (expectedId + "2"),
+              "name" -> "facet2")))
 
         val url = routes.FacetController.bulkCreateOrUpdate().url
         val fakeRequest = FakeRequest(PUT, url)
@@ -287,10 +304,10 @@ class FacetControllerSpec extends Specification with Mockito {
     Thread.sleep(300)
     there was one(solrServer).query(any[SolrQuery])
     there was one(queryResponse).getResults
-    there was one(docList).get(0)
+    there was atLeastOne(docList).getNumFound
   }
 
-  private def validateQueryResult(result: Result, expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  private def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -308,14 +325,14 @@ class FacetControllerSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  private def validateUpdateResult(result: Result, expectedStatus: Int, expectedLocation: String = null) = {
+  private def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  private def validateUpdateResultWithMessage(result: Result, expectedStatus: Int, expectedContent: String) = {
+  private def validateUpdateResultWithMessage(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

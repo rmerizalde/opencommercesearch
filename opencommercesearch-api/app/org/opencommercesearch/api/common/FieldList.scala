@@ -21,6 +21,7 @@ package org.opencommercesearch.api.common
 
 import play.api.mvc.{AnyContent, Controller, Request}
 import org.apache.solr.client.solrj.SolrQuery
+import org.apache.commons.lang3.StringUtils
 
 /**
  * This trait provides subclasses with functionality to parse the list
@@ -30,10 +31,36 @@ import org.apache.solr.client.solrj.SolrQuery
  */
 trait FieldList {
 
+  /**
+   * @deprecated
+   */
   def withFields(query: SolrQuery, fields: Option[String]) : SolrQuery = {
     for (f <- fields) {
       if (f.size > 0) { query.setFields(fields.get.split(','): _*) }
     }
     query
+  }
+
+  /**
+   * Return a sequence with list of fields to return from storage.
+   * @param request is the implicit request
+   * @param allowStar Whether or not star ("*") should be allowed. If true then start ("*") is kept on the field list, otherwise is removed. By default is false.
+   * @param fieldsFieldName The fields field name to look for on the request. By default is "fields"
+   * @tparam R type of the request
+   * @return a sequence with the field names
+   */
+  def fieldList[R](allowStar : Boolean = false, fieldsFieldName: String = "fields")(implicit request: Request[R]) : Seq[String] = {
+    val fields = request.getQueryString(fieldsFieldName)
+    var fieldsStr = fields.getOrElse(StringUtils.EMPTY)
+    var fieldSeparators = ","
+
+    if(!allowStar) {
+      fieldSeparators += "*"
+    } else {
+      // support field format like skus.* or skus.availability.*
+      fieldsStr = StringUtils.remove(fieldsStr, ".*")
+    }
+
+    StringUtils.split(fieldsStr, fieldSeparators)
   }
 }

@@ -20,14 +20,37 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 import java.util
 
 import org.apache.solr.common.SolrDocument
 import org.apache.solr.common.SolrInputDocument
 import org.apache.solr.client.solrj.beans.Field
+import org.apache.commons.lang.StringUtils
+import org.jongo.marshall.jackson.oid.Id
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.opencommercesearch.search.suggester.IndexableElement
+
+object Brand {
+
+  implicit val readsBrand = Json.reads[Brand]
+  implicit val writesBrand = Json.writes[Brand]
+
+  def fromDocument(doc : SolrDocument) : Brand = {
+    def attribute(name: String) = Option(doc.get(name).asInstanceOf[String])
+    def seqAttribute(name: String) = Option(doc.get(name).asInstanceOf[Seq[String]])
+
+    val id = attribute("id")
+    val name = attribute("name")
+    val logo = attribute("logo")
+    val url = attribute("url")
+    val sites = seqAttribute("siteId")
+
+    new Brand(id, name, logo, url, sites)
+  }
+}
 
 /**
  * A brand model
@@ -38,79 +61,78 @@ import org.apache.solr.client.solrj.beans.Field
  *
  * @author rmerizalde
  */
-case class Brand(var id: Option[String], var name: Option[String], var logo: Option[String]) {
+case class Brand(
+   @Id var id: Option[String] = None,
+   @JsonProperty("name") var name: Option[String] = None,
+   @JsonProperty("logo") var logo: Option[String] = None,
+   @JsonProperty("url") var url: Option[String] = None,
+   @JsonProperty("sites") var sites: Option[Seq[String]] = None) extends IndexableElement {
 
-  def this() = this(None, None, None)
+  def getId : String = this.id.getOrElse(null)
+  
+  def getName : String = this.name.getOrElse(null)
 
-  @Field
-  def setId(id: String) : Unit = {
-    this.id = Option.apply(id)
+  def getUrl: String = url.getOrElse(null)
+
+  override def source = "brand"
+
+  override def toJson : JsValue = { Json.toJson(this) }
+
+  def getSites : Seq[String] = {
+    this.sites.getOrElse(Seq.empty[String])
   }
 
-  @Field
-  def setName(name: String) : Unit = {
-    this.name = Option.apply(name)
-  }
-
-  @Field
-  def setLogo(logo: String) : Unit = {
-    this.logo = Option.apply(logo)
-  }
-
-  def toDocument : SolrInputDocument = {
+  def toDocument(feedTimestamp: Long) : SolrInputDocument = {
     val doc = new SolrInputDocument()
 
-    if (id.isDefined) {
-      doc.setField("id", id.get)
+    for(i <- id) {
+      doc.setField("id", i)
     }
-    if (name.isDefined) {
-      doc.setField("name", name.get)
+
+    for(n <- name) {
+      doc.setField("name", n)
     }
-    if (logo.isDefined) {
-      doc.setField("logo", logo.get)
+
+    for(l <- logo) {
+      doc.setField("logo", l)
     }
+
+    for(v <- url) {
+      doc.setField("url", v)
+    }
+
+    for(s <- sites) {
+      s.foreach { site =>
+        doc.addField("siteId", site)
+      }
+    }
+
+    doc.setField("feedTimestamp", feedTimestamp)
+
     doc
   }
-}
 
+  def getNgramText : String = {
+    name.getOrElse(null)
+  }
 
-object Brand {
-
-  implicit val readsBrand: Reads[Brand] = (
-    (__ \ "id").readNullable[String] ~
-    (__ \ "name").readNullable[String] ~
-    (__ \ "logo").readNullable[String]
-  ) (Brand.apply _)
-
-  implicit val writesBrand : Writes[Brand] = (
-    (__ \ "id").writeNullable[String] ~
-    (__ \ "name").writeNullable[String] ~
-    (__ \ "logo").writeNullable[String]
-  ) (unlift(Brand.unapply))
-
-  def fromDocument(doc : SolrDocument) : Brand = {
-    val id = doc.get("id").asInstanceOf[String]
-    val name = doc.get("name").asInstanceOf[String]
-    val logo = doc.get("logo").asInstanceOf[String]
-
-    new Brand(Option.apply(id), Option.apply(name), Option.apply(logo))
+  def getType : String = {
+    "brand"
   }
 }
-
-
 
 /**
  * Represents a list of brands
  *
  * @param brands are the brands in the list
  */
-case class BrandList(brands: List[Brand]) {
+case class BrandList(brands: List[Brand], feedTimestamp: Long) {
 
   def toDocuments : util.List[SolrInputDocument] = {
     val docs = new util.ArrayList[SolrInputDocument](brands.length)
 
     for (brand <- brands) {
-      docs.add(brand.toDocument)
+      docs.add(brand.toDocument(feedTimestamp))
     }
     docs
   }

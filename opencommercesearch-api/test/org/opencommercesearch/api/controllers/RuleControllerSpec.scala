@@ -19,7 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.Result
+import play.api.mvc.SimpleResult
 import play.api.test._
 import play.api.test.Helpers._
 import play.api.libs.json.{JsError, Json, JsArray}
@@ -37,12 +37,15 @@ import org.opencommercesearch.api.models.Rule
 
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
 class RuleControllerSpec extends Specification with Mockito {
 
   trait Rules extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns mock[MongoStorage]
     }
   }
 
@@ -153,7 +156,7 @@ class RuleControllerSpec extends Specification with Mockito {
 
     // @todo test bulk update
     "send 400 when exceeding maximum rules an a bulk create" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.rule.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val expectedId = "1000"
         val expectedId2 = "1001"
@@ -177,7 +180,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
 
     "send 400 when trying to bulk create rules with missing fields" in new Rules {
-      running(FakeApplication(additionalConfiguration = Map("rule.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.rule.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId) = ("1000")
         val json = Json.obj(
@@ -268,7 +271,7 @@ class RuleControllerSpec extends Specification with Mockito {
   }
 
   private def getRuleJson(id : String) = {
-    //id, startDate, category, siteID, sortPriority, query, catalogId, brandId, target, subTarget, endDate, combineMode
+    //id, startDate, category, siteID, sortPriority, query, catalogId, brandId, experimental, target, subTarget, endDate, combineMode
     Json.parse("{\"id\": \"" + id + "\"," +
                 "\"startDate\": \"2013-06-21T16:30:22Z\"," +
                 "\"category\": [\"__all__\"]," +
@@ -277,6 +280,7 @@ class RuleControllerSpec extends Specification with Mockito {
                 "\"query\": \"[purses on sale]\"," +
                 "\"catalogId\": [\"__all__\"]," +
                 "\"brandId\": [\"__all__\"]," +
+                "\"experimental\": false," +
                 "\"target\": [\"searchpages\"]," +
                 "\"subTarget\": [\"__all__\"]," +
                 "\"endDate\": \"2014-08-05T09:42:38Z\"," +
@@ -304,7 +308,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
   }
 
-  private def validateQueryResult(result: Result, expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  private def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -322,14 +326,14 @@ class RuleControllerSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  private def validateUpdateResult(result: Result, expectedStatus: Int, expectedLocation: String = null) = {
+  private def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  private def validateUpdateResultWithMessage(result: Result, expectedStatus: Int, expectedContent: String) = {
+  private def validateUpdateResultWithMessage(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

@@ -1,0 +1,304 @@
+{
+    "metadata": {
+        "found": 1,
+        "time": 54
+    },
+    "products": [
+        {
+            "id": "EDR0001",
+            "title": "EC Bomber Men's Short-Sleeve T-Shirt",
+            "description": "<p>You could be arrested just for wearing this shirt. The Endurance Conspiracy EC Bomber T-shirt is just that fast...<br><br>Endurance Conspiracy is owned and managed by passionate endurance athletes who are in it for much more than a quick buck. EC is a company that has been built around the idea of an outdoor community. Its products are designed to be as Earth-friendly as possible in a fun-not-preachy way.\n</p>\n<p>All Endurance Conspiracy T-Shirts are made with 100% organic cotton and adhere to Bluesign resource productivity, consumer safety, air emission, water emission, and occupational health and safety standards.\n</p>\n<p>The Endurance Conspiracy Men’s EC Bomber T-Shirt is available in sizes S through XL and comes in Grass Stain and Lava.</p>",
+            "brand": {
+                "id": "100001471",
+                "name": "Endurance Conspiracy"
+            },
+            "detailImages": [
+                {
+                    "title": "Detail",
+                    "url": "/images/items/small/EDR/EDR0001/GRASTA_D1.jpg"
+                },
+                {
+                    "title": "Detail",
+                    "url": "/images/items/small/EDR/EDR0001/LV_D1.jpg"
+                }
+            ],
+            "features": [
+                {
+                    "name": "storecredits",
+                    "value": "0.0"
+                }
+            ],
+            "listRank": 2,
+            "customerReviews": {
+                "count": 0,
+                "average": 0,
+                "bayesianAverage": 2.5
+            },
+            "isOutOfStock": false,
+            "categories": [
+                {
+                    "id": "catb10001",
+                    "name": "rootNode",
+                    "seoUrlToken": "rootnode",
+                    "isRuleBased": false,
+                    "sites": [
+                        "bcs"
+                    ],
+                    "childCategories": [
+                        {
+                            "id": "bcsCat140000003",
+                            "name": "Bike",
+                            "seoUrlToken": "bike",
+                            "isRuleBased": false,
+                            "sites": [
+                                "bcs"
+                            ],
+                            "childCategories": [
+                                {
+                                    "id": "bcsCat141000004",
+                                    "name": "Men's Bike Clothing",
+                                    "seoUrlToken": "mens-bike-clothing",
+                                    "isRuleBased": false,
+                                    "sites": [
+                                        "bcs"
+                                    ],
+                                    "childCategories": [
+                                        {
+                                            "id": "bcsCat141100007",
+                                            "name": "Men's Bike Casual Wear",
+                                            "seoUrlToken": "mens-bike-casual-wear",
+                                            "isRuleBased": false,
+                                            "sites": [
+                                                "bcs"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "skus": [
+                {
+                    "id": "EDR0001-GRASTA-S",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/GRASTA.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Grass Stain",
+                        "family": "green"
+                    },
+                    "title": "Grass Stain, S",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-LV-S",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/LV.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Lava",
+                        "family": "red"
+                    },
+                    "title": "Lava, S",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-GRASTA-M",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/GRASTA.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Grass Stain",
+                        "family": "green"
+                    },
+                    "title": "Grass Stain, M",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-LV-M",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/LV.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Lava",
+                        "family": "red"
+                    },
+                    "title": "Lava, M",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-GRASTA-L",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/GRASTA.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Grass Stain",
+                        "family": "green"
+                    },
+                    "title": "Grass Stain, L",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-LV-L",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/LV.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Lava",
+                        "family": "red"
+                    },
+                    "title": "Lava, L",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-GRASTA-XL",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/GRASTA.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Grass Stain",
+                        "family": "green"
+                    },
+                    "title": "Grass Stain, XL",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                },
+                {
+                    "id": "EDR0001-LV-XL",
+                    "season": "FW0",
+                    "year": "2013",
+                    "image": {
+                        "url": "/images/items/medium/EDR/EDR0001/LV.jpg"
+                    },
+                    "isPastSeason": false,
+                    "color": {
+                        "name": "Lava",
+                        "family": "red"
+                    },
+                    "title": "Lava, XL",
+                    "isRetail": true,
+                    "isCloseout": false,
+                    "isOutlet": false,
+                    "catalogs": [
+                        "competitivecyclist",
+                        "bcs"
+                    ],
+                    "listPrice": 29.95,
+                    "salePrice": 29.95,
+                    "discountPercent": 0,
+                    "stockLevel": 0,
+                    "url": "/endurance-conspiracy-ec-bomber-t-shirt-short-sleeve-mens",
+                    "allowBackorder": true
+                }
+            ],
+            "isPackage": false,
+            "isOem": false
+        }
+    ]
+}

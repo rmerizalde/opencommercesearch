@@ -23,16 +23,24 @@ package org.opencommercesearch.api.controllers
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc._
 import play.api.libs.json.{Writes, Json}
-
 import scala.concurrent.Future
-
 import org.apache.solr.client.solrj.SolrQuery
 import org.opencommercesearch.api.common.{FieldList, ContentPreview}
-
 import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
+import org.opencommercesearch.api.common.FacetQuery
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.DateTimeZone
+import org.opencommercesearch.common.Context
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.Some
+import play.api.mvc.SimpleResult
+import org.apache.solr.common.SolrDocument
+import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
+import org.opencommercesearch.search.Element
+import org.opencommercesearch.search.suggester.CatalogSuggester
 
 /**
  * This class provides common functionality for all controllers
@@ -41,9 +49,60 @@ import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
  *
  * @author rmerizalde
  */
-class BaseController extends Controller with ContentPreview with FieldList with Pagination with ErrorHandling {
+class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
 
-  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]) : Future[Result] = {
+  private val timeZoneCode = "GMT"
+  private val suggester = new CatalogSuggester[Element]
+
+  private val df: DateTimeFormatter =
+    DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '" + timeZoneCode + "'").withLocale(java.util.Locale.ENGLISH).withZone(DateTimeZone.forID(timeZoneCode))
+
+  protected def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
+    val lastModified = df.print(System.currentTimeMillis())
+    withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
+  }
+
+  protected def withCacheHeaders(result: SimpleResult, ids: Iterable[String])(implicit request: Request[AnyContent]) : SimpleResult = {
+    val lastModified = df.print(System.currentTimeMillis())
+    withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
+  }
+
+  private def withProductIds(result: SimpleResult, ids: String, request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids))
+    case None => result
+  }
+
+  private def withProductIds(result: SimpleResult, ids: Iterable[String], request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
+    case None => result
+  }
+
+  protected def findSuggestionsFor(typeName: String, query: String, site: String)(implicit context: Context): Future[SimpleResult] = {
+    val startTime = System.currentTimeMillis()
+
+    if (query == null || query.length < 2) {
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
+      )))
+    } else {
+      val collector = new MultiSourceCollector[Element]
+      collector.add(typeName, new SimpleCollector[Element])
+
+      val future = suggester.search(query, site, collector, solrServer) map { c =>
+       Ok(Json.obj(
+          "metadata" -> Json.obj(
+             "found" -> c.size(),
+             "time" -> (System.currentTimeMillis() - startTime)),
+          "suggestions" -> (c.elements() map { el => el.toJson })
+        ))
+      }
+
+      withErrorHandling(future, s"Cannot suggest $typeName for [$query]")
+    }
+  }
+
+  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]): Future[SimpleResult] = {
+
     val startTime = System.currentTimeMillis()
     val solrQuery = withPagination(withFields(query, req.getQueryString("fields")))
 
@@ -52,12 +111,12 @@ class BaseController extends Controller with ContentPreview with FieldList with 
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
       )))
     } else {
-      val future = solrServer.query(solrQuery).map( response => {
+      val future = solrServer.query(solrQuery).map(response => {
         val docs = response.getResults
         Ok(Json.obj(
           "metadata" -> Json.obj(
-             "found" -> docs.getNumFound,
-             "time" -> (System.currentTimeMillis() - startTime)),
+            "found" -> docs.getNumFound,
+            "time" -> (System.currentTimeMillis() - startTime)),
           "suggestions" -> JIterableWrapper(docs).map(doc => solrServer.binder.getBean(clazz, doc))
         ))
       })
@@ -72,16 +131,14 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to delete docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to delete
    */
-  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Result = {
+  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
     update.deleteByQuery(query)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       NoContent
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete $typeName")
-    }
+    withErrorHandling(future, s"Cannot delete $typeName")
   }
 
   /**
@@ -91,34 +148,60 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to commit or rollback docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to commit or rollback
    */
-  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Result = {
+  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
     if(commit == rollback) {
-      BadRequest(Json.obj(
-        "message" -> s"commit and boolean can't have the same value."))
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"commit and boolean can't have the same value.")))
     }
     else {
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot commit $typeName")
-        }
+        withErrorHandling(future, s"Cannot commit $typeName")
       }
       else {
         update.rollback
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot rollback $typeName")
-        }
+        withErrorHandling(future, s"Cannot rollback $typeName")
       }
     }
   }
+
+  object ContextAction {
+    import play.api.Play.current
+    import play.api.i18n.Lang.preferred
+
+    /**
+     * Action composition for async actions that require a context and request
+     *
+     * @param block the action code
+     * @return a future SimpleResult
+     */
+    final def async(block: Context => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = async(BodyParsers.parse.anyContent)(block)
+
+    /**
+     * Action composition for async actions that require a context and request
+     * @param bodyParser is the body parser
+     * @param block the action code
+     * @tparam A is the content type
+     * @return
+     */
+    final def async[A](bodyParser: BodyParser[A])(block: Context => Request[A] => Future[SimpleResult]): Action[A] = Action.async(bodyParser) { implicit request =>
+      val preview = request.getQueryString("preview").getOrElse(false)
+      val context = Context("true".equals(preview), preferred(request.acceptLanguages))
+
+      block(context)(request)
+    }
+  }
+
+
+
 }

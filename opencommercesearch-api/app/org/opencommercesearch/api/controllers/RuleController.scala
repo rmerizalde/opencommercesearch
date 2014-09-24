@@ -27,17 +27,18 @@ import play.api.libs.json.{JsError, JsArray, Json}
 import scala.concurrent.Future
 
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.Util._
+import org.opencommercesearch.api.util.Util
 import org.opencommercesearch.api.models.{Rule, RuleList}
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
 import org.apache.solr.client.solrj.beans.BindingException
 import org.apache.solr.common.SolrDocument
+import Util._
 
 object RuleController extends BaseController {
 
-  def findById(version: Int, id: String, preview: Boolean) = Action { implicit request =>
+  def findById(version: Int, id: String, preview: Boolean) = Action.async { implicit request =>
     val query = withRuleCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
 
     query.add("q", "id:" + id)
@@ -59,12 +60,10 @@ object RuleController extends BaseController {
       }
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot retrieve rule with id [$id]")
-    }
+    withErrorHandling(future, s"Cannot retrieve rule with id [$id]")
   }
 
-  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action (parse.json) { request =>
+  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action.async (parse.json) { request =>
     Json.fromJson[Rule](request.body).map { rule =>
       try {
         val ruleDoc = solrServer.binder.toSolrInputDocument(rule)
@@ -72,66 +71,61 @@ object RuleController extends BaseController {
         update.add(ruleDoc)
         withRuleCollection(update, preview, request.acceptLanguages)
 
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Created.withHeaders((LOCATION, absoluteURL(routes.RuleController.findById(id), request)))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot store Rule with id [$id]")
-        }
+        withErrorHandling(future, s"Cannot store Rule with id [$id]")
       }
       catch {
         case e : BindingException =>
-          BadRequest(Json.obj(
+          Future.successful(BadRequest(Json.obj(
             "message" -> "Illegal Rule fields",
-            "detail" -> e.getMessage))
+            "detail" -> e.getMessage)))
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
-        "message" -> "Illegal Rule fields"))
-    }
+        "message" -> "Illegal Rule fields")))
+    }.get
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action (parse.json(maxLength = 1024 * 2000)) { request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { request =>
     Json.fromJson[RuleList](request.body).map { ruleList =>
-
       val rules = ruleList.rules
       try {
-        if (rules.length > MaxUpdateRuleBatchSize) {
-          BadRequest(Json.obj(
-            "message" -> s"Exceeded number of Rules. Maximum is $MaxUpdateRuleBatchSize"))
+        if (rules.length > MaxRuleIndexBatchSize) {
+          Future.successful(BadRequest(Json.obj(
+            "message" -> s"Exceeded number of Rules. Maximum is $MaxRuleIndexBatchSize")))
         } else {
           val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
           rules map { rule =>
               update.add(solrServer.binder.toSolrInputDocument(rule))
           }
 
-          val future: Future[Result] = update.process(solrServer).map( response => {
+          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
             Created(Json.obj(
               "locations" -> JsArray(
                 rules map (b => Json.toJson(routes.RuleController.findById(b.id.get).url))
               )))
           })
 
-          Async {
-            withErrorHandling(future, s"Cannot store Rules with ids [${rules map (_.id.get) mkString ","}]")
-          }
+          withErrorHandling(future, s"Cannot store Rules with ids [${rules map (_.id.get) mkString ","}]")
         }
       }
       catch {
         case e : BindingException =>
           //Handle bind exceptions
-          BadRequest(Json.obj(
+          Future.successful(BadRequest(Json.obj(
             "message" -> s"Illegal Rule fields [${rules map (_.id.get) mkString ","}] ",
-            "detail" -> e.getMessage))
+            "detail" -> e.getMessage)))
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
+    }.recover {
+      case e => Future.successful(BadRequest(Json.obj(
         // @TODO figure out how to pull missing field from JsError
         "message" -> "Missing required fields",
-        "detail"  -> JsError.toFlatJson(e)))
-    }
+        "detail"  -> JsError.toFlatJson(e))))
+    }.get
   }
 
   /**
@@ -139,35 +133,31 @@ object RuleController extends BaseController {
    * @param commit true if a commit should be done.
    * @param rollback true if a rollbac should be done.
    */
-  def commitOrRollback(preview: Boolean, commit: Boolean, rollback: Boolean) = Action { request =>
+  def commitOrRollback(preview: Boolean, commit: Boolean, rollback: Boolean) = Action.async { request =>
     if(commit == rollback) {
-      BadRequest(Json.obj(
-        "message" -> s"commit and boolean can't have the same value."))
+      Future.successful(BadRequest(Json.obj(
+        "message" -> s"commit and boolean can't have the same value.")))
     }
     else {
       val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
 
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot commit rules.")
-        }
+        withErrorHandling(future, s"Cannot commit rules.")
       }
       else {
         update.rollback
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
 
-        Async {
-          withErrorHandling(future, s"Cannot rollback rules.")
-        }
+        withErrorHandling(future, s"Cannot rollback rules.")
       }
     }
   }
@@ -176,18 +166,16 @@ object RuleController extends BaseController {
    * Delete method that remove all rules matching a given query.
    * @param query is the query used to delete rules, default is *:*
    */
-  def deleteByQuery(preview: Boolean, query: String) = Action { request =>
+  def deleteByQuery(preview: Boolean, query: String) = Action.async { request =>
     val update = withRuleCollection(new AsyncUpdateRequest(), preview, request.acceptLanguages)
 
     update.deleteByQuery(query)
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
+    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
       Ok (Json.obj(
         "message" -> "delete success"))
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot delete rules.")
-    }
+    withErrorHandling(future, s"Cannot delete rules.")
   }
 }

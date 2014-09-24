@@ -19,166 +19,167 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
 import play.api.Logger
-import play.api.libs.json.Json
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.{JsError, JsObject, Json}
+import play.api.mvc._
 
+import scala.collection.JavaConversions._
 import scala.concurrent.Future
 
+import javax.ws.rs.{PathParam, QueryParam}
+
+import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.Util._
-import org.opencommercesearch.api.models.{Brand, BrandList}
-import org.apache.solr.common.SolrDocument
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.SolrQuery
+import org.opencommercesearch.api.common.FacetQuery
+import org.opencommercesearch.api.models.{Brand, BrandList, Category}
+import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.util.Util._
+import org.opencommercesearch.search.suggester.IndexableElement
+
 import com.wordnik.swagger.annotations._
-import javax.ws.rs.{QueryParam, PathParam}
 
-@Api(value = "/brands", listingPath = "/api-docs/brands", description = "Brand API endpoints")
-object BrandController extends BaseController {
+@Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
+object BrandController extends BaseController with FacetQuery {
 
-  @ApiOperation(value = "Searches brands", notes = "Returns brand information for a given brand", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
-  @ApiErrors(value = Array(new ApiError(code = 404, reason = "Brand not found")))
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  val categoryService = new CategoryService(solrServer, storageFactory)
+
+  @ApiOperation(value = "Get a brand by id", notes = "Returns brand information for a given brand", response = classOf[Brand], httpMethod = "GET")
+  @ApiResponses(Array(new ApiResponse(code = 404, message = "Brand not found")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Get brand in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def findById(
     version: Int,
     @ApiParam(value = "A brand id", required = true)
     @PathParam("id")
-    id: String,
-    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
-    @QueryParam("preview")
-    preview: Boolean) = Action { implicit request =>
-    val query = withBrandCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview)
-
-    query.setRequestHandler(RealTimeRequestHandler)
-    query.add("id", id)
+    id: String) = ContextAction.async { implicit context => implicit request =>
 
     Logger.debug("Query brand " + id)
-    val future = solrServer.query(query).map( response => {
-      val doc = response.getResponse.get("doc").asInstanceOf[SolrDocument]
-      if (doc != null) {
+
+    val startTime = System.currentTimeMillis()
+    val storage = withNamespace(storageFactory)
+    val storageFuture = storage.findBrand(id, fieldList(allowStar = true)).map( brand => {
+      if (brand != null) {
         Logger.debug("Found brand " + id)
         Ok(Json.obj(
-          "brand" -> Json.toJson(Brand.fromDocument(doc))))
+          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "brand" -> Json.toJson(brand)))
       } else {
         Logger.debug("Brand " + id + " not found")
         NotFound(Json.obj(
+          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
           "message" -> s"Cannot find brand with id [$id]"
         ))
       }
     })
 
-    Async {
-      withErrorHandling(future, s"Cannot retrieve brand with id [$id]")
-    }
+    withErrorHandling(storageFuture , s"Cannot retrieve brand with id [$id]")
   }
 
   @ApiOperation(value = "Creates a brand", notes = "Creates/updates the given brand", httpMethod = "PUT")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "brand", value = "Brand to create/update", required = true, dataType = "org.opencommercesearch.api.models.Brand", paramType = "body")
-  ))
-  @ApiErrors(value = Array(
-    new ApiError(code = 400, reason = "Missing required fields")
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Missing required fields")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "brand", value = "Brand to create/update", required = true, dataType = "org.opencommercesearch.api.models.Brand", paramType = "body"),
+    new ApiImplicitParam(name = "preview", value = "Create the brand in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def createOrUpdate(
-      version: Int,
-      @ApiParam( value = "A brand id", required = true)
-      @PathParam("id")
-      id: String,
-      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create the brand in preview", required = false)
-      @QueryParam("preview")
-      preview: Boolean) = Action (parse.json) { request =>
+    version: Int,
+    @ApiParam( value = "A brand id", required = true)
+    @PathParam("id")
+    id: String) = ContextAction.async (parse.json) { implicit context => implicit request =>
     Json.fromJson[Brand](request.body).map { brand =>
-      if (brand.name.isEmpty || brand.logo.isEmpty) {
-        BadRequest(Json.obj("message" -> "Missing required fields"))
+      if (brand.name.isEmpty) {
+        Logger.error("Missing required brand fields [name]")
+        Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
       } else {
-        val brandDoc = brand.toDocument
+        try {
+          //Save brand on storage
+          val storage = withNamespace(storageFactory)
+          val storageFuture = storage.saveBrand(brand)
+          val suggestionFuture = IndexableElement.addToIndex(Seq(brand), fetchCount = true)
+          val futureList = List[Future[Any]](storageFuture, suggestionFuture)
+          val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
+            Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
+          }
 
-        brandDoc.setField("id", id)
-
-        val update = new AsyncUpdateRequest()
-        update.add(brandDoc)
-        withBrandCollection(update, preview)
-
-        val future: Future[Result] = update.process(solrServer).map( response => {
-          Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
-        })
-
-        Async {
           withErrorHandling(future, s"Cannot store brand with id [$id]")
+        } catch {
+          case e: IllegalArgumentException =>
+            Logger.error(e.getMessage)
+            Future.successful(BadRequest(Json.obj(
+              "message" -> e.getMessage)))
         }
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
-        // @TODO figure out how to pull missing field from JsError
-        "message" -> "Illegal brand fields"))
-    }
+    }.recover {
+      case e =>
+        Logger.error(s"Missing required brand fields ${JsError.toFlatJson(e).toString()}")
+        Future.successful(BadRequest(Json.obj(
+          "message" -> "Missing required brand fields")))
+    }.get
   }
 
   @ApiOperation(value = "Creates brands", notes = "Creates/updates the given brands", httpMethod = "PUT")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "brands", value = "Brands to create/update", required = true, dataType = "org.opencommercesearch.api.models.BrandList", paramType = "body")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "brands", value = "Brands to create/update", required = true, dataType = "org.opencommercesearch.api.models.BrandList", paramType = "body"),
+    new ApiImplicitParam(name = "preview", value = "Create brands in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+
   ))
-  @ApiErrors(value = Array(
-    new ApiError(code = 400, reason = "Missing required fields"),
-    new ApiError(code = 400, reason = "Exceeded maximum number of brands that can be created at once")
+  @ApiResponses(value = Array(
+    new ApiResponse(code = 400, message = "Missing required fields"),
+    new ApiResponse(code = 400, message = "Exceeded maximum number of brands that can be created at once")
   ))
-  def bulkCreateOrUpdate(
-      version: Int,
-      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Create brands in preview", required = false)
-      @QueryParam("preview")
-      preview: Boolean) = Action(parse.json(maxLength = 1024 * 2000)) { implicit request =>
+  def bulkCreateOrUpdate(version: Int) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>
+
     Json.fromJson[BrandList](request.body).map { brandList =>
       val brands = brandList.brands
 
-      if (brands.length > MaxUpdateBrandBatchSize) {
-        BadRequest(Json.obj(
-          "message" -> s"Exceeded number of brands. Maximum is $MaxUpdateBrandBatchSize"))
+      if (brands.length > MaxBrandIndexBatchSize) {
+        Future.successful(BadRequest(Json.obj(
+          "message" -> s"Exceeded number of brands. Maximum is $MaxBrandIndexBatchSize")))
       } else if (hasMissingFields(brands)) {
-        BadRequest(Json.obj(
-          "message" -> "Missing required fields"))
+        Logger.error("Missing required brand fields [id] or [name]")
+        Future.successful(BadRequest(Json.obj(
+          "message" -> "Missing required fields")))
       } else {
-        val update = withBrandCollection(new AsyncUpdateRequest(), preview)
-        update.add(brandList.toDocuments)
 
-        val future: Future[Result] = update.process(solrServer).map( response => {
+        val storage = withNamespace(storageFactory)
+        val storageFuture = storage.saveBrand(brands:_*)
+        val suggestionFuture = IndexableElement.addToIndex(brands, fetchCount = true)
+
+        val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionFuture)) map { result =>
           Created
-        })
-
-        Async {
-          withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
         }
+
+        withErrorHandling(future, s"Cannot store brands with ids [${brands map (_.id.get) mkString ","}]")
       }
-    }.recoverTotal {
-      e => BadRequest(Json.obj(
-        // @TODO figure out how to pull missing field from JsError
-        "message" -> "Missing required fields"))
-    }
+    }.recover {
+      case e =>
+        Logger.error(s"Missing required fields ${JsError.toFlatJson(e).toString()}")
+        Future.successful(
+          BadRequest(Json.obj(
+            "message" -> "Missing required fields")))
+    }.get
   }
 
-  @ApiOperation(value = "Suggests brands", notes = "Returns brand suggestions for given partial brand name", responseClass = "org.opencommercesearch.api.models.Brand", httpMethod = "GET")
-  @ApiParamsImplicit(value = Array(
-    new ApiParamImplicit(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
-    new ApiParamImplicit(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  @ApiOperation(value = "Suggests brands", notes = "Returns brand suggestions for given partial brand name", response = classOf[Brand], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete suggestion result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of suggestions", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Suggest brands in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Partial category name is too short")))
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial brand name is too short")))
   def findSuggestions(
     version: Int,
     @ApiParam(value = "Partial category name", required = true)
     @QueryParam("q")
     query: String,
-    @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
-    @QueryParam("preview")
-    preview: Boolean) = Action { implicit request =>
-    val solrQuery = withBrandCollection(new SolrQuery(query), preview)
-
-    Async {
-      findSuggestionsFor(classOf[Brand], "brands" , solrQuery)
-    }
+    @ApiParam(value = "Site to search", required = true)
+    @QueryParam("site")
+    site: String) = ContextAction.async { implicit context => implicit request =>
+    findSuggestionsFor("brand", query, site)
   }
 
   /**
@@ -192,8 +193,7 @@ object BrandController extends BaseController {
     while (!missingFields && brandIt.hasNext) {
       val brand = brandIt.next()
       missingFields = brand.id.isEmpty ||
-        brand.name.isEmpty ||
-        brand.logo.isEmpty
+        brand.name.isEmpty 
     }
     missingFields
   }
@@ -202,14 +202,261 @@ object BrandController extends BaseController {
    * Delete method that remove all brands not matching a given timestamp.
    */
   @ApiOperation(value = "Delete brands", notes = "Removes brands based on a given query", httpMethod = "DELETE")
-  @ApiErrors(value = Array(new ApiError(code = 400, reason = "Cannot delete brands")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "preview", value = "Deletes brands in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Cannot delete brands")))
   def deleteByTimestamp(
-   @ApiParam(defaultValue="false", allowableValues="true,false", value = "Delete brands in preview", required = false)
-   @QueryParam("preview")
-   preview: Boolean,
    @ApiParam(value = "The feed timestamp. All brands with a different timestamp are deleted", required = true)
    @QueryParam("feedTimestamp")
-   feedTimestamp: Long) = Action { request =>
-    deleteByQuery("-feedTimestamp:" + feedTimestamp, withBrandCollection(new AsyncUpdateRequest(), preview), "brands")
+   feedTimestamp: Long) = ContextAction.async { context => request =>
+    //TODO: Should the brand feed clean up mongo?
+    Future.successful(NoContent)
+  }
+
+  /**
+   * Get a list of all existing brands
+   */
+  @ApiOperation(value = "Get all brands", notes = "Gets a list of all brands", response = classOf[Brand], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the brands list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of brands", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Get brands in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def findAll(
+   version: Int,
+   @ApiParam(defaultValue="false", allowableValues="true,false", value = "", required = false)
+   @ApiParam(value = "Site to search for brands", required = true)
+   @QueryParam("site")
+   site: String) = ContextAction.async { implicit context => implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val brandFacetQuery = new ProductFacetQuery("brandId", site)
+      .withPagination()
+
+    if(Logger.isDebugEnabled) {
+      Logger.debug("Searching brand ids with query " + brandFacetQuery.toString)
+    }
+
+    val future = solrServer.query(brandFacetQuery).flatMap( catalogResponse => {
+      val facetFields = catalogResponse.getFacetFields
+      var brandInfoFuture : Future[SimpleResult] = null
+
+      if(facetFields != null) {
+        facetFields.map( facetField => {
+          if("brandId".equals(facetField.getName)) {
+            if(Logger.isDebugEnabled) {
+              Logger.debug("Got " + facetField.getValueCount + " brand ids")
+            }
+
+            if(facetField.getValueCount > 0) {
+              //Find brand data on storage
+              val storage = withNamespace(storageFactory)
+              val brandIds = facetField.getValues.map(facetValue => {facetValue.getName})
+
+              brandInfoFuture = storage.findBrands(brandIds, fieldList(allowStar = true)).map( brandList => {
+                Ok(Json.obj(
+                  "metadata" -> Json.obj(
+                    "time" -> (System.currentTimeMillis() - startTime)),
+                  "brands" -> Json.toJson(brandList))
+                )
+              })
+            }
+          }
+        })
+      }
+      else {
+          Logger.debug("Got 0 brands, no facets were returned")
+      }
+
+      if(brandInfoFuture != null) {
+        withErrorHandling(brandInfoFuture, "Cannot get brands")
+      }
+      else {
+        Future(NotFound(Json.obj("message" -> "No brands found")))
+      }
+    })
+
+    withErrorHandling(future, "Cannot get brands")
+  }
+
+  /**
+   * Get a list of all categories for a given brand
+   */
+  @ApiOperation(value = "Get all categories for a given brand", notes = "Gets a list of the categories associated with a given brand. Only categories that have products in stock are returned. Returns all the corresponding taxonomy for each category found.", response = classOf[Category], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited category field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Get brand categories in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def findBrandCategoriesById(
+   version: Int,
+   @ApiParam(value = "Brand id to get categories for", required = true)
+   @PathParam("id")
+   id: String,
+   @ApiParam(value = "Site to search categories for brand", required = true)
+   @QueryParam("site")
+   site: String) = ContextAction.async { implicit context => implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val categoryFacetQuery = new ProductFacetQuery("ancestorCategoryId", site)
+      .withBrand(id)
+      .withPagination()
+    // @todo revisit this limit
+    categoryFacetQuery.setFacetLimit(MaxFacetPaginationLimit)
+
+    if(Logger.isDebugEnabled) {
+      Logger.debug(s"Searching categories for brand $id with query ${categoryFacetQuery.toString}")
+    }
+
+    val future = categoryService.getBrandTaxonomy(id, site, fieldList(allowStar = true)) flatMap { roots =>
+      Future(Ok(Json.obj(
+        "metadata" -> Json.obj(
+          "time" -> (System.currentTimeMillis() - startTime)),
+        "categories" -> Json.toJson(roots)))
+      )
+    }
+
+    withErrorHandling(future, s"Cannot get categories for brand $id")
+  }
+
+  /**
+   * Get a list of all brand categories
+   */
+  @ApiOperation(value = "Get all brand categories", notes = "Gets a list of brand categories that have products in stock.", response = classOf[Category], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the brands list", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of brands", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Get all brand categories in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def findBrandCategories(
+   version: Int,
+   @ApiParam(value = "Site to search for brand categories", required = true)
+   @QueryParam("site")
+   site: String) = ContextAction.async { implicit context => implicit request =>
+
+    val startTime = System.currentTimeMillis()
+    val brandFacetQuery = new ProductFacetQuery("brandId", site)
+      .withPagination()
+
+    Logger.debug(s"Searching brands ${brandFacetQuery.toString}")
+
+    val future = solrServer.query(brandFacetQuery).flatMap( brandsResponse => {
+      val facetFields = brandsResponse.getFacetFields
+      var brandsDataFuture: Future[SimpleResult] = null
+
+      if(facetFields != null) {
+        facetFields.map( brandsFacetField => {
+          if("brandId".equals(brandsFacetField.getName)) {
+            if(Logger.isDebugEnabled) {
+              Logger.debug(s"Got ${brandsFacetField.getValueCount} brand ids")
+            }
+
+            if(brandsFacetField.getValueCount > 0) {
+              //Need to get brands data
+              val storage = withNamespace(storageFactory)
+              val brandIds = brandsFacetField.getValues.map(facetValue => {facetValue.getName})
+
+              val brandsFromStorage = storage.findBrands(brandIds, Seq("*"))
+
+              brandsDataFuture = brandsFromStorage.flatMap(brandList => {
+                val resultList = brandList.map( brand => {
+                  val categoryFacetQuery = new ProductFacetQuery("ancestorCategoryId", site)
+                    .withBrand(brand.getId)
+                    .withPagination()
+                  // @todo revisit this limit
+                  categoryFacetQuery.setFacetLimit(MaxFacetPaginationLimit)
+
+                  val categoriesQuery = solrServer.query(categoryFacetQuery).flatMap( categoryResponse => {
+                    val facetFields = categoryResponse.getFacetFields
+                    var categoryDataFuture: Future[Iterable[JsObject]] = null
+
+                    if(facetFields != null) {
+                      facetFields.map(categoriesFacetField => {
+                        if("ancestorCategoryId".equals(categoriesFacetField.getName)) {
+                          if(Logger.isDebugEnabled) {
+                            Logger.debug(s"Got ${categoriesFacetField.getValueCount} category ids for brand ${brand.getId}")
+                          }
+
+                          if(categoriesFacetField.getValueCount > 0) {
+                            val categoryIds = categoriesFacetField.getValues.map(facetValue => {facetValue.getName})
+
+                            Logger.debug(s"Category ids for brand ${brand.getId} are $categoryIds")
+
+                            categoryDataFuture = storage.findCategories(categoryIds, Seq("*")).map( categoryList => {
+                              categoryList withFilter { category =>
+                                category.sites.getOrElse(Seq.empty[String]).contains(site) &&
+                                !category.isRuleBased.getOrElse(false) &&
+                                 category.parentCategories.getOrElse(Seq.empty[Category]).size != 0
+                              } map( category => {
+                                Json.obj(
+                                  "brandId" -> brand.getId,
+                                  "brandName" -> brand.getName,
+                                  "categoryId" -> category.getId,
+                                  "categoryName" -> category.getName,
+                                  "name" -> s"${brand.getName} ${category.getName}",
+                                  "seoUrlToken" -> s"${brand.getUrl}-${category.getUrl}"
+                                )
+                              })
+                            })
+                          }
+                          else {
+                            Logger.debug("Got an empty ancestorCategoryId facet field for brand ${brand.getId}")
+                          }
+                        }
+                        else {
+                          Logger.debug(s"Cannot get categories for brand ${brand.getId} because there is no ancestorCategoryId facet field in Solr response")
+                        }
+                      })
+                    }
+                    else {
+                      Logger.debug(s"Cannot get categories for brand ${brand.getId} because there are no facet fields in Solr response")
+                    }
+
+                    if(categoryDataFuture != null) {
+                      categoryDataFuture
+                    }
+                    else {
+                      Future(Iterable.empty[JsObject])
+                    }
+                  })
+
+                  categoriesQuery
+                })
+
+                //Combine all futures in a single one (wait until they all finish)
+                Future.sequence(resultList).map(brandList => {
+                  Ok(Json.obj(
+                    "metadata" -> Json.obj(
+                      "time" -> (System.currentTimeMillis() - startTime)),
+                    "brandCategories" -> brandList.foldRight(List.empty[Iterable[JsObject]]) {
+                    (iterable, accum) =>
+                      iterable :: accum
+                  }))
+                })
+              })
+            }
+            else {
+              Logger.debug("Got a an empty facet field for brandId")
+            }
+          }
+          else {
+            Logger.debug("Cannot get brand categories because there is no brandId facet field in Solr response")
+          }
+        })
+      }
+      else {
+        Logger.debug("Cannot get brand categories because there are no facet fields in Solr response")
+      }
+
+      if(brandsDataFuture != null) {
+        withErrorHandling(brandsDataFuture, s"Cannot get brand categories")
+      }
+      else {
+        Future(NotFound(Json.obj("message" -> s"No brands found")))
+      }
+    })
+
+    withErrorHandling(future, s"Cannot get brand categories")
   }
 }

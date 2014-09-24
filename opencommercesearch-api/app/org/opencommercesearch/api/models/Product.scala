@@ -20,283 +20,344 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import play.api.Logger
 import play.api.libs.json._
 
 import java.util
+import java.util.Date
 
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.collection.JavaConversions._
-
-import org.apache.solr.client.solrj.beans.Field
-import org.apache.solr.common.SolrInputDocument
-import org.apache.commons.lang3.StringUtils
+import org.opencommercesearch.api.Global.{IndexOemProductsEnabled, ProductAvailabilityStatusSummary}
+import org.opencommercesearch.api.Implicits._
+import org.opencommercesearch.api.models.ProductList._
 import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.IndexableElement
 
-import ProductList._
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.common.SolrInputDocument
 
-case class Product (
-  var id: Option[String],
-  var title: Option[String],
-  var description: Option[String],
-  var shortDescription: Option[String],
-  var brand: Option[Brand],
-  var gender: Option[String],
-  var sizingChart: Option[String],
-  var detailImages: Option[Seq[Image]],
-  var bulletPoints: Option[Seq[String]],
-  var attributes: Option[Seq[Attribute]],
-  var features: Option[Seq[Attribute]],
-  var listRank: Option[Int],
-  var reviewCount: Option[Int],
-  var reviewAverage: Option[Float],
-  var bayesianReviewAverage: Option[Float],
-  // has free gift by catalog
-  var hasFreeGift: Option[Map[String, Boolean]],
-  var isOutOfStock: Option[Boolean],
-  var categories: Option[Seq[String]],
-  var skus: Option[Seq[Sku]])
-{
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+import org.jongo.marshall.jackson.oid.Id
 
-  @Field
-  def setId(id: String) : Unit = { this.id = Option.apply(id) }
-
-  @Field
-  def setTitle(title: String) : Unit = { this.title = Option.apply(title) }
-  
-  @Field
-  def setDescription(description: String) : Unit = { this.description = Option.apply(description) }
-  
-  @Field
-  def setShortDescription(shortDescription: String) : Unit = { this.shortDescription = Option.apply(shortDescription) }    
-
-  @Field
-  def setBrandId(id: Int) : Unit = {
-    if (brand.isEmpty) {
-        brand = Option.apply(new Brand())
-    }
-    brand.get.setId(id.toString) 
-  }  
-  
-  @Field
-  def setBrand(name: String) : Unit = {
-    if (brand.isEmpty) {
-        brand = Option.apply(new Brand())
-    }
-    brand.get.setName(name) 
-  }  
-
-  @Field
-  def setGender(gender: String) : Unit = { this.gender = Option.apply(gender) }
-  
-  @Field
-  def setSizingChart(sizingChart: String) : Unit = { this.sizingChart = Option.apply(sizingChart) } 
-  
-  @Field
-  def setBulletPoints(bulletPoints: util.List[String]) {
-    this.bulletPoints = Some(JIterableWrapper(bulletPoints).toSeq)
-  }   
-  
-  @Field
-  def setDetailImages(detailImages: util.List[String]) {
-    this.detailImages = Some(JIterableWrapper(detailImages).map( { image => 
-      val parts = StringUtils.split(image, FieldSeparator)
-      if(parts.size == 1) {
-          new Image(Some(StringUtils.EMPTY), Some(parts(0)))
-      } else {
-        new Image(Some(parts(0)), Some(parts(1)))
-      }
-    }).toSeq)
-  }   
-
-  @Field
-  def setSkus(skus: Seq[Sku]) : Unit = { this.skus = Option.apply(skus) }
-  
-  @Field("isOutOfStock")
-  def setOutOfStock(isOutOfStock: Boolean) {
-    this.isOutOfStock = Option.apply(isOutOfStock)
-  }  
-  
-  @Field
-  def setFeatures(features: util.List[String]) {
-    this.features = Some(JIterableWrapper(features).map( { feature => 
-      val parts = StringUtils.split(feature, FieldSeparator)
-      new Attribute(Some(parts(0)), Some(parts(1)))    
-    }).toSeq)
-  }  
-  
-  @Field
-  def setAttributes(attributes: util.List[String]) {
-    this.features = Some(JIterableWrapper(attributes).map( { attribute => 
-      val parts = StringUtils.split(attribute, FieldSeparator)
-      new Attribute(Some(parts(0)), Some(parts(1)))    
-    }).toSeq)
-  }
-  
-  @Field("reviews")
-  def setReviewCount(reviewCount: Int) : Unit = { this.reviewCount = Option.apply(reviewCount) }
-
-  @Field("reviewAverage")
-  def setReviewAverage(reviewAverage: Float) : Unit = { this.reviewAverage = Option.apply(reviewAverage) }
-
-  @Field("bayesianReviewAverage")
-  def setBayesianReviewAverage(bayesianReviewAverage: Float) : Unit = { this.bayesianReviewAverage = Option.apply(bayesianReviewAverage) }
-  
-  @Field
-  def sethasFreeGift(freeGifts: util.List[String]) : Unit = {
-    this.hasFreeGift = Some(JIterableWrapper(freeGifts).map( { freeGift => 
-      val parts = StringUtils.split(freeGift, FieldSeparator)
-      (parts(0), "true".equals(parts(1)))    
-    }).toMap)
-  }
-          
-}
+import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
+import play.api.libs.functional.syntax._
+import scala.Some
 
 object Product {
 
-  implicit val readsProduct = Json.reads[Product]
-  implicit val writesProduct = Json.writes[Product]
+  @JsonCreator
+  def getInstance() =  new Product()
+
+    implicit val readsProduct : Reads[Product] = (
+      (__ \ "id").readNullable[String] ~
+      (__ \ "title").readNullable[String] ~
+      (__ \ "description").readNullable[String] ~
+      (__ \ "shortDescription").readNullable[String] ~
+      (__ \ "brand").readNullable[Brand] ~
+      (__ \ "gender").readNullable[String] ~
+      (__ \ "sizingChart").readNullable[String] ~
+      (__ \ "detailImages").readNullable[Seq[Image]] ~
+      (__ \ "bulletPoints").readNullable[Seq[String]] ~
+      (__ \ "attributes").readNullable[Seq[Attribute]] ~
+      (__ \ "features").readNullable[Seq[Attribute]] ~
+      (__ \ "listRank").readNullable[Int] ~
+      (__ \ "customerReviews").readNullable[CustomerReview] ~
+      (__ \ "freeGifts").lazyReadNullable(Reads.map[Seq[Product]]) ~
+      (__ \ "availabilityStatus").readNullable[String] ~
+      (__ \ "categories").readNullable[Seq[Category]] ~
+      (__ \ "skus").readNullable[Seq[Sku]] ~
+      (__ \ "generation").readNullable[Generation] ~
+      (__ \ "activationDate").readNullable[Date] ~
+      (__ \ "isPackage").readNullable[Boolean] ~
+      (__ \ "isOem").readNullable[Boolean]
+    ) (Product.apply _)
+
+    implicit val writesProduct : Writes[Product] = (
+      (__ \ "id").writeNullable[String] ~
+      (__ \ "title").writeNullable[String] ~
+      (__ \ "description").writeNullable[String] ~
+      (__ \ "shortDescription").writeNullable[String] ~
+      (__ \ "brand").writeNullable[Brand] ~
+      (__ \ "gender").writeNullable[String] ~
+      (__ \ "sizingChart").writeNullable[String] ~
+      (__ \ "detailImages").writeNullable[Seq[Image]] ~
+      (__ \ "bulletPoints").writeNullable[Seq[String]] ~
+      (__ \ "attributes").writeNullable[Seq[Attribute]] ~
+      (__ \ "features").writeNullable[Seq[Attribute]] ~
+      (__ \ "listRank").writeNullable[Int] ~
+      (__ \ "customerReviews").writeNullable[CustomerReview] ~
+      (__ \ "freeGifts").lazyWriteNullable(Writes.map[Seq[Product]]) ~
+      (__ \ "availabilityStatus").writeNullable[String] ~
+      (__ \ "categories").writeNullable[Seq[Category]] ~
+      (__ \ "skus").writeNullable[Seq[Sku]] ~
+      (__ \ "generation").writeNullable[Generation] ~
+      (__ \ "activationDate").writeNullable[Date] ~
+      (__ \ "isPackage").writeNullable[Boolean] ~
+      (__ \ "isOem").writeNullable[Boolean]
+    ) (unlift(Product.unapply))
+
+}
+
+
+case class Product (
+  @Id var id: Option[String] = None,
+  @JsonProperty("title") var title: Option[String] = None,
+  @JsonProperty("description") var description: Option[String] = None,
+  @JsonProperty("shortDescription") var shortDescription: Option[String] = None,
+  @JsonProperty("brand") var brand: Option[Brand] = None,
+  @JsonProperty("gender") var gender: Option[String] = None,
+  @JsonProperty("sizingChart") var sizingChart: Option[String] = None,
+  @JsonProperty("detailImages") var detailImages: Option[Seq[Image]] = None,
+  @JsonProperty("bulletPoints") var bulletPoints: Option[Seq[String]] = None,
+  @JsonProperty("attributes") var attributes: Option[Seq[Attribute]] = None,
+  @JsonProperty("features") var features: Option[Seq[Attribute]] = None,
+  @JsonProperty("listRank") var listRank: Option[Int] = None,
+  @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview] = None,
+  @JsonProperty("freeGifts") var freeGifts: Option[Map[String, Seq[Product]]] = None,
+  @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
+  @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
+  @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,
+  @JsonProperty("generation") var generation : Option[Generation] = None,
+  @JsonProperty("activationDate") var activationDate: Option[Date] = None,
+  @JsonProperty("isPackage") var isPackage: Option[Boolean] = None,
+  @JsonProperty("isOem") var isOem: Option[Boolean] = None) extends IndexableElement
+{
+  def getId : String = { this.id.get }
+
+  override def source = "product"
+
+  override def toJson : JsValue = { Json.toJson(this) }
+  
+  def getNgramText : String = {
+    this.title.getOrElse(StringUtils.EMPTY)
+  }
+
+  def getType : String = {
+    "product"
+  }
+
+  def getSites : Seq[String] = {
+    val skus = this.skus.getOrElse(Seq.empty[Sku])
+    skus.foldRight(Set.empty[String]) {
+      (iterable, accum) =>
+        accum ++ iterable.catalogs.getOrElse(Seq.empty[String])
+    }.toSeq
+  }
+
+  def populateAvailabilityStatus() = {
+    val order = ProductAvailabilityStatusSummary
+
+    skus match {
+      case Some(s) =>
+        val sku = s.sortWith((a,b) => order(a.availabilityStatus.orNull) < order(b.availabilityStatus.orNull) ).head
+        availabilityStatus = sku.availabilityStatus
+      case None => availabilityStatus = None
+    }
+  }
+
+  populateAvailabilityStatus()
 }
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
-  def toDocuments(service: CategoryService, preview: Boolean) : (util.List[SolrInputDocument], util.List[SolrInputDocument]) = {
-    val productDocuments = new util.ArrayList[SolrInputDocument](products.size)
+
+  private def isPoos(country: Country): Boolean = country.availability match {
+    case Some(availability) => availability.status.orNull == Availability.PermanentlyOutOfStock
+    case None => false
+  }
+
+  private def hasNonPoos(sku: Sku): Boolean = sku.countries match {
+    case Some(countries) => countries.collectFirst {
+      case country if !isPoos(country) => true
+    }.getOrElse(false)
+    case None => false
+  }
+
+  def toDocuments(service: CategoryService)(implicit context: Context) : util.List[SolrInputDocument] = {
+    def setSize(doc: SolrInputDocument, size: Size) = {
+      for (sizeName <- size.name) {
+        doc.setField("size", sizeName)
+      }
+      for (scale <- size.scale) {
+        doc.setField("scale", scale)
+      }
+    }
+
     val skuDocuments = new util.ArrayList[SolrInputDocument](products.size * 3)
 
     var expectedDocCount = 0
     var currentDocCount = 0
+    var currentNonIndexableProductCount = 0
 
     for (product: Product <- products) {
-      for (productId <- product.id; title <- product.title; brand <- product.brand; isOutOfStock <- product.isOutOfStock;
+      for (productId <- product.id; title <- product.title; brand <- product.brand;
            skus <- product.skus; listRank <- product.listRank) {
-        expectedDocCount += skus.size
-        val productDoc = new SolrInputDocument()
-        var gender: String = null
-        productDoc.setField("id", productId)
-        productDoc.setField("title", title)
-        for (brandId <- brand.id) {
-          productDoc.setField("brand", brandId)
-        }        
-        productDoc.setField("isOutOfStock", isOutOfStock)
-        for (description <- product.description; shortDescription <- product.shortDescription) {
-          productDoc.setField("description", description)
-          productDoc.setField("shortDescription", shortDescription)
+        val isOem = product.isOem.getOrElse(false)
+        val nonPoosSku = skus.collectFirst {
+          case sku: Sku if hasNonPoos(sku) => sku
         }
-        for (g <- product.gender) { productDoc.setField("gender", gender = g) }
-        for (bulletPoints <- product.bulletPoints) {
-          for (bulletPoint <- bulletPoints) { productDoc.addField("bulletPoints", bulletPoint)}
-        }
-        for (features <- product.features) { setAttributes("features", productDoc, features) }
-        for (attributes <- product.attributes) { setAttributes("attributes", productDoc, attributes) }
-        for (reviewAverage <- product.reviewAverage; reviews <- product.reviewCount) {
-          productDoc.setField("reviews", reviews)
-          productDoc.setField("reviewAverage", reviewAverage)
-        }
-        for (sizingChart <- product.sizingChart) { productDoc.setField("sizingChart", sizingChart) }
-        for (detailImages <- product.detailImages) {
-          for (detailImage <- detailImages) {
-            var title = ""
-            var url = ""
-            for (t <- detailImage.title) { title = t }
-            for (u <- detailImage.url) { url = u }
-            productDoc.addField("detailImages", title + FieldSeparator + url)
-          }
-        }
-        for (hasFreeGift <- product.hasFreeGift) { 
-          hasFreeGift.foreach { case(catalog, hasGift) => 
-            if (hasGift) {
-              productDoc.addField("hasFreeGift", s"$catalog$FieldSeparator$hasGift")
-            } 
-          } 
-        }        
-        productDocuments.add(productDoc)
-        var skuCount = skus.size;
-        for (sku: Sku <- skus) {
-          for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
-               isCloseout <- sku.isCloseout; countries <- sku.countries) {
-            val doc = new SolrInputDocument()
-            doc.setField("id", id)
-            doc.setField("productId", productId)
-            doc.setField("title", title)
-            for (brandId <- brand.id) { doc.setField("brandId", brandId) }
-            for (brandName <- brand.name) { doc.setField("brand", brandName) }
-            for (imageUrl <- image.url) { doc.setField("image", imageUrl) }
-            doc.setField("listRank", listRank)
-            doc.setField("isToos", isOutOfStock)
-            doc.setField("isRetail", isRetail)
-            doc.setField("skuCount", skuCount)
-            doc.setField("isCloseout", isCloseout)
-            for (isOutlet <- sku.isOutlet) { doc.setField("isOutlet", isOutlet) }
-            for (isPastSeason <- sku.isPastSeason) { doc.setField("isPastSeason", isPastSeason) }
-            if (gender != null) { doc.setField("gender", gender ) }
 
-            for (year <- sku.year) { doc.setField("year", year) }
-            for (season <- sku.season) { doc.setField("season", season) }
-            for (colorFamily <- sku.colorFamily) { doc.setField("colorFamily", colorFamily) }
-            for (catalogs <- sku.catalogs) { service.loadCategoryPaths(doc, product, catalogs, preview) }
+        if (nonPoosSku.isDefined && (IndexOemProductsEnabled || !isOem)) {
+          var gender: String = null
+          var activationDate: Date = null
 
-            for (size <- sku.size) {
-              for (sizeName <- size.name) { doc.setField("size", sizeName) }
-              for (scale <- size.scale) { doc.setField("scale", scale) }
-            }
+          for (g <- product.gender) { gender = g }
+          for (activeDate <- product.activationDate) { activationDate = activeDate }
 
-            for (reviewAverage <- product.reviewAverage; bayesianReviewAverage <- product.bayesianReviewAverage;
-                 reviews <- product.reviewCount) {
-              doc.setField("reviews", reviews)
-              doc.setField("reviewAverage", reviewAverage)
-              doc.setField("bayesianReviewAverage", bayesianReviewAverage)
-            }
+          val skuCount = skus.size
+          var skuSort = 0
 
-            for (country: Country <- countries) {
-              for (code <- country.code) {
-                doc.addField("country", code)
+          for (sku: Sku <- skus) {
+            if (hasNonPoos(sku)) {
+              expectedDocCount += 1
 
-                for (allowBackorder <- country.allowBackorder) { doc.setField("allowBackorder" + code, allowBackorder) }
-                for (listPrice <- country.listPrice) { doc.setField("listPrice" + code, listPrice) }
-                for (salePrice <- country.salePrice) { doc.setField("salePrice" + code, salePrice) }
-                for (discountPercent <- country.discountPercent) { doc.setField("discountPercent" + code, discountPercent) }
-                for (onSale <- country.onSale) { doc.setField("onsale" + code, onSale) }
-                for (stockLevel <- country.stockLevel)  { doc.setField("stockLevel" + code, stockLevel) }
-                for (url <- country.url) { doc.setField("url" + code, url) }
+              for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
+                   isCloseout <- sku.isCloseout; countries <- sku.countries) {
+                currentDocCount += 1
+                val doc = new SolrInputDocument()
+
+                doc.setField("id", id)
+                doc.setField("productId", productId)
+                doc.setField("title", title)
+                for (brandId <- brand.id) {
+                  doc.setField("brandId", brandId)
+                }
+                for (brandName <- brand.name) {
+                  doc.setField("brand", brandName)
+                }
+                for (imageUrl <- image.url) {
+                  doc.setField("image", imageUrl)
+                }
+                doc.setField("listRank", listRank)
+                doc.setField("isRetail", isRetail)
+                doc.setField("skuCount", skuCount)
+                doc.setField("isCloseout", isCloseout)
+                for (isOutlet <- sku.isOutlet) {
+                  doc.setField("isOutlet", isOutlet)
+                }
+                for (isPastSeason <- sku.isPastSeason) {
+                  doc.setField("isPastSeason", isPastSeason)
+                }
+                if (gender != null) {
+                  doc.setField("gender", gender)
+                }
+
+                for(generation <- product.generation) {
+                  for(number <- generation.number) {
+                    doc.setField("generation_number", number)
+                  }
+                  for(master <- generation.master) {
+                    doc.setField("generation_master",master.getId)
+                  }
+                }
+
+                if (activationDate != null) {
+                  doc.setField("activationDate", activationDate)
+                }
+
+                for (year <- sku.year) {
+                  doc.setField("year", year)
+                }
+                for (season <- sku.season) {
+                  doc.setField("season", season)
+                }
+
+                for (color <- sku.color) {
+                  for (name <- color.name; family <- color.family) {
+                    doc.setField("colorFamily", family)
+                    doc.setField("color", name)
+                  }
+                }
+
+                for (catalogs <- sku.catalogs) {
+                  service.loadCategoryPaths(doc, product, catalogs)
+                }
+
+                for (size <- sku.size) {
+                  setSize(doc, size.preferred.getOrElse(size))
+                }
+
+                for (reviews <- product.customerReviews) {
+                  doc.setField("reviews", reviews.count)
+                  doc.setField("reviewAverage", reviews.average)
+                  doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
+                }
+
+                for (country: Country <- countries) {
+                  for (code <- country.code) {
+                    doc.addField("country", code)
+
+                    for (listPrice <- country.listPrice) {
+                      doc.setField("listPrice" + code, listPrice)
+                    }
+
+                    for (salePrice <- country.salePrice) {
+                      doc.setField("salePrice" + code, salePrice)
+                    }
+                    for (discountPercent <- country.discountPercent) {
+                      doc.setField("discountPercent" + code, discountPercent)
+                    }
+                    for (onSale <- country.onSale) {
+                      doc.setField("onsale" + code, onSale)
+                    }
+
+                    for (availability <- country.availability) {
+                      for (status <- availability.status; stockLevel <- availability.stockLevel) {
+                        doc.setField("stockLevel" + code, stockLevel)
+                        doc.setField("isToos", status == Availability.OutOfStock)
+                      }
+                      doc.setField("allowBackorder" + code, country.allowBackorder.getOrElse(false))
+                    }
+                    for (url <- country.url) {
+                      doc.setField("url" + code, url)
+                    }
+                  }
+                }
+
+                for (freeGifts <- product.freeGifts) {
+                  freeGifts.foreach { case (catalog, gifts) =>
+                      doc.setField("freeGift" + catalog, true)
+                  }
+                }
+
+                for (features <- product.features) {
+                  setAttributes(doc, features, FeatureFieldNamePrefix)
+                }
+                for (attributes <- product.attributes) {
+                  setAttributes(doc, attributes, AttrFieldNamePrefix)
+                }
+                doc.setField("sort", skuSort)
+                skuSort += 1
+                doc.setField("indexStamp", feedTimestamp)
+                skuDocuments.add(doc)
               }
             }
+          }
+        } else {
+          currentNonIndexableProductCount += 1
 
-            for (hasFreeGift <- product.hasFreeGift) { 
-              hasFreeGift.foreach { case(catalog, hasGift) => 
-                if (hasGift) {
-                  doc.setField("freeGift" + catalog, hasGift)
-                } 
-              } 
-            }
-            for (features <- product.features) { setAttributes(doc, features, FeatureFieldNamePrefix) }
-            for (attributes <- product.attributes) { setAttributes(doc, attributes, AttrFieldNamePrefix) }
-            for (sort <- sku.customSort) { doc.setField("sort", sort) }
-            doc.setField("indexStamp", feedTimestamp)
-            skuDocuments.add(doc)
-            currentDocCount += 1
+          if (nonPoosSku.isEmpty) {
+            Logger.info(s"Product $productId is permanently out of stock and won't be index in search")
+          } else {
+            Logger.info(s"Product $productId is original equipment manufacturer and won't be index in search")
           }
         }
       }
 
-      if (expectedDocCount != currentDocCount) {
+      if ((expectedDocCount != currentDocCount) || (expectedDocCount == 0 && currentNonIndexableProductCount == 0)) {
         throw new IllegalArgumentException("Missing required fields for product " + product.id.get)
       }
+
     }
-    (productDocuments, skuDocuments)
+    skuDocuments
   }
 
-  def setAttributes(fieldName: String, doc: SolrInputDocument, features: Seq[Attribute]) : Unit = {
-    for (feature <- features) {
-      for (name <- feature.name; value <- feature.value) {
-        doc.addField(fieldName, name + FieldSeparator + value)
-      }
-    }  
-  }
+  def setAttributes(doc: SolrInputDocument, attributes: Seq[Attribute], prefix: String) : Unit = {
+    for (attribute <- attributes) {
+      val searchable = attribute.searchable.getOrElse(true)
 
-  def setAttributes(doc: SolrInputDocument, features: Seq[Attribute], prefix: String) : Unit = {
-    for (feature <- features) {
-      for (name <- feature.name; value <- feature.value) {
-        doc.addField(prefix + name.toLowerCase.replaceAll(AttrNameCleanupPattern, ""), value)
+      for (name <- attribute.name; value <- attribute.value) {
+        if (searchable) {
+          doc.addField(prefix + name.toLowerCase.replaceAll(AttrNameCleanupPattern, ""), value)
+        }
       }
     }
   }

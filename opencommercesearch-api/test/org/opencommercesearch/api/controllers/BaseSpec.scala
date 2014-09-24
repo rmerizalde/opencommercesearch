@@ -19,7 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.Result
+import play.api.mvc.SimpleResult
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
@@ -50,7 +50,7 @@ abstract class BaseSpec extends Specification with Mockito {
     there was one(namedList).get("doc")
   }
 
-  protected def validateQueryResult(result: Result, expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  protected def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -68,14 +68,14 @@ abstract class BaseSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  protected def validateUpdateResult(result: Result, expectedStatus: Int, expectedLocation: String = null) = {
+  protected def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  protected def validateFailedUpdateResult(result: Result, expectedStatus: Int, expectedContent: String) = {
+  protected def validateFailedUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

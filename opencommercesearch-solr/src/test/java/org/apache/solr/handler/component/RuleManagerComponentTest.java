@@ -23,10 +23,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.solr.client.solrj.SolrQuery;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.response.QueryResponse;
-import org.apache.solr.common.SolrDocument;
-import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.params.*;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
@@ -53,10 +50,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.*;
-import static org.junit.matchers.JUnitMatchers.hasItem;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
@@ -137,7 +132,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         assertEquals("category:0.paulcatalog", outParams.get(CommonParams.FQ));
     }
@@ -152,7 +147,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         String[] filterQueries = outParams.getParams(CommonParams.FQ);
         assertEquals(3, filterQueries.length);
@@ -172,10 +167,58 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,fixedBoost(productId,'product2') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+    
+    @Test
+    public void testExcludeBoostRulesExperiment() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set("excludeRules", "0,1");
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
+    @Test
+    public void testIncludeBoostRulesExperiment() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set("includeRules", "1");
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,fixedBoost(productId,'product3') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+
+
+    @Test
+    public void testBoostRulesRuleCatPage() throws IOException {
+        prepareRuleDocs(TestSetType.boostRules);
+        setBaseParams();
+        params.set(RuleManagerParams.RULE_PAGE, "true");
+        params.set(RuleManagerParams.CATEGORY_FILTER, ClientUtils.escapeQueryChars("rule cat page"));
+        
+        //Should set boost for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,fixedBoost(productId,'product3') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+    }
+    
     @Test
     public void testFacetRules() throws IOException {
         //TODO: make a good test for testFacetRules
@@ -188,7 +231,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
@@ -210,7 +253,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
         assertEquals("fieldName3", outParams.get(FacetParams.FACET_FIELD));
         assertEquals("true", outParams.get(FacetParams.FACET));
@@ -228,7 +271,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
@@ -250,7 +293,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -266,7 +309,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -282,7 +325,7 @@ public class RuleManagerComponentTest {
         verify(req).setParams(argumentCaptor.capture());
 
         SolrParams outParams = argumentCaptor.getValue();
-        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc", outParams.get(CommonParams.SORT));
+        assertEquals("isToos asc,reviewAverage desc,reviews asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
@@ -291,6 +334,7 @@ public class RuleManagerComponentTest {
         params.set(RuleManagerParams.PAGE_TYPE, "search");
         params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
         params.set(CommonParams.Q, "some books");
+        params.set(FacetParams.FACET, true);
     }
 
     /**
@@ -323,14 +367,19 @@ public class RuleManagerComponentTest {
                 setIdsToResultContext(new int[]{0, 1}, rulesCore);
                 Document boostRule1 = new Document();
                 boostRule1.add(new Field(RuleConstants.FIELD_ID, "0", defaultFieldType));
+                boostRule1.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product2", defaultFieldType));
                 boostRule1.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
+                boostRule1.add(new Field(RuleConstants.FIELD_EXPERIMENTAL, "true", defaultFieldType));
 
                 Document boostRule2 = new Document();
                 boostRule2.add(new Field(RuleConstants.FIELD_ID, "1", defaultFieldType));
+                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "_all_", defaultFieldType));
+                boostRule2.add(new Field(RuleConstants.FIELD_CATEGORY, "rule cat page", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_BOOSTED_PRODUCTS, "product3", defaultFieldType));
                 boostRule2.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.boostRule.toString(), defaultFieldType));
-
+                boostRule2.add(new Field(RuleConstants.FIELD_EXPERIMENTAL, "true", defaultFieldType));
+                
                 when(rulesIndexSearcher.doc(0)).thenReturn(boostRule1);
                 when(rulesIndexSearcher.doc(1)).thenReturn(boostRule2);
                 break;
@@ -351,12 +400,12 @@ public class RuleManagerComponentTest {
 
                 Document facet1 = new Document();
                 facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_NAME, "fieldName1", defaultFieldType));
+                facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName1", defaultFieldType));
                 facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet2= new Document();
                 facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_NAME, "fieldName2", defaultFieldType));
+                facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName2", defaultFieldType));
                 facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 when(facetsIndexSearcher.doc(0)).thenReturn(facet1);
@@ -393,17 +442,17 @@ public class RuleManagerComponentTest {
 
                 Document facet1 = new Document();
                 facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_NAME, "fieldName1", defaultFieldType));
+                facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName1", defaultFieldType));
                 facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet2= new Document();
                 facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_NAME, "fieldName2", defaultFieldType));
+                facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName2", defaultFieldType));
                 facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 Document facet3= new Document();
                 facet3.add(new Field(FacetConstants.FIELD_ID, "facet3", defaultFieldType));
-                facet3.add(new Field(FacetConstants.FIELD_NAME, "fieldName3", defaultFieldType));
+                facet3.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName3", defaultFieldType));
                 facet3.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
 
                 when(facetsIndexSearcher.doc(0)).thenReturn(facet1);
@@ -502,6 +551,7 @@ public class RuleManagerComponentTest {
         String category = "My super duper favorite Men's category";
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
         requestParams.add(CommonParams.Q, "fantastic jackets");
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -527,6 +577,7 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -550,6 +601,7 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
@@ -574,9 +626,10 @@ public class RuleManagerComponentTest {
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
         requestParams.add(CommonParams.Q, "fantastic jackets");
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
-        requestParams.add(CommonParams.FQ, "brandId:someBrand");
+        requestParams.add(RuleManagerParams.BRAND_ID, "someBrand");
 
         SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);
 
@@ -597,10 +650,11 @@ public class RuleManagerComponentTest {
         RuleManagerComponent mgr = new RuleManagerComponent();
 
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.set(FacetParams.FACET, true);
         requestParams.add(CommonParams.Q, "fantastic jackets");
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
         requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
-        requestParams.add(CommonParams.FQ, "brandId:someBrand");
+        requestParams.add(RuleManagerParams.BRAND_ID, "someBrand");
         requestParams.add(CommonParams.FQ, "isCloseout:true");
 
         SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);

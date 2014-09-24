@@ -19,22 +19,32 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import org.apache.solr.client.solrj.response.FacetField
+import org.apache.solr.common.SolrDocumentList
 import play.api.test._
 import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json, JsArray}
-
+import play.api.libs.json.{JsError, Json}
+import scala.concurrent.{Future}
 import org.specs2.mutable._
-import org.apache.solr.client.solrj.AsyncSolrServer
-import org.apache.solr.common.SolrDocument
+import org.apache.solr.client.solrj.{SolrQuery, SolrRequest, AsyncSolrServer}
 import org.opencommercesearch.api.models.Brand
-
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import com.mongodb.WriteResult
 
 class BrandControllerSpec extends BaseSpec {
 
   trait Brands extends Before {
+    val storage = mock[MongoStorage]
+
     def before = {
       solrServer = mock[AsyncSolrServer]
+
+      storageFactory = mock[MongoStorageFactory]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveBrand(any) returns Future.successful(writeResult)
+
     }
   }
 
@@ -50,29 +60,27 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 404 when a brand is not found"  in new Brands {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
         val expectedId = "1000"
 
+        storage.findBrand(anyString, any) returns Future.successful(null)
+
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find brand with id [$expectedId]")
+        there was one(storage).findBrand(anyString, any)
       }
     }
 
     "send 200 when a brand is found" in new Brands {
       running(FakeApplication()) {
-        val (queryResponse, namedList) = setupQuery
-        val doc = mock[SolrDocument]
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
 
-        namedList.get("doc") returns doc
-        doc.get("id") returns expectedId
-        doc.get("name") returns expectedName
-        doc.get("logo") returns expectedLogo
+        val brand = new Brand(id = Some(expectedId), name = Some(expectedName), logo = Some(expectedLogo))
+        storage.findBrand(anyString, any) returns Future.successful(brand)
 
         val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
-        validateQuery(queryResponse, namedList)
+
         validateQueryResult(result.get, OK, "application/json")
+        there was one(storage).findBrand(anyString, any)
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "brand").validate[Brand].map { brand =>
@@ -87,7 +95,14 @@ class BrandControllerSpec extends BaseSpec {
 
     "send 201 when a brand is created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+        queryResponse.getFacetFields returns getFacetFields
+
+        setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
           "id" -> expectedId,
@@ -101,8 +116,11 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED, url)
+
+        there was one(solrServer).query(any[SolrQuery])
+        there was one(solrServer).request(any[SolrRequest])
+        there was one(storage).saveBrand(any)
       }
     }
 
@@ -141,10 +159,11 @@ class BrandControllerSpec extends BaseSpec {
     }
 
     "send 400 when exceeding maximum brands an a bulk create" in new Brands {
-      running(FakeApplication(additionalConfiguration = Map("brand.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.brand.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
+          "feedTimestamp" -> 1000,
           "brands" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
@@ -171,7 +190,7 @@ class BrandControllerSpec extends BaseSpec {
     }
 
     "send 400 when trying to bulk create brands with missing fields" in new Brands {
-      running(FakeApplication(additionalConfiguration = Map("brand.maxUpdateBatchSize" -> 2))) {
+      running(FakeApplication(additionalConfiguration = Map("index.brand.batchsize.max" -> 2))) {
         val (updateResponse) = setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val json = Json.obj(
@@ -195,12 +214,20 @@ class BrandControllerSpec extends BaseSpec {
       }
     }
 
-    "send 201 when a brands are created" in new Brands {
+    "send 201 when brands are created" in new Brands {
       running(FakeApplication()) {
-        val (updateResponse) = setupUpdate
+        val (queryResponse, _) = setupQuery
+
+        val documentList = mock[SolrDocumentList]
+        documentList.getNumFound returns 5
+        queryResponse.getResults returns documentList
+        queryResponse.getFacetFields returns getFacetFields
+
+        setupUpdate
         val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
         val (expectedId2, expectedName2, expectedLogo2) = ("1001", "Another Brand", "/brands/logo2.jpg")
         val json = Json.obj(
+          "feedTimestamp" -> 1000,
           "brands" -> Json.arr(
             Json.obj(
               "id" -> expectedId,
@@ -217,9 +244,21 @@ class BrandControllerSpec extends BaseSpec {
           .withJsonBody(json)
 
         val result = route(fakeRequest)
-        validateUpdate(updateResponse)
         validateUpdateResult(result.get, CREATED)
+
+        there was one(solrServer).query(any[SolrQuery])
+        there was one(solrServer).request(any[SolrRequest])
+        there was one(storage).saveBrand(any)
       }
     }
+  }
+
+  private def getFacetFields = {
+    val facetFields = new java.util.LinkedList[FacetField]()
+    val brandFacet = new FacetField("brand")
+    brandFacet.add("1000", 3)
+    brandFacet.add("1001", 2)
+    facetFields.add(brandFacet)
+    facetFields
   }
 }

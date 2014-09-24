@@ -19,133 +19,39 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.{Json}
+import java.util.Date
 
-import scala.collection.JavaConversions._
-import scala.collection.mutable.Map
+import play.api.libs.json.Json
 
-import java.util
-
-import org.apache.solr.client.solrj.beans.Field
-
-import Sku._
-import org.apache.commons.lang3.StringUtils
+import com.fasterxml.jackson.annotation.JsonCreator
 
 case class Sku(
-  var id: Option[String],
-  var season: Option[String],
-  var year: Option[String],
-  var image: Option[Image],
-  var countries: Option[Seq[Country]],
-  var isPastSeason: Option[Boolean],
-  var colorFamily: Option[String],
-  var isRetail: Option[Boolean],
-  var isCloseout: Option[Boolean],
-  var isOutlet: Option[Boolean],
-  var size: Option[Size],
-  var catalogs: Option[Seq[String]],
-  var customSort: Option[Int]) {
-
-  def this() = this(None, None, None, None, None, None, None, None, None, None, None, None, None)
-
-  @Field
-  def setId(id: String) : Unit = { this.id = Option.apply(id) }
-
-  @Field
-  def setImage(url: String) : Unit = {
-    this.image = Option.apply(new Image(None, Option.apply(url)))
+  var id: Option[String] = None,
+  var season: Option[String] = None,
+  var year: Option[String] = None,
+  var image: Option[Image] = None,
+  var countries: Option[Seq[Country]] = None,
+  var isPastSeason: Option[Boolean] = None,
+  var color: Option[Color] = None,
+  var title: Option[java.lang.String] = None,
+  var isRetail: Option[Boolean] = None,
+  var isCloseout: Option[Boolean] = None,
+  var isOutlet: Option[Boolean] = None,
+  var size: Option[Size] = None,
+  var catalogs: Option[Seq[String]] = None,
+  var listPrice: Option[BigDecimal] = None,
+  var salePrice: Option[BigDecimal] = None,
+  var discountPercent: Option[Int] = None,
+  var onSale: Option[Boolean] = None,
+  var url: Option[String] = None,
+  var allowBackorder: Option[Boolean] = None,
+  var attributes: Option[Seq[Attribute]] = None,
+  var availability: Option[Availability] = None)
+{
+  def availabilityStatus = availability match {
+    case Some(a) => a.status
+    case None => None
   }
-
-
-  @Field("listPrice*")
-  def setListPrice(listPrices: util.Map[String, Float]) : Unit = {
-    val priceMap: Map[String, Float] = listPrices
-    ensureCountries(ListPrice, listPrices)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.listPrice = priceMap.get(ListPrice + code)
-      }
-    }
-  }
-
-  @Field("salePrice*")
-  def setSaletPrice(salePrices: util.Map[String, Float]) : Unit = {
-    val priceMap: Map[String, Float] = salePrices
-    ensureCountries(SalePrice, salePrices)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.salePrice = priceMap.get(SalePrice + code)
-      }
-    }
-  }
-
-  @Field("discountPercent*")
-  def setDiscountPercent(discountPercents: util.Map[String, Int]) : Unit = {
-    val discountMap: Map[String, Int] = discountPercents
-    ensureCountries(DiscountPercent, discountPercents)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.discountPercent = discountMap.get(DiscountPercent + code)
-      }
-    }
-  }
-
-  @Field("stockLevel*")
-  def setStockLevel(stockLevels: util.Map[String, Int]) : Unit = {
-    val stockMap: Map[String, Int] = stockLevels
-    ensureCountries(Stocklevel, stockLevels )
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.discountPercent = stockMap.get(Stocklevel + code)
-      }
-    }
-  }
-
-  @Field("url*")
-  def setUrl(urls: util.Map[String, String]) : Unit = {
-    val urlMap: Map[String, String] = urls
-    ensureCountries(Url, urls)
-    for (countries <- this.countries) {
-      for (country <- countries; code <- country.code) {
-        country.url = urlMap.get(Url + code)
-      }
-    }
-  }
-
-  @Field("isPastSeason")
-  def setPastSeason(isPastSeason: Boolean) {
-    this.isPastSeason = Option.apply(isPastSeason)
-  }
-
-  @Field("isCloseout")
-  def setCloseout(isCloseout: Boolean) {
-    this.isCloseout = Option.apply(isCloseout)
-  }
-
-  @Field("isOutlet")
-  def setOutlet(isOutlet: Boolean) {
-    this.isOutlet = Option.apply(isOutlet)
-  }
-
-  /**
-   * Helper method to ensure the country object for this skus exist.
-   * If countries is empty it will create countries based on the suffix
-   * of the given dynamic field names.
-   *
-   * @param fieldName is the dynamic field name. Anything after the field name is considered the country code
-   * @param fields is the map between field name and values (e.g. (listPriceUS=>20.0, listPriceCA=>40)
-   * @tparam T is the type of the field value
-   */
-  private def ensureCountries[T](fieldName: String, fields: Map[String, T]) : Unit = {
-    if (countries.isEmpty) {
-      val codes = fields.map( entry => { entry._1 stripPrefix fieldName } ).to[Seq]
-      countries = Some(codes.map( code => {
-        new Country(code)
-      } ))
-    }
-  }
-
-
 }
 
 object Sku {
@@ -155,7 +61,12 @@ object Sku {
   val Url = "url"
   val Stocklevel = "stockLevel"
 
+  @JsonCreator
+  def getInstance() = new Sku()
+
   implicit val readsSku = Json.reads[Sku]
   implicit val writesSku = Json.writes[Sku]
 }
+
+
 
