@@ -983,11 +983,11 @@ object ProductController extends BaseController {
               ))
             }
           } else {
-            Logger.debug(s"Unexpected response found for query $id")
-            InternalServerError(Json.obj(
+            Logger.debug(s"No generations found for product $id")
+            NotFound(Json.obj(
               "metadata" -> Json.obj(
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "message" -> "Unable to execute query"))
+              "message" -> s"Cannot find generations for product id [$id]"))
           }
         }
       } else {
