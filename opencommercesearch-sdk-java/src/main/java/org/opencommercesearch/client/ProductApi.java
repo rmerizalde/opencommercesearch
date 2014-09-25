@@ -22,8 +22,11 @@ package org.opencommercesearch.client;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+
 import org.apache.commons.lang.StringUtils;
+import org.opencommercesearch.client.impl.DefaultProduct;
 import org.opencommercesearch.client.request.BrandCategoryRequest;
 import org.opencommercesearch.client.request.BrandRequest;
 import org.opencommercesearch.client.request.BrowseBrandCategoryRequest;
@@ -191,6 +194,9 @@ public class ProductApi {
     mapper = new ObjectMapper()
       .setDateFormat(new ISO8601DateFormat())
       .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    SimpleModule module = new SimpleModule("InterfaceMapper");
+    module.addAbstractTypeMapping(Product.class, DefaultProduct.class);
+    mapper.registerModule(module);
   }
 
   protected ObjectMapper getMapper() {
