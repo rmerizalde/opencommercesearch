@@ -639,6 +639,45 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   }
 
   /**
+   * Helper method to return a set with the category ids of all parent categories available in the taxonomy
+   * for a given set of input category ids
+   * @param taxonomy is the category taxonomy
+   * @param site
+   * @param categoryIds is the list of starting category ids were we begin the bottom up traversal of the taxonomy
+   */
+  def getBottomUpCategoryIds(taxonomy: Taxonomy, site: String, categoryIds: Set[String]): Set[String] = {
+
+    if (categoryIds == null || categoryIds.isEmpty) {
+      Set.empty
+    }
+
+    def getIds(category: Category): Set[String] = {
+      if (category == null || category.isRuleBased.getOrElse(false)) { //check we received a valid category and it's not a rule based one
+        Set.empty
+      } else {
+        val categorySites = category.getSites
+        if (site != null && (categorySites == null || !categorySites.contains(site))) { //filter by site
+          Set.empty
+        } else {
+          category.parentCategories match {
+            case None => Set(category.getId)
+            case Some(parentCategories) => {
+              Set(category.getId) ++ parentCategories.flatMap(parentCat => {
+                getIds(taxonomy.withDefaultValue(null)(parentCat.getId))
+              })
+            }
+          }
+        }
+      }
+    }
+
+    val result = categoryIds.flatMap(id => {
+      getIds(taxonomy.withDefaultValue(null)(id))
+    })
+    result
+  }
+   
+  /**
    * Checks if the given category is a root
    * @param category the category to check
    * @return true if category is a root, otherwise returns false
@@ -665,44 +704,30 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   }
 
   /**
-   * Return the product taxonomy.
+   * Return the product taxonomy
    * @param id is the product id
    * @param site is the site to limit the results. If null, all sites are included
    * @param fields is the category field list
+   * @param productCategoryIds is the list of the products parent category ids
    * @param context is the request context
    * @return a sequence of the root categories
    */
-  def getProductTaxonomy(id: String, site: String, fields: Seq[String])(implicit context: Context): Future[Seq[Category]] = {
+  def getProductTaxonomy(id: String, site: String, fields: Seq[String], productCategoryIds: Set[String])(implicit context: Context): Future[Seq[Category]] = {
     val startTime = System.currentTimeMillis()
-    val productQuery = new SingleProductQuery(id, site)
-      .withFields("ancestorCategoryId")
-
-    Logger.debug(s"Getting taxonomy for product $id with query ${productQuery.toString}")
-
-    solrServer.query(productQuery) flatMap { response =>
-      val storage = withNamespace(storageFactory)
+    Logger.debug(s"Getting taxonomy for product $id")
+    
+    val storage = withNamespace(storageFactory)
       getTaxonomy(storage, context.isPreview) map { taxonomy =>
-        val docs = response.getResults
         var rootCategories = Seq.empty[Category]
-
-        if (docs != null && docs.size() > 0) {
-          val doc = docs.get(0)
-          if (doc.containsKey("ancestorCategoryId")) {
-            val categoryIds = doc.getFieldValues("ancestorCategoryId").asInstanceOf[java.util.Collection[String]].toSet
-            Logger.debug(s"Got ${categoryIds.size} category ids for brand $id")
-            Logger.debug(s"Category ids for brand $id are $categoryIds")
-            val sites = if (site == null) findSites(categoryIds, taxonomy) else Set(site)
-
-            rootCategories = getRoots(taxonomy, sites, updateFields(fields), categoryIds)
-          } else {
-            Logger.debug(s"Cannot retrieve category paths for product $id for site $site")
-          }
+        val categoryIds = getBottomUpCategoryIds(taxonomy, site, productCategoryIds)
+        if(categoryIds != null && !categoryIds.isEmpty) {
+          val sites = if (site == null) findSites(categoryIds, taxonomy) else Set(site)
+          rootCategories = getRoots(taxonomy, sites, updateFields(fields), categoryIds)
         } else {
-          Logger.debug(s"Category paths for product $id not found for site $site")
+          Logger.debug(s"Category ids for product $id not found for site $site")
         }
         Statsd.timing(StatsdBuildProductTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
         rootCategories
       }
-    }
   }
 }

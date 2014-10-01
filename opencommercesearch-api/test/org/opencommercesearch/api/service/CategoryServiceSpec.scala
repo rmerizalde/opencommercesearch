@@ -24,8 +24,10 @@ import play.api.test.FakeApplication
 
 import scala.concurrent.Future
 
+import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.mock.Mockito
+import org.specs2.runner.JUnitRunner
 import org.mockito.Mockito.doReturn
 import org.mockito.Matchers
 import org.opencommercesearch.common.Context
@@ -37,6 +39,7 @@ import org.apache.solr.client.solrj.response.QueryResponse
 import play.api.i18n.Lang
 import com.mongodb.WriteResult
 
+@RunWith(classOf[JUnitRunner])
 class CategoryServiceSpec extends Specification with Mockito {
   private val catalogOutdoor:String = "outdoorCatalog"
   private val catRoot = mock[Category]
@@ -58,7 +61,8 @@ class CategoryServiceSpec extends Specification with Mockito {
   val otherCatalog = "otherCatalog"
   val rootOtherCategory = mock[Category]
   val otherCategory = mock[Category]
-
+  var taxonomy: CategoryService.Taxonomy = null
+  
   private def setup() : Unit = {
     // Root
     mockCategory(catRoot, "catRoot", "root", categoryCatalogs, null, isRuleBased = false)
@@ -114,7 +118,8 @@ class CategoryServiceSpec extends Specification with Mockito {
       "outdoorCat111110031" -> catSnowshoeBoots,
       "rootOtherCategory" -> rootOtherCategory,
       "otherCategory" -> otherCategory)
-
+    
+    taxonomy = categoryMap
     storage.findCategory(any[String], any[Seq[String]]) answers { id =>
       Future.successful(categoryMap.get(id.asInstanceOf[String]).get)
     }
@@ -130,6 +135,7 @@ class CategoryServiceSpec extends Specification with Mockito {
     category.id returns Some(categoryId)
     category.name returns Some(displayName)
     category.sites returns Some(categoryCatalogs)
+    category.getSites returns categoryCatalogs
     if (parentCategories != null) {
       category.parentCategories returns Some(parentCategories)
     } else {
@@ -145,6 +151,54 @@ class CategoryServiceSpec extends Specification with Mockito {
   "CategoryService" should {
     setup()
 
+    "bottom up taxonomy with assignment in both categories" in {
+      running(FakeApplication()) {
+        val categoryService = setupService()
+        implicit val context = Context(true, lang)
+        val output = categoryService.getBottomUpCategoryIds(taxonomy, catalogOutdoor, Set("outdoorCat41110025", "outdoorCat111110031", "catRulesBased"))
+        output must contain("outdoorCat41110025")
+        output must contain("outdoorCat41100024")
+        output must contain("outdoorCat4100004")
+        output must contain("outdoorCat11000219")
+        output must contain("outdoorCat100003")
+        output must contain("outdoorCat4000003")
+        
+        output must contain("outdoorCat11000003")
+        output must contain("outdoorCat111110031")
+        output must contain("outdoorCat111100030")
+        output must contain("outdoorCat111000028")
+        
+        output must not contain("catRulesBased") //exclude rule based categories
+        
+        output must contain("catRoot")
+        
+        output must have size(11)
+      }
+    }
+    
+    "bottom up taxonomy with assignment in one category" in {
+      running(FakeApplication()) {
+        val categoryService = setupService()
+        implicit val context = Context(true, lang)
+        val output = categoryService.getBottomUpCategoryIds(taxonomy, catalogOutdoor, Set("outdoorCat41110025"))
+        output must contain("outdoorCat41110025")
+        output must contain("outdoorCat41100024")
+        output must contain("outdoorCat4100004")
+        output must contain("outdoorCat11000219")
+        output must contain("outdoorCat100003")
+        output must contain("outdoorCat4000003")
+        
+        output must not contain("outdoorCat11000003")
+        output must not contain("outdoorCat111110031")
+        output must not contain("outdoorCat111100030")
+        output must not contain("outdoorCat111000028")
+        
+        output must contain("catRoot")
+        
+        output must have size(7)
+      }
+    }
+    
     "include rule based category for ancestor" in {
       running(FakeApplication()) {
         val product = mock[Product]

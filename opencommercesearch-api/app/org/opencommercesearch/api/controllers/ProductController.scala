@@ -112,7 +112,8 @@ object ProductController extends BaseController {
 
         if (includeTaxonomy) {
           val productListFuture = products map { product =>
-            categoryService.getProductTaxonomy(product.getId, site, getCategoryFields(fields)) map { categories =>
+            val categoryIds = product.categories.getOrElse(Seq.empty).map(category => category.getId).toSet
+            categoryService.getProductTaxonomy(product.getId, site, getCategoryFields(fields), categoryIds) map { categories =>
               product.categories = Option(categories)
               product
             }

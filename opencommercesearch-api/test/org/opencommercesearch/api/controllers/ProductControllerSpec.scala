@@ -61,6 +61,7 @@ class ProductControllerSpec extends BaseSpec {
       category.sites = Option(Seq("mysite"))
       category.hierarchyTokens = Option(Seq("2.mysite.category.subcategory"))
       storage.findCategory(any, any) returns Future.successful(category)
+      storage.findAllCategories(any) returns Future.successful(Seq(category))
 
       val facet = Facet.getInstance()
       facet.id = Some("facetId")
@@ -89,11 +90,9 @@ class ProductControllerSpec extends BaseSpec {
 
     "send 200 when a product is found when searching by id" in new Products {
       running(FakeApplication()) {
-        val facetResponse = setupAncestorCategoryQuery()
 
-        solrServer.query(any[SolrQuery]) answers { q =>
-          Future.successful(facetResponse)
-        }
+        val category = Category.getInstance(Some("someCategory"))
+        category.sites = Option(Seq("mysite"))
 
         val product = Product.getInstance()
         val (expectedId, expectedTitle) = ("PRD1000", "A Product")
@@ -104,14 +103,11 @@ class ProductControllerSpec extends BaseSpec {
         val expectedSku = Sku.getInstance()
         expectedSku.id = Some("PRD1000-BLK-ONESIZE")
         product.skus = Some(Seq(expectedSku))
+        product.categories = Some(Seq(category))
 
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
         storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
-
-        val category = Category.getInstance(Some("someCategory"))
-        category.sites = Option(Seq("mysite"))
-
         storage.findAllCategories(any) returns Future.successful(Seq(category))
 
         val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
