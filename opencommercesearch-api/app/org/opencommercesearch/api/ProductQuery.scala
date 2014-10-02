@@ -1,16 +1,17 @@
 package org.opencommercesearch.api
 
+import play.api.Play
 import play.api.mvc.{AnyContent, Request}
+
 import java.net.URLDecoder
-import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit}
+
+import org.opencommercesearch.api.Global.{DefaultPaginationLimit, MaxPaginationLimit, _}
 import org.opencommercesearch.api.common.FilterQuery
-import org.opencommercesearch.api.Global._
 import org.opencommercesearch.common.Context
+
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.common.params.GroupParams
-import play.api.Play
-import scala.collection.JavaConversions._
+import org.apache.solr.common.params.{GroupParams, ExpandParams}
 
 /**
  * The base query to retrieve product results
@@ -23,8 +24,8 @@ import scala.collection.JavaConversions._
  * @author rmerizalde
  */
 sealed class ProductQuery(q: String, site: String = null)(implicit context: Context, request: Request[AnyContent] = null) extends SolrQuery(q) {
-  import Collection._
   import Query._
+  import org.opencommercesearch.api.Collection._
 
   private var _filterQueries: Array[FilterQuery] = null
   private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
@@ -81,7 +82,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
   def withFaceting(field: String = "category", limit: Option[Int] = None) : ProductQuery = {
     setFacet(facets)
     if (facets) {
-      addFacetField(field)
+      addFacetField(s"{!ex=collapse}$field")
       setFacetMinCount(1)
 
       limit foreach { l =>
@@ -150,26 +151,53 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
    * @return this query
    */
   def withGrouping(totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
-
     if (getRows == null || getRows > 0) {
-      set(GroupParams.GROUP, true)
-      set(GroupParams.GROUP_FIELD, "productId")
-      set(GroupParams.GROUP_TOTAL_COUNT, totalCount)
-      set(GroupParams.GROUP_LIMIT, limit)
-      set(GroupParams.GROUP_FACET, false)
+      val groupMethod = if (request == null) null else request.getQueryString("group.method").orNull
+      val sortGroups = if(request != null) request.getQueryString("sort").isDefined else true
 
-      setParam("groupcollapse", collapse)
-      if (collapse) {
-        val country = context.lang.country
-        val listPrice = s"listPrice$country"
-        val salePrice = s"salePrice$country"
-        val discountPercent = s"discountPercent$country"
+      if ("filter" == groupMethod) {
+        addField("productId")
+        addFilterQuery("{!collapse field=productId tag=collapse}")
+        set(ExpandParams.EXPAND + "all", true)
+        set(ExpandParams.EXPAND_FIELD)
+        set(ExpandParams.EXPAND_ROWS, limit)
+        if (sortGroups) {
+          set(ExpandParams.EXPAND_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
+        }
+      } else {
+        set(GroupParams.GROUP, true)
+        set(GroupParams.GROUP_FIELD, "productId")
+        set(GroupParams.GROUP_TOTAL_COUNT, totalCount)
+        set(GroupParams.GROUP_LIMIT, limit)
+        set(GroupParams.GROUP_FACET, false)
+        if (sortGroups) {
+          set(GroupParams.GROUP_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
+        }
+      }
+    }
 
-        setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent,color,colorFamily")
+    setParam("groupcollapse", collapse)
+    if (collapse) {
+      val country = context.lang.country
+      val listPrice = s"listPrice$country"
+      val salePrice = s"salePrice$country"
+      val discountPercent = s"discountPercent$country"
+
+      val collapseMethod = if (request == null) null else request.getQueryString("groupcollapse.method").orNull
+
+      setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent,color,colorFamily")
+
+      // this is a temporal param, after testing it will either be removed or made permanent for filter grouping
+      if ("ords" == collapseMethod) {
+        setParam("groupcollapse.fq", "isCloseout:false")
+        set(s"f.$listPrice.sf", "min", "max")
+        set(s"f.$salePrice.sf", "min", "max")
+        set(s"f.$discountPercent.sf", "min", "max")
+        set("f.color.sf", "count")
+        set("f.colorFamily.sf", "distinct")
+      } else {
         setParam("groupcollapse.ff", "isCloseout")
       }
-
-      set("group.sort", s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
     }
 
     this
@@ -322,7 +350,7 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
  * @param context is the search context
  */
 class SingleProductQuery(productId : String, site : String)(implicit context: Context) extends SolrQuery("*:*") {
-  import Collection._
+  import org.opencommercesearch.api.Collection._
 
   private def init() : Unit = {
     setParam("collection", searchCollection.name(context.lang))
@@ -351,8 +379,8 @@ class SingleProductQuery(productId : String, site : String)(implicit context: Co
  * @param request is the HTTP request
  */
 class ProductFacetQuery(facetField: String, site: String)(implicit context: Context, request: Request[AnyContent]) extends SolrQuery("*:*") {
-  import Collection._
   import Query._
+  import org.opencommercesearch.api.Collection._
 
   private var closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
   
@@ -362,7 +390,7 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     setParam("collection", searchCollection.name(context.lang))
     setRows(0)
     setFacet(true)
-    addFacetField(facetField)
+    addFacetField(s"{!ex=collapse}$facetField")
     setFacetMinCount(1)
 
     if (closeoutSites.contains(site)) {

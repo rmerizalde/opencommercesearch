@@ -28,9 +28,20 @@ public interface GroupCollapseParams {
     public static final String GROUP_COLLAPSE_FL = GROUP_COLLAPSE + ".fl";
 
     /**
+     * Filter query to include documents in the summary. If the queries filter out all queries then all documents are
+     * eligible for the summary.
+     */
+    public static final String GROUP_COLLAPSE_FQ = GROUP_COLLAPSE + ".fq";
+
+    /**
+     * The list of summary functions for group collapsing
+     */
+    public static final String GROUP_COLLAPSE_SF = GROUP_COLLAPSE + ".sf";
+
+    /**
     * Specifies the name of the field that determines what docs in the group should be ignored when creating summaries.
     * <p/>
-    * The filter field specified here must be boolean, and will behave as follows: if all docs in the group are GROUP_COLLAPSE_FF=true, then
+    * The filter field specified here must be boolean, and will behave as follows: if all docs in the group are GROUP_COLLAPSE_FF=false, then
     * nothing happens. Otherwise, if GROUP_COLLAPSE_FF=true for one doc, that doc is ignored from field summary calculations.
     * <p/>
     * For example, one would want that certain Sku are not used for price calculation, such as those that are from outlet.
