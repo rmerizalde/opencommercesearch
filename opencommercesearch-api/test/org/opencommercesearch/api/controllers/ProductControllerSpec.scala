@@ -902,7 +902,7 @@ class ProductControllerSpec extends BaseSpec {
     query.get("groupcollapse.ff") must beEqualTo("isCloseout")
     val facetFields = query.getFacetFields
     facetFields.size must beEqualTo(1)
-    facetFields(0) must beEqualTo("category")
+    facetFields(0) must beEqualTo("{!ex=collapse}category")
   }
 
   /**

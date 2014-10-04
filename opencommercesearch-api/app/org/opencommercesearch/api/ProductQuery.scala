@@ -153,7 +153,6 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
   def withGrouping(totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
     if (getRows == null || getRows > 0) {
       val groupMethod = if (request == null) null else request.getQueryString("group.method").orNull
-      val sortGroups = if(request != null) request.getQueryString("sort").isDefined else true
 
       if ("filter" == groupMethod) {
         addField("productId")
@@ -161,18 +160,14 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         set(ExpandParams.EXPAND + "all", true)
         set(ExpandParams.EXPAND_FIELD)
         set(ExpandParams.EXPAND_ROWS, limit)
-        if (sortGroups) {
-          set(ExpandParams.EXPAND_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
-        }
+        set(ExpandParams.EXPAND_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
       } else {
         set(GroupParams.GROUP, true)
         set(GroupParams.GROUP_FIELD, "productId")
         set(GroupParams.GROUP_TOTAL_COUNT, totalCount)
         set(GroupParams.GROUP_LIMIT, limit)
         set(GroupParams.GROUP_FACET, false)
-        if (sortGroups) {
-          set(GroupParams.GROUP_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
-        }
+        set(GroupParams.GROUP_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
       }
     }
 
