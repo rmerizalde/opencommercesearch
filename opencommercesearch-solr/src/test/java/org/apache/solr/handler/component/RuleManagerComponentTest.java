@@ -236,8 +236,8 @@ public class RuleManagerComponentTest {
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
         assertEquals(2, facetFields.length);
-        assertEquals("fieldName1", facetFields[0]);
-        assertEquals("fieldName2", facetFields[1]);
+        assertEquals("{!ex=collapse}fieldName1", facetFields[0]);
+        assertEquals("{!ex=collapse}fieldName2", facetFields[1]);
         assertEquals("true", outParams.get(FacetParams.FACET));
     }
 
@@ -255,7 +255,7 @@ public class RuleManagerComponentTest {
         SolrParams outParams = argumentCaptor.getValue();
         assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
-        assertEquals("fieldName3", outParams.get(FacetParams.FACET_FIELD));
+        assertEquals("{!ex=collapse}fieldName3", outParams.get(FacetParams.FACET_FIELD));
         assertEquals("true", outParams.get(FacetParams.FACET));
     }
 
@@ -276,9 +276,9 @@ public class RuleManagerComponentTest {
 
         String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
         assertEquals(3, facetFields.length);
-        assertEquals("fieldName1", facetFields[0]);
-        assertEquals("fieldName2", facetFields[1]);
-        assertEquals("fieldName3", facetFields[2]);
+        assertEquals("{!ex=collapse}fieldName1", facetFields[0]);
+        assertEquals("{!ex=collapse}fieldName2", facetFields[1]);
+        assertEquals("{!ex=collapse}fieldName3", facetFields[2]);
         assertEquals("true", outParams.get(FacetParams.FACET));
     }
 

@@ -208,6 +208,11 @@ object ProductController extends BaseController {
 
       // todo: this is a workaround and will be deleted in a future version
       def patchColorSummaries(summaries: NamedList[AnyRef]) {
+        def patchDistinct(summary: NamedList[AnyRef]) = if (summary.get("distinct") != null) {
+          summary.add("families", summary.remove("distinct"))
+        } else {
+          summary
+        }
         def patch(colorSummary: NamedList[AnyRef], colorFamilySummary: NamedList[AnyRef]) = if (colorFamilySummary != null) {
           val families = colorFamilySummary.get("families")
           if (families != null) {
@@ -218,6 +223,7 @@ object ProductController extends BaseController {
           }
         }
 
+        patchDistinct(namedList(summaries.get("colorFamily")))
         patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
       }
 
@@ -277,25 +283,26 @@ object ProductController extends BaseController {
    */
   private def processSearchResults[R](q: String, response: QueryResponse)(implicit context: Context, req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
-    val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
     if (groupResponse != null) {
       val commands = groupResponse.getValues
 
       if (commands.size > 0) {
         val command = groupResponse.getValues.get(0)
-        val products = new util.ArrayList[(String, String)]
+        val productsIds = new util.ArrayList[(String, String)]
         if ("productId".equals(command.getName)) {
           if (hasResults(command)) {
             for (group <- JIterableWrapper(command.getValues)) {
               val documentList = group.getResult
               val product  = documentList.get(0)
               product.setField("productId", group.getGroupValue)
-              products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
+              productsIds.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
             }
 
             val storage = withNamespace(storageFactory)
-            storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
+            storage.findProducts(productsIds, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
+              val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
+
               (resultCount(command), products, groupSummary)
             }
           } else {
@@ -310,7 +317,23 @@ object ProductController extends BaseController {
         Future.successful((0, null, null))
       }
     } else {
-      Future.successful((0, null, null))
+      if (response.getResults != null) {
+        val storage = withNamespace(storageFactory)
+        val productsIds: Seq[(String, String)] = response.getResults map { doc =>
+          val productId = doc.get("productId").asInstanceOf[String]
+          val expandedDocList = response.getExpandedResults.get(productId)
+          val skuId = expandedDocList.get(0).get("id").asInstanceOf[String]
+          (productId, skuId)
+        }
+
+        storage.findProducts(productsIds, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
+          val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
+
+          (response.getResults.getNumFound.toInt, products, groupSummary)
+        }
+      } else {
+        Future.successful((0, null, null))
+      }
     }
   }
 

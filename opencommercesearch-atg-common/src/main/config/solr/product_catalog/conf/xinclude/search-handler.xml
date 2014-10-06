@@ -25,6 +25,7 @@
    	</arr>
     <arr name="last-components">
       <str>spellcheck</str>
+      <str>expandall</str>
       <str>groupCollapse</str>
     </arr>
  </requestHandler>

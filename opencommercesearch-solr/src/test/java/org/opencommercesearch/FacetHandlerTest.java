@@ -92,7 +92,7 @@ public class FacetHandlerTest {
         assertEquals(fieldFacet, facetHandler.getFacetItem("fieldName"));
         assertEquals(rangeFacet, facetHandler.getFacetItem("rangeName"));
         facetHandler.setParams(query);
-        verify(query).addFacetQuery("{!ex=queryName}queryName:valQueryFacet");
+        verify(query).addFacetQuery("{!ex=collapse,queryName}queryName:valQueryFacet");
     }
 
     @Test

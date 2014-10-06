@@ -1,22 +1,22 @@
 package org.apache.solr.handler.component;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.index.*;
+import org.apache.lucene.search.FieldCache;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
+import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.GroupCollapseParams;
+import org.apache.solr.common.params.GroupParams;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
-import org.apache.solr.search.DocIterator;
-import org.apache.solr.search.DocSlice;
-import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.schema.FieldType;
+import org.apache.solr.schema.SchemaField;
+import org.apache.solr.search.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +26,8 @@ import static org.apache.solr.handler.component.GroupCollapseComponent.COLORFAMI
 public class GroupCollapseSummary {
 	
 	public static Logger log = LoggerFactory.getLogger(GroupCollapseSummary.class);
-	
+    public static final String[] DEFAULT_SUMMARY_FUNCTIONS = {"min", "max"};
+
     private String groupField;
     private SolrIndexSearcher searcher;
     private Set<String> fieldNames;
@@ -49,28 +50,147 @@ public class GroupCollapseSummary {
     }
 
     void processGroupField(NamedList groupField) throws IOException {
-        log.debug("Processing group field: " + groupField);
+        log.debug("Processing group field: %s", groupField);
         List<NamedList> groups = (List<NamedList>) groupField.get("groups");
 
         if (groups == null) {
-            log.debug("No groups found for: " + groupField);
+            log.debug("No groups found for: %s", groupField);
             return;
         }
 
         for (NamedList group : groups) {
             if (group != null) {
                 String groupValue = (String) group.get("groupValue");
-                DocSlice docSlice = (DocSlice) group.get("doclist");
-                boolean shouldReprocess = processDocs(groupValue, docSlice, true);
+                DocList docList = (DocList) group.get("doclist");
+                boolean shouldReprocess = processDocs(groupValue, docList, true);
 
                 //If all docs in the group were filtered, then reprocess without applying any filtering.
                 if(shouldReprocess) {
-                    processDocs(groupValue, docSlice, false);
+                    processDocs(groupValue, docList, false);
                 }
 
                 group.remove("doclist");
-                group.add("doclist", docSlice.subset(0, 1));
+                group.add("doclist", docList.subset(0, 1));
             }
+        }
+    }
+
+    void processExpanded(Map<String, DocList> expanded) throws IOException {
+        log.debug("Processing expanded results: %s", expanded.keySet());
+
+        for (Map.Entry<String, DocList> entry : expanded.entrySet()) {
+            String groupValue = entry.getKey();
+            DocList docList = entry.getValue();
+            boolean shouldReprocess = processDocs(groupValue, docList, true);
+
+            if(shouldReprocess) {
+                processDocs(groupValue, docList, false);
+            }
+            expanded.put(groupValue, docList.subset(0, 1));
+        }
+    }
+
+    void processExpandedOrds(Map<String, DocList> expanded, List<Query> filterQueries, NamedList groupSummaryRsp, SolrParams params) throws IOException {
+        log.debug("Processing expanded results: %s", expanded.keySet());
+
+        AtomicReader reader = searcher.getAtomicReader();
+        SolrIndexSearcher.ProcessedFilter processedFilter = searcher.getProcessedFilter(null, filterQueries);
+
+        BytesRef bytesRef = new BytesRef();
+        NamedList groups = new NamedList();
+        String[] summaryFunctions = params.getParams(GroupCollapseParams.GROUP_COLLAPSE_SF);
+
+        if (summaryFunctions == null) {
+            summaryFunctions = DEFAULT_SUMMARY_FUNCTIONS;
+        }
+
+        for (String fieldName : fieldNames) {
+            // use doc values?
+            SortedSetDocValues valueSet = FieldCache.DEFAULT.getDocTermOrds(reader, fieldName);
+            SchemaField schemaField = searcher.getSchema().getField(fieldName);
+            FieldType fieldType = schemaField.getType();
+
+            String[] fieldSummaryFunctions = params.getFieldParams(fieldName, "sf");
+
+            if (fieldSummaryFunctions == null) {
+                fieldSummaryFunctions = summaryFunctions;
+            }
+
+            for (Map.Entry<String, DocList> entry : expanded.entrySet()) {
+                String groupValue = entry.getKey();
+
+                NamedList group = (NamedList) groups.get(groupValue);
+                if (group == null){
+                    group = new NamedList();
+                    groups.add(groupValue, group);
+                }
+
+
+                Set<Long> ordSet = new HashSet<Long>();
+                long max = Long.MIN_VALUE;
+                long min = Long.MAX_VALUE;
+
+                DocSet docSet = processedFilter.answer.intersection(entry.getValue());
+
+                if (docSet.size() == 0) {
+                    docSet = entry.getValue();
+                }
+
+                for (DocIterator it = docSet.iterator(); it.hasNext(); ) {
+                    int docId = it.nextDoc();
+
+                    valueSet.setDocument(docId);
+                    // take first ord
+                    long ord = valueSet.nextOrd();
+                    if (ord != SortedSetDocValues.NO_MORE_ORDS) {
+                        max = Math.max(ord, max);
+                        min = Math.min(ord, min);
+                        ordSet.add(ord);
+                    }
+                }
+
+                NamedList fieldSummary = new NamedList();
+
+                for (String function : fieldSummaryFunctions) {
+                    if ("min".equals(function)) {
+                        if (ordSet.size() > 0 ) {
+                            valueSet.lookupOrd(min, bytesRef);
+                            fieldSummary.add("min", fieldType.toObject(schemaField, bytesRef));
+                        }
+                    } else if ("max".equals(function)) {
+                        if (ordSet.size() > 0 ) {
+                            valueSet.lookupOrd(max, bytesRef);
+                            fieldSummary.add("max", fieldType.toObject(schemaField, bytesRef));
+                        }
+                    } else if ("count".equals(function)) {
+                        fieldSummary.add("count", ordSet.size());
+                    } else if ("distinct".equals(function)) {
+                        Set<Object> objSet = new HashSet<Object>(ordSet.size());
+                        for (Long ord : ordSet) {
+                            valueSet.lookupOrd(ord, bytesRef);
+                            objSet.add(fieldType.toObject(schemaField, bytesRef));
+                        }
+                        fieldSummary.add("distinct", objSet);
+                    } else {
+                        throw new IllegalArgumentException("Invalid function " + function);
+                    }
+                }
+
+                group.add(fieldName, fieldSummary);
+            }
+        }
+
+        boolean debug = params.getBool(CommonParams.DEBUG, false);
+        if (!debug) {
+            for (Map.Entry<String, DocList> entry : expanded.entrySet()) {
+            // we don't need to return all documents
+            DocList docList = entry.getValue();
+                expanded.put(entry.getKey(), docList.subset(0, 1));
+            }
+        }
+
+        if (groups.size() > 0) {
+            groupSummaryRsp.add(groupField, groups);
         }
     }
 
@@ -79,15 +199,15 @@ public class GroupCollapseSummary {
      * <p/>
      * If a filter field was specified and filter docs is true, then docs with filter field set to "true" will be excluded from the process. See {@link GroupCollapseParams#GROUP_COLLAPSE_FF} for details.
      * @param groupValue The current group field value.
-     * @param docSlice Docs within the current group field value.
+     * @param docList Docs within the current group field value.
      * @param filterDocs Whether or not do filtering of docs based on filterField.
      * @return True if all documents in the given docSlice were filtered. False if at least one document was processed.
      * @throws IOException If doc fields can't be retrieved from the index.
      */
-    private boolean processDocs(String groupValue, DocSlice docSlice, boolean filterDocs) throws IOException {
+    private boolean processDocs(String groupValue, DocList docList, boolean filterDocs) throws IOException {
         boolean allFiltered = true;
         
-        for (DocIterator it = docSlice.iterator(); it.hasNext();) {
+        for (DocIterator it = docList.iterator(); it.hasNext();) {
         	int docId = it.nextDoc();
         	Document doc = searcher.doc(docId, fieldNames);
             IndexableField filterField = doc.getField(this.filterField);
