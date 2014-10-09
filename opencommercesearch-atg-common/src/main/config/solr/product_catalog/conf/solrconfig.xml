@@ -55,6 +55,9 @@
   <xi:include href="xinclude/search-handler.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />
 
+  <xi:include href="xinclude/mlt-handler.xml" parse="xml"
+    xmlns:xi="http://www.w3.org/2001/XInclude" />
+
   <requestHandler name="/get" class="solr.RealTimeGetHandler">
     <lst name="defaults">
       <str name="omitHeader">true</str>
@@ -84,6 +87,8 @@
   </requestHandler>
 
   <searchComponent name="groupCollapse" class="solr.GroupCollapseComponent" />
+
+    <searchComponent name="expandall" class="solr.ExpandAllComponent" />
 
   <!-- Rule manager component - Filters, boosts or modifies results based on pre-defined business rules -->
   <searchComponent name="ruleManager" class="solr.RuleManagerComponent">

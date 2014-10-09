@@ -19,21 +19,17 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.search.Query;
+import org.apache.solr.common.params.ExpandParams;
 import org.apache.solr.common.params.GroupCollapseParams;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.IndexSchema;
-import org.apache.solr.search.DocIterator;
-import org.apache.solr.search.DocSlice;
-import org.apache.solr.search.SolrIndexSearcher;
+import org.apache.solr.search.CollapsingQParserPlugin;
+import org.apache.solr.search.DocList;
+import org.apache.solr.search.QParser;
 import org.apache.solr.util.SolrPluginUtils;
 import org.apache.solr.util.plugin.SolrCoreAware;
 import org.slf4j.Logger;
@@ -49,7 +45,7 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
     private static Logger log = LoggerFactory.getLogger(GroupCollapseComponent.class);
     public static String COLOR_FIELD = "color";
     public static String COLORFAMILY_FIELD = "colorFamily";
-    
+
     private SolrParams initArgs = null;
 
     @Override
@@ -78,7 +74,7 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
 
     @Override
     public void process(ResponseBuilder rb) throws IOException {
-        if (!rb.grouping()) {
+        if (!rb.grouping() && !rb.req.getParams().getBool("expandall",false)) {
             return;
         }
 
@@ -93,7 +89,7 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
         if (fieldList == null) {
             return;
         }
-        
+
         String[] wantedFields = SolrPluginUtils.split(fieldList);
         Set<String> fieldNames = new HashSet<String>();
         IndexSchema schema = rb.req.getSchema();
@@ -131,34 +127,81 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
             return;
         }
 
-        NamedList namedList = rb.rsp.getValues();
+        NamedList values = rb.rsp.getValues();
 
-        if (namedList == null) {
+        if (values == null) {
             log.info("No values found in query response");
             return;
         }
 
-        namedList = (NamedList) namedList.get("grouped");
+        NamedList grouped = (NamedList) values.get("grouped");
 
-        if (namedList == null) {
-            log.info("No groups found in query response");
-            return;
-        }
-        
-        NamedList groupSummaryRsp = new NamedList();
+        if (grouped != null) {
+            NamedList groupSummaryRsp = new NamedList();
 
-        for (String field : rb.getGroupingSpec().getFields()) {
-            GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
+            for (String field : rb.getGroupingSpec().getFields()) {
+                GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
 
-            NamedList groupField = (NamedList) namedList.get(field);
+                NamedList groupField = (NamedList) grouped.get(field);
 
-            if (groupField != null) {
-                groupFieldSummary.processGroupField(groupField);
-                groupFieldSummary.addValues(groupSummaryRsp);
+                if (groupField != null) {
+                    groupFieldSummary.processGroupField(groupField);
+                    groupFieldSummary.addValues(groupSummaryRsp);
+                }
+            }
+            rb.rsp.add("groups_summary", groupSummaryRsp);
+
+        } else {
+            Map<String, DocList> expanded = (Map<String, DocList>) values.get("expanded");
+            NamedList groupSummaryRsp = new NamedList();
+
+            if (expanded != null) {
+                GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(getExpandField(params, rb), rb.req.getSearcher(), fieldNames, filterField);
+                String[] fqs = params.getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
+
+                List<Query> newFilters = Collections.emptyList();
+
+                if (fqs != null) {
+                    newFilters = new ArrayList<Query>();
+                    try {
+                        for (String fq : fqs) {
+                            if (fq != null && fq.trim().length() != 0 && !fq.equals("*:*")) {
+                                QParser fqp = QParser.getParser(fq, null, rb.req);
+                                newFilters.add(fqp.getQuery());
+                            }
+                        }
+                    } catch (Exception e) {
+                        throw new IOException(e);
+                    }
+
+
+                    groupFieldSummary.processExpandedOrds(expanded, newFilters, groupSummaryRsp, params);
+                } else {
+                    groupFieldSummary.processExpanded(expanded);
+                    groupFieldSummary.addValues(groupSummaryRsp);
+                }
+
+                rb.rsp.add("groups_summary", groupSummaryRsp);
+            } else {
+                log.info("No groups found in query response");
             }
         }
+    }
 
-        rb.rsp.add("groups_summary", groupSummaryRsp);
-    }    
+    private String getExpandField(SolrParams params, ResponseBuilder rb) {
+        String field = params.get(ExpandParams.EXPAND_FIELD);
+        if(field == null) {
+          List<Query> filters = rb.getFilters();
+          if(filters != null) {
+            for(Query q : filters) {
+              if(q instanceof CollapsingQParserPlugin.CollapsingPostFilter) {
+                  CollapsingQParserPlugin.CollapsingPostFilter cp = (CollapsingQParserPlugin.CollapsingPostFilter)q;
+                  field = cp.getField();
+              }
+            }
+          }
+        }
+        return field;
+    }
     
 }

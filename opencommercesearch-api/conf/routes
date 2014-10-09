@@ -19,6 +19,7 @@ PUT           /v1/brands                                                 org.ope
 DELETE        /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.deleteByTimestamp(feedTimestamp: Long)
 
 # product routes
+GET           /v1/products/:id/similar                                   org.opencommercesearch.api.controllers.ProductController.findSimilarProducts(version: Int = 1, id: String, site: String ?= null)
 GET           /v1/products/:id/generations                               org.opencommercesearch.api.controllers.ProductController.findByMasterId(version: Int = 1, id: String, site: String ?= null)
 GET           /v1/products/suggestions                                   org.opencommercesearch.api.controllers.ProductController.findSuggestions(version: Int = 1, q: String)
 GET           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.search(version: Int = 1, q: String, site: String, outlet: Boolean ?= false, spellCheck: String ?= "auto", redirects: Boolean ?= true)

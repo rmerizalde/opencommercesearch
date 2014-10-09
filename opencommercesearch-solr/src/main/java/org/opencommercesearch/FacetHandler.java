@@ -61,11 +61,11 @@ public class FacetHandler {
         fieldFacet() {
             void setParams(MergedSolrParams query, Document facet) {
                 String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
-                String localParams = "";
+                String localParams = "{!ex=collapse}";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
                 if(isMultiSelect) {
-                    localParams = "{!ex=" + fieldName + "}";
+                    localParams = "{!ex=collapse," + fieldName + "}";
                 }
 
                 query.addFacetField(localParams + fieldName);
@@ -86,11 +86,11 @@ public class FacetHandler {
                 int end = facet.get(FacetConstants.FIELD_END) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_END)) : 0;
                 int gap = facet.get(FacetConstants.FIELD_GAP) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_GAP)) : 0;
 
-                String localParams = "";
+                String localParams = "{!ex=collapse}";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
                 if(isMultiSelect) {
-                    localParams = "{!ex=" + fieldName + "}";
+                    localParams = "{!ex=collapse," + fieldName + "}";
                 }
 
                 query.addNumericRangeFacet(fieldName, start, end, gap);
@@ -117,11 +117,11 @@ public class FacetHandler {
         queryFacet() {
             void setParams(MergedSolrParams query, Document facet) {
                 String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
-                String localParams = "";
+                String localParams = "{!ex=collapse}";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
                 if(isMultiSelect) {
-                    localParams = "{!ex=" + fieldName + "}";
+                    localParams = "{!ex=collapse," + fieldName + "}";
                 }
 
                 String[] queries = facet.getValues(FacetConstants.FIELD_QUERIES);

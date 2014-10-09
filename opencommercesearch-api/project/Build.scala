@@ -13,7 +13,7 @@ object ApplicationBuild extends Build {
 
   val appDependencies: Seq[sbt.ModuleID] = Seq(
     cache, filters,
-    "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT",
+    "org.opencommercesearch" %% "play-solrj" % "0.4-SNAPSHOT",
     "org.opencommercesearch" %% "opencommercesearch-common" % "0.7.2-SNAPSHOT"  changing(),
     "com.typesafe.play.plugins" %% "play-statsd" % "2.2.0",
     "org.mockito" % "mockito-all" % "1.9.5" % "test",
@@ -27,7 +27,7 @@ object ApplicationBuild extends Build {
     "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.2.3",
     "org.mongodb" % "mongo-java-driver" % "2.11.3",
     "org.jongo" % "jongo" % "1.0",
-    "org.apache.solr" % "solr-core" % "4.6.1" excludeAll(
+    "org.apache.solr" % "solr-core" % "4.8.1" excludeAll(
       ExclusionRule(organization = "log4j"),
       ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")
     )
