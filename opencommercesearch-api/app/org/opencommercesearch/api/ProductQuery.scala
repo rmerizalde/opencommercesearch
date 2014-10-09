@@ -151,9 +151,23 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
    * @return this query
    */
   def withGrouping(totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
+    val groupMethod = if (request == null) null else request.getQueryString("group.method").orNull
+    withGrouping(groupMethod, groupTotalCount, limit, collapse)
+  }
+  
+  /**
+   * Sets parameters to group skus by product
+   *
+   * @param groupMethod the group method to use: "filter" or "group"
+   * @param totalCount if the query should return the total number of groups (products)
+   * @param limit the minimum number of skus to group by product
+   * @param collapse if the query should output summary fields for prices and discount percentage
+   *
+   * @return this query
+   */
+  def withGrouping(groupMethod:String, totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
     if (getRows == null || getRows > 0) {
-      val groupMethod = if (request == null) null else request.getQueryString("group.method").orNull
-
+      
       if ("filter" == groupMethod) {
         addField("productId")
         addFilterQuery("{!collapse field=productId tag=collapse}")
@@ -304,6 +318,34 @@ class ProductSearchQuery(q: String, site: String)(implicit context: Context, req
   protected override def init() : Unit = {
     super.init()
     setParam("pageType", "search")
+  }
+}
+
+/**
+ * A more like this query
+ *
+ * @param pid the product we are using to find other similar products
+ * @param site is the site to search in
+ * @param context is the search context
+ * @param request is the HTTP request
+ *
+ */
+class ProductMoreLikeThisQuery(pid: String, site: String)(implicit context: Context, request: Request[AnyContent]) extends ProductQuery(s"productId:$pid", site) {
+  protected override def init() : Unit = {
+    super.init()
+    setRequestHandler("/mlt")
+    if (StringUtils.isNotBlank(site)) {
+      //return only products for the given site
+      addFilterQuery(s"category:0.${site}")
+    }
+    //skip toos products from the similar results
+    addFilterQuery("isToos:false")
+    //exclude from similar results documents with the same productId
+    addFilterQuery(s"-productId:$pid")
+  }
+  
+  override def withGrouping(): ProductQuery = {
+    withGrouping("filter", groupTotalCount, 1, false)
   }
 }
 
