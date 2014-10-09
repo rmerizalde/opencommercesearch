@@ -36,6 +36,7 @@ import org.opencommercesearch.client.request.CategoryRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
+import org.opencommercesearch.client.request.SimilarProductRequest;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.BrowseResponse;
@@ -210,6 +211,16 @@ public class ProductApi {
    * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
    */
   public ProductResponse findProducts(ProductRequest request) throws ProductApiException {
+    return (ProductResponse) handle(request, ProductResponse.class);
+  }
+
+  /**
+   * Finds similar products by a productId
+   * @param request is the product request
+   * @return a product response
+   * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public ProductResponse findSimilarProducts(SimilarProductRequest request) throws ProductApiException {
     return (ProductResponse) handle(request, ProductResponse.class);
   }
 
