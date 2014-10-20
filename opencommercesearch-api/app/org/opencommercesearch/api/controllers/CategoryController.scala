@@ -297,6 +297,8 @@ object CategoryController extends BaseController with FacetQuery {
   @ApiOperation(value = "Return all brands", notes = "Returns all brands for a given category", response = classOf[Brand], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
   @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "offset", value = "Offset in the complete brand result set", defaultValue = "0", required = false, dataType = "int", paramType = "query"),
+    new ApiImplicitParam(name = "limit", value = "Maximum number of brands (limit caps at 200)", defaultValue = "10", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
@@ -305,20 +307,24 @@ object CategoryController extends BaseController with FacetQuery {
      @ApiParam(value = "A category id", required = true)
      @PathParam("id")
      id: String,
+     @ApiParam(value = "Site to search", required = true)
+     @QueryParam("site")
+     site: String,
      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display outlet results", required = false)
      @QueryParam("outlet")
      outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
 
     val startTime = System.currentTimeMillis()
-    val categoryFacetQuery = new ProductFacetQuery("brandId")
+    val brandFacetQuery = new ProductFacetQuery("brandId", site).withPagination()
+
     if (StringUtils.isNotBlank(id)) {
       Logger.debug(s"Query brands for category Id [$id]")
-      categoryFacetQuery.withAncestorCategory(id)
+      brandFacetQuery.withAncestorCategory(id)
     }
     
-    solrServer.query(categoryFacetQuery).flatMap( categoryResponse => {
+    solrServer.query(brandFacetQuery).flatMap( response => {
       //query the SOLR product catalog with the query we generated in the code above.
-      val brandFacet = categoryResponse.getFacetField("brandId")
+      val brandFacet = response.getFacetField("brandId")
       
       if (brandFacet != null && brandFacet.getValueCount > 0) {
         //if we have results from the product catalog collection, 
@@ -332,7 +338,6 @@ object CategoryController extends BaseController with FacetQuery {
           if(categories != null) {
             Ok(Json.obj(
                     "metadata" -> Json.obj(
-                       "categoryId" -> id,
                        "found" -> brandIds.size,
                        "time" -> (System.currentTimeMillis() - startTime)),
                     "brands" -> Json.toJson(categories)

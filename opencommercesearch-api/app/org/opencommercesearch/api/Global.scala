@@ -57,6 +57,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val SuggestCollection = getConfig("public.collection.suggest", "autocomplete")
   lazy val CategoryCacheTtl = getConfig("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 40)
+  lazy val MaxBrandPaginationLimit = getConfig("pagination.limit.max", 200)
   lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
   lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)

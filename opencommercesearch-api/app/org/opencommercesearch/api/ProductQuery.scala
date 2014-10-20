@@ -473,7 +473,7 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     for (l <- request.getQueryString("limit")) { limit = l.toInt }
 
     setParam("facet.offset", offset)
-    setFacetLimit(Math.min(MaxPaginationLimit, limit))
+    setFacetLimit(Math.min(MaxBrandPaginationLimit, limit))
     this
   }
 

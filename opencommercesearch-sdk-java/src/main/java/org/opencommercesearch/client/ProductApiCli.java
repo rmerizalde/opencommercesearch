@@ -15,10 +15,12 @@ import org.opencommercesearch.client.impl.Availability;
 import org.opencommercesearch.client.impl.Sku;
 import org.opencommercesearch.client.request.BaseRequest;
 import org.opencommercesearch.client.request.BrandRequest;
+import org.opencommercesearch.client.request.CategoryBrandRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
 import org.opencommercesearch.client.response.BrandResponse;
+import org.opencommercesearch.client.response.CategoryBrandResponse;
 import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
@@ -42,6 +44,7 @@ public class ProductApiCli {
     requestToResponses.put(ProductRequest.class, ProductResponse.class);
     requestToResponses.put(SearchRequest.class, SearchResponse.class);
     requestToResponses.put(BrandRequest.class, BrandResponse.class);
+    requestToResponses.put(CategoryBrandRequest.class, CategoryBrandResponse.class);
   }
 
   public void run(String[] args) throws IOException, ProductApiException {
@@ -106,6 +109,8 @@ public class ProductApiCli {
       request = new SearchRequest(commandLine.getOptionValue("q"));
     } else if ("findBrandById".equals(requestType)) {
        request = new BrandRequest(commandLine.getOptionValue("i"));
+    } else if ("findCategoryBrands".equals(requestType)) {
+      request = new CategoryBrandRequest(commandLine.getOptionValue("i"));
     } else {
       throw new IllegalArgumentException(requestType);
     }
@@ -378,7 +383,7 @@ public class ProductApiCli {
             .create("p");
 
     Option requestType = OptionBuilder
-            .withArgName("findProductById|findBrandById|search|browse")
+            .withArgName("findProductById|findBrandById|search|browse|findCategoryBrands")
             .hasArgs(1)
             .withDescription("The request type")
             .withLongOpt("requestType")

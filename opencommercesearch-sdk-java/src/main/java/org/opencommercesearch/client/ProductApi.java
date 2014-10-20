@@ -33,10 +33,12 @@ import org.opencommercesearch.client.request.BrowseBrandCategoryRequest;
 import org.opencommercesearch.client.request.BrowseBrandRequest;
 import org.opencommercesearch.client.request.BrowseCategoryRequest;
 import org.opencommercesearch.client.request.CategoryRequest;
+import org.opencommercesearch.client.request.CategoryBrandRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
 import org.opencommercesearch.client.request.SimilarProductRequest;
+import org.opencommercesearch.client.response.CategoryBrandResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.BrowseResponse;
@@ -253,6 +255,16 @@ public class ProductApi {
   public CategoryResponse findBrandCategories(BrandCategoryRequest request) throws ProductApiException {
     return (CategoryResponse) handle(request, CategoryResponse.class);
   }
+
+  /**
+   * Find the brands from a given category
+   * @param request is the category brands request
+   * @return a category brand response
+   * @throws ProductApiException if there are underlying HTTP communication issues, if the API responded with errors or if there were response parsing problems.
+   */
+  public CategoryBrandResponse findCategoryBrands(CategoryBrandRequest request) throws ProductApiException {
+    return (CategoryBrandResponse) handle(request, CategoryBrandResponse.class);
+  }
   
   /**
    * Performs a search for products.
@@ -354,6 +366,7 @@ public class ProductApi {
         if (logger.isDebugEnabled()) {
           logger.debug("Sending API request with base URL: " + restletRequest.getResourceRef());
         }
+
         response = client.handle(restletRequest);
 
         if (logger.isDebugEnabled()) {
