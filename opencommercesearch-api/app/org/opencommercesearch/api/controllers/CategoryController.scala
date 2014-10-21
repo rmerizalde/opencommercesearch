@@ -86,7 +86,7 @@ object CategoryController extends BaseController with FacetQuery {
         if (facetFields != null) {
           val categoryPathFacetField: Option[FacetField] = facetFields.collectFirst { case f if "categorypath".equals(f.getName.toLowerCase) => f }
 
-          val option: Option[Future[Option[Category]]] = categoryPathFacetField map { facetField =>
+          categoryPathFacetField map { facetField =>
             Logger.debug(s"Got ${facetField.getValueCount} different category paths for category [$catId]")
 
             val storage = withNamespace(storageFactory)
@@ -109,9 +109,9 @@ object CategoryController extends BaseController with FacetQuery {
             } else {
               Future.successful(None)
             }
+          } getOrElse {
+            Future.successful(None)
           }
-
-          option.get
         } else {
           Future.successful(None)
         }
