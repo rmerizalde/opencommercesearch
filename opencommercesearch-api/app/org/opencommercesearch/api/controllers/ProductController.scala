@@ -277,11 +277,11 @@ object ProductController extends BaseController {
 
   /**
    * Helper method to process search results
-   * @param q is the query
    * @param response the Solr response
+   * @param errorMessage is the error message
    * @return a tuple with the total number of products found and the list of product documents in the response and the group summary
    */
-  private def processSearchResults[R](q: String, response: QueryResponse)(implicit context: Context, req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
+  private def processSearchResults[R](response: QueryResponse, errorMessage: String)(implicit context: Context, req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
 
     if (groupResponse != null) {
@@ -309,11 +309,11 @@ object ProductController extends BaseController {
             Future.successful((0, null, null))
           }
         } else {
-          Logger.debug(s"Unexpected response found for query '$q'")
+          Logger.debug(errorMessage)
           Future.successful((0, null, null))
         }
       } else {
-        Logger.debug(s"Unexpected response found for query '$q'")
+        Logger.debug(errorMessage)
         Future.successful((0, null, null))
       }
     } else {
@@ -385,7 +385,8 @@ object ProductController extends BaseController {
         Future.successful(buildSearchResponse(query = query, startTime = Some(startTime), redirectUrl = Some(redirect.toString)))
       }
       else if(query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products, groupSummary) =>
+        var unexpectedErrorMessage = s"Unexpected response found for query '$q'"
+        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, query.filterQueries)
@@ -700,21 +701,21 @@ object ProductController extends BaseController {
 
     val storage = withNamespace(storageFactory)
     storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>
-      
+
       var isRulePage = false
       if (category != null && category.isRuleBased.get) {
         //set the rules expression filter query for rule based categories
         val lang = context.lang
         val localeKey = s"${lang.language}_${lang.country}"
         val ruleFilters = category.ruleFilters.getOrElse(Seq.empty[String]).filter(rule => {
-            rule.startsWith(localeKey)
+          rule.startsWith(localeKey)
         })
 
         query.withRules(ruleFilters)
         isRulePage = true
       } else {
         //filter by outlet/onsale only for category pages. Rule categories should skip this filter
-        query.withOutlet() 
+        query.withOutlet()
 
         //otherwise handle a regular category or a brand category
         if (StringUtils.isNotBlank(categoryId)) {
@@ -724,17 +725,17 @@ object ProductController extends BaseController {
           query.withBrand(brandId)
         }
       }
-          
+
       if (category != null) {
         for (tokens <- category.hierarchyTokens) {
           if (tokens.nonEmpty) {
             val token = tokens.get(0)
             //we need to split the first part which is the level of the tokens.
             //i.e.  2.site.category.subcategory
-            if(token.substring(token.indexOf(".") + 1).startsWith(site)) {
+            if (token.substring(token.indexOf(".") + 1).startsWith(site)) {
               val escapedCategoryFilter = ClientUtils.escapeQueryChars(token)
               query.add("categoryFilter", escapedCategoryFilter)
-              if(!isRulePage) {
+              if (!isRulePage) {
                 //if we are in a rule based category, solr won't have the category indexed, so we need to avoid this request
                 query.addFilterQuery("category:" + escapedCategoryFilter)
               }
@@ -745,57 +746,34 @@ object ProductController extends BaseController {
 
       solrServer.query(query).flatMap { response =>
         if (query.getRows > 0) {
-          val groupResponse = response.getGroupResponse
-          val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
-
-          if (groupResponse != null) {
-            val commands = groupResponse.getValues
-
-            if (commands.size > 0) {
-              val command = groupResponse.getValues.get(0)
-
-              if ("productId".equals(command.getName)) {
-                if (hasResults(command)) {
-                  val products = new util.ArrayList[(String, String)]
-                  for (group <- command.getValues.toSeq) {
-                    val documentList = group.getResult
-                    val product = documentList.get(0)
-                    product.setField("productId", group.getGroupValue)
-                    products.add((group.getGroupValue, product.getFieldValue("id").asInstanceOf[String]))
-                  }
-                  val storage = withNamespace(storageFactory)
-                  storage.findProducts(products, context.lang.country, fieldList(allowStar = true), minimumFields = true).map(products => {
-                    val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-                    withCacheHeaders(buildSearchResponse(
-                      query = query,
-                      breadCrumbs = Some(facetHandler.getBreadCrumbs),
-                      facets = Some(facetHandler.getFacets),
-                      found = Some(resultCount(command)),
-                      productSummary = processGroupSummary(groupSummary),
-                      startTime = Some(startTime),
-                      products = Some(products map (Json.toJson(_)))), products map (_.getId))
-                  })
-                } else {
-                  Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime),
-                    message = Some("No products found")))
-                }
+          val unexpectedErrorMessage = s"Unexpected response found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)"
+          processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+            if (products != null) {
+              if (found > 0) {
+                val facetHandler = buildFacetHandler(response, query, query.filterQueries)
+                withCacheHeaders(buildSearchResponse(
+                  query = query,
+                  breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                  facets = Some(facetHandler.getFacets),
+                  found = Some(found),
+                  productSummary = processGroupSummary(groupSummary),
+                  startTime = Some(startTime),
+                  products = Some(products map (Json.toJson(_)))), products map (_.getId))
               } else {
-                Logger.debug(s"Unexpected response found for category $categoryId")
-                Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime),
-                  message = Some("No products found")))
+                buildSearchResponse(
+                  query = query,
+                  found = Some(found),
+                  productSummary = processGroupSummary(groupSummary),
+                  startTime = Some(startTime),
+                  message = Some("No products found"))
               }
             } else {
-              Logger.debug(s"Unexpected response found for category $categoryId")
-              Future.successful(InternalServerError(Json.obj(
-                "message" -> "Unable to execute query")))
+              Logger.debug(unexpectedErrorMessage)
+              InternalServerError(Json.obj(
+                "message" -> "Unable to execute query"))
             }
-          } else {
-            Logger.debug(s"Unexpected response found for category $categoryId")
-            Future.successful(InternalServerError(Json.obj(
-              "message" -> "Unable to execute query")))
           }
-        }
-        else {
+        } else {
           Future.successful(buildSearchResponse(query = query, found = Some(response.getResults.getNumFound), startTime = Some(startTime)))
         }
       }
@@ -931,7 +909,8 @@ object ProductController extends BaseController {
     solrQuery.setRequestHandler("suggest")
     val future: Future[SimpleResult] = solrServer.query(solrQuery).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(q, response).map { case (found, products, groupSummary) =>
+        var unexpectedErrorMessage = s"Unexpected response found for query '$q'"
+        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(
@@ -990,7 +969,8 @@ object ProductController extends BaseController {
     query.addSort("generation_number", SolrQuery.ORDER.desc)
     val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        processSearchResults(id, response).map { case (found, products, groupSummary) =>
+        var unexpectedErrorMessage = s"Unexpected response found for product '$id'"
+        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               Ok(Json.obj(

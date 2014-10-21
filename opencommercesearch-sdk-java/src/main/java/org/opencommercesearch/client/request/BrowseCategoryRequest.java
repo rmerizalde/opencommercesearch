@@ -26,6 +26,12 @@ package org.opencommercesearch.client.request;
  */
 public class BrowseCategoryRequest extends BrowseRequest {
 
+    public BrowseCategoryRequest() {}
+
+    public BrowseCategoryRequest(String categoryId) {
+      setCategoryId(categoryId);
+    }
+
     public String getCategoryId() {
         return categoryId;
     }
