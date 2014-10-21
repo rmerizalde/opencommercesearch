@@ -17,12 +17,14 @@ import org.opencommercesearch.client.request.BaseRequest;
 import org.opencommercesearch.client.request.BrandRequest;
 import org.opencommercesearch.client.request.BrowseCategoryRequest;
 import org.opencommercesearch.client.request.CategoryBrandRequest;
+import org.opencommercesearch.client.request.CategoryRequest;
 import org.opencommercesearch.client.request.ProductRequest;
 import org.opencommercesearch.client.request.Request;
 import org.opencommercesearch.client.request.SearchRequest;
 import org.opencommercesearch.client.response.BrandResponse;
 import org.opencommercesearch.client.response.BrowseResponse;
 import org.opencommercesearch.client.response.CategoryBrandResponse;
+import org.opencommercesearch.client.response.CategoryResponse;
 import org.opencommercesearch.client.response.ProductResponse;
 import org.opencommercesearch.client.response.Response;
 import org.opencommercesearch.client.response.SearchResponse;
@@ -48,6 +50,7 @@ public class ProductApiCli {
     requestToResponses.put(BrandRequest.class, BrandResponse.class);
     requestToResponses.put(CategoryBrandRequest.class, CategoryBrandResponse.class);
     requestToResponses.put(BrowseCategoryRequest.class, BrowseResponse.class);
+    requestToResponses.put(CategoryRequest.class, CategoryResponse.class);
   }
 
   public void run(String[] args) throws IOException, ProductApiException {
@@ -113,6 +116,8 @@ public class ProductApiCli {
        request = new BrandRequest(commandLine.getOptionValue("i"));
     } else if ("findCategoryBrands".equals(requestType)) {
       request = new CategoryBrandRequest(commandLine.getOptionValue("i"));
+    } else if ("findCategoryById".equals(requestType)) {
+      request = new CategoryRequest(commandLine.getOptionValue("i"));
     } else if ("browse".equals(requestType)) {
        request = new BrowseCategoryRequest(commandLine.getOptionValue("i"));
     } else {
@@ -387,7 +392,7 @@ public class ProductApiCli {
             .create("p");
 
     Option requestType = OptionBuilder
-            .withArgName("findProductById|findBrandById|search|browse|findCategoryBrands")
+            .withArgName("findProductById|findBrandById|search|browse|findCategoryById|findCategoryBrands")
             .hasArgs(1)
             .withDescription("The request type")
             .withLongOpt("requestType")

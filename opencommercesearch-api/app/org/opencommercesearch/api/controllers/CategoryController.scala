@@ -19,6 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import org.apache.solr.client.solrj.response.FacetField
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, Json}
@@ -69,63 +70,75 @@ object CategoryController extends BaseController with FacetQuery {
 
     val startTime = System.currentTimeMillis()
     val site = request.getQueryString("site").orNull
-    val categoryFacetQuery = new ProductFacetQuery("categoryPath", site)
-      .withAncestorCategory(id)
-      .withFilterQueries()
-      .withPagination()
-    // @todo revisit this limit
-    categoryFacetQuery.setFacetLimit(MaxFacetPaginationLimit)
 
-    if(Logger.isDebugEnabled) {
-      Logger.debug(s"Searching for child categories for [$id] with query ${categoryFacetQuery.toString}")
-    }
-    val future = solrServer.query(categoryFacetQuery).flatMap( catalogResponse => {
-      val facetFields = catalogResponse.getFacetFields
-      var taxonomyFuture: Future[SimpleResult] = null
+    val futures: Seq[Future[Option[Category]]] = StringUtils.split(id, ',') map { catId =>
+      val categoryFacetQuery = new ProductFacetQuery("categoryPath", site)
+        .withAncestorCategory(catId)
+        .withFilterQueries()
+        .withPagination()
+      // @todo revisit this limit
+      categoryFacetQuery.setFacetLimit(MaxFacetPaginationLimit)
 
-      if(facetFields != null) {
-        facetFields.map( facetField => {
-          if("categorypath".equals(facetField.getName.toLowerCase)) {
-            Logger.debug(s"Got ${facetField.getValueCount} different category paths for category [$id]")
+      Logger.debug(s"Searching for child categories for [$catId] with query ${categoryFacetQuery.toString}")
+      solrServer.query(categoryFacetQuery).flatMap { catalogResponse =>
+        val facetFields = catalogResponse.getFacetFields
+
+        if (facetFields != null) {
+          val categoryPathFacetField: Option[FacetField] = facetFields.collectFirst { case f if "categorypath".equals(f.getName.toLowerCase) => f }
+
+          val option: Option[Future[Option[Category]]] = categoryPathFacetField map { facetField =>
+            Logger.debug(s"Got ${facetField.getValueCount} different category paths for category [$catId]")
 
             val storage = withNamespace(storageFactory)
 
-            if(facetField.getValueCount > 0) {
-              val categoryPaths = facetField.getValues.map(facetValue => {facetValue.getName})
+            if (facetField.getValueCount > 0) {
+              val categoryPaths = facetField.getValues.map(facetValue => {
+                facetValue.getName
+              })
               var maxLevels = Integer.parseInt(request.getQueryString("maxLevels").getOrElse("1"))
 
               //Check if we got -1 as maxLevels.
-              if(maxLevels < 0) {
+              if (maxLevels < 0) {
                 maxLevels = Int.MaxValue
               }
 
               val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
-              taxonomyFuture = categoryService.getTaxonomyForCategory(id, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage).map( category => {
-                if(category != null) {
-                  Ok(Json.obj(
-                    "metadata" -> Json.obj(
-                      "time" -> (System.currentTimeMillis() - startTime)),
-                    "category" -> category))
-                }
-                else {
-                  Logger.debug(s"Category [$id] does not exist in storage")
-                  NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id"))
-                }
-              })
+              categoryService.getTaxonomyForCategory(catId, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage) map { cat =>
+                Some(cat)
+              }
+            } else {
+              Future.successful(None)
             }
           }
-        })
-      }
 
-      if(taxonomyFuture != null) {
-        withErrorHandling(taxonomyFuture, s"Cannot retrieve category with id $id")
+          option.get
+        } else {
+          Future.successful(None)
+        }
+      }
+    }
+
+    val future = Future.sequence(futures) map { optionalCats =>
+      val cats = optionalCats.flatten
+
+      if (cats.size > 1) {
+        Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "time" -> (System.currentTimeMillis() - startTime)),
+          "categories" -> cats))
+      } else if (cats.size == 1) {
+        Ok(Json.obj(
+          "metadata" -> Json.obj(
+            "time" -> (System.currentTimeMillis() - startTime)),
+          "category" -> cats(0)))
       }
       else {
-        Future(NotFound(Json.obj("message" -> s"Cannot retrieve category with id $id")))
+        Logger.debug(s"Couldn't find category(ies) $id  in storage")
+        NotFound(Json.obj("message" -> s"Cannot retrieve category(ies) with id(s) $id"))
       }
-    })
+    }
 
-    withErrorHandling(future, s"Cannot retrieve category with id [$id]")
+    withErrorHandling(future, s"Cannot retrieve category(ies) with id(s) [$id]")
   }
 
   @ApiOperation(value = "Searches top level categories for a given site", notes = "Returns top level category information for a given site", response = classOf[Category], httpMethod = "GET")
