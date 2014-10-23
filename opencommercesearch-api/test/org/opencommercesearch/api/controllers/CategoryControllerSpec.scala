@@ -79,7 +79,7 @@ class CategoryControllerSpec extends BaseSpec {
         storage.findCategory(anyString, any) returns Future.successful(null)
 
         val result = route(FakeRequest(GET, routes.CategoryController.findById(expectedId).url))
-        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot retrieve category with id $expectedId")
+        validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot retrieve category(ies) with id(s) $expectedId")
       }
     }
 

@@ -7,7 +7,7 @@ import org.opencommercesearch.client.impl.Metadata;
 /**
  * Simple data holder that represents a response from category endpoint
  * 
- * @author gsegura@backcountry.com
+ * @author gsegura
  */
 public class CategoryResponse extends DefaultResponse {
     
@@ -29,10 +29,10 @@ public class CategoryResponse extends DefaultResponse {
     public void setCategory(Category category) {
         this.categories = new Category[] { category };
     }
-	public Category[] getCategories() {
+	  public Category[] getCategories() {
 		return categories;
 	}
-	public void setCategories(Category[] categories) {
+	  public void setCategories(Category[] categories) {
 		this.categories = categories;
 	}
 }

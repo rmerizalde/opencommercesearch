@@ -19,6 +19,7 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.opencommercesearch.client.impl.spellcheck.SpellCheck;
@@ -28,6 +29,7 @@ import org.opencommercesearch.client.impl.spellcheck.SpellCheck;
  *
  * @author jmendez
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Metadata {
     private int found;
     private int time;

@@ -1,4 +1,4 @@
-package org.opencommercesearch.client.request;
+package org.opencommercesearch.client.response;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -19,24 +19,22 @@ package org.opencommercesearch.client.request;
 * under the License.
 */
 
+import org.opencommercesearch.client.impl.Brand;
+
 /**
- * Holds the necessary parameters to browse products per brand categories.
- * <p/>
- * Once populated, pass this class to {@link org.opencommercesearch.client.ProductApi} to get the browse response.
+ * Simple data holder that represents a response from category brands endpoint
+ *
+ * @author rmerizalde
  */
-public class BrowseCategoryRequest extends BrowseRequest {
+public class CategoryBrandResponse extends DefaultResponse {
 
-    public BrowseCategoryRequest() {}
+  private Brand[] brands;
 
-    public BrowseCategoryRequest(String categoryId) {
-      setCategoryId(categoryId);
-    }
+  public void setBrands(Brand[] brands) {
+    this.brands = brands;
+  }
 
-    public String getCategoryId() {
-        return categoryId;
-    }
-
-    public void setCategoryId(String categoryId) {
-        this.categoryId = categoryId;
-    }
+  public Brand[] getBrands() {
+    return brands;
+  }
 }
