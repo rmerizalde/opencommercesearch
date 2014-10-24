@@ -768,9 +768,8 @@ object ProductController extends BaseController {
                   message = Some("No products found"))
               }
             } else {
-              Logger.debug(unexpectedErrorMessage)
-              InternalServerError(Json.obj(
-                "message" -> "Unable to execute query"))
+              Logger.debug(s"No results found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)")
+              buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime), message = Some("No products found"))
             }
           }
         } else {
