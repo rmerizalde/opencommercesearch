@@ -328,33 +328,41 @@ object CategoryController extends BaseController with FacetQuery {
      outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
 
     val startTime = System.currentTimeMillis()
-    val brandFacetQuery = new ProductFacetQuery("brandId", site).withPagination()
+    val brandFacetQuery = new ProductFacetQuery("brand", site)
+      .withPagination()
 
     if (StringUtils.isNotBlank(id)) {
       Logger.debug(s"Query brands for category Id [$id]")
       brandFacetQuery.withAncestorCategory(id)
     }
-    
+
     solrServer.query(brandFacetQuery).flatMap( response => {
       //query the SOLR product catalog with the query we generated in the code above.
-      val brandFacet = response.getFacetField("brandId")
+      val brandFacet = response.getFacetField("brand")
       
       if (brandFacet != null && brandFacet.getValueCount > 0) {
         //if we have results from the product catalog collection, 
         //then generate another SOLR query object to query the brand collection. 
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
-        val brandIds = JIterableWrapper(brandFacet.getValues).map(filter =>  filter.getName)
-        
+        val brandNames: Iterable[String] = brandFacet.getValues map { filter =>  filter.getName }
+
         val storage = withNamespace(storageFactory)
-        val future = storage.findBrands(brandIds, fieldList(allowStar = true)).map( categories => {
-          //now we need to retrieve the actual brand objects from the brand collection
-          if(categories != null) {
+        val future = storage.findBrandsByName(brandNames, fieldList(allowStar = true)).map( brands => {
+          if(brands != null) {
+            // solr returns brand sorted by name. However, index token have different capitalization so we need to sort
+            // the edge cases
+            val sortedBrands = brands.toSeq sortWith { (b1, b2) =>
+              (b1.name, b2.name) match {
+                case (Some(name1), Some(name2)) => name1.compareToIgnoreCase(name2) < 0
+                case _ => false
+              }
+            }
+
             Ok(Json.obj(
                     "metadata" -> Json.obj(
-                       "found" -> brandIds.size,
+                       "found" -> brandNames.size,
                        "time" -> (System.currentTimeMillis() - startTime)),
-                    "brands" -> Json.toJson(categories)
-                    //the categories obj is like a sql result set, it's an iterable that can only be read once
+                    "brands" -> Json.toJson(sortedBrands)
               ))
           } else {
             Logger.debug("Category " + id + " not found")

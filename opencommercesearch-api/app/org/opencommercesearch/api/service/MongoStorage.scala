@@ -94,6 +94,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   def ensureIndexes() : Unit = {
     jongo.getCollection("products").ensureIndex("{skus.catalogs: 1}", "{sparse: true, name: 'sku_catalog_idx'}")
     jongo.getCollection("products").ensureIndex("{skus.countries.code: 1}", "{sparse: true, name: 'sku_country_idx'}")
+    jongo.getCollection("brands").ensureIndex("{name: 1}", "{sparse: true, name: 'brand_name_idx'}")
   }
 
   def close() : Unit = {
@@ -488,6 +489,13 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     Future {
       val brandCollection = jongo.getCollection("brands")
       brandCollection.find("{_id:{$in:#}}", ids).projection(projectionBrand(fields)).as(classOf[Brand])
+    }
+  }
+
+  def findBrandsByName(names: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]] = {
+    Future {
+      val brandCollection = jongo.getCollection("brands")
+      brandCollection.find("{name:{$in:#}}", names).projection(projectionBrand(fields)).as(classOf[Brand])
     }
   }
 
