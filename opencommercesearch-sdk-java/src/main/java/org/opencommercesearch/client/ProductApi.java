@@ -243,7 +243,7 @@ public class ProductApi {
   public BrandResponse findBrand(BrandRequest request) throws ProductApiException {
     return (BrandResponse) handle(request, BrandResponse.class);
   }
-
+  
   /**
    * Find the categories from a given brand
    * @param request is the brand category request
