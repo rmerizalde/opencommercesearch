@@ -21,6 +21,9 @@ package org.opencommercesearch.client.response;
 
 import org.opencommercesearch.client.impl.Brand;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * A response the contains one brand
  *
@@ -28,13 +31,34 @@ import org.opencommercesearch.client.impl.Brand;
  */
 public class BrandResponse extends DefaultResponse {
 
-  private Brand brand;
+    private Brand[] brands;
 
-  public void setBrand(Brand brand) {
-    this.brand = brand;
-  }
+    public Brand[] getBrands() {
+      return brands;
+    }
 
-  public Brand getBrand() {
-    return brand;
-  }
+    public void setBrands(Brand[] brands) {
+      this.brands = brands;
+    }  
+    
+    /**
+     * @deprecated api will return an array of brands soon
+     * @param brand
+     */
+    @JsonProperty("brand")  
+    public void setBrand(Brand brand) {
+      this.brands = new Brand[] { brand };
+    }
+
+    /**
+     * @deprecated api will return an array of brands soon
+     */  
+    @JsonIgnore
+    public Brand getBrand() {
+      if (brands != null && brands.length > 0) {
+        return this.brands[0];
+      }
+      return null;
+    }
+    
 }

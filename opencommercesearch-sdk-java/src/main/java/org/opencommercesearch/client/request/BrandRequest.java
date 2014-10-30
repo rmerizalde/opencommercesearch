@@ -19,6 +19,7 @@ package org.opencommercesearch.client.request;
 * under the License.
 */
 
+import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductApi;
 
 /**
@@ -31,7 +32,11 @@ public class BrandRequest extends BaseRequest {
   private String endpoint;
 
   public BrandRequest(String id) {
-    endpoint = "/brands/" + id;
+    endpoint = "/brands";
+    
+    if (StringUtils.isNotBlank(id)) {
+        endpoint += "/" + id;
+    }
   }
 
   @Override
