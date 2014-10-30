@@ -57,6 +57,10 @@ class BaseController extends Controller with ContentPreview with FieldList with 
   private val df: DateTimeFormatter =
     DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '" + timeZoneCode + "'").withLocale(java.util.Locale.ENGLISH).withZone(DateTimeZone.forID(timeZoneCode))
 
+  protected def withCorsHeaders(result: SimpleResult) : SimpleResult = {
+    result.withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
+  }
+
   protected def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
     val lastModified = df.print(System.currentTimeMillis())
     withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
