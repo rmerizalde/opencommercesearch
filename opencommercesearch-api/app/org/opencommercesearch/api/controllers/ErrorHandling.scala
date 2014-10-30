@@ -38,7 +38,7 @@ trait ErrorHandling {
       Logger.error(message, t)
       InternalServerError(Json.obj(
         "message" -> message
-      ))
+      )).withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
     }
 
     def badRequest(t: Throwable) = {
@@ -46,7 +46,7 @@ trait ErrorHandling {
       Logger.error(syntaxErrorMessage, t)
       BadRequest(Json.obj(
         "message" -> syntaxErrorMessage
-      ))
+      )).withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
     }
 
     f.recover {
