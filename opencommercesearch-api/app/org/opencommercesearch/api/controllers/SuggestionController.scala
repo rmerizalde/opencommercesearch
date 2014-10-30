@@ -66,9 +66,9 @@ object SuggestionController extends BaseController {
      preview: Boolean) = ContextAction.async { implicit context => implicit request =>
 
     if (q == null || q.length < 2) {
-      Future.successful(BadRequest(Json.obj(
+      Future.successful(withCorsHeaders(BadRequest(Json.obj(
         "message" -> s"At least $MinSuggestQuerySize characters are needed to make suggestions"
-      )))
+      ))))
     } else {
       val startTime = System.currentTimeMillis()
       val collector = new MultiSourceCollector[Element]
@@ -90,21 +90,21 @@ object SuggestionController extends BaseController {
           }
 
           Future.sequence(futureList).map( results => {
-            Ok(Json.obj(
+            withCorsHeaders(Ok(Json.obj(
               "metadata" -> Json.obj(
                  "found" -> collector.size(),
                  "time" -> (System.currentTimeMillis() - startTime)),
                "suggestions" -> Json.obj(
                  results:_*
                )
-             ))
+             )))
           })
         } else {
-          Future.successful(Ok(Json.obj(
+          Future.successful(withCorsHeaders(Ok(Json.obj(
            "metadata" -> Json.obj(
               "found" -> 0,
               "time" -> (System.currentTimeMillis() - startTime))
-          )))
+          ))))
         }
       })
     }
