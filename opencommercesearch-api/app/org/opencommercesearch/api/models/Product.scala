@@ -148,8 +148,14 @@ case class Product (
 
     skus match {
       case Some(s) =>
-        val sku = s.sortWith((a,b) => order(a.availabilityStatus.orNull) < order(b.availabilityStatus.orNull) ).head
-        availabilityStatus = sku.availabilityStatus
+        val sortedSkus = s.sortWith((a,b) => order(a.availabilityStatus.orNull) < order(b.availabilityStatus.orNull) )
+        if (!sortedSkus.isEmpty) {
+          val sku = sortedSkus.head
+          availabilityStatus = sku.availabilityStatus
+        } else {
+          availabilityStatus = None
+        }
+
       case None => availabilityStatus = None
     }
   }

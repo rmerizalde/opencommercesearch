@@ -22,6 +22,7 @@ package org.opencommercesearch.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.fasterxml.jackson.databind.util.ISO8601DateFormat;
+
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,7 +73,6 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -87,6 +87,7 @@ public class ProductApiTest {
     private static final String SEARCH_RESPONSE_JSON = "data/searchResponse-full.json";
     private static final String CATEGORY_RESPONSE_JSON = "data/categoryResponse-full.json";
     private static final String BRAND_RESPONSE_JSON = "data/brandResponse-full.json";
+    private static final String ALL_BRAND_RESPONSE_JSON = "data/allBrandResponse-full.json";
     private static final String SPELLCHECK_JSON = "data/spellcheck.json";
 
     Client client = PowerMockito.mock(Client.class);
@@ -335,6 +336,25 @@ public class ProductApiTest {
         BrandRequest request = new BrandRequest("88");
         request.addField("*");
         doTestBrand(request, ProductApi.class.getMethod("findBrand", BrandRequest.class));
+    }
+    
+    @Test
+    public void testAllBrands() throws IOException, ProductApiException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        BrandRequest request = new BrandRequest(null);
+        request.addField("*");
+        
+        BrandResponse response = (BrandResponse) callMethod(request, ProductApi.class.getMethod("findBrand", BrandRequest.class), BrandResponse.class, ALL_BRAND_RESPONSE_JSON);
+        
+        verify(client, times(1)).handle(any(org.restlet.Request.class));
+        assertNotNull("Metadata not found in the response", response.getMetadata());
+        assertNotNull("Brand not found in the response", response.getBrands());
+        
+        assertEquals("Search time matches", 1, response.getMetadata().getTime());
+        assertEquals("1", response.getBrands()[0].getId());
+        assertEquals("BrandA", response.getBrands()[0].getName());
+        assertEquals("2", response.getBrands()[1].getId());
+        assertEquals("BrandB", response.getBrands()[1].getName());
+        
     }
     
     @Test

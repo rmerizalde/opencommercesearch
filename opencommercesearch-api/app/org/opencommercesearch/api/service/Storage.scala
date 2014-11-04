@@ -141,11 +141,21 @@ trait Storage[T] {
   
   /**
    * Finds the brands that match the ids in the provided list. Optionally, takes a list of fields to return
-   * @param ids is the list of brand id
+   * @param ids is the list of brand ids
    * @param fields is the list of fields to return
    * @return the list of brands
    */
   def findBrands(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]]
+
+  /**
+   * Finds the brands that match the names in the provided list. Optionally, takes a list of fields to return
+   * @param names is the list of brand names
+   * @param fields is the list of fields to return
+   * @return the list of brands
+   *
+   * @todo implement brands sorted by name
+   */
+  def findBrandsByName(names: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]]
   
    /**
    * Saves the given list of brands. Returns the result of the last write

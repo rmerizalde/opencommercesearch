@@ -126,9 +126,9 @@ object ProductController extends BaseController {
         }
       } else {
         Logger.debug(s"Products with ids [$id] not found")
-        Future(NotFound(Json.obj(
+        Future(withCorsHeaders(NotFound(Json.obj(
           "messages" -> s"Cannot find products with ids [$id]"
-        )))
+        ))))
       }
     }
 
@@ -161,7 +161,7 @@ object ProductController extends BaseController {
     )
 
     val json = Json.obj(responseValues.flatten:_*)
-    if (found.getOrElse(0l) > 0l) Ok(json) else NotFound(json)
+    if (found.getOrElse(0l) > 0l) withCorsHeaders(Ok(json)) else withCorsHeaders(NotFound(json))
   }
 
   /**
@@ -580,7 +580,7 @@ object ProductController extends BaseController {
       products map {v => "products" -> products}
     )
 
-    Ok(Json.obj(responseValues.flatten:_*))
+    withCorsHeaders(Ok(Json.obj(responseValues.flatten:_*)))
   }
 
   /**
@@ -912,33 +912,33 @@ object ProductController extends BaseController {
         processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
-              Ok(Json.obj(
+              withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
               "suggestions" -> Json.toJson(
-                products map (Json.toJson(_)))))
+                products map (Json.toJson(_))))))
             } else {
-              Ok(Json.obj(
+              withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
                 "suggestions" -> Json.arr()
-              ))
+              )))
             }
           } else {
             Logger.debug(s"Unexpected response found for query $q")
-            InternalServerError(Json.obj(
+            withCorsHeaders(InternalServerError(Json.obj(
               "metadata" -> Json.obj(
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "message" -> "Unable to execute query"))
+              "message" -> "Unable to execute query")))
           }
         }
       } else {
-        Future.successful(Ok(Json.obj(
+        Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime)))))
+            "time" -> (System.currentTimeMillis() - startTime))))))
       }
     })
     withErrorHandling(future, s"Cannot search for [$q]")
@@ -972,33 +972,33 @@ object ProductController extends BaseController {
         processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
-              Ok(Json.obj(
+              withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
                 "products" -> Json.toJson(
-                  products map (Json.toJson(_)))))
+                  products map (Json.toJson(_))))))
             } else {
-              Ok(Json.obj(
+              withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
                   "time" -> (System.currentTimeMillis() - startTime)),
                 "products" -> Json.arr()
-              ))
+              )))
             }
           } else {
             Logger.debug(s"No generations found for product $id")
-            NotFound(Json.obj(
+            withCorsHeaders(NotFound(Json.obj(
               "metadata" -> Json.obj(
                 "time" -> (System.currentTimeMillis() - startTime)),
-              "message" -> s"Cannot find generations for product id [$id]"))
+              "message" -> s"Cannot find generations for product id [$id]")))
           }
         }
       } else {
-        Future.successful(Ok(Json.obj(
+        Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime)))))
+            "time" -> (System.currentTimeMillis() - startTime))))))
       }
     })
     withErrorHandling(future, s"Cannot find products for [$id]")
@@ -1038,7 +1038,7 @@ object ProductController extends BaseController {
         val docResponse = response.getResults()
         if (docResponse == null || docResponse.getNumFound() == 0) {
           Logger.debug(s"Cannot find similar products for product: [$productId]")
-          Future(NotFound(Json.obj("messages" -> s"Cannot find similar products for product: [$productId]")))
+          Future(withCorsHeaders(NotFound(Json.obj("messages" -> s"Cannot find similar products for product: [$productId]"))))
         } else {
           val productIds = new util.ArrayList[(String, String)]
           docResponse.foreach(product => {
