@@ -110,7 +110,7 @@ case class FacetHandler (
 
   private def fieldFacets(facetMap: mutable.Map[String, Facet], facetIds: Seq[String]) : Unit = {
     var categoryPrefix = StringUtils.EMPTY
-    if (queryResponse.getResponse.get("category_prefix") != null) {
+    if (queryResponse.getResponse != null && queryResponse.getResponse.get("category_prefix") != null) {
       categoryPrefix = queryResponse.getResponse.get("category_prefix").asInstanceOf[String]
     }
     
