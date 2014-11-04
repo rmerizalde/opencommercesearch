@@ -20,14 +20,13 @@ package org.opencommercesearch.api.util
 */
 
 import play.api.mvc.{Request, Call}
-import java.util.{MissingResourceException, ResourceBundle}
+import java.util._
 import org.opencommercesearch.api.common.FilterQuery
 import org.apache.commons.lang3.StringUtils
 import play.api.i18n.Messages
 import org.apache.solr.util.DateMathParser
 import org.joda.time.DateTime
 import org.joda.time.Days
-import java.util.Date
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.regex.Pattern
@@ -163,7 +162,7 @@ object Util {
   
   @throws(classOf[ParseException])
   def daysBetween(from: String, to: String) : Int = {
-    val dmp = new DateMathParser()
+    val dmp = new DateMathParser(TimeZone.getDefault, Locale.getDefault)
     var fromDate = parseDate(from, dmp)
     var toDate = parseDate(to, dmp)
     Days.daysBetween(new DateTime(fromDate), new DateTime(toDate)).getDays()
