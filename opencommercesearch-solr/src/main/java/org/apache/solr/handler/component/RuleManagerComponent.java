@@ -270,6 +270,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 rb.rsp.add("rule_debug", getDebugInfo(rulesMap, augmentedParams));
             }
 
+            rb.rsp.add("category_prefix", augmentedParams.get("f.category."+FacetParams.FACET_PREFIX));
             rb.req.setParams(augmentedParams);
         }
         catch(Throwable e) {

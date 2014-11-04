@@ -109,6 +109,11 @@ case class FacetHandler (
   }
 
   private def fieldFacets(facetMap: mutable.Map[String, Facet], facetIds: Seq[String]) : Unit = {
+    var categoryPrefix = StringUtils.EMPTY
+    if (queryResponse.getResponse.get("category_prefix") != null) {
+      categoryPrefix = queryResponse.getResponse.get("category_prefix").asInstanceOf[String]
+    }
+    
     if (queryResponse.getFacetFields != null) {
       val facetBlackLists = getFacetBlacklists(facetIds)
 
@@ -131,7 +136,7 @@ case class FacetHandler (
           for(facetId <- f.id) { facetBlackList = facetBlackLists(facetId) }
 
           for (count <- facetField.getValues) {
-            val filterName: String = getCountName(count, prefix)
+            val filterName: String = getCountName(count, if (StringUtils.isNotEmpty(categoryPrefix)) categoryPrefix else prefix)
             if (facetBlackList == null || !facetBlackList.contains(filterName)) {
               val filter = new Filter(Some(filterName), Some(count.getCount),
                 Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
