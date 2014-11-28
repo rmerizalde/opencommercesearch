@@ -8,10 +8,10 @@ import scala.collection.mutable
 import java.util
 import org.opencommercesearch.api.util.JsUtils.PathAdditions
 
-case class ScoreNode(
+case class QueryScore(
                       var value: Option[Float] = None,
                       var description: Option[String] = None,
-                      var details: Option[Seq[ScoreNode]] = None) {
+                      var details: Option[Seq[QueryScore]] = None) {
 
   def convertJavaResponse(debugMap: NamedList[AnyRef]) : Unit = {
     debugMap map { mapEntry =>
@@ -24,10 +24,10 @@ case class ScoreNode(
       } else if ("description".equals(mapEntry.getKey)) {
         description = Option(mapEntry.getValue.asInstanceOf[String])
       } else if ("details".equals(mapEntry.getKey)) {
-        val scalaDetails = new mutable.ArrayBuffer[ScoreNode]
+        val scalaDetails = new mutable.ArrayBuffer[QueryScore]
         val javaDetails = mapEntry.getValue.asInstanceOf[util.List[NamedList[AnyRef]]]
         javaDetails.foreach(entry => {
-          val newScoreNode = new ScoreNode()
+          val newScoreNode = new QueryScore()
           newScoreNode.convertJavaResponse(entry)
           scalaDetails += newScoreNode
         })
@@ -38,19 +38,19 @@ case class ScoreNode(
 
 }
 
-object ScoreNode {
+object QueryScore {
 
-  implicit val readsRule : Reads[ScoreNode] = (
+  implicit val readsRule : Reads[QueryScore] = (
     (__ \ "value").readNullable[Float] ~
     (__ \ "description").readNullable[String] ~
-    (__ \ "details").lazyReadNullable(Reads.list[ScoreNode](readsRule))
-  ) (ScoreNode.apply _)
+    (__ \ "details").lazyReadNullable(Reads.list[QueryScore](readsRule))
+  ) (QueryScore.apply _)
 
-  implicit val writesRule : Writes[ScoreNode] = (
+  implicit val writesRule : Writes[QueryScore] = (
     (__ \ "value").writeNullable[Float] ~
     (__ \ "description").writeNullable[String] ~
     //Prevent empty details lists to be written
-    (__ \ "details").lazyWriteNullableIterable[Seq[ScoreNode]](Writes.traversableWrites[ScoreNode](writesRule))
-  )  (unlift(ScoreNode.unapply))
+    (__ \ "details").lazyWriteNullableIterable[Seq[QueryScore]](Writes.traversableWrites[QueryScore](writesRule))
+  )  (unlift(QueryScore.unapply))
 
 }

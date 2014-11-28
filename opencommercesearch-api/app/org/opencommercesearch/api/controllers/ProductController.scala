@@ -19,7 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import org.opencommercesearch.api.models.debug.{QueryExplain, RulesDebug, DebugInfo}
+import org.opencommercesearch.api.models.debug.DebugInfo
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
@@ -809,15 +809,11 @@ object ProductController extends BaseController {
 
     if (response.getResponse != null && response.getResponse.get("rule_debug") != null) {
       generated = true
-      val rules = new RulesDebug()
-      rules.convertJavaResponse(response.getResponse.get("rule_debug").asInstanceOf[util.Map[String, AnyRef]])
-      debugInfo.setRulesDebug(rules)
+      debugInfo.processRulesResponse(response.getResponse.get("rule_debug").asInstanceOf[util.Map[String, AnyRef]])
     }
     if (response.getResponse != null && response.getResponse.get("debug") != null) {
       generated = true
-      val queryDebug = new QueryExplain()
-      queryDebug.convertJavaResponse(response.getResponse.get("debug").asInstanceOf[NamedList[AnyRef]])
-      debugInfo.setSolrDebug(queryDebug)
+      debugInfo.processSolrResponse(response.getResponse.get("debug").asInstanceOf[NamedList[AnyRef]])
     }
 
     if (generated) {

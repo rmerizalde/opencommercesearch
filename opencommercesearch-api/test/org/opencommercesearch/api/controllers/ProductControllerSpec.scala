@@ -322,8 +322,10 @@ class ProductControllerSpec extends BaseSpec {
         }
 
         (json \ "metadata" \ "debug").validate[DebugInfo].map { debugInfo =>
-          debugInfo.rulesDebug.isEmpty must beEqualTo(true)
-          debugInfo.solrDebug.isEmpty must beEqualTo(true)
+          debugInfo.query.isEmpty must beEqualTo(true)
+          debugInfo.synonyms.isEmpty must beEqualTo(true)
+          debugInfo.rules.isEmpty must beEqualTo(true)
+          debugInfo.params.isEmpty must beEqualTo(true)
         }
       }
     }
@@ -871,36 +873,30 @@ class ProductControllerSpec extends BaseSpec {
   def validateDebugMetadata(json: JsValue) {
     (json \ "metadata" \ "debug").validate[DebugInfo].map { debugInfo =>
 
-      debugInfo.rulesDebug.isEmpty must beEqualTo(false)
-      debugInfo.solrDebug.isEmpty must beEqualTo(false)
+      debugInfo.params.get must beEqualTo("ruleParams")
 
-      for (rulesDebug <- debugInfo.rulesDebug) {
-        rulesDebug.ruleParams.get must beEqualTo("ruleParams")
-
-        rulesDebug.rules.isEmpty must beEqualTo(false)
-        for (rules <- rulesDebug.rules) {
-          val boostRules = rules("boostRules")
-          boostRules(0).get("id").get must beEqualTo("someBoostRuleId")
-        }
+      debugInfo.rules.isEmpty must beEqualTo(false)
+      for (rules <- debugInfo.rules) {
+        val boostRules = rules("boostRules")
+        boostRules(0).get("id").get must beEqualTo("someBoostRuleId")
       }
-      for (solrDebug <- debugInfo.solrDebug) {
-        solrDebug.querystring.get must beEqualTo("querystring")
-        solrDebug.parsedquery.get must beEqualTo("parsedquery")
-        solrDebug.parsedquery_toString.get must beEqualTo("parsedquery_toString")
 
-        solrDebug.expandedSynonyms.isEmpty must beEqualTo(false)
-        for (expandedSynonym <- solrDebug.expandedSynonyms) {
+      debugInfo.synonyms.isEmpty must beEqualTo(false)
+      for (synonyms <- debugInfo.synonyms) {
+        synonyms.explain.get must beEqualTo("reasonExplain")
+        synonyms.expanded.isEmpty must beEqualTo(false)
+        for (expandedSynonym <- synonyms.expanded) {
           expandedSynonym(0) must beEqualTo("expandedSynonym1")
         }
+      }
 
-        solrDebug.reasonForNotExpandingSynonyms.isEmpty must beEqualTo(false)
-        for (reasonForNotExpandingSynonym <- solrDebug.reasonForNotExpandingSynonyms) {
-          reasonForNotExpandingSynonym(0) must beEqualTo("reasonKey1")
-          reasonForNotExpandingSynonym(1) must beEqualTo("reasonValue1")
-        }
+      for (query <- debugInfo.query) {
+        query.queryString.get must beEqualTo("querystring")
+        query.parsedQuery.get must beEqualTo("parsedquery")
+        query.finalQuery.get must beEqualTo("parsedquery_toString")
 
-        solrDebug.explain.isEmpty must beEqualTo(false)
-        for (explain <- solrDebug.explain) {
+        query.explain.isEmpty must beEqualTo(false)
+        for (explain <- query.explain) {
           val skuLevel1Node = explain("sku")
           skuLevel1Node.value.get must beEqualTo(1.2F)
           skuLevel1Node.description.get must beEqualTo("descriptionLevel1")
@@ -1156,7 +1152,8 @@ class ProductControllerSpec extends BaseSpec {
     solrDebug.add("expandedSynonyms", expandedSynonyms)
 
     val reasonForNotExpandingSynonyms = new NamedList[String]()
-    reasonForNotExpandingSynonyms.add("reasonKey1", "reasonValue1")
+    reasonForNotExpandingSynonyms.add("name", "reasonName")
+    reasonForNotExpandingSynonyms.add("explanation", "reasonExplain")
     solrDebug.add("reasonForNotExpandingSynonyms", reasonForNotExpandingSynonyms)
 
     val explainMap = new NamedList[AnyRef]()
