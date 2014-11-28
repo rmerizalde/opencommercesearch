@@ -1,5 +1,6 @@
 package org.opencommercesearch.api.controllers
 
+import org.opencommercesearch.api.models.debug.DebugInfo
 import play.api.libs.json.{JsError, Json}
 import play.api.test.{FakeApplication, FakeRequest}
 import play.api.test.Helpers._
@@ -236,6 +237,49 @@ class ProductControllerSpec extends BaseSpec {
         validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
     }
+
+    "send 200 when a product is found when searching by query with debug info" in new Products {
+      running(fakeApplication()) {
+        val product = Product.getInstance()
+        val sku = Sku.getInstance()
+        product.skus = Some(Seq(sku))
+        val skuResponse = setupGroupQuery(Seq(product), debug=true)
+        var productQuery:SolrQuery = null
+
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = Sku.getInstance()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+
+        solrServer.query(any[SolrQuery]) answers { q =>
+          productQuery = q.asInstanceOf[SolrQuery]
+          Future.successful(skuResponse)
+        }
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any) returns Future.successful(Seq(product))
+
+        val result = route(FakeRequest(GET, routes.ProductController.search("term", "mysite").url + "&debug=true"))
+        validateQueryResult(result.get, OK, "application/json")
+        validateCommonQueryParams(productQuery, expectDebug = true)
+        validateSearchParams(productQuery)
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "product").validate[Product].map { product =>
+          for (skus <- product.skus) {
+            for (sku <- skus) {
+              product.id.get must beEqualTo(expectedSku.id.get)
+            }
+          }
+        } recoverTotal {
+          e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+        validateDebugMetadata(json)
+      }
+    }
     
     "send 200 when a product is found when searching by query" in new Products {
       running(fakeApplication()) {
@@ -275,6 +319,11 @@ class ProductControllerSpec extends BaseSpec {
           }
         } recoverTotal {
           e => failure("Invalid JSON for product: " + JsError.toFlatJson(e))
+        }
+
+        (json \ "metadata" \ "debug").validate[DebugInfo].map { debugInfo =>
+          debugInfo.rulesDebug.isEmpty must beEqualTo(true)
+          debugInfo.solrDebug.isEmpty must beEqualTo(true)
         }
       }
     }
@@ -815,6 +864,57 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+  /**
+   * Helper method to validate the debug section is available in the metadata
+   * @param json
+   */
+  def validateDebugMetadata(json: JsValue) {
+    (json \ "metadata" \ "debug").validate[DebugInfo].map { debugInfo =>
+
+      debugInfo.rulesDebug.isEmpty must beEqualTo(false)
+      debugInfo.solrDebug.isEmpty must beEqualTo(false)
+
+      for (rulesDebug <- debugInfo.rulesDebug) {
+        rulesDebug.ruleParams.get must beEqualTo("ruleParams")
+
+        rulesDebug.rules.isEmpty must beEqualTo(false)
+        for (rules <- rulesDebug.rules) {
+          val boostRules = rules("boostRules")
+          boostRules(0).get("id").get must beEqualTo("someBoostRuleId")
+        }
+      }
+      for (solrDebug <- debugInfo.solrDebug) {
+        solrDebug.querystring.get must beEqualTo("querystring")
+        solrDebug.parsedquery.get must beEqualTo("parsedquery")
+        solrDebug.parsedquery_toString.get must beEqualTo("parsedquery_toString")
+
+        solrDebug.expandedSynonyms.isEmpty must beEqualTo(false)
+        for (expandedSynonym <- solrDebug.expandedSynonyms) {
+          expandedSynonym(0) must beEqualTo("expandedSynonym1")
+        }
+
+        solrDebug.reasonForNotExpandingSynonyms.isEmpty must beEqualTo(false)
+        for (reasonForNotExpandingSynonym <- solrDebug.reasonForNotExpandingSynonyms) {
+          reasonForNotExpandingSynonym(0) must beEqualTo("reasonKey1")
+          reasonForNotExpandingSynonym(1) must beEqualTo("reasonValue1")
+        }
+
+        solrDebug.explain.isEmpty must beEqualTo(false)
+        for (explain <- solrDebug.explain) {
+          val skuLevel1Node = explain("sku")
+          skuLevel1Node.value.get must beEqualTo(1.2F)
+          skuLevel1Node.description.get must beEqualTo("descriptionLevel1")
+
+          val skuLevel2Node = skuLevel1Node.details.get(0)
+          skuLevel2Node.value.get must beEqualTo(1.2F)
+          skuLevel2Node.description.get must beEqualTo("descriptionLevel2")
+          skuLevel2Node.details.isDefined must beEqualTo(false)
+        }
+      }
+    } recoverTotal {
+      e => failure("Invalid JSON for debugInfo: " + JsError.toFlatJson(e))
+    }
+  }
 
   /**
    * Helper method to validate search parameters
@@ -885,7 +985,7 @@ class ProductControllerSpec extends BaseSpec {
    * Helper method to validate common query params
    * @param query the query
    */
-  private def validateCommonQueryParams(query: SolrQuery, expectedGroupSorting: Boolean = true) : Unit = {
+  private def validateCommonQueryParams(query: SolrQuery, expectedGroupSorting: Boolean = true, expectDebug: Boolean = false) : Unit = {
     query.getBool("facet") must beEqualTo(true)
     query.getBool("group") must beEqualTo(true)
     query.getBool("group.ngroups") must beEqualTo(true)
@@ -903,6 +1003,12 @@ class ProductControllerSpec extends BaseSpec {
     val facetFields = query.getFacetFields
     facetFields.size must beEqualTo(1)
     facetFields(0) must beEqualTo("{!ex=collapse}category")
+
+    if(expectDebug) {
+      query.getBool("debug.explain.structured") must beEqualTo(true)
+      query.getBool("debugQuery") must beEqualTo(true)
+      query.getBool("debugRule") must beEqualTo(true)
+    }
   }
 
   /**
@@ -978,9 +1084,9 @@ class ProductControllerSpec extends BaseSpec {
    * @param products is the list of products used to build the mock response
    * @return
    */
-  private def setupGroupQuery(products: Seq[Product], collectedTerms: String = null) = {
+  private def setupGroupQuery(products: Seq[Product], collectedTerms: String = null, debug: Boolean = false) = {
     val queryResponse = mock[QueryResponse]
-
+    val summary = mock[NamedList[Object]]
     solrServer.query(any[SolrQuery]) returns Future.successful(queryResponse)
 
     val groupCommand = mock[GroupCommand]
@@ -1006,6 +1112,14 @@ class ProductControllerSpec extends BaseSpec {
       }
       group.getResult returns documentList
       groupValues.add(group)
+
+      if (debug) {
+        val ruleDebug: util.HashMap[String, AnyRef] = mockRulesDebug
+        summary.get("rule_debug") returns ruleDebug
+
+        val solrDebug: NamedList[AnyRef] = mockSolrDebug
+        summary.get("debug") returns solrDebug
+      }
     }
 
     if(collectedTerms != null) {
@@ -1016,7 +1130,7 @@ class ProductControllerSpec extends BaseSpec {
       queryResponse.getSpellCheckResponse returns spellCheckResponse
     }
     
-    val summary = mock[NamedList[Object]]
+    
     val groupSummary = mock[NamedList[Object]]
     summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary
 
@@ -1029,5 +1143,52 @@ class ProductControllerSpec extends BaseSpec {
     queryResponse.getResponse returns summary
     
     queryResponse
+  }
+
+  def mockSolrDebug: NamedList[AnyRef] = {
+    val solrDebug = new NamedList[AnyRef]()
+    solrDebug.add("querystring", "querystring")
+    solrDebug.add("parsedquery", "parsedquery")
+    solrDebug.add("parsedquery_toString", "parsedquery_toString")
+
+    val expandedSynonyms = new util.ArrayList[String]()
+    expandedSynonyms.add("expandedSynonym1")
+    solrDebug.add("expandedSynonyms", expandedSynonyms)
+
+    val reasonForNotExpandingSynonyms = new NamedList[String]()
+    reasonForNotExpandingSynonyms.add("reasonKey1", "reasonValue1")
+    solrDebug.add("reasonForNotExpandingSynonyms", reasonForNotExpandingSynonyms)
+
+    val explainMap = new NamedList[AnyRef]()
+    val skuExplainLevel1 = new NamedList[Any]()
+    val skuExplainDetails = new util.ArrayList[Any]()
+    val skuExplainLevel2 = new NamedList[ Any]()
+    explainMap.add("sku", skuExplainLevel1)
+    skuExplainDetails.add(skuExplainLevel2)
+
+    skuExplainLevel1.add("value", 1.2)
+    skuExplainLevel1.add("description", "descriptionLevel1")
+    skuExplainLevel1.add("details", skuExplainDetails)
+
+    skuExplainLevel2.add("value", 1.2)
+    skuExplainLevel2.add("description", "descriptionLevel2")
+
+    solrDebug.add("explain", explainMap)
+
+    solrDebug
+  }
+
+  def mockRulesDebug: util.HashMap[String, AnyRef] = {
+    val ruleDebug = new util.HashMap[String, AnyRef]()
+    ruleDebug.put("ruleParams", "ruleParams")
+
+    val ruleMap = new util.HashMap[String, util.List[util.Map[String, String]]]()
+    val boostList = new util.ArrayList[util.Map[String, String]]()
+    val boostRule = new util.HashMap[String, String]()
+    boostRule.put("id", "someBoostRuleId")
+    boostList.add(boostRule)
+    ruleMap.put("boostRules", boostList)
+    ruleDebug.put("rules", ruleMap)
+    ruleDebug
   }
 }

@@ -133,6 +133,15 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     this
   }
 
+  def withDebugInfo() : ProductQuery = {
+    if ("true".equals(request.getQueryString("debug").getOrElse(""))) {
+      add("debug.explain.structured", "true")
+      add("debugQuery", "true")
+      add("debugRule", "true")
+    }
+    this
+  }
+
   def groupTotalCount = metadataFields.isEmpty || metadataFields.contains("found")
 
   def withGrouping() : ProductQuery = {
