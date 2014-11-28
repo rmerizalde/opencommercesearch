@@ -19,7 +19,9 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
@@ -796,13 +798,31 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * @param ruleParams List of params that will be added to the original query due found rules.
      * @return named list can be added to the search response, for debugging purposes.
      */
-    private NamedList<Object> getDebugInfo(Map<RuleType, List<Document>> rulesMap, SolrParams ruleParams) {
-        NamedList<Object> debugInfo = new NamedList<Object>();
-        debugInfo.add("rules", rulesMap);
-        debugInfo.add("ruleParams", ruleParams.toString());
+    private Map<String, Object> getDebugInfo(Map<RuleType, List<Document>> rulesMap, SolrParams ruleParams) {
+        Map<String, Object> debugInfo = Maps.newHashMapWithExpectedSize(2);
+
+        //We are transforming the response cause we only need the rule type and the rule id in the final response
+        //If we get this via solrj, then the response was actually returning the entire rule document and the
+        //full package + enum name to the RuleType enumerator.
+        Map<String, List<Map<String, String>>> transformedRulesMap = Maps.newHashMapWithExpectedSize(rulesMap.size());
+        for(Entry<RuleType, List<Document>> entry : rulesMap.entrySet()) {
+            transformedRulesMap.put(entry.getKey().name(), Lists.transform(entry.getValue(), docToMapWithId));
+        }
+
+        debugInfo.put("rules", transformedRulesMap);
+        debugInfo.put("ruleParams", ruleParams.toString());
 
         return debugInfo;
     }
+
+    Function<Document, Map<String, String>> docToMapWithId = new Function<Document, Map<String, String>>() {
+        @Override
+        public Map<String, String> apply(Document indexableFields) {
+            Map<String, String> map = Maps.newHashMapWithExpectedSize(1);
+            map.put("id", indexableFields.get("id"));
+            return map;
+        }
+    };
 
     /**
      * Enumeration of valid rule types understood by RuleManager
