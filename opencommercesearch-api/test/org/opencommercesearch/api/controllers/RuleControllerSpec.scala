@@ -19,6 +19,9 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import com.mongodb.WriteResult
+import org.junit.runner.RunWith
+import org.specs2.runner.JUnitRunner
 import play.api.mvc.SimpleResult
 import play.api.test._
 import play.api.test.Helpers._
@@ -39,13 +42,19 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
+@RunWith(classOf[JUnitRunner])
 class RuleControllerSpec extends Specification with Mockito {
+
+  val storage = mock[MongoStorage]
 
   trait Rules extends Before {
     def before = {
       solrServer = mock[AsyncCloudSolrServer]
+
       storageFactory = mock[MongoStorageFactory]
-      storageFactory.getInstance(anyString) returns mock[MongoStorage]
+      storageFactory.getInstance(anyString) returns storage
+      val writeResult = mock[WriteResult]
+      storage.saveRule(any) returns Future.successful(writeResult)
     }
   }
 
@@ -69,11 +78,11 @@ class RuleControllerSpec extends Specification with Mockito {
       running(FakeApplication()) {
         val (queryResponse, docList) = setupQuery
         val expectedId = "1000"
+        storage.findRules(any, any) returns Future.successful(List.empty)
 
         val response = route(FakeRequest(GET, routes.RuleController.findById(expectedId).url))
 
-        validateQuery(queryResponse, docList, isEmpty = true)
-        validateQueryResult(response.get, NOT_FOUND, "application/json", s"Cannot find rule with id [$expectedId]")
+        validateQueryResult(response.get, NOT_FOUND, "application/json", s"Cannot find rules with ids [$expectedId]")
       }
     }
 
@@ -88,13 +97,18 @@ class RuleControllerSpec extends Specification with Mockito {
         doc.get("id") returns expectedId
         doc.getFieldValue("id") returns expectedId
 
+        val rule = new Rule()
+        rule.id = Some(expectedId)
+        storage.findRules(any, any) returns Future.successful(List(rule))
+
         val response = route(FakeRequest(GET, routes.RuleController.findById(expectedId).url))
 
-        validateQuery(queryResponse, docList, isEmpty = false)
         validateQueryResult(response.get, OK, "application/json")
 
         val json = Json.parse(contentAsString(response.get))
-        (json \ "rule").validate[Rule].map { rule =>
+        (json \ "rules").validate[List[Rule]].map { rules =>
+          rules.size must beEqualTo(1)
+          val rule = rules(0)
           rule.id.isEmpty must beEqualTo(false)
           rule.id.get must beEqualTo(expectedId)
         } recoverTotal {
