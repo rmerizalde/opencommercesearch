@@ -20,6 +20,7 @@ package org.apache.solr.handler.component;
 */
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.commons.lang.BooleanUtils;
@@ -810,7 +811,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         }
 
         debugInfo.put("rules", transformedRulesMap);
-        debugInfo.put("ruleParams", ruleParams.toString());
+        debugInfo.put("ruleParams", Joiner.on(",").withKeyValueSeparator("=").join(ruleParams.toNamedList()));
 
         return debugInfo;
     }

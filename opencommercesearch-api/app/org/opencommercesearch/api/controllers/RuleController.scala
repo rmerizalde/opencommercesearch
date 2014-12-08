@@ -19,51 +19,61 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
+import javax.ws.rs.{PathParam, QueryParam}
+
+import com.wordnik.swagger.annotations._
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.client.solrj.beans.BindingException
+import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
+import org.apache.solr.client.solrj.response.UpdateResponse
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.{Rule, RuleList}
+import org.opencommercesearch.api.util.Util._
 import play.api.Logger
-import play.api.libs.json.{JsError, JsArray, Json}
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.{JsArray, JsError, Json}
+import play.api.mvc._
 
 import scala.concurrent.Future
 
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.util.Util
-import org.opencommercesearch.api.models.{Rule, RuleList}
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
-import org.apache.solr.client.solrj.beans.BindingException
-import org.apache.solr.common.SolrDocument
-import Util._
-
+@Api(value = "rules", basePath = "/api-docs/rules", description = "Rule API endpoints.")
 object RuleController extends BaseController {
 
-  def findById(version: Int, id: String, preview: Boolean) = Action.async { implicit request =>
-    val query = withRuleCollection(withFields(new SolrQuery(), request.getQueryString("fields")), preview, request.acceptLanguages)
+  @ApiOperation(value = "Searches Rules", notes = "Returns information for a given rule", response = classOf[Rule], httpMethod = "GET")
+  @ApiResponses(Array(new ApiResponse(code = 404, message = "Rule not found")))
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query")
+  ))
+  def findById(version: Int,
+               @ApiParam(value = "A rule id", required = true)
+               @PathParam("id")
+               id: String,
+               @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+               @QueryParam("preview")
+               preview: Boolean) = Action.async { implicit request =>
 
-    query.add("q", "id:" + id)
-    query.add("fl", "*")
+    val ruleIds = StringUtils.split(id, ",")
+    val storage = withNamespace(storageFactory, preview)
+    val storageFuture = storage.findRules(ruleIds, fieldList(allowStar = true))
 
-    Logger.debug("Query rule " + id)
-    val future = solrServer.query(query).map( response => {
-      val results = response.getResults
-      if(results.getNumFound > 0 && results.get(0) != null) {
-        var doc : SolrDocument = results.get(0)
-        Logger.debug("Found rule " + id)
+    val future = storageFuture map { rules =>
+      if(rules != null && rules.nonEmpty) {
+        Logger.debug("Found rules " + id)
         Ok(Json.obj(
-          "rule" -> solrServer.binder.getBean(classOf[Rule], doc)))
+          "rules" -> rules))
       } else {
-        Logger.debug("Rule " + id + " not found")
+        Logger.debug("Rules " + id + " not found")
         NotFound(Json.obj(
-          "message" -> s"Cannot find rule with id [$id]"
+          "message" -> s"Cannot find rules with ids [$id]"
         ))
       }
-    })
+    }
 
     withErrorHandling(future, s"Cannot retrieve rule with id [$id]")
   }
 
-  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action.async (parse.json) { request =>
+  def createOrUpdate(version: Int, id: String, preview: Boolean) = Action.async (parse.json) { implicit request =>
     Json.fromJson[Rule](request.body).map { rule =>
       try {
         val ruleDoc = solrServer.binder.toSolrInputDocument(rule)
@@ -71,9 +81,13 @@ object RuleController extends BaseController {
         update.add(ruleDoc)
         withRuleCollection(update, preview, request.acceptLanguages)
 
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val storage = withNamespace(storageFactory, preview)
+        val storageFuture = storage.saveRule(rule)
+        val searchFuture: Future[UpdateResponse] = update.process(solrServer)
+
+        val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (storageResult, searchResponse) =>
           Created.withHeaders((LOCATION, absoluteURL(routes.RuleController.findById(id), request)))
-        })
+        }
 
         withErrorHandling(future, s"Cannot store Rule with id [$id]")
       }
@@ -90,7 +104,7 @@ object RuleController extends BaseController {
     }.get
   }
 
-  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { request =>
+  def bulkCreateOrUpdate(version: Int, preview: Boolean) = Action.async (parse.json(maxLength = 1024 * 2000)) { implicit request =>
     Json.fromJson[RuleList](request.body).map { ruleList =>
       val rules = ruleList.rules
       try {
@@ -103,12 +117,16 @@ object RuleController extends BaseController {
               update.add(solrServer.binder.toSolrInputDocument(rule))
           }
 
-          val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+          val storage = withNamespace(storageFactory, preview)
+          val storageFuture = storage.saveRule(ruleList.rules:_*)
+          val searchFuture: Future[UpdateResponse] = update.process(solrServer)
+
+          val future = storageFuture zip searchFuture map { case (storageResponse, response) =>
             Created(Json.obj(
               "locations" -> JsArray(
                 rules map (b => Json.toJson(routes.RuleController.findById(b.id.get).url))
               )))
-          })
+          }
 
           withErrorHandling(future, s"Cannot store Rules with ids [${rules map (_.id.get) mkString ","}]")
         }

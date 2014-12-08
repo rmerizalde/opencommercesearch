@@ -19,14 +19,18 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json._
-import org.apache.solr.client.solrj.beans.Field
 import java.util.Date
+
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.solr.client.solrj.beans.Field
+import org.jongo.marshall.jackson.oid.Id
+import play.api.libs.json._
 
 /**
  * Represents a single Rule
  *
  * @param id is the system id of the Rule
+ * @param name is the system name of the Rule
  * @param query is the query for the Rule
  * @param sortPriority is the sort priority for the Rule (i.e. what order should this rule have)
  * @param combineMode is the combine mode for the Rule (replace or append)
@@ -43,26 +47,27 @@ import java.util.Date
  * @param ruleType type of rule
  */
 case class Rule(
-  var id: Option[String] = None,
-  var query: Option[String] = None,
-  var sortPriority: Option[Int] = None,
-  var combineMode: Option[String] = None,
-  var startDate: Option[String] = None,
-  var endDate: Option[String] = None,
-  var target: Option[Array[String]] = None,
-  var subTarget: Option[Array[String]] = None,
-  var siteId: Option[Array[String]] = None,
-  var catalogId: Option[Array[String]] = None,
-  var category: Option[Array[String]] = None,
-  var brandId: Option[Array[String]] = None,
-  var experimental: Option[Boolean] = None,
-  var boostFunction: Option[String] = None,
-  var facetField: Option[Array[String]] = None,
-  var facetId: Option[Array[String]] = None,
-  var boostedProducts: Option[Array[String]] = None,
-  var blockedProducts: Option[Array[String]] = None,
-  var ruleType: Option[String] = None,
-  var redirectUrl: Option[String] = None) {
+  @Id var id: Option[String] = None,
+  @JsonProperty("name") var name: Option[String] = None,
+  @JsonProperty("query") var query: Option[String] = None,
+  @JsonProperty("sortPriority") var sortPriority: Option[Int] = None,
+  @JsonProperty("combineMode") var combineMode: Option[String] = None,
+  @JsonProperty("startDate") var startDate: Option[String] = None,
+  @JsonProperty("endDate") var endDate: Option[String] = None,
+  @JsonProperty("target") var target: Option[Array[String]] = None,
+  @JsonProperty("subTarget") var subTarget: Option[Array[String]] = None,
+  @JsonProperty("siteId") var siteId: Option[Array[String]] = None,
+  @JsonProperty("catalogId") var catalogId: Option[Array[String]] = None,
+  @JsonProperty("category") var category: Option[Array[String]] = None,
+  @JsonProperty("brandId") var brandId: Option[Array[String]] = None,
+  @JsonProperty("experimental") var experimental: Option[Boolean] = None,
+  @JsonProperty("boostFunction") var boostFunction: Option[String] = None,
+  @JsonProperty("facetField") var facetField: Option[Array[String]] = None,
+  @JsonProperty("facetId") var facetId: Option[Array[String]] = None,
+  @JsonProperty("boostedProducts") var boostedProducts: Option[Array[String]] = None,
+  @JsonProperty("blockedProducts") var blockedProducts: Option[Array[String]] = None,
+  @JsonProperty("ruleType") var ruleType: Option[String] = None,
+  @JsonProperty("redirectUrl") var redirectUrl: Option[String] = None) {
 
   def this() = this(id = None)
 

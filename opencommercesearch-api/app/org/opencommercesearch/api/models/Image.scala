@@ -36,7 +36,7 @@ case class Image(
 
 }
 
-object Image {    Tuple2
+object Image {
   implicit val readsImage = Json.reads[Image]
   implicit val writesImage = Json.writes[Image]
 }
