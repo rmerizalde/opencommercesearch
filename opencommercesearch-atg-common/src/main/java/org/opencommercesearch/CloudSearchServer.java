@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
 import java.util.*;
 
 import org.apache.commons.lang.StringUtils;
@@ -50,7 +51,6 @@ import org.opencommercesearch.repository.SynonymProperty;
 import static org.opencommercesearch.SearchServerException.create;
 import static org.opencommercesearch.SearchServerException.Code.CORE_RELOAD_EXCEPTION;
 import static org.opencommercesearch.SearchServerException.Code.EXPORT_SYNONYM_EXCEPTION;
-
 import atg.nucleus.ServiceException;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
@@ -412,7 +412,14 @@ public class CloudSearchServer extends AbstractSearchServer<CloudSolrServer> imp
                         logInfo("Reladed core " + collectionName + ", current status is " + adminResponse.getCoreStatus());
                     }
                 } catch (SolrServerException ex) {
-                    throw create(CORE_RELOAD_EXCEPTION, ex);
+                    if (ex.getCause() instanceof SocketTimeoutException) {
+                        //if we experience a socket timeout out don't kill the entire process. Try to reload the other nodes
+                        if(isLoggingError()) {
+                            logError("Reloading core failed due to socket timeout for node [" +  node + "] and collection [" + collectionName +"]" );
+                        }
+                    } else {
+                        throw create(CORE_RELOAD_EXCEPTION, ex);
+                    }
                 } catch (IOException ex) {
                     throw create(CORE_RELOAD_EXCEPTION, ex);    
                 }
