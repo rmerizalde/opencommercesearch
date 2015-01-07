@@ -1,0 +1,112 @@
+<div ng-controller="SiteCtrl as siteCtrl">
+    
+    <div class="row">
+
+        <div class="col-xs-6">
+            <form ng-submit="createSnapshot(snapshotName)">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input class="form-control" id="snapshotName" ng-model="snapshotName"/>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default" type="submit">Create snapshot</button>
+                </div>
+            </form>
+
+            <form ng-submit="removeSite(currentSite)">
+                <div class="form-group">
+                    <select class="form-control" ng-model="currentSite" ng-options="site.name for site in sites">
+                        <option value="">Choose Site</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default" type="submit">Remove</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-xs-6">
+            <form ng-submit="addSite(name, code, apiUrl, contentUrl, fields)">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input class="form-control" id="name" ng-model="name"/>
+                </div>
+                <div class="form-group">
+                    <label for="code">Code</label>
+                    <input class="form-control" id="code" ng-model="code"/>
+                </div>
+                <div class="form-group">
+                    <label for="apiUrl">Api Url</label>
+                    <input class="form-control" id="apiUrl" ng-model="apiUrl"/>
+                </div>
+                <div class="form-group">
+                    <label for="contentUrl">Content Url</label>
+                    <input class="form-control" id="contentUrl" ng-model="contentUrl"/>
+                </div>
+                <div class="form-group">
+                    <label for="fields">Fields</label>
+                    <input class="form-control" id="fields" ng-model="fields"/>
+                </div>
+                <button class="btn btn-default" type="submit">New Site</button>
+            </form>
+        </div>
+    </div>
+
+    <div ng-repeat="site in sites" ng-controller="CaseCtrl as caseCtrl" ng-show="caseCtrl.showDetails(site)">
+        <h1>{{site.name}}</h1>
+        
+        <form class="form-inline" ng-submit="caseCtrl.removeCase(caseCtrl.currentCase)">
+            <div class="form-group">
+                <select class="form-control" ng-model="caseCtrl.currentCase" ng-options="case.name for case in caseCtrl.cases" ng-change="caseCtrl.setCase(caseCtrl.currentCase)">
+                    <option value="">-- choose case --</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">Remove</button>
+            </div>
+        </form>
+
+        <br/>
+        
+        <form class="form-inline" ng-submit="caseCtrl.addCase(caseName)">
+            <div class="form-group">
+                <input class="form-control" ng-model="caseName"/>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default" type="submit">New Case</button>
+            </div>
+        </form>
+        
+        <div ng-repeat="case in caseCtrl.cases" ng-controller="QueryCtrl as ctrl" ng-show="ctrl.showDetails(site, caseCtrl.currentCase)">
+            <h1>{{case.name}}</h1>
+            
+            <form class="form-inline" ng-submit="ctrl.addQuery(query)">
+                <input class="form-control" ng-model="query"/>
+                <button class="btn btn-default" type="submit">New Query</button>
+            </form>
+
+            <br/>
+            
+            <div class="panel panel-default" ng-repeat="query in ctrl.queries" ng-controller="QueryDetailCtrl as ctrl">
+                <div class="panel-heading" ng-click="ctrl.toggleDetails()">
+                    <span class="glyphicon glyphicon-{{ctrl.toggleCue}}"></span>
+                    <span>{{query.name}}</span>
+                    <span>{{ctrl.score}}</span>
+                </div>
+                
+                <div class="panel-body" ng-show="ctrl.showDetails">
+                    <div class="col-xs-3" ng-repeat="product in ctrl.results" ng-controller="ProductCtrl as ctrl">
+                        <div class="thumbnail product">
+                            <img src="http://content.backcountry.com{{product.skus[0].image.url}}" alt="{{product.id}}"/>
+                            <p>{{product.brand.name}} {{product.title}}</p>
+                            <select class="form-control" ng-model="ctrl.judgement.score" ng-change="ctrl.saveScore()">
+                                <option ng-repeat="val in [1,2,3,4,5,6,7,8,9,10]" value="{{val}}">{{val}}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <span ng-model="ctrl.results">Found {{ctrl.results.metadata.found}} results</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,24 @@
+$icon-font-path: "../bower_components/bootstrap-sass-official/assets/fonts/bootstrap/";
+// bower:scss
+@import "bootstrap-sass-official/assets/stylesheets/_bootstrap.scss";
+// endbower
+
+footer {
+    border-top: 1px solid $gray-lighter; margin-top: 40px; padding: 40px 0;
+}
+
+.panel-heading {
+    cursor: pointer;
+}
+
+.product {
+    height: 220px; position: relative; text-align: center;
+    
+    img {
+        width: 100; height: 100px;
+    }
+    
+    select {
+        bottom: 5px; left: 50%; margin-left: -25px; position: absolute; width: 50px;
+    }
+}
