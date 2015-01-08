@@ -7,7 +7,7 @@
  * # QueryDetailCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $firebase, FIREBASE_ROOT, $http) {
+angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $firebase, FIREBASE_ROOT, $http, $log) {
     var self = this;
 
     this.site = $scope.site;
@@ -22,9 +22,11 @@ angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $
     this.resultsSync = $firebase(this.resultsRef);
     this.results = this.resultsSync.$asArray();
     this.score = '?';
+    this.factionalDigits = 2;
+    this.loadedJudgements = false;
 
     this.judgements.$watch(function() {
-        self.ndcg();
+        self.score = self.ndcg(self.judgements).toString();
     });
 
     this.results.$loaded().then(function() {
@@ -35,24 +37,45 @@ angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $
     });
 
     this.judgements.$loaded().then(function() {
-        self.ndcg();
+        self.loadedJudgements = true;
+        self.score = self.ndcg(self.judgements).toString();
     });
 
-    this.ndcg = function() {
-        var count = self.judgements.length,
-            score = 0;
+    this.ndcg = function(judgements) {
+        var idcg = this.idcg(judgements);
 
-        if (count === 0) {
-            return;
+        if (idcg == 0) {
+            return 0;
         }
 
-        for (var i = 0; i < count; i++) {
-            var judgement = self.judgements[i];
+        var dcg = this.dcg(judgements);
+        var ndcg = (dcg / idcg).toFixed(this.factionalDigits + 1);
 
-            score += Number(judgement.score);
+        $log.info("NDCG for query '" + this.query.name + "' in case '" + this.case.$id + "' for site '" + this.site.$id + "' is " + ndcg);
+        return (dcg / idcg).toFixed(this.factionalDigits + 1);
+    };
+
+    this.dcg = function(judgements) {
+        if (judgements.length == 0) {
+            return 0;
         }
+        var dcgVal = Number(judgements[0].score);
+        for (var i = 1; i < judgements.length; i++) {
+            var score = Number(judgements[i].score);
+            dcgVal += (score / (Math.log(i+1) / Math.LN2));
+        }
+        return dcgVal.toFixed(this.factionalDigits);
+    };
 
-        self.score = (score / count).toString();
+    this.idcg = function(judgements) {
+        var sortedJudgements = judgements.slice(0);
+        sortedJudgements.sort(function (a, b) {
+            var scoreA = Number(a.score);
+            var scoreB = Number(b.score);
+
+            return scoreB - scoreA;
+        });
+        return this.dcg(sortedJudgements)
     };
 
     this.toggleDetails = function() {
@@ -68,7 +91,7 @@ angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $
 
             for (var i = 0; i < products.length; i++) {
                 var product = products[i];
-                
+
                 product['.priority'] = i;
                 changes[product.id] = product;
             }
