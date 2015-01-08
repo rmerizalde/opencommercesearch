@@ -25,8 +25,10 @@ angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $
     this.factionalDigits = 2;
     this.loadedJudgements = false;
 
-    this.judgements.$watch(function() {
-        self.score = self.ndcg(self.judgements).toString();
+    this.judgements.$watch(function(event) {
+        if (self.loadedJudgements) {
+            self.score = self.ndcg(self.judgements).toString();
+        }
     });
 
     this.results.$loaded().then(function() {
@@ -37,14 +39,15 @@ angular.module('relevancyApp').controller('QueryDetailCtrl', function ($scope, $
     });
 
     this.judgements.$loaded().then(function() {
-        self.loadedJudgements = true;
         self.score = self.ndcg(self.judgements).toString();
+        self.loadedJudgements = true;
     });
 
     this.ndcg = function(judgements) {
         var idcg = this.idcg(judgements);
 
         if (idcg == 0) {
+            $log.info("No judgements found for query '" + this.query.name + "' in case '" + this.case.$id + "' for site '" + this.site.$id);
             return 0;
         }
 
