@@ -1,0 +1,51 @@
+<div class="row">
+    <div class="col-xs-12 title">
+        <h2 class="pull-left"><span class="text-muted">Cases for</span> {{site.name}}</h2>
+        <form class="form-inline pull-right" ng-submit="addCase(newCase.name)">
+            <div class="form-group">
+                <div ng-if="newCase.alert" class="alert alert-{{newCase.alert.class}} small"><strong>{{newCase.alert.type}}</strong> {{newCase.alert.message}}</div>
+            </div>
+            <div class="form-group">
+                <input type="text" ng-model="newCase.name" class="form-control" placeholder="New case...">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-success" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-xs-12 col-sm-6 col-md-4" ng-repeat="(key, case) in site.cases" ng-controller="QueryCtrl as ctrl">
+        <div class="panel panel-default case">
+            <div class="panel-heading" ui-sref="case({ siteId: site.code, caseId: (key | encodeCleanToken) })">
+                <h4>{{case.name}}</h4>
+                <span class="score score-{{case.score}}"></span>
+            </div>
+            <div class="panel-body">
+                <div class="col-xs-6">
+                    <p><u>Query Rankings</u></p>
+                    <ul class="list-unstyled">
+                        <li>{{case.queries | size}} queries</li>
+                        <li>- ranked</li>
+                        <li>- incomplete</li>
+                    </ul>
+                </div>
+
+                <div class="col-xs-6">
+                    <p><u>Results Rankings</u></p>
+                    <ul class="list-unstyled">
+                        <li>{{case.queries | size}} queries</li>
+                        <li>- ranked</li>
+                        <li>- incomplete</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="panel-footer clearfix">
+                <button class="btn btn-danger btn-xs pull-right" ng-click="removeCase(key)">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xs-12 alert alert-info text-center" ng-show="!(site.cases | size)">
+        <strong>Heads up!</strong> Add a new case to get started
+    </div>
+</div>

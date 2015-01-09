@@ -1,0 +1,42 @@
+<div class="row">
+    <div class="col-xs-12 title">
+        <h2 class="pull-left"><span class="text-muted">Queries for</span> {{case.name}}</h2>
+        <form class="form-inline pull-right" ng-submit="addQuery(newQuery.name)" ng-if="case">
+            <div class="form-group">
+                <div ng-if="newQuery.alert" class="alert alert-{{newQuery.alert.class}} small"><strong>{{newQuery.alert.type}}</strong> {{newQuery.alert.message}}</div>
+            </div>
+            <div class="form-group">
+                <input type="text" ng-model="newQuery.name" class="form-control" placeholder="New query...">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-success" type="submit">Add</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-xs-12 col-sm-4 col-md-3" ng-repeat="(key, query) in case.queries">
+        <div class="panel panel-default case">
+            <div class="panel-heading" ui-sref="query({ siteId: siteId, caseId: (case.$id | encodeCleanToken), queryId: (key | encodeCleanToken) })">
+                <h4>{{query.name}}</h4>
+                <span class="score score-{{query.score}}"></span>
+            </div>
+            <div class="panel-body">
+                <p><u>Results Rankings</u></p>
+                <ul class="list-unstyled">
+                    <li>{{query.results | size}} results</li>
+                    <li>{{query.judgements | size}} ranked</li>
+                    <li>{{(query.results | size) - (query.judgements | size)}} incomplete</li>
+                </ul>
+            </div>
+            <div class="panel-footer clearfix">
+                 <button class="btn btn-danger btn-xs pull-right" ng-click="removeQuery(key)">Remove</button>
+            </div>
+        </div>
+    </div>
+    
+    <br/>
+
+    <div class="col-xs-12 alert alert-info text-center" ng-show="!(case.queries | size)">
+        <strong>Heads up!</strong> Add a new query to get started
+    </div>
+</div>
