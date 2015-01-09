@@ -7,16 +7,13 @@
  * # ProductCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('ProductCtrl', function($scope, $firebase, FIREBASE_ROOT) {
-    this.site = $scope.site;
-    this.case = $scope.case;
-    this.product = $scope.product;
-    this.query = $scope.query;
-    this.judgementRef = new Firebase(FIREBASE_ROOT + '/sites/' + this.site.$id + '/cases/' + this.case.$id + '/queries/' + this.query.$id + '/judgements/' + this.product.id);
-    this.judgementSync = $firebase(this.judgementRef);
-    this.judgement = this.judgementSync.$asObject();
+angular.module('relevancyApp').controller('ProductCtrl', function ($scope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, decodeCleanTokenFilter) {
+    var self = this;
 
-    this.saveScore = function() {
-        this.judgement.$save();
+    self.judgementRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId + '/cases/' + decodeCleanTokenFilter($stateParams.caseId) + '/queries/' + decodeCleanTokenFilter($stateParams.queryId) + '/judgements/' + $scope.$parent.product.id);
+    self.judgement = $firebase(self.judgementRef).$asObject();
+
+    self.saveScore = function() { 
+        self.judgement.$save();
     };
 });

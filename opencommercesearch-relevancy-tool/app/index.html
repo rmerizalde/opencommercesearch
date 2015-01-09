@@ -1,36 +1,49 @@
 <!doctype html>
 <html class="no-js">
 <head>
-  <meta charset="utf-8">
-  <title>SB&R Relevancy</title>
-  <meta name="viewport" content="width=device-width">
-  <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
-  <!-- build:css(.) styles/vendor.css -->
-  <!-- bower:css -->
-  <!-- endbower -->
-  <!-- endbuild -->
-  <!-- build:css(.tmp) styles/main.css -->
-  <link rel="stylesheet" href="styles/main.css">
-  <!-- endbuild -->
+    <meta charset="utf-8">
+    <title>OCS Relevancy Tool</title>
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <!-- build:css(.) styles/vendor.css -->
+    <!-- bower:css -->
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css(.tmp) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
 </head>
-  <body ng-app="relevancyApp">
-    
+<body ng-app="relevancyApp" ng-controller="MainCtrl">
     <header>
-      <nav class="navbar navbar-default">
-        <div class="container">
-          <div class="navbar-header">
-            <a class="navbar-brand" href="/#/">SB&R Relevancy</a>
-          </div>
-        </div>
-      </nav>
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" ui-sref="home" ng-click="reset('all')">OCS Relevancy Tool</a>
+                </div>
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" ng-click="toggleDropdownMenu($event)">Sites <span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li ng-repeat="site in nav.sites"><a ui-sref="site({ siteId: site.code })" ng-click="hideDropdownMenu($event)">{{site.name}}</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </nav>
     </header>
-
+    
     <main class="container">
-      <div ng-view=""></div>
+        <ol class="breadcrumb">
+            <li><a ui-sref="home">Home</a></li>
+            <li ng-hide="!nav.current.site.code"><span class="text-muted">Site</span> <a ng-bind="nav.current.site.name" ui-sref="site({ siteId: nav.current.site.code })"/></a></li>
+            <li ng-hide="!nav.current.caseId"><span class="text-muted">Case</span> <a ng-bind="nav.current.caseId | decodeCleanToken" ui-sref="case({ siteId: nav.current.site.code, caseId: nav.current.caseId })"></a></li>
+            <li ng-hide="!nav.current.queryId"><span class="text-muted">Query</span> <span ng-bind="nav.current.queryId | decodeCleanToken"></span></li>
+        </ol>
+        <div ui-view></div>
     </main>
-
+    
     <footer>
-      <div class="container"></div>
+        <div class="container"></div>
     </footer>
 
     <!-- build:js(.) scripts/vendor.js -->
@@ -59,16 +72,20 @@
     <script src="bower_components/angular-touch/angular-touch.js"></script>
     <script src="bower_components/firebase/firebase.js"></script>
     <script src="bower_components/angularfire/dist/angularfire.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/angular-ui-router/release/angular-ui-router.js"></script>
     <!-- endbower -->
     <!-- endbuild -->
-
-        <!-- build:js({.tmp,app}) scripts/scripts.js -->
-        <script src="scripts/app.js"></script>
-        <script src="scripts/controllers/site.js"></script>
-        <script src="scripts/controllers/case.js"></script>
-        <script src="scripts/controllers/query.js"></script>
-        <script src="scripts/controllers/query-detail.js"></script>
-        <script src="scripts/controllers/product.js"></script>
-        <!-- endbuild -->
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/controllers/site.js"></script>
+    <script src="scripts/controllers/case.js"></script>
+    <script src="scripts/controllers/query.js"></script>
+    <script src="scripts/controllers/query-detail.js"></script>
+    <script src="scripts/controllers/product.js"></script>
+    <script src="scripts/controllers/query.js"></script>
+    <script src="scripts/controllers/main.js"></script>
+    <script src="scripts/controllers/home.js"></script>
+    <!-- endbuild -->
 </body>
 </html>
