@@ -16,17 +16,17 @@ $score-9:  #0fec02;
 $score-10: #09da04;
 
 @mixin scoreColors {
-    &.score-0 { border-color: $score-0; }
-    &.score-1 { border-color: $score-1; }
-    &.score-2 { border-color: $score-2; }
-    &.score-3 { border-color: $score-3; }
-    &.score-4 { border-color: $score-4; }
-    &.score-5 { border-color: $score-5; }
-    &.score-6 { border-color: $score-6; }
-    &.score-7 { border-color: $score-7; }
-    &.score-8 { border-color: $score-8; }
-    &.score-9 { border-color: $score-9; }
-    &.score-10 { border-color: $score-10; }
+    &.score-0 { background-color: $score-0; color: darken($score-0, 20%); }
+    &.score-1 { background-color: $score-1; color: darken($score-1, 20%); }
+    &.score-2 { background-color: $score-2; color: darken($score-2, 20%); }
+    &.score-3 { background-color: $score-3; color: darken($score-3, 20%); }
+    &.score-4 { background-color: $score-4; color: darken($score-4, 20%); }
+    &.score-5 { background-color: $score-5; color: darken($score-5, 20%); }
+    &.score-6 { background-color: $score-6; color: darken($score-6, 20%); }
+    &.score-7 { background-color: $score-7; color: darken($score-7, 20%); }
+    &.score-8 { background-color: $score-8; color: darken($score-8, 20%); }
+    &.score-9 { background-color: $score-9; color: darken($score-9, 20%); }
+    &.score-10 { background-color: $score-10; color: darken($score-10, 20%); }
 }
 
 footer {
@@ -41,35 +41,66 @@ footer {
     margin: 0 10px 0 0; padding: 7px 15px;
 }
 
+main {
+    position: relative;
+}
+
+.label {
+    @include scoreColors;    
+}
+
+.login {
+    margin: 150px auto;
+
+    button {
+        margin-top: 10px;
+    }
+    input {
+        margin-bottom: 5px;
+    }
+}
+
+.main {
+    &.loading:before {
+        background-color: #fff; background-image: url("../images/loader.gif");
+        background-position: center 150px; background-repeat: no-repeat;
+        background-size: 55px; content: ""; display: block; height: 100%;
+        margin-left: -40px; min-height: 300px; padding-top: 120px; position: absolute;
+        text-align: center; width: 105%; z-index: 99;
+    }
+}
+
 .panel {
     &.case {
         min-height: 210px;
-    }
 
-    &.product {
-        .score {
-            background-color: transparent;
+        .label {
+            position: absolute; right: 30px; top: 19px;
         }
     }
 
+    .label {
+        margin-top: -3px; padding: 6px 10px;
+    }
     .panel-heading {
         cursor: pointer;
-    }
-    .score {
-        @include scoreColors;
-        background-color: $gray-lighter; border-top-color: transparent; border-top-style: solid; border-top-width: 7px; color: $gray; padding: 5px 0; position: absolute; right: 25px; top: 0; width: 50px;
     }
 }
 
 .product {
-    height: 240px; position: relative; text-align: center;
+    height: 260px; position: relative; text-align: center;
+    padding: 0 10px;
     
     img {
         height: 100px; margin: 25px auto 15px auto; width: 100px;
     }
     select {
-        bottom: 5px; left: 50%; margin-left: -40px; position: absolute; width: 80px;
+        bottom: 10px; left: 50%; margin-left: -40px; position: absolute; width: 80px;
         text-align: center;
+    }
+    .label {
+        position: absolute; right: 0; top: 3px; border-top-left-radius: 0;
+        border-bottom-right-radius: 0; padding: 0 15px; color: transparent;
     }
     .panel-heading {
         cursor: pointer;
@@ -87,3 +118,6 @@ footer {
     }
 }
 
+.snapshot-admin {
+    background: $gray-lighter; padding-bottom: 20px;
+}

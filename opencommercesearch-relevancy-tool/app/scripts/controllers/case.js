@@ -7,7 +7,7 @@
  * # CaseCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('CaseCtrl', function ($scope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, $http, decodeCleanTokenFilter) {
+angular.module('relevancyApp').controller('CaseCtrl', function ($scope, $rootScope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, $http, decodeCleanTokenFilter) {
      $scope.caseRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId + '/cases/' + decodeCleanTokenFilter($stateParams.caseId));
      $scope.caseObj = $firebase($scope.caseRef).$asObject();
      $scope.caseObj.$bindTo($scope, 'case');
@@ -16,6 +16,7 @@ angular.module('relevancyApp').controller('CaseCtrl', function ($scope, FIREBASE
 
      $scope.caseObj.$loaded(function() {
         $scope.case.queries = $scope.case.queries || {};
+        $rootScope.loading = '';
      });
 
      $scope.addQuery = function(queryName) {

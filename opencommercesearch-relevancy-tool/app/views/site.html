@@ -13,12 +13,13 @@
             </div>
         </form>
     </div>
+</div>
 
+<div class="row">
     <div class="col-xs-12 col-sm-6 col-md-4" ng-repeat="(key, case) in site.cases" ng-controller="QueryCtrl as ctrl">
         <div class="panel panel-default case">
             <div class="panel-heading" ui-sref="case({ siteId: site.code, caseId: (key | encodeCleanToken) })">
-                <h4>{{case.name}}</h4>
-                <span class="score score-{{case.score}}"></span>
+                <h4>{{case.name}} <span class="label score-5 pull-right">0.555</span></h4>
             </div>
             <div class="panel-body">
                 <div class="col-xs-6">
@@ -39,8 +40,8 @@
                     </ul>
                 </div>
             </div>
-            <div class="panel-footer clearfix">
-                <button class="btn btn-danger btn-xs pull-right" ng-click="removeCase(key)">Remove</button>
+            <div class="panel-footer clearfix" ng-if="isAdmin">
+                <a href="" class="text-danger pull-right" ng-click="removeCase(key)">Remove</a>
             </div>
         </div>
     </div>
