@@ -19,6 +19,7 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import org.opencommercesearch.api.models.debug.DebugInfo
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
@@ -344,7 +345,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "debug", value = "Add debugging metadata", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def search(
       version: Int,
@@ -376,6 +378,7 @@ object ProductController extends BaseController {
       .withRedirects()
       .withCustomParams()
       .withSpellCheck(spellCheckMode != "no")
+      .withDebugInfo()
 
     Logger.debug(s"Searching for '$q', spell checking set to '$spellCheckMode'")
 
@@ -399,7 +402,8 @@ object ProductController extends BaseController {
                 spellCheck = Option(spellCheck),
                 partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
-                products = Some(products map (Json.toJson(_)))), products map (_.getId))
+                products = Some(products map (Json.toJson(_))),
+                debugInfo = buildDebugInfo(response)), products map (_.getId))
             } else {
               buildSearchResponse(
                 query = query,
@@ -561,7 +565,8 @@ object ProductController extends BaseController {
                                    partialMatch: Option[Boolean] = None,
                                    startTime: Option[Long] = None,
                                    message: Option[String] = None,
-                                   products: Option[Iterable[JsValue]] = None) : SimpleResult = {
+                                   products: Option[Iterable[JsValue]] = None,
+                                   debugInfo: Option[DebugInfo] = None) : SimpleResult = {
 
     val metadataValues = Seq[Option[(String, JsValueWrapper)]](
       redirectUrl map {v => "redirectUrl" ->  v},
@@ -571,7 +576,8 @@ object ProductController extends BaseController {
       facets withFilter { v => v.size > 0 } map {v => "facets" -> v},
       breadCrumbs withFilter { v => v.size > 0 } map {v => "breadCrumbs" -> v},
       spellCheck map {v => "spellCheck" -> v},
-      partialMatch map {v => "partialMatch" -> v}
+      partialMatch map {v => "partialMatch" -> v},
+      debugInfo map { v => "debug" -> v}
     )
 
     val responseValues = Seq[Option[(String, JsValueWrapper)]](
@@ -620,7 +626,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "debug", value = "Add debugging metadata", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def browseBrand(
       version: Int,
@@ -644,7 +651,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "debug", value = "Add debugging metadata", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def browseBrandCategory(
       version: Int,
@@ -671,7 +679,8 @@ object ProductController extends BaseController {
     new ApiImplicitParam(name = "fields", value = "Comma delimited field list", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries from a facet filter", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "sort", value = "Comma delimited list of sort clauses to apply on the product list", required = false, dataType = "string", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "debug", value = "Add debugging metadata", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def browse(
       version: Int,
@@ -698,6 +707,7 @@ object ProductController extends BaseController {
       .withSorting()
       .withGrouping()
       .withCustomParams()
+      .withDebugInfo()
 
     val storage = withNamespace(storageFactory)
     storage.findCategory(categoryId, Seq("hierarchyTokens", "ruleFilters", "isRuleBased")).flatMap { category =>
@@ -758,7 +768,8 @@ object ProductController extends BaseController {
                   found = Some(found),
                   productSummary = processGroupSummary(groupSummary),
                   startTime = Some(startTime),
-                  products = Some(products map (Json.toJson(_)))), products map (_.getId))
+                  products = Some(products map (Json.toJson(_))),
+                  debugInfo = buildDebugInfo(response)), products map (_.getId))
               } else {
                 buildSearchResponse(
                   query = query,
@@ -786,6 +797,30 @@ object ProductController extends BaseController {
       facetData = response.getResponse.get("rule_facets").asInstanceOf[util.ArrayList[NamedList[AnyRef]]]
     }
     new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory))
+  }
+
+  /**
+   * Utility method to create a DebugInfo model object from the solr response. This object includes the solr score debug section
+   * as well as the rule debug one
+   */
+  private def buildDebugInfo[R](response: QueryResponse) (implicit context: Context, req: Request[R]) : (Option[DebugInfo]) = {
+    var debugInfo = new DebugInfo()
+    var generated = false
+
+    if (response.getResponse != null && response.getResponse.get("rule_debug") != null) {
+      generated = true
+      debugInfo.processRulesResponse(response.getResponse.get("rule_debug").asInstanceOf[util.Map[String, AnyRef]])
+    }
+    if (response.getResponse != null && response.getResponse.get("debug") != null) {
+      generated = true
+      debugInfo.processSolrResponse(response.getResponse.get("debug").asInstanceOf[NamedList[AnyRef]])
+    }
+
+    if (generated) {
+      Some(debugInfo)
+    } else {
+      None
+    }
   }
 
   def bulkCreateOrUpdate(version: Int) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>

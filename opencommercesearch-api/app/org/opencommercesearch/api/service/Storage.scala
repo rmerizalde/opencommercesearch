@@ -165,11 +165,18 @@ trait Storage[T] {
   def saveBrand(brand: Brand*) : Future[T]
 
   /**
-   * Saves the given list of brands. Returns the result of the last write
+   * Saves the given list of facets. Returns the result of the last write
    * @param facet is one or more facets to store
    * @return the results of writing the last facet
    */
   def saveFacet(facet: Facet*) : Future[T]
+
+  /**
+   * Saves the given list of rules. Returns the result of the last write
+   * @param rule is one or more rules to store
+   * @return the results of writing the last rule
+   */
+  def saveRule(rule: Rule*) : Future[T]
 
   /**
    * Finds a facet with the given id. Optionally, takes a list of fields to return
@@ -186,7 +193,23 @@ trait Storage[T] {
    * @return List of facets from storage
    */
   def findFacets(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Facet]]
-  
+
+  /**
+   * Finds a rule with the given id. Optionally, takes a list of fields to return
+   * @param id is the rule id
+   * @param fields is the list of fields to return
+   * @return Rule from storage if found
+   */
+  def findRule(id: String, fields: Seq[String]) : Future[Rule]
+
+  /**
+   * Finds the rules with the given ids. Optionally, takes a list of fields to return
+   * @param ids is the list of rule ids
+   * @param fields is the list of fields to return
+   * @return List of rules from storage
+   */
+  def findRules(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Rule]]
+
   /**
    * Releases the resources used by this storage
    */

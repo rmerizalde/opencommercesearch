@@ -65,6 +65,7 @@ public class RuleFeed extends BaseRestFeed {
         //Convert rule to JSON
         JSONObject ruleJsonObj = new JSONObject();
         ruleJsonObj.put(RuleConstants.FIELD_ID, rule.getRepositoryId());
+        ruleJsonObj.put(RuleConstants.FIELD_NAME, rule.getItemDisplayName());
 
         String query = (String) rule.getPropertyValue(RuleProperty.QUERY);
         if (query == null || query.equals("*")) {

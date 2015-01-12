@@ -84,7 +84,7 @@ public class RuleFeedTest {
     public void setup() throws Exception {
         when(testRuleItem.getPropertyValue(RuleProperty.RULE_TYPE)).thenReturn("someType");
         when(testRuleItem.getPropertyValue(RuleProperty.TARGET)).thenReturn("someTarget");
-
+        when(testRuleItem.getItemDisplayName()).thenReturn("ruleName");
         ruleFeed.setRulesBuilder(builder);
     }
 
@@ -179,6 +179,7 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
+        assertEquals("ruleName", doc.get("name"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
         assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
@@ -194,6 +195,7 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
+        assertEquals("ruleName", doc.get("name"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
         assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
@@ -210,6 +212,7 @@ public class RuleFeedTest {
 
         JSONObject doc = ruleFeed.repositoryItemToJson(testRuleItem);
         assertEquals("superduper", doc.get("id"));
+        assertEquals("ruleName", doc.get("name"));
         assertEquals(EXPECTED_WILDCARD, doc.get("query"));
         assertThat((List<String>)doc.get("siteId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
         assertThat((List<String>)doc.get("catalogId"), CoreMatchers.hasItem(EXPECTED_WILDCARD));
