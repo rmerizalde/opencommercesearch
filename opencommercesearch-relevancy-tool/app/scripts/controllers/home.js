@@ -7,9 +7,13 @@
  * # HomeCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('HomeCtrl', function ($scope, $firebase, FIREBASE_ROOT) {
+angular.module('relevancyApp').controller('HomeCtrl', function ($scope, $rootScope, $firebase, FIREBASE_ROOT) {
      $scope.sitesRef = new Firebase(FIREBASE_ROOT + '/sites');
      $scope.sites = $firebase($scope.sitesRef).$asObject();
+
+     $scope.sites.$loaded(function() {
+        $rootScope.loading = '';
+     });
 
      $scope.addSite = function(name, code, apiUrl, contentUrl, fields) {
         var siteCode = code.toLowerCase(),

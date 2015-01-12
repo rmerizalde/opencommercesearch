@@ -10,14 +10,14 @@
             <div class="panel-body">
                 <p>details here</p>
             </div>
-            <div class="panel-footer clearfix">
-                <button class="btn btn-danger btn-xs pull-right" ng-click="removeSite(key)">Remove</button>
+            <div class="panel-footer clearfix" ng-if="isAdmin">
+                <a href="" class="text-danger pull-right" ng-click="removeSite(key)">Remove</a>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
+<div class="row" ng-if="isAdmin">
     <div class="col-xs-6 col-xs-offset-0">
         <h3>Add Site</h3>
         <form ng-submit="addSite(name, code, apiUrl, contentUrl, fields)">

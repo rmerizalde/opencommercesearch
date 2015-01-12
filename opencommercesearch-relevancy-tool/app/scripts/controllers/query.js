@@ -7,7 +7,7 @@
  * # QueryCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('QueryCtrl', function ($scope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, decodeCleanTokenFilter, $log, $http) {
+angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootScope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, decodeCleanTokenFilter, $log, $http) {
     $scope.siteId = decodeCleanTokenFilter($stateParams.siteId);
     $scope.caseId = decodeCleanTokenFilter($stateParams.caseId);
     $scope.queryId = decodeCleanTokenFilter($stateParams.queryId);
@@ -33,6 +33,7 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, FIREBAS
     });
 
     $scope.results.$loaded().then(function() {
+        $rootScope.loading = '';
         // todo: is there a better way to detect no data was found...
         if ($scope.results.length <= 0) {
             // this was triggering several xhr requests and adding a case named "false" whenever the site route was hit

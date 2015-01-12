@@ -1,11 +1,13 @@
 <div class="row">
     <div class="col-xs-12 title">
-        <h2><span class="text-muted">Results for</span> "{{query.name}}" <span class="label label-info pull-right" ng-bind="query.score"></span></h2>
+        <h2><span class="text-muted">Results for</span> "{{query.name}}" <span class="label score-{{query.score | integer}} pull-right" ng-bind="query.score"></span></h2>
     </div>
+</div>
 
+<div class="row">
     <div class="col-xs-6 col-sm-4 col-md-3 col-lg-2" ng-repeat="product in results" ng-controller="ProductCtrl as productCtrl">
         <div class="panel panel-default product">
-            <span class="score score-{{productCtrl.judgement.score}}"></span>
+            <span class="label score-{{productCtrl.judgement.score}}">{{productCtrl.judgement.score}}</span>
             <img src="http://content.backcountry.com{{product.skus[0].image.url}}" alt="{{product.id}}"/>
             <p>{{product.brand.name}} {{product.title}}</p>
             <select class="form-control" ng-model="productCtrl.judgement.score" ng-change="productCtrl.saveScore()">

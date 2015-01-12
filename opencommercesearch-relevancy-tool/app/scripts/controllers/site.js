@@ -7,11 +7,12 @@
  * # SiteCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('SiteCtrl', function ($scope, $stateParams, FIREBASE_ROOT, $firebase, $timeout) {
+angular.module('relevancyApp').controller('SiteCtrl', function ($scope, $rootScope, $stateParams, FIREBASE_ROOT, $firebase, $timeout) {
      $scope.siteRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId);
-     $firebase($scope.siteRef).$asObject().$bindTo($scope, 'site');
-
      $scope.newCase = { alert: null };
+     $firebase($scope.siteRef).$asObject().$bindTo($scope, 'site').then(function() {
+        $rootScope.loading = '';
+     });
 
      $scope.addCase = function(caseName) {
         var caseName = caseName || '',
