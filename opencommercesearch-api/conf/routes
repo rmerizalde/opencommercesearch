@@ -69,6 +69,7 @@ GET           /api-docs/brands                                           control
 GET           /api-docs/products                                         controllers.ApiHelpController.getResource(path = "products")
 GET           /api-docs/queries                                          controllers.ApiHelpController.getResource(path = "queries")
 GET           /api-docs/facets                                           controllers.ApiHelpController.getResource(path = "facets")
+GET           /api-docs/rules                                            controllers.ApiHelpController.getResource(path = "rules")
 
 GET           /images/*file                                              controllers.Assets.at(path="/public/images", file)
 GET           /assets/*file                                              controllers.Assets.at(path="/public", file)

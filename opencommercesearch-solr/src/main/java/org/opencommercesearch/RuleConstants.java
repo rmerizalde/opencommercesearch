@@ -30,6 +30,11 @@ public class RuleConstants {
      * Document identifier field
      */
     public static final String FIELD_ID = "id";
+    
+    /**
+     * Document name field
+     */
+    public static final String FIELD_NAME = "name";
 
     /**
      * Catalog ID field name

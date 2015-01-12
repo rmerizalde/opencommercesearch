@@ -80,6 +80,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
 
   val DefaultFacetProject = StringUtils.EMPTY
 
+  val DefaultRuleProject = "name:1, ruleType:1"
+
   def setJongo(jongo: Jongo) : Unit = {
     this.jongo = jongo
   }
@@ -416,6 +418,10 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
     projectionAux(fields, DefaultFacetProject)
   }
 
+  private def projectionRule(fields: Seq[String]) : String = {
+    projectionAux(fields, DefaultRuleProject)
+  }
+
   def saveProduct(product: Product*) : Future[WriteResult] = {
     Future {
       val productCollection = jongo.getCollection("products")
@@ -505,6 +511,29 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       var result: WriteResult = null
       facet.map( c => result = facetCollection.save(c) )
       result
+    }
+  }
+
+  def saveRule(rule: Rule*) : Future[WriteResult] = {
+    Future {
+      val ruleCollection = jongo.getCollection("rules")
+      var result: WriteResult = null
+      rule.map( c => result = ruleCollection.save(c) )
+      result
+    }
+  }
+
+  def findRule(id: String, fields: Seq[String]) : Future[Rule] = {
+    Future {
+      val ruleCollection = jongo.getCollection("rules")
+      ruleCollection.findOne("{_id:#}", id).projection(projectionRule(fields)).as(classOf[Rule])
+    }
+  }
+
+  def findRules(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Rule]] = {
+    Future {
+      val ruleCollection = jongo.getCollection("rules")
+      ruleCollection.find("{_id:{$in:#}}", ids).projection(projectionRule(fields)).as(classOf[Rule])
     }
   }
 
