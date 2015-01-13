@@ -6,6 +6,6 @@ swum	swim
 north	north
 device	device
 vs	vs
-men     man
+men	man
 mens	man
 layers	layer
