@@ -34,7 +34,7 @@ describe('QueryCtrl', function() {
             $scope.resultLimit = judgements.length;
 
             var dcg = $scope.dcg($scope.judgements),
-                expectedDcg = (14.28).toFixed(2);
+                expectedDcg = 14.28;
 
             expect(dcg).toEqual(expectedDcg);
         });
@@ -55,7 +55,7 @@ describe('QueryCtrl', function() {
             $scope.resultLimit = 6;
 
             var idcg = $scope.idcg($scope.judgements),
-                expectedIdcg = (14.95).toFixed(2);
+                expectedIdcg = 14.95;
 
             expect(idcg).toEqual(expectedIdcg);
         });
@@ -76,7 +76,7 @@ describe('QueryCtrl', function() {
             $scope.resultLimit = judgements.length;
 
             var ndcg = $scope.ndcg(judgements),
-                expectedNdcg = (0.955).toFixed(3);
+                expectedNdcg = 0.955;
 
             expect(ndcg).toEqual(expectedNdcg);
         });

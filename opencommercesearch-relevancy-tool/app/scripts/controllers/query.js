@@ -18,45 +18,24 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
     $scope.results = $scope.resultsSync.$asArray();
     $scope.judgementsSync = $firebase($scope.queryRef.child('judgements').orderByChild('score'));
     $scope.judgements = $scope.judgementsSync.$asArray();
-
-
+    $scope.scoreRef = new Firebase(FIREBASE_ROOT + '/scores/' + $scope.siteId + '_' + $scope.caseId + '_' + $scope.queryId);
     $scope.resultLimit = 20;
     $scope.fractionalDigits = 2;
     $scope.loadedJudgements = false;
     $scope.missingScore = 1;
 
 
-    $scope.judgements.$watch(function() {
-        if ($scope.loadedJudgements) {
+    $scope.judgements.$watch(function(context) {
+        if (context.event != "child_moved" && $scope.loadedJudgements) {
             $scope.calculateNdcg();
         }
     });
 
     $scope.results.$loaded().then(function() {
         $rootScope.loading = '';
-        // todo: is there a better way to detect no data was found...
-        if ($scope.results.length <= 0) {
-            // this was triggering several xhr requests and adding a case named "false" whenever the site route was hit
-            /*
-            $scope.search($scope.query).then(function() {
-                $scope.loadedResults = true;
-                if ($scope.loadedJudgements) {
-                    $scope.calculateNdcg();
-                }
-            });
-            */
-        } else {
-            $scope.loadedResults = true;
-            if ($scope.loadedJudgements) {
-                $scope.calculateNdcg();
-            }
-        }
     });
 
     $scope.judgements.$loaded().then(function() {
-        if ($scope.loadedResults) {
-            $scope.calculateNdcg();
-        }
         $scope.loadedJudgements = true;
     });
 
@@ -79,15 +58,83 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
 
         for (var i = 0; i < $scope.results.length; i++) {
             var product = $scope.results[i];
-            var score = findScore(product.id);
+            var productScore = findScore(product.id);
 
-            resultJudgments[i] = {score: score};
+            resultJudgments[i] = {score: productScore};
         }
 
-        $scope.score = $scope.ndcg(resultJudgments).toString();
+        var score = {
+            siteId: $scope.siteId,
+            caseId: $scope.caseId,
+            val: $scope.ndcg(resultJudgments)
+        };
 
         // saves score to current query
-        $scope.queryRef.child('score').set($scope.score);
+        $scope.scoreRef.set(score, function(error) {
+            if (error) {
+                $log.error("Cannot save score: " + error);
+            } else {
+                $scope.rollUpScores();
+            }
+        });
+        $scope.queryRef.child('score').set(score.val);
+    };
+
+    $scope.rollUpScores = function () {
+        var scores = new Firebase(FIREBASE_ROOT + '/scores');
+        scores.orderByChild("siteId").equalTo($scope.siteId).once("value", function (data) {
+            if (data && data.val()) {
+                $log.info("Rolling up scores for case '" + $scope.caseId + "' for '" + $scope.siteId + "'");
+
+                var value = data.val();
+                var siteQueryCount = 0;
+                var caseQueryCount = 0;
+                var siteTotalScore = 0;
+                var caseTotalScore = 0;
+
+                for (var prop in value) {
+                    if (value.hasOwnProperty(prop)) {
+                        var score = value[prop];
+                        var siteId = score.siteId;
+                        var caseId = score.caseId;
+                        var scoreVal = Number(score.val);
+
+                        if (caseId == $scope.caseId) {
+                            caseQueryCount++;
+                            caseTotalScore += scoreVal;
+                        }
+                        siteQueryCount++;
+                        siteTotalScore += scoreVal;
+                    }
+                }
+
+                if (siteQueryCount > 0) {
+                    var siteScoreRef = new Firebase(FIREBASE_ROOT + '/sites/' + $scope.siteId + "/score");
+                    var siteScore = parseFloat((siteTotalScore / siteQueryCount).toFixed(3));
+
+                    siteScoreRef.set(siteScore, function (error) {
+                        if (error) {
+                            $log.error("Cannot save site score: " + error);
+                        } else {
+                            $log.info("Score average for site '" + $scope.siteId + "' is " + siteScore);
+                        }
+                    });
+
+                    if (caseQueryCount > 0) {
+                        var caseScoreRef = new Firebase(FIREBASE_ROOT + '/sites/' + $scope.siteId + '/cases/' + $scope.caseId + "/score");
+                        var caseScore = parseFloat((caseQueryCount / caseTotalScore).toFixed(3));
+
+                        caseScoreRef.set(caseScore, function (error) {
+                            if (error) {
+                                $log.error("Cannot save case score: " + error);
+                            } else {
+                                $log.info("Score average for case '" + $scope.caseId + "' in  site '" + $scope.siteId + "' is " + caseScore);
+                            }
+                        });
+                    }
+                }
+            }
+        });
     };
 
     $scope.ndcg = function(judgements) {
@@ -103,7 +150,7 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
 
         $log.info('NDCG for query "' + $scope.queryId + '"" in case "' + $scope.caseId + '" for site "' + $scope.siteId + '" is ' + ndcg);
 
-        return (dcg / idcg).toFixed($scope.fractionalDigits + 1);
+        return parseFloat((dcg / idcg).toFixed($scope.fractionalDigits + 1));
     };
 
     $scope.dcg = function(judgements) {
@@ -118,7 +165,7 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
             // todo: penalizing bad results (i.e. numerator 1 - Math.pow(2,score)) results in NDCG higher than 1
             dcgVal += ((Math.pow(2, score) - 1.0) / (Math.log(i + 1) / Math.LN2));
         }
-        return Math.abs(dcgVal).toFixed($scope.fractionalDigits);
+        return parseFloat((dcgVal).toFixed($scope.fractionalDigits));
     };
 
     $scope.idcg = function(judgements) {
