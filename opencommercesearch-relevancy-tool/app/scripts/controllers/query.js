@@ -103,6 +103,7 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
                             caseQueryCount++;
                             caseTotalScore += scoreVal;
                         }
+
                         siteQueryCount++;
                         siteTotalScore += scoreVal;
                     }
@@ -122,7 +123,7 @@ angular.module('relevancyApp').controller('QueryCtrl', function ($scope, $rootSc
 
                     if (caseQueryCount > 0) {
                         var caseScoreRef = new Firebase(FIREBASE_ROOT + '/sites/' + $scope.siteId + '/cases/' + $scope.caseId + "/score");
-                        var caseScore = parseFloat((caseQueryCount / caseTotalScore).toFixed(3));
+                        var caseScore = parseFloat((caseTotalScore / caseQueryCount).toFixed(3));
 
                         caseScoreRef.set(caseScore, function (error) {
                             if (error) {
