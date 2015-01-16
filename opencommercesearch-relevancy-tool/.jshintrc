@@ -21,6 +21,7 @@
     "angular": false,
     "Firebase": false,
     "_": false,
-    "$": false
+    "$": false,
+    "swal": false
   }
 }

@@ -31,6 +31,7 @@ module.exports = function(config) {
             'bower_components/angular-ui-router/release/angular-ui-router.js',
             'bower_components/underscore/underscore.js',
             'bower_components/jquery/dist/jquery.js',
+            'bower_components/sweetalert/lib/sweet-alert.js',
             'app/scripts/**/*.js',
             'test/mock/**/*.js',
             'test/spec/**/*.js'

@@ -31,7 +31,8 @@
     "it": false,
     "jasmine": false,
     "spyOn": false,
-    "firebase": false
+    "firebase": false,
+    "swal": false
   }
 }
 

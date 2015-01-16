@@ -16,16 +16,16 @@ angular.module('relevancyApp').controller('HomeCtrl', function($scope, $rootScop
     });
 
     $scope.addSite = function(name, code, apiUrl, contentUrl, fields) {
-        var siteCode = code.toLowerCase(),
+        var siteId = code.toLowerCase(),
             newSite = {
                 apiUrl: apiUrl,
-                code: siteCode,
+                code: siteId,
                 contentUrl: contentUrl,
                 fields: fields,
                 name: name
             };
 
-        if ($scope.sites[siteCode]) {
+        if ($scope.sites[siteId]) {
             swal({
                 title: 'Site code already exists!',
                 text: 'The site code "' + siteId + '" already exists, please use a different one.',
@@ -35,7 +35,7 @@ angular.module('relevancyApp').controller('HomeCtrl', function($scope, $rootScop
                 closeOnConfirm: true
             });
         } else {
-            $scope.sitesRef.child(siteCode).set(newSite);
+            $scope.sitesRef.child(siteId).set(newSite);
         }
     };
 
@@ -52,11 +52,11 @@ angular.module('relevancyApp').controller('HomeCtrl', function($scope, $rootScop
             function(isConfirm) {
                 if (isConfirm) {
                     swal({
-                    title: 'Deleted',
-                    text: 'The case has been deleted.',
-                    type: 'success',
-                    confirmButtonColor: '#5cb85c'
-                });
+                        title: 'Deleted',
+                        text: 'The case has been deleted.',
+                        type: 'success',
+                        confirmButtonColor: '#5cb85c'
+                    });
                     $scope.sitesRef.child(siteId).remove();
                 }
             });
