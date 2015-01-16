@@ -7,62 +7,109 @@
  * # SnapshotsCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('SnapshotsCtrl', function ($scope, $rootScope, $firebase, FIREBASE_ROOT, $log) {
+angular.module('relevancyApp').controller('SnapshotsCtrl', function($scope, $rootScope, $firebase, FIREBASE_ROOT, $log, UserService, CacheService, $timeout, $q, ApiSearchService, NdcgService, $window) {
     $rootScope.loading = '';
 
-    $scope.ref = new Firebase(FIREBASE_ROOT);
-    $scope.sitesRef = $scope.ref.child('sites');
-    $scope.snapshotsRef = $scope.ref.child('snapshots');
+    $scope.snapshotsRef = new Firebase(FIREBASE_ROOT + '/snapshots');
+    $scope.snapshotsListRef = $scope.snapshotsRef.child('list');
+    $scope.snapshotsDataRef = $scope.snapshotsRef.child('data');
+    $scope.sitesRef = new Firebase(FIREBASE_ROOT + '/sites');
 
-    $scope.snapshots = $firebase($scope.snapshotsRef.orderByPriority()).$asArray();
+    $scope.snapshotsList = $firebase($scope.snapshotsListRef.orderByPriority()).$asArray();
+    $scope.sites = $firebase($scope.sitesRef).$asObject();
+    $scope.compare = [];
+    $scope.refreshStatus = '';
 
-    var sitesLoaded = false;
-    $scope.sitesRef.once('value', function(data) {
-        $scope.sites = data.val();
-        sitesLoaded = true;
+    $scope.sitesLoaded = false;
+    $scope.sites.$loaded(function() {
+        $scope.sitesLoaded = true;
     });
 
-    $scope.disableComparisons = false;
-    $scope.snapshotComparisons = {};
+    $scope.toggleComparison = function(snapshotId, event) {
+        var removeSnapshot = false;
 
-    $scope.compareSnapshots = function() {
-        var i = 1;
-        console.log('foo');
-        $scope.compare = [];
+        function checkFullComparison() {
+            $scope.compare[$scope.compare.length - 1].id = snapshotId;
 
-        _.each($scope.snapshotComparisons, function(snapshot) {
-            if (i <=2) {
-                $scope.compare.push(snapshot);
+            if ($scope.compare.length == 2 && $scope.compare[0].createdAt > $scope.compare[1].createdAt) {
+                $scope.compare.reverse();
             }
-            i++;
-        });
+        }
+
+        for (var i = 0; i < $scope.compare.length; i++) {
+            var snapshot = $scope.compare[i];
+
+            if (snapshot.id === snapshotId) {
+                removeSnapshot = true;
+                break;
+            }
+        }
+
+        if (removeSnapshot) {
+            $(event.currentTarget)
+                .find('.glyphicon')
+                .removeClass('glyphicon-check')
+                .addClass('glyphicon-unchecked');
+            $scope.compare.splice(i, 1);
+        } else if ($scope.compare.length === 2) {
+            $window.alert('You can only compare two snapshots at a time!');
+            return;
+        } else if ($scope.compare.length <= 1) {
+            $(event.currentTarget)
+                .find('.glyphicon')
+                .removeClass('glyphicon-unchecked')
+                .addClass('glyphicon-check');
+
+            var cachedSnapshot = CacheService.get(snapshotId);
+
+            if (snapshotId === 'current') {
+                var currentState = {
+                    name: 'Current State',
+                    createdAt: _.now(),
+                    createdBy: '-',
+                    sites: $scope.sites
+                };
+
+                $scope.compare.push(currentState);
+                checkFullComparison();
+            } else if (cachedSnapshot) {
+                $scope.compare.push(cachedSnapshot);
+                checkFullComparison();
+            } else {
+                $scope.snapshotsDataRef.child(snapshotId).once('value', function(data) {
+                    var snapshot = data.val();
+
+                    CacheService.set(snapshotId, snapshot);
+                    $scope.compare.push(snapshot);
+                    checkFullComparison();
+                });
+            }
+        }
     };
 
-    $scope.toggleComparison = function(snapshotId) {
-        if ($scope.snapshotComparisons[snapshotId]) {
-            delete $scope.snapshotComparisons[snapshotId];
-            $scope.disableComparisons = false;
-        } else if (_.size($scope.snapshotComparisons) < 2) {
-            $scope.snapshotComparisons[snapshotId] = $scope.snapshots.$getRecord(snapshotId);
+    $scope.removeSnapshot = function(snapshot) {
+        if ($window.confirm('Are you sure you want to remove the snapshot "' + snapshot.name + '"?')) {
+            $scope.snapshotsList.$remove(snapshot).then(function(ref) {
+                var id = ref.key();
 
-            if (_.size($scope.snapshotComparisons) === 2) {
-                $scope.disableComparisons = true;
-            }
-        } else {
-            return;
+                $scope.snapshotsDataRef.child(id).remove();
+                CacheService.remove(id);
+                _.each($scope.compare, function(snapshot) {
+                    if (snapshot.id === id) {
+                        $scope.toggleComparison(id, {});
+                    }
+                });
+            });
         }
-        console.log($scope.snapshotComparisons);
     };
 
     $scope.createSnapshot = function(name) {
-        if (!sitesLoaded) {
-            $log('sites not loaded yet');
+        if (!$scope.sitesLoaded) {
+            $log.error('SnapshotsCtrl.createSnapshot: sites not loaded yet');
             return;
         }
 
         var copyJudgements = function(query, snapshotQuery) {
-            var priority = 0;
-
             for (var productId in query.judgements) {
                 if (query.judgements[productId]) {
                     var product = query.judgements[productId];
@@ -92,7 +139,7 @@ angular.module('relevancyApp').controller('SnapshotsCtrl', function ($scope, $ro
                                 url: product.skus[0].image.url
                             }
                         }],
-                        '$priority': priority++
+                        '.priority': priority++
                     };
                 }
             }
@@ -123,6 +170,7 @@ angular.module('relevancyApp').controller('SnapshotsCtrl', function ($scope, $ro
             for (var _case in cases) {
                 if (cases[_case]) {
                     var snapshotCase = {
+                        name: cases[_case].name,
                         score: cases[_case].score || 0,
                         queries: {}
                     };
@@ -136,26 +184,128 @@ angular.module('relevancyApp').controller('SnapshotsCtrl', function ($scope, $ro
         var sites = $scope.sites,
             timestamp = _.now(),
             snapshot = {
-                '$priority': (timestamp * -1),
+                '.priority': (timestamp * -1),
                 name: name,
                 createdAt: timestamp,
+                createdBy: UserService.currentUser().password.email,
                 sites: {}
             },
             snapshotSites = snapshot.sites;
 
-        _.each(sites, function(site) {
+        _.each(sites, function(site, key) {
+            // workaround for $firebase object
+            if (key.charAt(0) === '$') {
+                return;
+            }
+
             var snapshotSite = {
-                    score: site.score || 0,
-                    cases: {}
-                };
+                cases: {},
+                code: site.code,
+                name: site.name,
+                score: site.score || 0
+            };
 
             copyCases(site, snapshotSite);
             snapshotSites[site.code] = snapshotSite;
         });
 
-        $scope.snapshots.$add(snapshot).then(function() {
-            $log.info('Created snapshot "' + name + '"');
-            $scope.newSnapshotName = '';
+        var newRef = $scope.snapshotsDataRef.push(snapshot),
+            snapshotId = newRef.key();
+
+        CacheService.set(snapshotId, snapshot);
+        delete snapshot.sites;
+        $scope.snapshotsListRef.child(snapshotId).set(snapshot);
+    };
+
+    $scope.refreshData = function() {
+        var sites = {},
+            requests = [];
+
+        if (!$scope.sitesLoaded) {
+            $log.error('SnapshotsCtrl.refreshData: sites not loaded yet');
+            return;
+        }
+
+        $log.info('SnapshotCtrl.refreshData: starting query refresh...');
+        $scope.refreshStatus = 'Refreshing results...';
+
+        _.each($scope.sites, function(site, key) {
+            if (key.charAt(0) !== '$') {
+                sites[key] = site;
+            }
         });
+
+        // for each site
+        _.each(sites, function(site) {
+            // for each case in site
+            _.each(site.cases, function(_case) {
+                // for each query in case, get new results then update ndcq scores
+                _.each(_case.queries, function(query) {
+                    var defer = $q.defer();
+
+                    requests.push(defer.promise);
+
+                    ApiSearchService
+                        .get(query.name, {
+                            apiUrl: site.apiUrl,
+                            code: site.code,
+                            fields: site.fields
+                        })
+                        .then(
+                            function(products) {
+                                var changes = {},
+                                    resultsRef = new Firebase(FIREBASE_ROOT + '/sites/' + site.code + '/cases/' + _case.name.toLowerCase() + '/queries/' + query.name.toLowerCase() + '/results');
+
+                                _.each(products, function(product, i) {
+                                    var sku = {};
+
+                                    if (product.skus && product.skus.length) {
+                                        sku = product.skus[0];
+                                    }
+
+                                    product['.priority'] = i;
+                                    product.skus = [sku];
+
+                                    changes[product.id] = product;
+                                });
+
+                                resultsRef.set(changes, function(error) {
+                                    if (error) {
+                                        $log.error('SnapshotCtrl: error updating results');
+                                        defer.reject(error);
+                                    } else {
+                                        defer.resolve();
+                                    }
+                                });
+                            },
+                            function(error) {
+                                defer.reject(error);
+                            }
+                        );
+                });
+            });
+        });
+
+        $q.all(requests).then(
+            function() {
+                $log.info('SnapshotCtrl.refreshData: finished query refresh');
+                $log.info('SnapshotCtrl.refreshData: starting NDCG update...');
+                $scope.refreshStatus = 'Calculating scores...';
+
+                NdcgService.updateAll(sites).then(function() {
+                    $log.info('SnapshotCtrl.refreshData: finished NDCG update');
+                    $log.info('SnapshotCtrl.refreshData: success');
+                    $scope.refreshStatus = 'Success!';
+
+                    $timeout(function() {
+                        $scope.refreshStatus = '';
+                    }, 4000);
+                });
+            },
+            function(error) {
+                $log.error('SnapshotCtrl.refreshData: ApiSearch failed: ' + error);
+                $scope.refreshStatus = 'FAILED: please contact an admin';
+            }
+        );
     };
 });

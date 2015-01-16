@@ -18,9 +18,8 @@
 <div class="row">
     <div class="col-xs-12 col-sm-4 col-md-4" ng-repeat="(key, query) in case.queries">
         <div class="panel panel-default case">
-            <div class="panel-heading" ui-sref="query({ siteId: siteId, caseId: (case.$id | encodeCleanToken), queryId: (key | encodeCleanToken) })">
-                
-                <h4>{{query.name}} <span class="label pull-right score-{{query.score | integer}}">{{query.score}}</span></h4>
+            <div class="panel-heading" ui-sref="query({ siteId: siteId, caseId: (case.$id | encodeCleanToken), queryId: (key | encodeCleanToken) })"> 
+                <h4>{{query.name}} <span class="label pull-right score-{{query.score | simpleScore}}">{{query.score || 0}}</span></h4>
             </div>
             <div class="panel-body">
                 <p><u>Results Rankings</u></p>
@@ -31,12 +30,12 @@
                 </ul>
             </div>
             <div class="panel-footer clearfix" ng-if="isAdmin">
-                 <a href="" class="text-danger pull-right" ng-click="removeQuery(key)">Remove</a>
+                <a href="" class="text-danger pull-right" ng-click="removeQuery(key)">Remove</a>
             </div>
         </div>
     </div>
     
     <div class="col-xs-12 alert alert-info text-center" ng-show="!(case.queries | size)">
-        <strong>Heads up!</strong> Add a new query to get started
+        <strong>No queries!</strong> Add a new query to get started
     </div>
 </div>

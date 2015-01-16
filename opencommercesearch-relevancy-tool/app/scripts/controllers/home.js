@@ -7,15 +7,15 @@
  * # HomeCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('HomeCtrl', function ($scope, $rootScope, $firebase, FIREBASE_ROOT) {
-     $scope.sitesRef = new Firebase(FIREBASE_ROOT + '/sites');
-     $scope.sites = $firebase($scope.sitesRef).$asObject();
+angular.module('relevancyApp').controller('HomeCtrl', function($scope, $rootScope, $firebase, FIREBASE_ROOT, $window) {
+    $scope.sitesRef = new Firebase(FIREBASE_ROOT + '/sites');
+    $scope.sites = $firebase($scope.sitesRef).$asObject();
 
-     $scope.sites.$loaded(function() {
+    $scope.sites.$loaded(function() {
         $rootScope.loading = '';
-     });
+    });
 
-     $scope.addSite = function(name, code, apiUrl, contentUrl, fields) {
+    $scope.addSite = function(name, code, apiUrl, contentUrl, fields) {
         var siteCode = code.toLowerCase(),
             newSite = {
                 apiUrl: apiUrl,
@@ -26,15 +26,15 @@ angular.module('relevancyApp').controller('HomeCtrl', function ($scope, $rootSco
             };
 
         if ($scope.sites[siteCode]) {
-            alert('This site code is already in use, please use another.');
+            $window.alert('This site code is already in use, please use another.');
         } else {
             $scope.sitesRef.child(siteCode).set(newSite);
         }
-     };
+    };
 
-     $scope.removeSite = function(siteId) {
-        if (confirm('Do you really want to delete the site ' + siteId + '?')) {
+    $scope.removeSite = function(siteId) {
+        if ($window.confirm('Do you really want to delete the site ' + siteId + '?')) {
             $scope.sitesRef.child(siteId).remove();
         }
-     };
+    };
 });

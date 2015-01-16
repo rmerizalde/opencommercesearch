@@ -9,9 +9,7 @@
  */
 angular.module('relevancyApp').factory('UserService', function(FIREBASE_ROOT, $state, $q) {
     var ref = new Firebase(FIREBASE_ROOT),
-        usersRef = ref.child('users'),
-        session = JSON.parse(localStorage.getItem('firebase:session::burning-fire-8187')),
-        authenticated = session ? true : false;
+        usersRef = ref.child('users');
 
     return {
         currentUser: function() {
@@ -39,7 +37,7 @@ angular.module('relevancyApp').factory('UserService', function(FIREBASE_ROOT, $s
             ref.authWithPassword({
                 email: email,
                 password: password
-            }, function(error, authData) {
+            }, function(error) {
                 if (error) {
                     console.log('Login failed', error);
                 } else {
@@ -53,4 +51,4 @@ angular.module('relevancyApp').factory('UserService', function(FIREBASE_ROOT, $s
             $state.go('login');
         }
     };
-  });
+});

@@ -7,16 +7,17 @@
  * # SiteCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('SiteCtrl', function ($scope, $rootScope, $stateParams, FIREBASE_ROOT, $firebase, $timeout) {
-     $scope.siteRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId);
-     $scope.newCase = { alert: null };
-     $firebase($scope.siteRef).$asObject().$bindTo($scope, 'site').then(function() {
+angular.module('relevancyApp').controller('SiteCtrl', function($scope, $rootScope, $stateParams, FIREBASE_ROOT, $firebase, $timeout, $window) {
+    $scope.siteRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId);
+    $scope.newCase = { alert: null };
+    $firebase($scope.siteRef).$asObject().$bindTo($scope, 'site').then(function() {
         $rootScope.loading = '';
-     });
+    });
 
-     $scope.addCase = function(caseName) {
-        var caseName = caseName || '',
-            caseId = caseName.toLowerCase();
+    $scope.addCase = function(caseName) {
+        caseName = caseName || '';
+
+        var caseId = caseName.toLowerCase();
 
         $scope.newCase.alert = null;
 
@@ -41,11 +42,11 @@ angular.module('relevancyApp').controller('SiteCtrl', function ($scope, $rootSco
                 $scope.newCase.alert = null;
             }, 5000);
         }
-     };
+    };
 
-     $scope.removeCase = function(caseId) {
-        if (confirm('Do you really want to delete the "' + caseId + '" case?')) {
+    $scope.removeCase = function(caseId) {
+        if ($window.confirm('Do you really want to delete the "' + caseId + '" case?')) {
             $scope.siteRef.child('cases').child(caseId).remove();
         }
-     };
+    };
 });
