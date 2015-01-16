@@ -292,19 +292,37 @@ angular.module('relevancyApp').controller('SnapshotsCtrl', function($scope, $roo
                 $log.info('SnapshotCtrl.refreshData: starting NDCG update...');
                 $scope.refreshStatus = 'Calculating scores...';
 
-                NdcgService.updateAll(sites).then(function() {
-                    $log.info('SnapshotCtrl.refreshData: finished NDCG update');
-                    $log.info('SnapshotCtrl.refreshData: success');
-                    $scope.refreshStatus = 'Success!';
-
-                    $timeout(function() {
+                NdcgService.updateAll(sites).then(
+                    function() {
+                        $log.info('SnapshotCtrl.refreshData: finished NDCG update');
+                        $log.info('SnapshotCtrl.refreshData: success');
                         $scope.refreshStatus = '';
-                    }, 4000);
-                });
+                        swal({
+                            title: 'Success!',
+                            text: 'Results and scores updated for all sites, cases, and queries.',
+                            type: 'success',
+                            confirmButtonColor: '#5cb85c'
+                        });
+                    },
+                    function(error) {
+                        swal({
+                            title: 'Error',
+                            text: 'Something went wrong during the refresh, please contact an admin.',
+                            type: 'error',
+                            confirmButtonColor: '#DD6B55'
+                        });
+                    }
+                );
             },
             function(error) {
                 $log.error('SnapshotCtrl.refreshData: ApiSearch failed: ' + error);
                 $scope.refreshStatus = 'FAILED: please contact an admin';
+                swal({
+                    title: 'Error',
+                    text: 'Something went wrong during the refresh, please contact an admin.',
+                    type: 'error',
+                    confirmButtonColor: '#DD6B55'
+                });
             }
         );
     };

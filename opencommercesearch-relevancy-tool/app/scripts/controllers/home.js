@@ -26,15 +26,39 @@ angular.module('relevancyApp').controller('HomeCtrl', function($scope, $rootScop
             };
 
         if ($scope.sites[siteCode]) {
-            $window.alert('This site code is already in use, please use another.');
+            swal({
+                title: 'Site code already exists!',
+                text: 'The site code "' + siteId + '" already exists, please use a different one.',
+                type: 'error',
+                confirmButtonColor: '#DD6B55',
+                confirmButtonText: 'Ok',
+                closeOnConfirm: true
+            });
         } else {
             $scope.sitesRef.child(siteCode).set(newSite);
         }
     };
 
     $scope.removeSite = function(siteId) {
-        if ($window.confirm('Do you really want to delete the site ' + siteId + '?')) {
-            $scope.sitesRef.child(siteId).remove();
-        }
+        swal({
+                title: 'Are you sure?',
+                text: 'The site "' + siteId + '" will be permanently deleted!',
+                type: 'error',
+                showCancelButton: true,
+                confirmButtonColor: '#DD6B55',
+                confirmButtonText: 'Yes',
+                closeOnConfirm: false
+            },
+            function(isConfirm) {
+                if (isConfirm) {
+                    swal({
+                    title: 'Deleted',
+                    text: 'The case has been deleted.',
+                    type: 'success',
+                    confirmButtonColor: '#5cb85c'
+                });
+                    $scope.sitesRef.child(siteId).remove();
+                }
+            });
     };
 });

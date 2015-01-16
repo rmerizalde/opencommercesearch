@@ -29,6 +29,7 @@ angular.module('relevancyApp').controller('SiteCtrl', function($scope, $rootScop
             };
         } else {
             $scope.site.cases[caseId] = {
+                '.priority': _.now() * -1,
                 name: caseName
             };
             $scope.newCase.alert = {
@@ -45,8 +46,25 @@ angular.module('relevancyApp').controller('SiteCtrl', function($scope, $rootScop
     };
 
     $scope.removeCase = function(caseId) {
-        if ($window.confirm('Do you really want to delete the "' + caseId + '" case?')) {
-            $scope.siteRef.child('cases').child(caseId).remove();
-        }
+        swal({
+            title: 'Are you sure?',
+            text: 'The case "' + caseId + '" will be permanently deleted!',
+            type: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Yes',
+            closeOnConfirm: false
+        },
+        function(isConfirm) {
+            if (isConfirm) {
+                swal({
+                    title: 'Deleted',
+                    text: 'The case has been deleted.',
+                    type: 'success',
+                    confirmButtonColor: '#5cb85c'
+                });
+                $scope.siteRef.child('cases').child(caseId).remove();
+            }
+        });
     };
 });

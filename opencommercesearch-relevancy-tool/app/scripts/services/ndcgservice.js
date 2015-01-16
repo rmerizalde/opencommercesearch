@@ -138,6 +138,8 @@ angular.module('relevancyApp').factory('NdcgService', function($firebase, FIREBA
                 return;
             }
 
+            $log.info('NdcgService.updateCase: starting on case "' + caseId + '" in site "' + siteId + '"');
+
             var defer = $q.defer(),
                 scoresRef = new Firebase(FIREBASE_ROOT + '/scores');
 
@@ -170,19 +172,25 @@ angular.module('relevancyApp').factory('NdcgService', function($firebase, FIREBA
                                 } else {
                                     $log.info('NdcgService.updateCase: finished updating case "' + caseId + '" in site "' + siteId + '" with score ' + caseScore);
 
-                                    if (rollUp) {
-                                        $log.info('NdcgService.updateCase: site rollup enabled');
-                                        self.updateSite(siteId).then(function() {
-                                            defer.resolve();
-                                        });
-                                    } else {
-                                        defer.resolve();
-                                    }
+                                    rollup();
                                 }
                             });
+                        } else {
+                            rollup();
                         }
                     }
                 });
+
+            function rollup() {
+                if (rollUp) {
+                    $log.info('NdcgService.updateCase: site rollup enabled');
+                    self.updateSite(siteId).then(function() {
+                        defer.resolve();
+                    });
+                } else {
+                    defer.resolve();
+                }
+            }
 
             return defer.promise;
         },
