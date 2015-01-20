@@ -3,7 +3,7 @@ $icon-font-path: "../bower_components/bootstrap-sass-official/assets/fonts/boots
 @import "bootstrap-sass-official/assets/stylesheets/_bootstrap.scss";
 // endbower
 
-$score-0:  $gray-light;
+$score-0:  #cfcfcf;
 $score-1:  #ff1900;
 $score-2:  #fe4800;
 $score-3:  #ff7c03;
@@ -16,21 +16,25 @@ $score-9:  #0fec02;
 $score-10: #09da04;
 
 @mixin scoreColors {
-    &.score-0 { background-color: $score-0; color: darken($score-0, 20%); }
-    &.score-1 { background-color: $score-1; color: darken($score-1, 20%); }
-    &.score-2 { background-color: $score-2; color: darken($score-2, 20%); }
-    &.score-3 { background-color: $score-3; color: darken($score-3, 20%); }
-    &.score-4 { background-color: $score-4; color: darken($score-4, 20%); }
-    &.score-5 { background-color: $score-5; color: darken($score-5, 20%); }
-    &.score-6 { background-color: $score-6; color: darken($score-6, 20%); }
-    &.score-7 { background-color: $score-7; color: darken($score-7, 20%); }
-    &.score-8 { background-color: $score-8; color: darken($score-8, 20%); }
-    &.score-9 { background-color: $score-9; color: darken($score-9, 20%); }
-    &.score-10 { background-color: $score-10; color: darken($score-10, 20%); }
+    &.score-0 { background-color: $score-0; color: darken($score-0, 30%); }
+    &.score-1 { background-color: $score-1; color: darken($score-1, 30%); }
+    &.score-2 { background-color: $score-2; color: darken($score-2, 30%); }
+    &.score-3 { background-color: $score-3; color: darken($score-3, 30%); }
+    &.score-4 { background-color: $score-4; color: darken($score-4, 30%); }
+    &.score-5 { background-color: $score-5; color: darken($score-5, 30%); }
+    &.score-6 { background-color: $score-6; color: darken($score-6, 30%); }
+    &.score-7 { background-color: $score-7; color: darken($score-7, 30%); }
+    &.score-8 { background-color: $score-8; color: darken($score-8, 30%); }
+    &.score-9 { background-color: $score-9; color: darken($score-9, 30%); }
+    &.score-10 { background-color: $score-10; color: darken($score-10, 30%); }
 }
 
 footer {
     border-top: 1px solid $gray-lighter; margin-top: 40px; padding: 40px 0;
+}
+
+main {
+    position: relative;
 }
 
 .admin {
@@ -41,8 +45,45 @@ footer {
     margin: 0 10px 0 0; padding: 7px 15px;
 }
 
-main {
-    position: relative;
+.comparison-wrapper {
+    .panel {
+        min-height: 0 !important; margin: -2px;
+
+        &.query {
+            .panel-body {
+                .list-unstyled {
+                    &:first-child {
+                        border-right: 1px solid #eaeaea;
+                    }
+                    img {
+                        margin-right: 10px; width: 50px;
+                    }
+                    li {
+                        border-bottom: 1px solid #eaeaea; height: 75px; margin: 10px 0 10px 0;
+                        padding: 5px 0;
+
+                        &:last-child {
+                            border-bottom: none;
+                        }
+                    }
+                    .label {
+                        margin: 10px 10px 0 0; width: 32px;
+                    }
+                }
+            }
+        }
+        .label {
+            display: inline-block; margin-left: 3px; position: static !important;
+        }
+        .panel-heading {
+            .glyphicon {
+                margin: 0 5px 0 0;
+            }
+        }
+    }
+    .section-title {
+        display: block; font-size: 16px; margin-bottom: 5px;
+    }
 }
 
 .label {
@@ -110,14 +151,25 @@ main {
     }
 }
 
+.snapshot-admin {
+    padding-bottom: 20px;
+
+    .alert{
+        margin: 10px 0 0 0;
+    }
+    .list-group-item {
+        cursor: pointer; padding-left: 30px;
+
+        .glyphicon {
+            margin-left: -18px;
+        }
+    }
+}
+
 .title {
     border-bottom: 1px solid $gray-lighter; margin-bottom: 25px; padding-bottom: 10px;
 
     form {
         margin-top: 20px;
     }
-}
-
-.snapshot-admin {
-    background: $gray-lighter; padding-bottom: 20px;
 }

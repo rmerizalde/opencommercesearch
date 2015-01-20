@@ -7,7 +7,7 @@
  * # LoginCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('LoginCtrl', function ($scope, $rootScope, FIREBASE_ROOT, UserService, $state) {
+angular.module('relevancyApp').controller('LoginCtrl', function($scope, $rootScope, FIREBASE_ROOT, UserService, $state) {
     $rootScope.loading = '';
 
     if (UserService.currentUser()) {

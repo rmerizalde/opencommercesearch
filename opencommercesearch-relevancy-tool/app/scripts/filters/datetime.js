@@ -8,10 +8,12 @@
  * # dateTime
  * Filter in the relevancyApp.
  */
-angular.module('relevancyApp').filter('dateTime', function () {
-    return function (timestamp) {
-      var date = new Date(timestamp);
-      
-      return date.toLocaleString();
+angular.module('relevancyApp').filter('dateTime', function() {
+    return function(timestamp) {
+        if (_.isNumber(timestamp)) {
+            return new Date(timestamp).toLocaleString('en-US');
+        } else {
+            return '-';
+        }
     };
-  });
+});

@@ -5,7 +5,7 @@
     <div ng-repeat="(key, site) in sites" class="col-xs-4">
         <div class="panel panel-default">
             <div class="panel-heading" ui-sref="site({ siteId: key})">
-                <h4>{{site.name}}</h4>
+                <h4>{{site.name}} <span class="label pull-right score-{{site.score | simpleScore}}">{{site.score || 0}}</span></h4>
             </div>
             <div class="panel-body">
                 <p>details here</p>

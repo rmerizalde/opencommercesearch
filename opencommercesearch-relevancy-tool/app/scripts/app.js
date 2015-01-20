@@ -58,7 +58,7 @@ angular
         // user authentication
         $rootScope.currentUser = UserService.currentUser();
         $rootScope.isAdmin = false;
-        
+
         if ($rootScope.currentUser) {
             UserService.isAdmin().then(function(status) {
                 $rootScope.isAdmin = status;
@@ -77,7 +77,7 @@ angular
         });
 
         // navigation and loading
-        $rootScope.$on('$stateChangeStart', function(event, toState, toParams) {
+        $rootScope.$on('$stateChangeStart', function(event) {
             $rootScope.loading = 'loading';
         });
 

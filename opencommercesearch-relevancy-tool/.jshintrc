@@ -20,6 +20,8 @@
   "globals": {
     "angular": false,
     "Firebase": false,
-    "_": false
+    "_": false,
+    "$": false,
+    "swal": false
   }
 }

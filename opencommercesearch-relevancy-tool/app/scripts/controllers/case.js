@@ -7,21 +7,22 @@
  * # CaseCtrl
  * Controller of the relevancyApp
  */
-angular.module('relevancyApp').controller('CaseCtrl', function ($scope, $rootScope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, $http, decodeCleanTokenFilter) {
-     $scope.caseRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId + '/cases/' + decodeCleanTokenFilter($stateParams.caseId));
-     $scope.caseObj = $firebase($scope.caseRef).$asObject();
-     $scope.caseObj.$bindTo($scope, 'case');
-     $scope.newQuery = { alert: null };
-     $scope.siteId = $stateParams.siteId;
+angular.module('relevancyApp').controller('CaseCtrl', function($scope, $rootScope, FIREBASE_ROOT, $firebase, $stateParams, $timeout, decodeCleanTokenFilter, ApiSearchService, $log, $window) {
+    $scope.caseRef = new Firebase(FIREBASE_ROOT + '/sites/' + $stateParams.siteId + '/cases/' + decodeCleanTokenFilter($stateParams.caseId));
+    $scope.caseSync = $firebase($scope.caseRef);
+    $scope.case = $scope.caseSync.$asObject();
+    $scope.newQuery = { alert: null };
+    $scope.siteId = $stateParams.siteId;
 
-     $scope.caseObj.$loaded(function() {
-        $scope.case.queries = $scope.case.queries || {};
+    $scope.case.$loaded(function() {
         $rootScope.loading = '';
-     });
+    });
 
-     $scope.addQuery = function(queryName) {
-        var queryName = queryName || '',
-            queryId = queryName.toLowerCase();
+    $scope.addQuery = function(queryName) {
+        queryName = queryName || '';
+        $scope.case.queries = $scope.case.queries || {};
+
+        var queryId = queryName.toLowerCase();
 
         $scope.newQuery.alert = null;
 
@@ -37,48 +38,75 @@ angular.module('relevancyApp').controller('CaseCtrl', function ($scope, $rootSco
                 type: 'SUCCESS',
                 message: 'query added'
             };
-            $scope.case.queries[queryId] = {
+            $scope.caseRef.child('queries').child(queryId).set({
+                '.priority': _.now() * -1,
                 name: queryName
-            };
+            });
             $scope.newQuery.name = '';
-            
+
             $scope.search({
                 id: queryId,
                 name: queryName
             });
-            
+
             $timeout(function() {
                 $scope.newQuery.alert = null;
             }, 5000);
         }
-     };
+    };
 
-     $scope.removeQuery = function(queryId) {
-        if (confirm('Do you really want to delete the "' + queryId + '" query?')) {
-            delete $scope.case.queries[queryId];
-        }
-     };
-
-     $scope.search = function(query) {
-        return $http.get('http://www.backcountry.com/v1/products?limit=20&site=bcs&metadata=found&fields=id,title,brand.name,skus.image&q=' + query.name).success(function(data) {
-            var products = data.products,
-                changes = {},
-                resultsRef = $scope.caseRef
-                    .child('queries')
-                    .child(query.id)
-                    .child('results');
-
-            for (var i = 0; i < products.length; i++) {
-                var product = products[i],
-                    sku = product.skus[0];
-                
-                product['.priority'] = i;
-                product.skus = [sku];
-
-                changes[product.id] = product;
+    $scope.removeQuery = function(queryId) {
+        swal({
+            title: 'Are you sure?',
+            text: 'The query "' + queryId + '" will be permanently deleted!',
+            type: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#DD6B55',
+            confirmButtonText: 'Yes',
+            closeOnConfirm: false
+        },
+        function(isConfirm) {
+            if (isConfirm) {
+                swal({
+                    title: 'Deleted',
+                    text: 'The query has been deleted.',
+                    type: 'success',
+                    confirmButtonColor: '#5cb85c'
+                });
+                $scope.caseRef.child('queries').child(queryId).remove();
             }
-
-            resultsRef.set(changes);
         });
-     };
+    };
+
+    $scope.search = function(query) {
+        ApiSearchService
+            .get(query.name, {
+                apiUrl: 'http://www.backcountry.com',
+                code: $stateParams.siteId,
+                fields: 'id,title,brand.name,skus.image'
+            })
+            .then(
+                function(products) {
+                    var changes = {},
+                        resultsRef = $scope.caseRef
+                        .child('queries')
+                        .child(query.id)
+                        .child('results');
+
+                    _.each(products, function(product, i) {
+                        var sku = product.skus.length ? product.skus[0] : {};
+
+                        product['.priority'] = i;
+                        product.skus = [sku];
+
+                        changes[product.id] = product;
+                    });
+
+                    resultsRef.set(changes);
+                },
+                function(error) {
+                    $log.error('CaseCtrl.search: failed: ' + error);
+                }
+        );
+    };
 });

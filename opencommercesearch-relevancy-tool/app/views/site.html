@@ -16,10 +16,10 @@
 </div>
 
 <div class="row">
-    <div class="col-xs-12 col-sm-6 col-md-4" ng-repeat="(key, case) in site.cases" ng-controller="QueryCtrl as ctrl">
+    <div class="col-xs-12 col-sm-6 col-md-4" ng-repeat="(key, case) in site.cases">
         <div class="panel panel-default case">
             <div class="panel-heading" ui-sref="case({ siteId: site.code, caseId: (key | encodeCleanToken) })">
-                <h4>{{case.name}} <span class="label score-5 pull-right">0.555</span></h4>
+                <h4>{{case.name}} <span class="label score-{{case.score | simpleScore }} pull-right">{{case.score || 0}}</span></h4>
             </div>
             <div class="panel-body">
                 <div class="col-xs-6">
