@@ -562,7 +562,7 @@ public class RuleManagerComponentTest {
         List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
         assertEquals(7, filters.size());
         assertEquals("*:*", rulesQuery.getQuery());
-        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic\\ jackets)^2 OR query:__all__)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic jackets)^2 OR query:__all__)", filters.get(0));
         assertEquals("category:__all__ OR category:" + category, filters.get(1));
         assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
         assertEquals("brandId:__all__", filters.get(3));
@@ -611,7 +611,7 @@ public class RuleManagerComponentTest {
         List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
         assertEquals(7, filters.size());
         assertEquals("*:*", rulesQuery.getQuery());
-        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic\\ jackets)^2 OR query:__all__)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic jackets)^2 OR query:__all__)", filters.get(0));
         assertEquals("category:__all__", filters.get(1));
         assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
         assertEquals("brandId:__all__", filters.get(3));
@@ -636,7 +636,7 @@ public class RuleManagerComponentTest {
         List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
         assertEquals(7, filters.size());
         assertEquals("*:*", rulesQuery.getQuery());
-        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic\\ jackets)^2 OR query:__all__)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic jackets)^2 OR query:__all__)", filters.get(0));
         assertEquals("category:__all__", filters.get(1));
         assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
         assertEquals("brandId:__all__ OR brandId:someBrand", filters.get(3));
@@ -662,7 +662,7 @@ public class RuleManagerComponentTest {
         List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
         assertEquals(7, filters.size());
         assertEquals("*:*", rulesQuery.getQuery());
-        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic\\ jackets)^2 OR query:__all__)", filters.get(0));
+        assertEquals("(target:allpages OR target:searchpages) AND ((fantastic jackets)^2 OR query:__all__)", filters.get(0));
         assertEquals("category:__all__", filters.get(1));
         assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
         assertEquals("brandId:__all__ OR brandId:someBrand", filters.get(3));

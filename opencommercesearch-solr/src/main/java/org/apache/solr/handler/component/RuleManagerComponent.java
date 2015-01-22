@@ -563,7 +563,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
             }
 
             targetFilter.append("(target:allpages OR target:searchpages) AND ((");
-            targetFilter.append(ClientUtils.escapeQueryChars(q));
+            targetFilter.append(q);
             targetFilter.append(")^2 OR query:__all__)");
         }
         else {
