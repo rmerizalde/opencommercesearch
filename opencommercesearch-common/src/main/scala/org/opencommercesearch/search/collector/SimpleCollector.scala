@@ -34,12 +34,16 @@ class SimpleCollector[E <: Element](val capacity: Int) extends Collector[E] {
   override def canStop: Boolean = size() >= capacity
 
   override def add(element: E, source: String): Boolean = {
-    if (elementList.size < capacity) {
+    if (elementList.size < capacity && !contains(element)) {
       elementList.append(element)
       true
     } else {
       false
     }
+  }
+
+  def contains(element: E) = {
+    elementList.exists(e => e.id == element.id)
   }
 
   override def elements() : Seq[E] = elementList
