@@ -47,7 +47,7 @@ class SimpleCollectorSpec extends UnitSpec {
     val element2 = mock[Element]
 
     when(element1.id).thenReturn(Some("id1"))
-    when(element2.id).thenReturn(Some("id2"))
+    when(element2.id).thenReturn(Some("id1"))
 
     collector.add(element1, "source") shouldBe true
     collector.add(element2, "source") shouldBe false
