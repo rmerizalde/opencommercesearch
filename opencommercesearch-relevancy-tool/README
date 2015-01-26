@@ -1,0 +1,20 @@
+Setting up your development environment
+---------------------------------------
+
+>$ sudo npm install
+>$ bower install
+
+Starting the application
+------------------------
+
+>$ grunt serve
+
+Testing the application
+-----------------------
+
+>$ grunt test
+
+Building the application
+------------------------
+
+>$ grunt build

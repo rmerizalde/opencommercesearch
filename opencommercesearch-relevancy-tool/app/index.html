@@ -1,0 +1,130 @@
+<!doctype html>
+<html class="no-js" ng-init="isAdmin = null">
+<head>
+    <meta charset="utf-8">
+    <title>OCS Relevancy Tool</title>
+    <meta name="viewport" content="width=device-width">
+    <!-- build:css(.) styles/vendor.css -->
+    <!-- bower:css -->
+    <link rel="stylesheet" href="bower_components/sweetalert/lib/sweet-alert.css" />
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:css(.tmp) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
+</head>
+
+<body ng-app="relevancyApp" ng-controller="MainCtrl">
+    <header>
+        <nav class="navbar navbar-default">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" ui-sref="home" ng-click="reset('all')">OCS Relevancy Tool</a>
+                </div>
+                <ul ng-if="currentUser" class="nav navbar-nav navbar-left">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" ng-click="toggleDropdownMenu($event)">Sites <span class="caret"></span></a>
+                        <ul class="dropdown-menu" role="menu">
+                            <li ng-repeat="site in nav.sites"><a ui-sref="site({ siteId: site.code })" ng-click="hideDropdownMenu($event)">{{site.name}}</a></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <a href="" ui-sref="snapshots">Snapshots</a>
+                    </li>
+                    <!--
+                    <li ng-if="isAdmin">
+                        <a href="" ui-sref="admin">Admin</a>
+                    </li>
+                    -->
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li ng-if="!currentUser">
+                        <a ui-sref="login">Login</a>
+                    </li>
+                    <li ng-if="currentUser">
+                        <a ng-click="logout()" class="text-danger" ui-sref="login">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <section class="breadcrumbs container" ng-if="currentUser">
+        <ol class="breadcrumb">
+            <li>
+                <a ui-sref="home">Home</a>
+            </li>
+            <li ng-hide="!nav.current.site.code">
+                <span class="text-muted">Site</span> <a ng-bind="nav.current.site.name" ui-sref="site({ siteId: nav.current.site.code })"/></a>
+            </li>
+            <li ng-hide="!nav.current.caseId">
+                <span class="text-muted">Case</span> <a ng-bind="nav.current.caseId | decodeCleanToken" ui-sref="case({ siteId: nav.current.site.code, caseId: nav.current.caseId })"></a>
+            </li>
+            <li ng-hide="!nav.current.queryId">
+                <span class="text-muted">Query</span> <span ng-bind="nav.current.queryId | decodeCleanToken"></span>
+            </li>
+        </ol>
+    </section>
+
+    <main ui-view class="main container clearfix {{loading}}"></main>
+
+    <footer class="clearfix"></footer>
+
+    <!-- build:js(.) scripts/vendor.js -->
+    <!-- bower:js -->
+    <script src="bower_components/jquery/dist/jquery.js"></script>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/json3/lib/json3.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/affix.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/alert.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/button.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/carousel.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/collapse.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/dropdown.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/tab.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/transition.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/scrollspy.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/modal.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/tooltip.js"></script>
+    <script src="bower_components/bootstrap-sass-official/assets/javascripts/bootstrap/popover.js"></script>
+    <script src="bower_components/angular-animate/angular-animate.js"></script>
+    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <script src="bower_components/angular-touch/angular-touch.js"></script>
+    <script src="bower_components/firebase/firebase.js"></script>
+    <script src="bower_components/angularfire/dist/angularfire.js"></script>
+    <script src="bower_components/underscore/underscore.js"></script>
+    <script src="bower_components/angular-ui-router/release/angular-ui-router.js"></script>
+    <script src="bower_components/sweetalert/lib/sweet-alert.js"></script>
+    <!-- endbower -->
+    <!-- endbuild -->
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/controllers/site.js"></script>
+    <script src="scripts/controllers/case.js"></script>
+    <script src="scripts/controllers/query.js"></script>
+    <script src="scripts/controllers/product.js"></script>
+    <script src="scripts/controllers/query.js"></script>
+    <script src="scripts/controllers/main.js"></script>
+    <script src="scripts/controllers/home.js"></script>
+    <script src="scripts/services/userservice.js"></script>
+    <script src="scripts/controllers/login.js"></script>
+    <script src="scripts/filters/decodecleantoken.js"></script>
+    <script src="scripts/filters/encodecleantoken.js"></script>
+    <script src="scripts/filters/size.js"></script>
+    <script src="scripts/filters/integer.js"></script>
+    <script src="scripts/services/constants.js"></script>
+    <script src="scripts/controllers/snapshots.js"></script>
+    <script src="scripts/filters/datetime.js"></script>
+    <script src="scripts/controllers/comparepanel.js"></script>
+    <script src="scripts/filters/imagesize.js"></script>
+    <script src="scripts/services/localstorage.js"></script>
+    <script src="scripts/filters/simplescore.js"></script>
+    <script src="scripts/services/apisearchservice.js"></script>
+    <script src="scripts/services/ndcgservice.js"></script>
+    <!-- endbuild -->
+</body>
+</html>
