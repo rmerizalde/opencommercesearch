@@ -572,6 +572,56 @@ public class RuleManagerComponentTest {
     }
 
     @Test
+    public void testLoadRulesVerifyQueryWithWildCardStartColonStar() throws IOException {
+        String category = "My super duper favorite Men's category";
+        ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.add(CommonParams.Q, "*:*");
+        requestParams.set(FacetParams.FACET, true);
+        requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
+        requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
+        requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
+
+        RuleManagerComponent mgr = new RuleManagerComponent();
+        SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);
+
+        List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", rulesQuery.getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND (query:__all__)", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
+    }
+
+    @Test
+    public void testLoadRulesVerifyQueryWithWildCardStar() throws IOException {
+        String category = "My super duper favorite Men's category";
+        ModifiableSolrParams requestParams = new ModifiableSolrParams();
+        requestParams.add(CommonParams.Q, "*:*");
+        requestParams.set(FacetParams.FACET, true);
+        requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
+        requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
+        requestParams.add(RuleManagerParams.SITE_IDS, "site:alpha");
+
+        RuleManagerComponent mgr = new RuleManagerComponent();
+        SolrQuery rulesQuery = mgr.getRulesQuery(requestParams, RuleManagerComponent.PageType.search);
+
+        List<String> filters = Arrays.asList(rulesQuery.getFilterQueries());
+        assertEquals(7, filters.size());
+        assertEquals("*:*", rulesQuery.getQuery());
+        assertEquals("(target:allpages OR target:searchpages) AND (query:__all__)", filters.get(0));
+        assertEquals("category:__all__ OR category:" + category, filters.get(1));
+        assertEquals("siteId:__all__ OR siteId:site:alpha", filters.get(2));
+        assertEquals("brandId:__all__", filters.get(3));
+        assertEquals("subTarget:__all__ OR subTarget:Retail", filters.get(4));
+        assertEquals("catalogId:__all__ OR catalogId:cata:alpha", filters.get(5));
+        assertEquals("-(((startDate:[* TO *]) AND -(startDate:[* TO NOW/DAY+1DAY])) OR (endDate:[* TO *] AND -endDate:[NOW/DAY+1DAY TO *]))", filters.get(6));
+    }
+
+    @Test
     public void testLoadRulesForCategoryPage() throws IOException {
         String category = "My category";
         RuleManagerComponent mgr = new RuleManagerComponent();

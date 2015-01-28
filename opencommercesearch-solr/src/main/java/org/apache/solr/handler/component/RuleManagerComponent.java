@@ -562,9 +562,11 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 throw new IOException("Cannot process search request because the 'q' param is empty.");
             }
 
-            targetFilter.append("(target:allpages OR target:searchpages) AND ((");
-            targetFilter.append(q);
-            targetFilter.append(")^2 OR query:__all__)");
+            targetFilter.append("(target:allpages OR target:searchpages) AND (");
+            if (!(q.equals("*") || q.equals("*:*"))) {
+                targetFilter.append("(").append(q).append(")^2 OR ");
+            }
+            targetFilter.append("query:__all__)");
         }
         else {
             targetFilter.append("target:allpages OR target:categorypages");
