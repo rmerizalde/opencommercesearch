@@ -600,7 +600,7 @@ public class RuleManagerComponentTest {
     public void testLoadRulesVerifyQueryWithWildCardStar() throws IOException {
         String category = "My super duper favorite Men's category";
         ModifiableSolrParams requestParams = new ModifiableSolrParams();
-        requestParams.add(CommonParams.Q, "*:*");
+        requestParams.add(CommonParams.Q, "*");
         requestParams.set(FacetParams.FACET, true);
         requestParams.add(RuleManagerParams.CATEGORY_FILTER, category);
         requestParams.add(RuleManagerParams.CATALOG_ID, "cata:alpha");
