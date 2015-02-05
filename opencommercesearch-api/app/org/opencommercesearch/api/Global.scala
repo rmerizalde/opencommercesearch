@@ -143,6 +143,11 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
     customParams.toSeq
   }
 
+  def defaultFilterQueriesParams = {
+    val customParams = Play.current.configuration.getStringList("default.filter.queries").getOrElse(java.util.Arrays.asList())
+    customParams.toSeq
+  }
+
   def availabilityStatusSummaryConfig = {
     val summary = Play.current.configuration.getStringList("product.availability.status.summary").getOrElse(
       java.util.Arrays.asList(InStock, Backorderable, Preorderable, OutOfStock, PermanentlyOutOfStock)
