@@ -1,12 +1,12 @@
 package org.opencommercesearch.api
 
-import play.api.Logger
-import play.api.mvc._
-import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import play.api.mvc._
+
+import scala.concurrent.Future
 
 object AccessLog extends Filter {
-  def apply(nextFilter: (RequestHeader) => Future[SimpleResult])(request: RequestHeader): Future[SimpleResult] = {
+  def apply(nextFilter: (RequestHeader) => Future[Result])(request: RequestHeader): Future[Result] = {
     nextFilter(request).map { result =>
       val msg = s"method=${request.method} uri=${request.uri} remote-address=${request.remoteAddress} " +
         s"domain=${request.domain} query-string=${request.rawQueryString} " +

@@ -19,6 +19,16 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import javax.ws.rs.{PathParam, QueryParam}
+
+import com.wordnik.swagger.annotations._
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.ProductFacetQuery
+import org.opencommercesearch.api.common.FacetQuery
+import org.opencommercesearch.api.models.{Brand, BrandList, Category}
+import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.util.Util._
+import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, JsObject, Json}
@@ -26,18 +36,6 @@ import play.api.mvc._
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
-
-import javax.ws.rs.{PathParam, QueryParam}
-
-import org.opencommercesearch.api.ProductFacetQuery
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.common.FacetQuery
-import org.opencommercesearch.api.models.{Brand, BrandList, Category}
-import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.api.util.Util._
-import org.opencommercesearch.search.suggester.IndexableElement
-
-import com.wordnik.swagger.annotations._
 
 @Api(value = "brands", basePath = "/api-docs/brands", description = "Brand API endpoints")
 object BrandController extends BaseController with FacetQuery {
@@ -100,7 +98,7 @@ object BrandController extends BaseController with FacetQuery {
           val storageFuture = storage.saveBrand(brand)
           val suggestionFuture = IndexableElement.addToIndex(Seq(brand), fetchCount = true)
           val futureList = List[Future[Any]](storageFuture, suggestionFuture)
-          val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
+          val future: Future[Result] = Future.sequence(futureList) map { result =>
             Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
           }
 
@@ -148,7 +146,7 @@ object BrandController extends BaseController with FacetQuery {
         val storageFuture = storage.saveBrand(brands:_*)
         val suggestionFuture = IndexableElement.addToIndex(brands, fetchCount = true)
 
-        val future: Future[SimpleResult] =  Future.sequence(List[Future[Any]](storageFuture, suggestionFuture)) map { result =>
+        val future: Future[Result] =  Future.sequence(List[Future[Any]](storageFuture, suggestionFuture)) map { result =>
           Created
         }
 
@@ -226,7 +224,6 @@ object BrandController extends BaseController with FacetQuery {
   ))
   def findAll(
    version: Int,
-   @ApiParam(defaultValue="false", allowableValues="true,false", value = "", required = false)
    @ApiParam(value = "Site to search for brands", required = true)
    @QueryParam("site")
    site: String) = ContextAction.async { implicit context => implicit request =>
@@ -241,7 +238,7 @@ object BrandController extends BaseController with FacetQuery {
 
     val future = solrServer.query(brandFacetQuery).flatMap( catalogResponse => {
       val facetFields = catalogResponse.getFacetFields
-      var brandInfoFuture : Future[SimpleResult] = null
+      var brandInfoFuture : Future[Result] = null
 
       if(facetFields != null) {
         facetFields.map( facetField => {
@@ -343,7 +340,7 @@ object BrandController extends BaseController with FacetQuery {
 
     val future = solrServer.query(brandFacetQuery).flatMap( brandsResponse => {
       val facetFields = brandsResponse.getFacetFields
-      var brandsDataFuture: Future[SimpleResult] = null
+      var brandsDataFuture: Future[Result] = null
 
       if(facetFields != null) {
         facetFields.map( brandsFacetField => {

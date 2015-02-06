@@ -20,27 +20,25 @@ package org.opencommercesearch.api.controllers
 */
 
 import com.mongodb.WriteResult
+import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
+import org.apache.solr.client.solrj.response.QueryResponse
+import org.apache.solr.client.solrj.{SolrQuery, SolrRequest}
+import org.apache.solr.common.util.NamedList
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.junit.runner.RunWith
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.Rule
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
+import org.specs2.mock.Mockito
+import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import play.api.mvc.SimpleResult
-import play.api.test._
+import play.api.libs.json.{JsArray, JsError, Json}
+import play.api.mvc.Result
 import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json, JsArray}
+import play.api.test._
 
 import scala.concurrent.Future
-
-import org.specs2.mutable._
-import org.specs2.mock.Mockito
-import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
-import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
-import org.apache.solr.client.solrj.response.QueryResponse
-import org.apache.solr.common.util.NamedList
-import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-import org.opencommercesearch.api.models.Rule
-
-import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 
 @RunWith(classOf[JUnitRunner])
 class RuleControllerSpec extends Specification with Mockito {
@@ -322,7 +320,7 @@ class RuleControllerSpec extends Specification with Mockito {
     }
   }
 
-  private def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  private def validateQueryResult(result: Future[Result], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -340,14 +338,14 @@ class RuleControllerSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  private def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
+  private def validateUpdateResult(result: Future[Result], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  private def validateUpdateResultWithMessage(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
+  private def validateUpdateResultWithMessage(result: Future[Result], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

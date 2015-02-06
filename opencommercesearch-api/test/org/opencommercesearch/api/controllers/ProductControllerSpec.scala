@@ -1,28 +1,26 @@
 package org.opencommercesearch.api.controllers
 
-import org.opencommercesearch.api.models.debug.DebugInfo
-import play.api.libs.json.{JsError, Json}
-import play.api.test.{FakeApplication, FakeRequest}
-import play.api.test.Helpers._
-import scala.concurrent.Future
-import scala.collection.JavaConversions._
 import java.util
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.models._
-import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
+
+import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.response._
-import org.apache.solr.common.{SolrDocument, SolrDocumentList}
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.common.util.NamedList
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.junit.runner.RunWith
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models._
+import org.opencommercesearch.api.models.debug.DebugInfo
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import org.specs2.mutable.Before
 import org.specs2.runner.JUnitRunner
-import com.mongodb.WriteResult
-import play.api.mvc.SimpleResult
-import play.api.libs.json.JsValue
-import play.api.libs.json.JsObject
-import play.api.libs.json.JsArray
+import play.api.libs.json.{JsError, JsObject, JsValue, Json}
+import play.api.test.Helpers._
+import play.api.test.{FakeApplication, FakeRequest}
+
+import scala.collection.JavaConversions._
+import scala.concurrent.Future
 
 /*
 * Licensed to OpenCommerceSearch under one

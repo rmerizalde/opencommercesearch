@@ -20,27 +20,23 @@ package org.opencommercesearch.api.controllers
 */
 
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
-import play.api.libs.json.{Writes, Json}
-import scala.concurrent.Future
 import org.apache.solr.client.solrj.SolrQuery
-import org.opencommercesearch.api.common.{FieldList, ContentPreview}
-import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import scala.collection.convert.Wrappers.JIterableWrapper
 import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
-import org.opencommercesearch.api.common.FacetQuery
-import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.joda.time.DateTimeZone
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.common.{ContentPreview, FacetQuery, FieldList}
 import org.opencommercesearch.common.Context
-import scala.collection.convert.Wrappers.JIterableWrapper
-import scala.Some
-import play.api.mvc.SimpleResult
-import org.apache.solr.common.SolrDocument
-import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
 import org.opencommercesearch.search.Element
+import org.opencommercesearch.search.collector.{MultiSourceCollector, SimpleCollector}
 import org.opencommercesearch.search.suggester.CatalogSuggester
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.{Json, Writes}
+import play.api.mvc.{Result, _}
+
+import scala.collection.convert.Wrappers.JIterableWrapper
+import scala.concurrent.Future
 
 /**
  * This class provides common functionality for all controllers
@@ -57,31 +53,31 @@ class BaseController extends Controller with ContentPreview with FieldList with 
   private val df: DateTimeFormatter =
     DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '" + timeZoneCode + "'").withLocale(java.util.Locale.ENGLISH).withZone(DateTimeZone.forID(timeZoneCode))
 
-  protected def withCorsHeaders(result: SimpleResult) : SimpleResult = {
+  protected def withCorsHeaders(result: Result) : Result = {
     result.withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
   }
 
-  protected def withCacheHeaders(result: SimpleResult, ids: String)(implicit request: Request[AnyContent]) : SimpleResult = {
+  protected def withCacheHeaders(result: Result, ids: String)(implicit request: Request[AnyContent]) : Result = {
     val lastModified = df.print(System.currentTimeMillis())
     withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
   }
 
-  protected def withCacheHeaders(result: SimpleResult, ids: Iterable[String])(implicit request: Request[AnyContent]) : SimpleResult = {
+  protected def withCacheHeaders(result: Result, ids: Iterable[String])(implicit request: Request[AnyContent]) : Result = {
     val lastModified = df.print(System.currentTimeMillis())
     withProductIds(result, ids, request).withHeaders((LAST_MODIFIED -> lastModified))
   }
 
-  private def withProductIds(result: SimpleResult, ids: String, request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+  private def withProductIds(result: Result, ids: String, request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
     case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids))
     case None => result
   }
 
-  private def withProductIds(result: SimpleResult, ids: Iterable[String], request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
+  private def withProductIds(result: Result, ids: Iterable[String], request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
     case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
     case None => result
   }
 
-  protected def findSuggestionsFor(typeName: String, query: String, site: String)(implicit context: Context): Future[SimpleResult] = {
+  protected def findSuggestionsFor(typeName: String, query: String, site: String)(implicit context: Context): Future[Result] = {
     val startTime = System.currentTimeMillis()
 
     if (query == null || query.length < 2) {
@@ -105,7 +101,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     }
   }
 
-  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]): Future[SimpleResult] = {
+  protected def findSuggestionsFor[T](clazz: Class[T], typeName: String, query: SolrQuery)(implicit req: Request[AnyContent], c: Writes[T]): Future[Result] = {
 
     val startTime = System.currentTimeMillis()
     val solrQuery = withPagination(withFields(query, req.getQueryString("fields")))
@@ -135,10 +131,10 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to delete docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to delete
    */
-  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
+  protected def deleteByQuery(query: String, update: AsyncUpdateRequest, typeName: String) : Future[Result] = {
     update.deleteByQuery(query)
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       NoContent
     })
 
@@ -152,7 +148,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
    * @param update is the update request used to commit or rollback docs. Child classes should set the collection the request should use.
    * @param typeName name of the item type to commit or rollback
    */
-  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Future[SimpleResult] = {
+  def commitOrRollback(commit: Boolean, rollback: Boolean, update: AsyncUpdateRequest, typeName: String) : Future[Result] = {
     if(commit == rollback) {
       Future.successful(BadRequest(Json.obj(
         "message" -> s"commit and boolean can't have the same value.")))
@@ -160,7 +156,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     else {
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
@@ -169,7 +165,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
       }
       else {
         update.rollback
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
@@ -187,9 +183,9 @@ class BaseController extends Controller with ContentPreview with FieldList with 
      * Action composition for async actions that require a context and request
      *
      * @param block the action code
-     * @return a future SimpleResult
+     * @return a future Result
      */
-    final def async(block: Context => Request[AnyContent] => Future[SimpleResult]): Action[AnyContent] = async(BodyParsers.parse.anyContent)(block)
+    final def async(block: Context => Request[AnyContent] => Future[Result]): Action[AnyContent] = async(BodyParsers.parse.anyContent)(block)
 
     /**
      * Action composition for async actions that require a context and request
@@ -198,7 +194,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
      * @tparam A is the content type
      * @return
      */
-    final def async[A](bodyParser: BodyParser[A])(block: Context => Request[A] => Future[SimpleResult]): Action[A] = Action.async(bodyParser) { implicit request =>
+    final def async[A](bodyParser: BodyParser[A])(block: Context => Request[A] => Future[Result]): Action[A] = Action.async(bodyParser) { implicit request =>
       val preview = request.getQueryString("preview").getOrElse(false)
       val context = Context("true".equals(preview), preferred(request.acceptLanguages))
 
