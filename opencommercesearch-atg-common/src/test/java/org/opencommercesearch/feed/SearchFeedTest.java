@@ -44,6 +44,7 @@ import org.restlet.Response;
 import org.restlet.data.Status;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -87,6 +88,10 @@ public class SearchFeedTest {
             throw new UnsupportedOperationException();
         }
     };
+
+    interface FeedFinished {
+        void set(boolean finished);
+    }
 
     @Mock
     private RepositoryItem catalogOutdoor;
@@ -132,6 +137,9 @@ public class SearchFeedTest {
     private RqlStatement productRql;
     @Mock
     private ProductService productService;
+    @Mock
+    private FeedFinished finished;
+
     @Spy
     @InjectMocks
     private SearchFeed dummyFeed = createDummySearchFeed();
@@ -290,12 +298,12 @@ public class SearchFeedTest {
 
             @Override
             protected void onFeedFinished(FeedType type, long feedTimestamp) {
-
+                finished.set(true);
             }
 
             @Override
             protected void onFeedFailed(FeedType type, long feedTimestamp) {
-
+                finished.set(false);
             }
 
             @Override
@@ -380,8 +388,8 @@ public class SearchFeedTest {
         dummyFeed.doStartService();
         dummyFeed.startFullFeed();
 
-        verify(dummyFeed, times(1)).onFeedFailed(any(SearchFeed.FeedType.class), anyLong());
-        verify(dummyFeed, times(0)).onFeedFinished(any(SearchFeed.FeedType.class), anyLong());
+        verify(finished, times(1)).set(false);
+        verifyNoMoreInteractions(finished);
     }
 
     @Test
