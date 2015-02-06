@@ -140,7 +140,6 @@ public class SearchFeedTest {
     @Mock
     private FeedFinished finished;
 
-    @Spy
     @InjectMocks
     private SearchFeed dummyFeed = createDummySearchFeed();
 
