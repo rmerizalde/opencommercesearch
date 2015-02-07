@@ -2,7 +2,7 @@ name := "opencommercesearch-common"
 
 version := "0.7.8-SNAPSHOT"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.11.1"
 
 libraryDependencies ++= Seq(
   "org.opencommercesearch" %% "play-solrj" % "0.5-SNAPSHOT" % "provided",

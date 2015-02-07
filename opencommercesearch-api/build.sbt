@@ -6,7 +6,7 @@ name := "opencommercesearch-api"
 
 version := "0.7.8-SNAPSHOT"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.1"
 
 scalacOptions ++= Seq("-feature")
 
