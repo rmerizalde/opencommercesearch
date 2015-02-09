@@ -319,6 +319,8 @@ public abstract class SearchFeed extends GenericService {
         }
 
         public void run() {
+            int localProductProcessedCount = 0;
+
             try {
                 if (isLoggingInfo()) {
                     logInfo(Thread.currentThread() + " - Started processing partition " + getName());
@@ -329,7 +331,6 @@ public abstract class SearchFeed extends GenericService {
                 RepositoryItem[] productItems = productRql.executeQueryUncached(productView, rqlArgs);
                 SearchFeedProducts products = new SearchFeedProducts();
                 int productCount = limit;
-                int localProductProcessedCount = 0;
                 boolean done = false;
                 boolean shouldStop = false;
 
@@ -363,11 +364,7 @@ public abstract class SearchFeed extends GenericService {
                 if(!shouldStop) {
                     sendProducts(products, type, feedTimestamp, 0, true);
                 }
-            } catch (RepositoryException ex) {
-                if (isLoggingError()) {
-                    logError("Exception processing catalog partition: " + getName(), ex);
-                }
-            } catch (InventoryException ex) {
+            } catch (Exception ex) {
                 if (isLoggingError()) {
                     logError("Exception processing catalog partition: " + getName(), ex);
                 }
@@ -375,6 +372,9 @@ public abstract class SearchFeed extends GenericService {
                 if (isLoggingInfo()) {
                     logInfo(Thread.currentThread() + " - Finished processing partition " + getName());
                 }
+
+                int unprocessedProductCount = limit - localProductProcessedCount;
+                failedProductCount.addAndGet(unprocessedProductCount);
                 endGate.countDown();
             }
         }
@@ -659,7 +659,7 @@ public abstract class SearchFeed extends GenericService {
             final long startTime = System.currentTimeMillis();
 
             RepositoryView productView = getProductRepository().getView(getProductItemDescriptorName());
-            int productCount = productRql.executeCountQuery(productView, null);
+            int productCount = productCountRql.executeCountQuery(productView, null);
             currentErrorThreshold = (int) (productCount * getErrorThreshold());
 
             //If error threshold is too small, don't do anything with it.
@@ -725,6 +725,7 @@ public abstract class SearchFeed extends GenericService {
                     }
                 }
                 else {
+                    onFeedFailed(type, feedTimestamp);
                     logError("Full feed interrupted since it seems to be failing too often. At least " + (getErrorThreshold() * 100) + "% out of " + productCount + " items had errors");
                 }
             }
@@ -799,6 +800,17 @@ public abstract class SearchFeed extends GenericService {
      * @param feedTimestamp is the feed's timestamp
      */
     protected abstract void onFeedFinished(FeedType type, long feedTimestamp);
+
+    /**
+     * Fires an event when a feed is cancelled due to errors
+     *
+     * @todo: make this method abstract
+     *
+     * @param type is the feed's type
+     * @param feedTimestamp is the feed's timestamp
+     */
+    protected void onFeedFailed(FeedType type, long feedTimestamp) {
+    }
 
     protected abstract void processProduct(RepositoryItem product, SearchFeedProducts products)
             throws RepositoryException, InventoryException;

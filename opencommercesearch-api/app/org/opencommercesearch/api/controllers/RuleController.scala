@@ -85,7 +85,7 @@ object RuleController extends BaseController {
         val storageFuture = storage.saveRule(rule)
         val searchFuture: Future[UpdateResponse] = update.process(solrServer)
 
-        val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (storageResult, searchResponse) =>
+        val future: Future[Result] = storageFuture zip searchFuture map { case (storageResult, searchResponse) =>
           Created.withHeaders((LOCATION, absoluteURL(routes.RuleController.findById(id), request)))
         }
 
@@ -161,7 +161,7 @@ object RuleController extends BaseController {
 
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
@@ -170,7 +170,7 @@ object RuleController extends BaseController {
       }
       else {
         update.rollback
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
@@ -189,7 +189,7 @@ object RuleController extends BaseController {
 
     update.deleteByQuery(query)
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       Ok (Json.obj(
         "message" -> "delete success"))
     })

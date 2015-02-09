@@ -19,28 +19,25 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
-import play.api.Logger
-import play.api.libs.json.{JsError, Json}
+import javax.ws.rs.{PathParam, QueryParam}
 
-import scala.concurrent.Future
-
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.util.Util
-import Util._
-import org.opencommercesearch.api.models.{Facet, FacetList}
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
-import org.apache.solr.client.solrj.beans.BindingException
 import com.wordnik.swagger.annotations._
-import scala.Array
-import play.api.libs.json.JsArray
-import play.api.mvc.SimpleResult
-import javax.ws.rs.{QueryParam, PathParam}
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.beans.BindingException
+import org.apache.solr.client.solrj.request.AbstractUpdateRequest.ACTION
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.UpdateResponse
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.{Facet, FacetList}
+import org.opencommercesearch.api.util.Util
+import org.opencommercesearch.api.util.Util._
+import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.{JsArray, JsError, Json}
+import play.api.mvc.{Result, _}
+
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
 
 @Api(value = "facets", basePath = "/api-docs/facets", description = "Facet API endpoints.")
 object FacetController extends BaseController {
@@ -120,7 +117,7 @@ object FacetController extends BaseController {
         val storageFuture = storage.saveFacet(facet)
         val searchFuture: Future[UpdateResponse] = update.process(solrServer)
 
-        val future: Future[SimpleResult] = storageFuture zip searchFuture map { case (storageResult, searchResponse) =>
+        val future: Future[Result] = storageFuture zip searchFuture map { case (storageResult, searchResponse) =>
           Created.withHeaders((LOCATION, absoluteURL(routes.FacetController.findById(id), request)))
         }
 
@@ -218,7 +215,7 @@ object FacetController extends BaseController {
 
       if(commit) {
         update.setAction(ACTION.COMMIT, false, false, false)
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "commit success"))
         })
@@ -227,7 +224,7 @@ object FacetController extends BaseController {
       }
       else {
         update.rollback
-        val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+        val future: Future[Result] = update.process(solrServer).map( response => {
           Ok (Json.obj(
             "message" -> "rollback success"))
         })
@@ -247,7 +244,7 @@ object FacetController extends BaseController {
 
     update.deleteByQuery(query)
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       Ok (Json.obj(
         "message" -> "delete success"))
     })

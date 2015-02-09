@@ -1,0 +1,175 @@
+$icon-font-path: "../bower_components/bootstrap-sass-official/assets/fonts/bootstrap/";
+// bower:scss
+@import "bootstrap-sass-official/assets/stylesheets/_bootstrap.scss";
+// endbower
+
+$score-0:  #cfcfcf;
+$score-1:  #ff1900;
+$score-2:  #fe4800;
+$score-3:  #ff7c03;
+$score-4:  #ffad03;
+$score-5:  #ffea02;
+$score-6:  #e3fe02;
+$score-7:  #b1fc01;
+$score-8:  #7cff03;
+$score-9:  #0fec02;
+$score-10: #09da04;
+
+@mixin scoreColors {
+    &.score-0 { background-color: $score-0; color: darken($score-0, 30%); }
+    &.score-1 { background-color: $score-1; color: darken($score-1, 30%); }
+    &.score-2 { background-color: $score-2; color: darken($score-2, 30%); }
+    &.score-3 { background-color: $score-3; color: darken($score-3, 30%); }
+    &.score-4 { background-color: $score-4; color: darken($score-4, 30%); }
+    &.score-5 { background-color: $score-5; color: darken($score-5, 30%); }
+    &.score-6 { background-color: $score-6; color: darken($score-6, 30%); }
+    &.score-7 { background-color: $score-7; color: darken($score-7, 30%); }
+    &.score-8 { background-color: $score-8; color: darken($score-8, 30%); }
+    &.score-9 { background-color: $score-9; color: darken($score-9, 30%); }
+    &.score-10 { background-color: $score-10; color: darken($score-10, 30%); }
+}
+
+footer {
+    border-top: 1px solid $gray-lighter; margin-top: 40px; padding: 40px 0;
+}
+
+main {
+    position: relative;
+}
+
+.admin {
+    margin-top: 500px;
+}
+
+.alert {
+    margin: 0 10px 0 0; padding: 7px 15px;
+}
+
+.comparison-wrapper {
+    .panel {
+        min-height: 0 !important; margin: -2px;
+
+        &.query {
+            .panel-body {
+                .list-unstyled {
+                    &:first-child {
+                        border-right: 1px solid #eaeaea;
+                    }
+                    img {
+                        margin-right: 10px; width: 50px;
+                    }
+                    li {
+                        border-bottom: 1px solid #eaeaea; height: 75px; margin: 10px 0 10px 0;
+                        padding: 5px 0;
+
+                        &:last-child {
+                            border-bottom: none;
+                        }
+                    }
+                    .label {
+                        margin: 10px 10px 0 0; width: 32px;
+                    }
+                }
+            }
+        }
+        .label {
+            display: inline-block; margin-left: 3px; position: static !important;
+        }
+        .panel-heading {
+            .glyphicon {
+                margin: 0 5px 0 0;
+            }
+        }
+    }
+    .section-title {
+        display: block; font-size: 16px; margin-bottom: 5px;
+    }
+}
+
+.label {
+    @include scoreColors;    
+}
+
+.login {
+    margin: 150px auto;
+
+    button {
+        margin-top: 10px;
+    }
+    input {
+        margin-bottom: 5px;
+    }
+}
+
+.main {
+    &.loading:before {
+        background-color: #fff; background-image: url("../images/loader.gif");
+        background-position: center 150px; background-repeat: no-repeat;
+        background-size: 55px; content: ""; display: block; height: 100%;
+        margin-left: -40px; min-height: 300px; padding-top: 120px; position: absolute;
+        text-align: center; width: 105%; z-index: 99;
+    }
+}
+
+.panel {
+    &.case {
+        min-height: 210px;
+
+        .label {
+            position: absolute; right: 30px; top: 19px;
+        }
+    }
+
+    .label {
+        margin-top: -3px; padding: 6px 10px;
+    }
+    .panel-heading {
+        cursor: pointer;
+    }
+}
+
+.product {
+    height: 260px; position: relative; text-align: center;
+    padding: 0 10px;
+    
+    img {
+        height: 100px; margin: 25px auto 15px auto; width: 100px;
+    }
+    select {
+        bottom: 10px; left: 50%; margin-left: -40px; position: absolute; width: 80px;
+        text-align: center;
+    }
+    .label {
+        position: absolute; right: 0; top: 3px; border-top-left-radius: 0;
+        border-bottom-right-radius: 0; padding: 0 15px; color: transparent;
+    }
+    .panel-heading {
+        cursor: pointer;
+    }
+    .score {
+        right: 7px;
+    }
+}
+
+.snapshot-admin {
+    padding-bottom: 20px;
+
+    .alert{
+        margin: 10px 0 0 0;
+    }
+    .list-group-item {
+        cursor: pointer; padding-left: 30px;
+
+        .glyphicon {
+            margin-left: -18px;
+        }
+    }
+}
+
+.title {
+    border-bottom: 1px solid $gray-lighter; margin-bottom: 25px; padding-bottom: 10px;
+
+    form {
+        margin-top: 20px;
+    }
+}

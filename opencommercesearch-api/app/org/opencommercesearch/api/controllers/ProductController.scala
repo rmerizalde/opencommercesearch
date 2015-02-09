@@ -19,38 +19,34 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import java.{util => jutil}
+import javax.ws.rs.{PathParam, QueryParam}
+
+import com.wordnik.swagger.annotations._
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.response.{GroupCommand, QueryResponse, SpellCheckResponse, UpdateResponse}
+import org.apache.solr.client.solrj.util.ClientUtils
+import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.Collection._
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api._
+import org.opencommercesearch.api.common.{FacetHandler, FilterQuery}
+import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.models.debug.DebugInfo
+import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.libs.json._
 import play.api.libs.json.Json.JsValueWrapper
+import play.api.libs.json._
 import play.api.mvc._
 
 import scala.collection.JavaConversions._
 import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-
-import javax.ws.rs.{PathParam, QueryParam}
-
-import java.util
-
-import org.opencommercesearch.api._
-import org.opencommercesearch.api.Collection._
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.common.{FacetHandler, FilterQuery}
-import org.opencommercesearch.api.models._
-import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.common.Context
-import org.opencommercesearch.search.suggester.IndexableElement
-
-import org.apache.commons.lang3.StringUtils
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.response.{SpellCheckResponse, GroupCommand, QueryResponse, UpdateResponse}
-import org.apache.solr.client.solrj.util.ClientUtils
-import org.apache.solr.common.util.NamedList
-
-import com.wordnik.swagger.annotations._
 
 @Api(value = "products", basePath = "/api-docs/products", description = "Product API endpoints")
 object ProductController extends BaseController {
@@ -147,7 +143,7 @@ object ProductController extends BaseController {
                                    productSummary: Option[JsObject] = None,
                                    startTime: Option[Long] = None,
                                    message: Option[String] = None,
-                                   products: Option[Iterable[JsValue]] = None) : SimpleResult = {
+                                   products: Option[Iterable[JsValue]] = None) : Result = {
 
     val metadataValues = Seq[Option[(String, JsValueWrapper)]](
       found withFilter { v => metadataFields.isEmpty || metadataFields.contains("found") } map {v => "found" -> v},
@@ -232,7 +228,7 @@ object ProductController extends BaseController {
         def writes(any: Any): JsValue = any match {
           case f: Float => JsNumber(BigDecimal(any.toString))
           case i: Int => JsNumber(any.asInstanceOf[Int])
-          case a: util.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString)}) // todo: support list types other than String
+          case a: jutil.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString)}) // todo: support list types other than String
           case _ => JsString(any.toString)
         }
       }
@@ -290,7 +286,7 @@ object ProductController extends BaseController {
 
       if (commands.size > 0) {
         val command = groupResponse.getValues.get(0)
-        val productsIds = new util.ArrayList[(String, String)]
+        val productsIds = new jutil.ArrayList[(String, String)]
         if ("productId".equals(command.getName)) {
           if (hasResults(command)) {
             for (group <- JIterableWrapper(command.getValues)) {
@@ -388,7 +384,7 @@ object ProductController extends BaseController {
         Future.successful(buildSearchResponse(query = query, startTime = Some(startTime), redirectUrl = Some(redirect.toString)))
       }
       else if(query.getRows > 0) {
-        var unexpectedErrorMessage = s"Unexpected response found for query '$q'"
+        val unexpectedErrorMessage = s"Unexpected response found for query '$q'"
         processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
@@ -447,12 +443,13 @@ object ProductController extends BaseController {
         if (spellCheck != "no") {
           //Do spell checking
           if (spellCheck == "auto") {
-            handleSpellCheck(query, response) flatMap { case (spellCheck, partialMatch, tentativeResponse) =>
-              if (spellCheck != null && hasResults(tentativeResponse)) {
-                Future(spellCheck, partialMatch, tentativeResponse)
+            handleSpellCheck(query, response) flatMap { case (spellCheckResponse, partialMatch, tentativeResponse) =>
+              if (spellCheckResponse != null && hasResults(tentativeResponse)) {
+                Future(spellCheckResponse, partialMatch, tentativeResponse)
               } else {
                 handlePartialMatching(query, response) map {
-                  case (partialMatch, tentativeResponse) => (spellCheck, partialMatch, tentativeResponse)
+                  // @todo: checkout this variable shadowing
+                  case (partialMatch, tentativeResponse) => (spellCheckResponse, partialMatch, tentativeResponse)
                 } 
               }
             }
@@ -566,7 +563,7 @@ object ProductController extends BaseController {
                                    startTime: Option[Long] = None,
                                    message: Option[String] = None,
                                    products: Option[Iterable[JsValue]] = None,
-                                   debugInfo: Option[DebugInfo] = None) : SimpleResult = {
+                                   debugInfo: Option[DebugInfo] = None) : Result = {
 
     val metadataValues = Seq[Option[(String, JsValueWrapper)]](
       redirectUrl map {v => "redirectUrl" ->  v},
@@ -794,7 +791,7 @@ object ProductController extends BaseController {
     var facetData = Seq.empty[NamedList[AnyRef]]
 
     if (response.getResponse != null && response.getResponse.get("rule_facets") != null) {
-      facetData = response.getResponse.get("rule_facets").asInstanceOf[util.ArrayList[NamedList[AnyRef]]]
+      facetData = response.getResponse.get("rule_facets").asInstanceOf[jutil.ArrayList[NamedList[AnyRef]]]
     }
     new FacetHandler(query, response, filterQueries, facetData, withNamespace(storageFactory))
   }
@@ -804,12 +801,12 @@ object ProductController extends BaseController {
    * as well as the rule debug one
    */
   private def buildDebugInfo[R](response: QueryResponse) (implicit context: Context, req: Request[R]) : (Option[DebugInfo]) = {
-    var debugInfo = new DebugInfo()
+    val debugInfo = new DebugInfo()
     var generated = false
 
     if (response.getResponse != null && response.getResponse.get("rule_debug") != null) {
       generated = true
-      debugInfo.processRulesResponse(response.getResponse.get("rule_debug").asInstanceOf[util.Map[String, AnyRef]])
+      debugInfo.processRulesResponse(response.getResponse.get("rule_debug").asInstanceOf[jutil.Map[String, AnyRef]])
     }
     if (response.getResponse != null && response.getResponse.get("debug") != null) {
       generated = true
@@ -844,7 +841,7 @@ object ProductController extends BaseController {
             futureList = List(productFuture, searchFuture, suggestionFuture)
           }
 
-          val future: Future[SimpleResult] = Future.sequence(futureList) map { result =>
+          val future: Future[Result] = Future.sequence(futureList) map { result =>
             Created
           }
 
@@ -877,7 +874,7 @@ object ProductController extends BaseController {
     val update = new ProductUpdate()
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       NoContent
     })
 
@@ -904,7 +901,7 @@ object ProductController extends BaseController {
       update.deleteByQuery(s"productId:$id")
     }
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       NoContent
     })
 
@@ -925,7 +922,8 @@ object ProductController extends BaseController {
       @QueryParam("q")
       q: String) = ContextAction.async { implicit context => implicit request =>
     val startTime = System.currentTimeMillis()
-    var query = new SolrQuery(q)
+    val query = new SolrQuery(q)
+
     query.set("group", true)
       .set("group.ngroups", true)
       .set("group.field", "productId")
@@ -939,9 +937,9 @@ object ProductController extends BaseController {
     }
 
     // @todo revisit this query
-    val solrQuery = withPagination(withFields(query, request.getQueryString("fields"))).setParam("collection", searchCollection.name(lang))
+    val solrQuery = withPagination(withFields(query, request.getQueryString("fields"))).setParam("collection", searchCollection.name(request2lang))
     solrQuery.setRequestHandler("suggest")
-    val future: Future[SimpleResult] = solrServer.query(solrQuery).flatMap( response => {
+    val future: Future[Result] = solrServer.query(solrQuery).flatMap( response => {
       if (query.getRows > 0) {
         var unexpectedErrorMessage = s"Unexpected response found for query '$q'"
         processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
@@ -1001,9 +999,9 @@ object ProductController extends BaseController {
       .withGrouping()
       .withOutlet()
     query.addSort("generation_number", SolrQuery.ORDER.desc)
-    val future: Future[SimpleResult] = solrServer.query(query).flatMap( response => {
+    val future: Future[Result] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
-        var unexpectedErrorMessage = s"Unexpected response found for product '$id'"
+        val unexpectedErrorMessage = s"Unexpected response found for product '$id'"
         processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
@@ -1070,12 +1068,12 @@ object ProductController extends BaseController {
 
     solrServer.query(query).flatMap { response =>
       if (query.getRows > 0) {
-        val docResponse = response.getResults()
-        if (docResponse == null || docResponse.getNumFound() == 0) {
+        val docResponse = response.getResults
+        if (docResponse == null || docResponse.getNumFound == 0) {
           Logger.debug(s"Cannot find similar products for product: [$productId]")
           Future(withCorsHeaders(NotFound(Json.obj("messages" -> s"Cannot find similar products for product: [$productId]"))))
         } else {
-          val productIds = new util.ArrayList[(String, String)]
+          val productIds = new jutil.ArrayList[(String, String)]
           docResponse.foreach(product => {
             productIds.add((product.getFieldValue("productId").asInstanceOf[String], product.getFieldValue("id").asInstanceOf[String]))
           })
@@ -1098,7 +1096,7 @@ object ProductController extends BaseController {
 
             withCacheHeaders(buildSearchResponse(
               query = query,
-              found = Some(docResponse.getNumFound()),
+              found = Some(docResponse.getNumFound),
               productSummary = summary,
               startTime = Some(startTime),
               products = Some(products map (Json.toJson(_)))), products map (_.getId))

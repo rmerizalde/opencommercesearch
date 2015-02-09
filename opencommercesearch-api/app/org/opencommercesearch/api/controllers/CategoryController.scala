@@ -19,30 +19,26 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
+import javax.ws.rs.{PathParam, QueryParam}
+
+import com.wordnik.swagger.annotations._
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.FacetField
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.ProductFacetQuery
+import org.opencommercesearch.api.common.FacetQuery
+import org.opencommercesearch.api.models.{Brand, Category, CategoryList}
+import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, Json}
 import play.api.mvc._
 
 import scala.collection.JavaConversions._
-import scala.collection.convert.Wrappers.JIterableWrapper
 import scala.concurrent.Future
-
-import javax.ws.rs.{PathParam, QueryParam}
-
-import org.opencommercesearch.api.ProductFacetQuery
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.common.FacetQuery
-import org.opencommercesearch.api.models.{Brand, Category, CategoryList}
-import org.opencommercesearch.api.service.CategoryService
-import org.opencommercesearch.search.suggester.IndexableElement
-
-import org.apache.commons.lang3.StringUtils
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.request.AsyncUpdateRequest
-
-import com.wordnik.swagger.annotations._
 
 @Api(value = "categories", basePath = "/api-docs/categories", description = "Category API endpoints")
 object CategoryController extends BaseController with FacetQuery {
@@ -144,7 +140,7 @@ object CategoryController extends BaseController with FacetQuery {
   @ApiOperation(value = "Searches top level categories for a given site", notes = "Returns top level category information for a given site", response = classOf[Category], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found for site")))
   @ApiImplicitParams(value = Array(
-    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited field list", defaultValue = "name,childCategories", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "maxLevels", value = "Max taxonomy levels to return. For example, if set to 1 will only retrieve the immediate children. If set to 2, will return immediate children plus the children of them, and so on. Setting it to zero will have no effect. A -1 value returns all taxonomy existing levels", defaultValue = "1", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "maxChildren", value = "Max children to return per leaf category. It only limits those children returned in the last level specified by maxLevels. A -1 value means all children are returned.", defaultValue = "-1", required = false, dataType = "int", paramType = "query"),
     new ApiImplicitParam(name = "filterQueries", value = "Filter queries for the returned categories", required = false, dataType = "string", paramType = "query"),
@@ -172,7 +168,7 @@ object CategoryController extends BaseController with FacetQuery {
 
     val future = solrServer.query(categoryFacetQuery).flatMap( catalogResponse => {
       val facetFields = catalogResponse.getFacetFields
-      var taxonomyFuture: Future[SimpleResult] = null
+      var taxonomyFuture: Future[Result] = null
 
       if(facetFields != null) {
         facetFields.map( facetField => {
@@ -280,7 +276,7 @@ object CategoryController extends BaseController with FacetQuery {
     val update = withCategoryCollection(new AsyncUpdateRequest())
     update.deleteByQuery("-feedTimestamp:" + feedTimestamp)
 
-    val future: Future[SimpleResult] = update.process(solrServer).map( response => {
+    val future: Future[Result] = update.process(solrServer).map( response => {
       NoContent
     })
 
@@ -377,7 +373,7 @@ object CategoryController extends BaseController with FacetQuery {
       } else {
         //if the product catalog didn't return filters for the brand facet, then return a null query
         Logger.debug(s"No brands available for category id [$id]")
-        Future[SimpleResult](NotFound(Json.obj(
+        Future[Result](NotFound(Json.obj(
                 "message" -> s"No brands available for category id [$id]"
         )))
       } 
