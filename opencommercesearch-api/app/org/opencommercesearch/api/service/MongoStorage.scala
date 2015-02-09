@@ -25,7 +25,7 @@ import scala.collection.JavaConversions._
 import com.mongodb.{MongoClient, WriteResult}
 import com.mongodb.gridfs.GridFS
 import org.opencommercesearch.api.models._
-import org.jongo.Jongo
+import org.jongo.{MongoCursor, Jongo}
 import play.api.Logger
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -143,7 +143,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
         query.append(" }}}]}")
 
         val products = productCollection.find(query.toString(), parameters: _*)
-          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product]).toSeq
+          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product]).iterator().toSeq
+
         val productSort = Map(ids.map { case (productId, _) => productId } zip (1 to ids.size): _*)
         products.map { p => filterSearchProduct(site, country, p, minimumFields, fields) } sortWith { case (p1, p2) =>
           (p1.id, p2.id) match {
@@ -243,7 +244,7 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   private def filterSearchProduct(site: String, country: String, product: Product, minimumFields:Boolean, fields: Seq[String]) : Product = {
     def isSkusFieldIn(field: String) = field.equals("*") || field.equals("skus") || field.startsWith("skus.")
 
-    val filteredProduct = filterSkus(site, country, product, fields)
+    filterSkus(site, country, product, fields)
 
     if(minimumFields) {
       //Clean up product data if skus weren't requested originally

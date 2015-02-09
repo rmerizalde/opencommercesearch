@@ -20,7 +20,7 @@ package org.opencommercesearch.api.controllers
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Controller, SimpleResult}
+import play.api.mvc.{Controller, Result}
 import play.api.Logger
 import play.api.libs.json.Json
 
@@ -33,7 +33,7 @@ import scala.concurrent.Future
 trait ErrorHandling {
   self: Controller =>
 
-  def withErrorHandling(f: Future[SimpleResult], message: String) : Future[SimpleResult]  = {
+  def withErrorHandling(f: Future[Result], message: String) : Future[Result]  = {
     def internalServerError(t: Throwable) = {
       Logger.error(message, t)
       InternalServerError(Json.obj(

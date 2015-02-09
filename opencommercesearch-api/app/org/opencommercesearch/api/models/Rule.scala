@@ -21,7 +21,7 @@ package org.opencommercesearch.api.models
 
 import java.util.Date
 
-import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
 import org.apache.solr.client.solrj.beans.Field
 import org.jongo.marshall.jackson.oid.Id
 import play.api.libs.json._

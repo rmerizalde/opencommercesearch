@@ -21,14 +21,19 @@ package org.opencommercesearch.feed;
 
 import atg.commerce.inventory.InventoryException;
 import atg.nucleus.ServiceException;
+import atg.repository.Repository;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
 import atg.repository.RepositoryItemDescriptor;
+import atg.repository.RepositoryView;
+import atg.repository.rql.RqlStatement;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.opencommercesearch.api.ProductService;
 import org.opencommercesearch.client.Product;
 import org.opencommercesearch.client.impl.DefaultProduct;
@@ -39,6 +44,7 @@ import org.restlet.Response;
 import org.restlet.data.Status;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
@@ -73,10 +79,19 @@ public class SearchFeedTest {
         }
 
         @Override
+        protected void onFeedFailed(FeedType type, long feedTimestamp) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         protected void processProduct(RepositoryItem product, SearchFeedProducts products) throws RepositoryException, InventoryException {
             throw new UnsupportedOperationException();
         }
     };
+
+    interface FeedFinished {
+        void set(boolean finished);
+    }
 
     @Mock
     private RepositoryItem catalogOutdoor;
@@ -112,6 +127,21 @@ public class SearchFeedTest {
     private FeedSku sku;
     @Captor 
     private ArgumentCaptor<String> stringCaptor;
+    @Mock
+    private Repository productRepository;
+    @Mock
+    private RepositoryView productRepositoryView;
+    @Mock
+    private RqlStatement productCountRql;
+    @Mock
+    private RqlStatement productRql;
+    @Mock
+    private ProductService productService;
+    @Mock
+    private FeedFinished finished;
+
+    @InjectMocks
+    private SearchFeed dummyFeed = createDummySearchFeed();
 
     @Before
     public void setUp() throws Exception {
@@ -174,6 +204,16 @@ public class SearchFeedTest {
         feed.setLoggingWarning(false);
         feed.setLoggingTrace(false);
         feed.setLoggingError(false);
+
+        // default feed
+        dummyFeed.setProductItemDescriptorName("product");
+        dummyFeed.setLoggingInfo(false);
+        dummyFeed.setLoggingDebug(false);
+        dummyFeed.setLoggingWarning(false);
+        dummyFeed.setLoggingTrace(false);
+        dummyFeed.setLoggingError(false);
+
+        when(productRepository.getView("product")).thenReturn(productRepositoryView);
     }
 
     @Test
@@ -232,9 +272,9 @@ public class SearchFeedTest {
         verify(sku).setAssigned(true);
     }
 
-    @Test
-    public void testSendProducts() throws ServiceException {
-        SearchFeed feed = new SearchFeed() {
+
+    private SearchFeed createDummySearchFeed() {
+        return new SearchFeed() {
             @Override
             protected void onFeedStarted(FeedType type, long feedTimestamp) {
 
@@ -257,7 +297,12 @@ public class SearchFeedTest {
 
             @Override
             protected void onFeedFinished(FeedType type, long feedTimestamp) {
+                finished.set(true);
+            }
 
+            @Override
+            protected void onFeedFailed(FeedType type, long feedTimestamp) {
+                finished.set(false);
             }
 
             @Override
@@ -265,6 +310,11 @@ public class SearchFeedTest {
 
             }
         };
+    }
+
+    @Test
+    public void testSendProducts() throws ServiceException {
+        SearchFeed feed = createDummySearchFeed();
 
         ProductService productService = mock(ProductService.class);
         Response response = mock(Response.class);
@@ -325,6 +375,20 @@ public class SearchFeedTest {
         sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 2, false);
         assertEquals(2, sent);
         assertEquals(0, products.getProductCount());
+    }
+
+    @Test
+    public void testFailedFullFeed() throws Exception {
+        dummyFeed.setWorkerCount(3);
+        dummyFeed.setErrorThreshold(0.1);
+        when(productCountRql.executeCountQuery(eq(productRepositoryView), any(Object[].class))).thenReturn(15);
+        when(productRql.executeQueryUncached(eq(productRepositoryView), any(Object[].class))).thenThrow(new RuntimeException("Test exception"));
+
+        dummyFeed.doStartService();
+        dummyFeed.startFullFeed();
+
+        verify(finished, times(1)).set(false);
+        verifyNoMoreInteractions(finished);
     }
 
     @Test

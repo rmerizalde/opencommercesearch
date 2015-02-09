@@ -1,0 +1,160 @@
+<div class="row">
+    <div class="col-xs-12 title">
+        <h2>Snapshot Comparison</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="comparison-wrapper col-xs-9">
+        <div class="row">
+            <div class="col-xs-12" ng-hide="compare[0]">
+                <div class="alert alert-info">
+                    <strong>No snapshots selected!</strong> To get started select some from the snapshot list.
+                </div>
+            </div>
+            <div class="col-xs-6">
+                <div class="well" ng-show="compare[0]">
+                    <strong>{{compare[0].name}}</strong><br/>
+                    <span class="text-muted">{{compare[0].createdAt | dateTime}}</span><br/>
+                    <span class="text-muted">{{compare[0].createdBy}}</span>
+                </div>
+            </div>
+            <div class="col-xs-6">
+                <div class="well" ng-show="compare[1]">
+                    <strong>{{compare[1].name}}</strong><br/>
+                    <span class="text-muted">{{compare[1].createdAt | dateTime}}</span><br/>
+                    <span class="text-muted">{{compare[1].createdBy}}</span>
+                </div>
+                <div class="alert alert-info" ng-show="compare[0] && !compare[1]">
+                    Select a second snapshot.
+                </div>
+            </div>
+        </div>
+        
+        <!-- SITES -->
+        <strong class="section-title" ng-show="compare[1]">Sites</strong>
+        <div class="panel panel-default site" ng-repeat="site in compare[1].sites" ng-controller="ComparePanelCtrl as panelCtrl">
+            <div class="panel-heading" ng-click="panelCtrl.toggleDetails($event)">
+                <span class="glyphicon glyphicon-{{panelCtrl.toggleIcon}}"></span>
+                {{site.name}}
+                <strong class="score-change text-muted text-{{panelCtrl.deltaClass}}">
+                    {{panelCtrl.delta(compare[0].sites[site.code].score, site.score)}}
+                </strong>
+                <div class="pull-right">
+                    <span class="label score-{{compare[0].sites[site.code].score | simpleScore}}">
+                        {{compare[0].sites[site.code].score}} 
+                    </span>
+                    <span class="label score-{{site.score | simpleScore}}">
+                        {{site.score}} 
+                    </span>
+                </div>
+            </div>
+            <div class="panel-body" ng-show="panelCtrl.showDetails">
+
+                <!-- CASES -->
+                <strong class="section-title">Cases</strong>
+                <div class="panel panel-default case" ng-repeat="(caseId, case) in site.cases" ng-controller="ComparePanelCtrl as panelCtrl">
+                    <div class="panel-heading" ng-click="panelCtrl.toggleDetails($event)">
+                        <span class="glyphicon glyphicon-{{panelCtrl.toggleIcon}}"></span>
+                        {{case.name}}
+                        <strong class="score-change text-muted text-{{panelCtrl.deltaClass}}">
+                            {{panelCtrl.delta(compare[0].sites[site.code].cases[caseId].score, case.score)}}
+                        </strong> 
+                        
+                        <div class="pull-right">
+                            <span class="label score-{{compare[0].sites[site.code].cases[caseId].score | simpleScore}}">
+                                {{compare[0].sites[site.code].cases[caseId].score}} 
+                            </span>
+                            <span class="label score-{{case.score | simpleScore}}">
+                                {{case.score}} 
+                            </span>
+                        </div>
+                    </div>
+                    <div class="panel-body" ng-show="panelCtrl.showDetails">
+                        
+                        <!-- QUERIES -->
+                        <strong class="section-title">Queries</strong>
+                        <div class="panel panel-default query" ng-repeat="(queryId, query) in case.queries" ng-controller="ComparePanelCtrl as panelCtrl">
+                            <div class="panel-heading" ng-click="panelCtrl.toggleDetails($event)">
+                                <span class="glyphicon glyphicon-{{panelCtrl.toggleIcon}}"></span>
+                                {{query.name}}
+                                <strong class="score-change text-muted text-{{panelCtrl.deltaClass}}">
+                                    {{panelCtrl.delta(compare[0].sites[site.code].cases[caseId].queries[queryId].score, query.score)}}
+                                </strong> 
+
+                                <div class="pull-right">
+                                    <span class="label score-{{compare[0].sites[site.code].cases[caseId].queries[queryId].score | simpleScore}}">
+                                        {{compare[0].sites[site.code].cases[caseId].queries[queryId].score}} 
+                                    </span> 
+                                    <span class="label score-{{query.score | simpleScore}}">
+                                        {{query.score}} 
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- PRODUCTS -->
+                            <div class="panel-body" ng-show="panelCtrl.showDetails">
+                                <ul class="list-unstyled col-xs-6">
+                                    <li class="clearfix" ng-repeat="product in compare[0].sites[site.code].cases[caseId].queries[queryId].results">
+                                        <span class="label score-{{compare[0].sites[site.code].cases[caseId].queries[queryId].judgements[productId].score || 0}} pull-left">
+                                            {{compare[0].sites[site.code].cases[caseId].queries[queryId].judgements[productId].score || 0}}
+                                        </span>
+                                        <img class="pull-left" data-src="http://content.backcountry.com{{product.skus[0].image.url | imageSize: 'tiny' }}" />
+                                        <strong>{{product.brand.name}}</strong><br/>
+                                        {{product.title}}
+                                    </li>
+                                </ul>
+                                <ul class="list-unstyled col-xs-6">
+                                    <li class="clearfix" ng-repeat="product in query.results">
+                                        <span class="label score-{{query.judgements[product.id].score || 0}} pull-left">
+                                            {{query.judgements[product.id].score || 0}} 
+                                        </span> 
+                                        <img class="pull-left" data-src="http://content.backcountry.com{{product.skus[0].image.url | imageSize: 'tiny' }}" />
+                                       <strong>{{product.brand.name}}</strong><br/>
+                                       {{product.title}}
+                                    </li>
+                                </ul>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xs-3">
+        <div class="snapshot-admin well col-xs-12">
+            <h3>Snapshots</h3>
+            <form ng-submit="createSnapshot(newSnapshotName)">
+                <div class="form-group">
+                    <input type="text" class="form-control" ng-model="newSnapshotName" placeholder="Snapshot name...">
+                </div>
+                <button type="submit" class="btn btn-success btn-block">Create Snapshot</button>
+            </form>
+    
+            <br/>
+
+            <ul class="list-group list-unstyled">
+                <li class="list-group-item" ng-click="toggleComparison('current', $event)">
+                    <span class="glyphicon glyphicon-unchecked"></span>
+                    <strong>Current State</strong><br/>
+                    <small class="text-muted">Now</small><br/>
+                </li>
+                <li class="list-group-item" ng-repeat="snapshot in snapshotsList">
+                    <div ng-click="toggleComparison(snapshot.$id, $event)">
+                        <span class="glyphicon glyphicon-unchecked"></span>
+                        <strong>{{snapshot.name}}</strong><br/>
+                        <small class="text-muted">{{snapshot.createdAt | dateTime}}</small><br/>
+                        <small class="text-muted">{{snapshot.createdBy}}</small><br/>
+                    </div>
+                    <a href="" class="small text-danger" ng-if="isAdmin" ng-click="removeSnapshot(snapshot)">Remove</a>
+                </li>
+            </ul>
+            
+            <h3>Refresh Data</h3>
+            <button class="btn btn-primary btn-block" ng-click="refreshData()"><span class="glyphicon glyphicon-refresh"></span> Refresh</button>
+            <div class="alert alert-info text-center" ng-show="refreshStatus">{{refreshStatus}}</div>
+        </div>
+    </div>
+</div>

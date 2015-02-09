@@ -1,11 +1,11 @@
 name := "opencommercesearch-common"
 
-version := "0.7.6-SNAPSHOT"
+version := "0.7.8-SNAPSHOT"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.11.1"
 
 libraryDependencies ++= Seq(
-  "org.opencommercesearch" %% "play-solrj" % "0.3-SNAPSHOT" % "provided",
+  "org.opencommercesearch" %% "play-solrj" % "0.5-SNAPSHOT" % "provided",
   "org.scalatest" %% "scalatest" % "2.1.5" % "test",
   "org.mockito" % "mockito-all" % "1.9.5"
 )

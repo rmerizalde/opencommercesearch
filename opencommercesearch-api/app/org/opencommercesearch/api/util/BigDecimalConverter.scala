@@ -29,7 +29,7 @@ import com.wordnik.swagger.model.Model
  */
 class BigDecimalConverter extends ModelConverter with BaseConverter {
 
-  def read(cls: Class[_]): Option[Model] = None
+  def read(cls: Class[_], typeMap: Map[String, String]): Option[Model] = None
 
   override def ignoredClasses: Set[String] = Set("scala.math.BigDecimal", "java.math.BigDecimal")
 

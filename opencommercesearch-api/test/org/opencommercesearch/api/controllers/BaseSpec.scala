@@ -19,17 +19,16 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.mvc.SimpleResult
+import org.apache.solr.client.solrj.response.QueryResponse
+import org.apache.solr.client.solrj.{SolrQuery, SolrRequest}
+import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.Global._
+import org.specs2.mock.Mockito
+import org.specs2.mutable._
+import play.api.mvc.Result
 import play.api.test.Helpers._
 
 import scala.concurrent.Future
-
-import org.specs2.mutable._
-import org.specs2.mock.Mockito
-import org.apache.solr.client.solrj.response.{GroupCommand, GroupResponse, QueryResponse}
-import org.apache.solr.common.util.NamedList
-import org.opencommercesearch.api.Global._
-import org.apache.solr.client.solrj.{SolrRequest, SolrQuery}
 
 abstract class BaseSpec extends Specification with Mockito {
   protected def setupQuery = {
@@ -50,7 +49,7 @@ abstract class BaseSpec extends Specification with Mockito {
     there was one(namedList).get("doc")
   }
 
-  protected def validateQueryResult(result: Future[SimpleResult], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
+  protected def validateQueryResult(result: Future[Result], expectedStatus: Int, expectedContentType: String, expectedContent: String = null) = {
     status(result) must equalTo(expectedStatus)
     contentType(result).get must beEqualTo(expectedContentType)
     if (expectedContent != null) {
@@ -68,14 +67,14 @@ abstract class BaseSpec extends Specification with Mockito {
     there was no(solrServer).request(any[SolrRequest])
   }
 
-  protected def validateUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedLocation: String = null) = {
+  protected def validateUpdateResult(result: Future[Result], expectedStatus: Int, expectedLocation: String = null) = {
     status(result) must equalTo(expectedStatus)
     if (expectedLocation != null) {
       headers(result).get(LOCATION).get must endWith(expectedLocation)
     }
   }
 
-  protected def validateFailedUpdateResult(result: Future[SimpleResult], expectedStatus: Int, expectedContent: String) = {
+  protected def validateFailedUpdateResult(result: Future[Result], expectedStatus: Int, expectedContent: String) = {
     status(result) must equalTo(expectedStatus)
     contentAsString(result) must contain (expectedContent)
   }

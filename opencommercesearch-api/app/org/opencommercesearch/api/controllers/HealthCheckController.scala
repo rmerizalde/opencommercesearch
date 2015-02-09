@@ -19,16 +19,15 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc._
-
+import org.apache.solr.client.solrj.SolrQuery
+import org.opencommercesearch.api.Collection
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.common.ContentPreview
-import org.apache.solr.client.solrj.SolrQuery
-import scala.concurrent.Future
-import play.api.mvc.SimpleResult
 import org.opencommercesearch.common.Context
-import org.opencommercesearch.api.Collection
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.mvc.{Result, _}
+
+import scala.concurrent.Future
 
 /**
  * A simple check to verify Solr and Mongo are healthy
@@ -44,8 +43,8 @@ object HealthCheckController extends BaseController with ContentPreview {
     checkHealth(version, preview)
   }
 
-  def checkHealth(version: Int, preview: Boolean)(implicit request: Request[AnyContent], context: Context) : Future[SimpleResult] = {
-    import Collection._
+  def checkHealth(version: Int, preview: Boolean)(implicit request: Request[AnyContent], context: Context) : Future[Result] = {
+    import org.opencommercesearch.api.Collection._
 
     val startTime = System.currentTimeMillis()
     val query = new SolrQuery("*:*")

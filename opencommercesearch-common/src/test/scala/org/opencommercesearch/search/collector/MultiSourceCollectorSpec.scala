@@ -17,6 +17,7 @@ package org.opencommercesearch.search.collector
 * limitations under the License.
 */
 
+import org.mockito.Mockito._
 import org.opencommercesearch.search.Element
 
 /**
@@ -42,15 +43,22 @@ class MultiSourceCollectorSpec extends UnitSpec {
   }
 
   it should "have a size equal to the sum of all of its collectors' sizes" in {
+    def addMockedElement(collector: Collector[Element], source: String, elementCount: Int) = {
+      for (i <- 1 to elementCount) {
+        val element = mock[Element]
+
+        when(element.id).thenReturn(Some(s"id$i"))
+        collector.add(element, source)
+      }
+    }
+
     val multiCollector = createMultiCollector(8, 10)
-    val element = mock[Element]
     val expectedSource1 = 6
     val expectedSource2 = 7
 
-    for (i <- 1 to expectedSource1) multiCollector.add(element, "source1")
-    for (i <- 1 to expectedSource2) multiCollector.add(element, "source2")
-    for (i <- 1 to 2) multiCollector.add(element, "unknownSource")
-
+    addMockedElement(multiCollector, "source1", expectedSource1)
+    addMockedElement(multiCollector, "source2", expectedSource2)
+    addMockedElement(multiCollector, "unknownSource", 2)
     multiCollector.size shouldBe (expectedSource1 + expectedSource2)
   }
 
@@ -60,6 +68,11 @@ class MultiSourceCollectorSpec extends UnitSpec {
     val element2 = mock[Element]
     val element3 = mock[Element]
     val element4 = mock[Element]
+
+    when(element1.id).thenReturn(Some("id1"))
+    when(element2.id).thenReturn(Some("id2"))
+    when(element3.id).thenReturn(Some("id3"))
+    when(element4.id).thenReturn(Some("id4"))
 
     multiCollector.add(element1, "source1")
     multiCollector.add(element2, "source2")

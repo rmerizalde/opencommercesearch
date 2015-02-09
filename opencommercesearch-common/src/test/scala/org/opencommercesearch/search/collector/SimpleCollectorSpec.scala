@@ -17,6 +17,7 @@ package org.opencommercesearch.search.collector
 * limitations under the License.
 */
 
+import org.mockito.Mockito._
 import org.opencommercesearch.search.Element
 
 /**
@@ -26,11 +27,31 @@ class SimpleCollectorSpec extends UnitSpec {
 
   "SimpleCollector" should "not add more elements when the collector capacity has been reached" in {
     val collector = new SimpleCollector[Element](2)
-    val element = mock[Element]
-    collector.add(element, "source") shouldBe true
-    collector.add(element, "source") shouldBe true
-    collector.add(element, "source") shouldBe false
+    val element1 = mock[Element]
+    val element2 = mock[Element]
+    val element3 = mock[Element]
+
+    when(element1.id).thenReturn(Some("id1"))
+    when(element2.id).thenReturn(Some("id2"))
+    when(element3.id).thenReturn(Some("id3"))
+
+    collector.add(element1, "source") shouldBe true
+    collector.add(element2, "source") shouldBe true
+    collector.add(element3, "source") shouldBe false
     collector.canStop shouldBe true
+  }
+
+  "SimpleCollector" should "not allow duplicate elements" in {
+    val collector = new SimpleCollector[Element](2)
+    val element1 = mock[Element]
+    val element2 = mock[Element]
+
+    when(element1.id).thenReturn(Some("id1"))
+    when(element2.id).thenReturn(Some("id1"))
+
+    collector.add(element1, "source") shouldBe true
+    collector.add(element2, "source") shouldBe false
+    collector.size() shouldBe 1
   }
 
 }

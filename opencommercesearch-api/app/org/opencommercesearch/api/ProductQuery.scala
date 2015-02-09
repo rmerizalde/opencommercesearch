@@ -100,6 +100,11 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 
   def withFilterQueries() : ProductQuery = {
     _filterQueries = setFilterQueriesFor(this)
+
+    defaultFilterQueriesParams.foreach(fq => {
+      this.addFilterQuery(fq)
+    })
+
     this
   }
 
