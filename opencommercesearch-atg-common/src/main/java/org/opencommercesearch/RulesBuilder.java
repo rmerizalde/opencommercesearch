@@ -22,11 +22,8 @@ package org.opencommercesearch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.util.ClientUtils;
-import org.opencommercesearch.repository.CategoryProperty;
 import org.opencommercesearch.repository.RankingRuleProperty;
 import org.opencommercesearch.repository.RuleBasedCategoryProperty;
 import org.opencommercesearch.repository.RuleExpressionProperty;
@@ -109,6 +106,25 @@ public class RulesBuilder extends GenericService {
         KEYWORD {
             public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
                 return new StringBuilder().append("keyword:").append(ClientUtils.escapeQueryChars(ruleValue)).toString();
+            }
+        },
+        SEASON {
+            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
+                StringBuilder builder = new StringBuilder().append("season:");
+                String season = ruleValue;
+                if ("current".equalsIgnoreCase(ruleValue)) {
+                    season = "$SEASON";
+                }
+                return builder.append(season).toString();
+            }
+        },
+        YEAR {
+            public String toFilter(String ruleValue, Locale locale, Repository productCatalog) {
+                String year = ruleValue;
+                if ("current".equalsIgnoreCase(ruleValue)) {
+                   year = "$YEAR";
+                }
+                return new StringBuilder().append("year:").append(year).toString();
             }
         };
 

@@ -260,6 +260,54 @@ public class RulesBuilderTest {
          String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
 
          assertEquals("(ancestorCategoryId:ruleCategory)",builder);
-     }    
+     }  
+     
+     @Test
+     public void testBuildSimpleSeasonRule() throws RepositoryException {
+
+         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+         expresionList.add(mockRule("season", 1, "SS0", null));
+         mockBaseRule(productCatalog, expresionList, mock(RepositoryItem.class), "ruleCategory", true);
+
+         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+
+         assertEquals("(ancestorCategoryId:ruleCategory) OR (season:SS0)", builder);
+     }
+     
+     @Test
+     public void testBuildSeasonRuleCurrent() throws RepositoryException {
+
+         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+         expresionList.add(mockRule("season", 1, "current", null));
+         mockBaseRule(productCatalog, expresionList, mock(RepositoryItem.class), "ruleCategory", true);
+
+         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+
+         assertEquals("(ancestorCategoryId:ruleCategory) OR (season:$SEASON)", builder);
+     }
+     
+     @Test
+     public void testBuildSimpleYearRule() throws RepositoryException {
+
+         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+         expresionList.add(mockRule("year", 1, "2015", null));
+         mockBaseRule(productCatalog, expresionList, mock(RepositoryItem.class), "ruleCategory", true);
+
+         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+
+         assertEquals("(ancestorCategoryId:ruleCategory) OR (year:2015)", builder);
+     }
+     
+     @Test
+     public void testBuildYearRuleCurrent() throws RepositoryException {
+
+         List<RepositoryItem> expresionList = new ArrayList<RepositoryItem>();
+         expresionList.add(mockRule("year", 1, "current", null));
+         mockBaseRule(productCatalog, expresionList, mock(RepositoryItem.class), "ruleCategory", true);
+
+         String builder = rulesBuilder.buildRulesFilter("ruleCategory", Locale.US);
+
+         assertEquals("(ancestorCategoryId:ruleCategory) OR (year:$YEAR)", builder);
+     }
 
 }
