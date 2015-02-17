@@ -4,7 +4,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 name := "opencommercesearch-api"
 
-version := "0.7.8-SNAPSHOT"
+version := "0.7.9-SNAPSHOT"
 
 scalaVersion := "2.11.1"
 
