@@ -1,6 +1,6 @@
 name := "opencommercesearch-common"
 
-version := "0.7.8-SNAPSHOT"
+version := "0.7.9-SNAPSHOT"
 
 scalaVersion := "2.11.1"
 
