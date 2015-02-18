@@ -19,94 +19,52 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import play.api.libs.concurrent.Execution.Implicits._
-import scala.concurrent.Future
-import scala.collection.JavaConversions._
-import com.mongodb.{MongoClient, WriteResult}
-import com.mongodb.gridfs.GridFS
 import org.opencommercesearch.api.models._
-import org.jongo.{MongoCursor, Jongo}
+import org.opencommercesearch.api.service.MongoStorage._
 import play.api.Logger
+import play.api.libs.concurrent.Execution.Implicits._
+import reactivemongo.api.DefaultDB
+import reactivemongo.api.collections.default.BSONCollection
+import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.bson.{BSONArray, BSONDocument, BSONInteger}
+import reactivemongo.core.commands.{Count, LastError}
+
+import scala.collection.JavaConversions._
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
-import org.apache.commons.lang.StringUtils
+import scala.concurrent.Future
 
 /**
  * A storage implementation using MongoDB
  *
  * @author rmerizalde
  */
-class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
-  val NoSite = null
-  var jongo: Jongo = null
-  var gridfs: GridFS = null
-
-  lazy val ProjectionMappings = Map(
-    "skus.allowBackorder" -> "skus.countries.allowBackorder",
-    "skus.listPrice" -> "skus.countries.listPrice",
-    "skus.salePrice" -> "skus.countries.salePrice",
-    "skus.discountPercent" -> "skus.countries.discountPercent",
-    "skus.discountPercent" -> "skus.countries.discountPercent",
-    "skus.url" -> "skus.countries.url",
-    "skus.availability" -> "skus.countries.availability",
-    "skus.availability.status" -> "skus.countries.availability.status",
-    "skus.availability.stockLevel" -> "skus.countries.availability.stockLevel",
-    "skus.stockLevel" -> "skus.countries.stockLevel", // @todo deprecated this
-    "skus.availability.backorderLevel" -> "skus.countries.availability.backorderLevel"
-  )
-
-  val DefaultSearchProjection =
-    """
-      | title:1, brand.name:1, customerReviews.count:1, customerReviews.average:1, skus.countries.stockLevel:1, freeGifts:1,
-      | skus.countries.availability.stockLevel:1, skus.countries.availability.status:1, skus.isPastSeason:1, skus.countries.code:1,
-      | skus.countries.listPrice:1, skus.countries.salePrice:1, skus.countries.discountPercent:1, skus.countries.onSale:1,
-      | skus.countries.url:1, skus.catalogs:1, skus.image:1, skus.title:1, skus.isRetail:1, skus.isCloseout:1, skus.isOutlet:1, skus.id:1
-    """.stripMargin
-
-  val DefaultProductProject =
-    """
-      |listRank:0, attributes.searchable:0, features.searchable:0, skus.season:0, skus.year:0, skus.isRetail:0, skus.isCloseout:0
-    """.stripMargin
-
-  val DefaultCategoryProject =
-    """
-      |childCategories:0, parentCategories:0, isRuleBased:0, catalogs:0
-    """.stripMargin
-  
-  val DefaultBrandProject =
-    """
-      |logo:0, url:0, sites:0
-    """.stripMargin
-
-  val DefaultFacetProject = StringUtils.EMPTY
-
-  val DefaultRuleProject = "name:1, ruleType:1"
-
-  def setJongo(jongo: Jongo) : Unit = {
-    this.jongo = jongo
-  }
-
-  def setGridFs(gridfs: GridFS) : Unit = {
-    this.gridfs = gridfs
-  }
+class MongoStorage(database: DefaultDB) extends Storage[LastError] {
+  val productCollection = database[BSONCollection]("products")
+  val brandCollection = database[BSONCollection]("brands")
+  val categoryCollection = database[BSONCollection]("categories")
+  val facetCollection = database[BSONCollection]("facets")
+  val ruleCollection = database[BSONCollection]("rules")
 
   /**
    * Keep Mongo indexes to the minimum, specially if it saves a roundtrip to Solr for simple things
    */
   def ensureIndexes() : Unit = {
-    jongo.getCollection("products").ensureIndex("{skus.catalogs: 1}", "{sparse: true, name: 'sku_catalog_idx'}")
-    jongo.getCollection("products").ensureIndex("{skus.countries.code: 1}", "{sparse: true, name: 'sku_country_idx'}")
-    jongo.getCollection("brands").ensureIndex("{name: 1}", "{sparse: true, name: 'brand_name_idx'}")
+    val productIndexesManger = productCollection.indexesManager
+    val skuCatalogIndex = new Index(key = Seq(("skus.catalogs", IndexType.Ascending)), name = Some("sku_catalog_idx"), sparse = true)
+    val skuCountryIndex = new Index(key = Seq(("skus.catalogs", IndexType.Ascending)), name = Some("sku_country_idx"), sparse = true)
+
+    productIndexesManger.ensure(skuCatalogIndex)
+    productIndexesManger.ensure(skuCountryIndex)
+
+    val brandNameIndex = new Index(key = Seq(("name", IndexType.Ascending)), name = Some("brand_name_idx"), sparse = true)
+
+    brandCollection.indexesManager.ensure(brandNameIndex)
   }
 
-  def close() : Unit = {
-    mongo.close()
-  }
-
+  // @todo: should we modify the interface to return Int?
   def countProducts() : Future[Long] = {
-    Future {
-      val productCollection = jongo.getCollection("products")
-      productCollection.count()
+    database.command(new Count(productCollection.name)) map { count =>
+      count
     }
   }
 
@@ -115,65 +73,58 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
   }
 
   def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
-    Future {
-      if (ids.size > 0) {
+    if (ids.size > 0) {
+      // the product query is like {$and: [{_id: {$in: [#,..,#]}}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+      val query = BSONDocument(
+        "$and" -> BSONArray(
+          BSONDocument(
+            "_id" -> BSONDocument(
+              "$in" -> (ids map {t => t._1})
+            ),
+            "skus" -> BSONDocument(
+              "$elemMatch" -> BSONDocument(
+                if (site != null) {
+                  "countries.code" -> country
+                  "catalogs" -> site
+                } else {
+                  "countries.code" -> country
+                }
+              )
+            )
+          )
+        )
+      )
 
-        // the product query is like {$and: [{_id: {$in: [#,..,#]}}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+      val skuCount = if (minimumFields) ids.size else 0
+      val projection = projectProduct(site, fields, skuCount, ids.map { case (_, skuId) => skuId })
+      // @todo .filter(_ != null): _*) && stream results instead of collecting
+      val productFuture = productCollection
+        .find(query, projection)
+        .cursor[Product]
+        .collect[Seq]()
 
-        val productCollection = jongo.getCollection("products")
-        val query = new StringBuilder(128)
-          .append("{ $and: [{_id: {$in: [")
-
-        //for ids
-        ids.foreach(t => query.append("#,"))
-
-        query.setLength(query.length - 1)
-        query.append("]}}, { skus: { $elemMatch: { countries.code:#")
-
-        val skuCount = if (minimumFields) ids.size else 0
-        val parameters = new ArrayBuffer[Object](ids.size + 1)
-
-        parameters.appendAll(ids.map(t => t._1))
-        parameters.append(country)
-
-        if (site != null) {
-          query.append(", catalogs:#")
-          parameters.append(site)
-        }
-        query.append(" }}}]}")
-
-        val products = productCollection.find(query.toString(), parameters: _*)
-          .projection(projectProduct(site, fields, skuCount), ids.map(t => t._2).filter(_ != null): _*).as(classOf[Product]).iterator().toSeq
-
+      productFuture map { products =>
         val productSort = Map(ids.map { case (productId, _) => productId } zip (1 to ids.size): _*)
-        products.map { p => filterSearchProduct(site, country, p, minimumFields, fields) } sortWith { case (p1, p2) =>
+
+          products.map { p => filterSearchProduct(site, country, p, minimumFields, fields) } sortWith { case (p1, p2) =>
           (p1.id, p2.id) match {
             case (Some(id1), Some(id2)) => productSort(id1) <= productSort(id2)
             case _ => true
           }
         }
-      } else {
-        Seq.empty[Product]
       }
+
+    } else {
+      Future.successful(Seq.empty[Product])
     }
   }
 
   def findProduct(id: String, country: String, fields: Seq[String]) : Future[Product] = {
-    Future {
-      val productCollection = jongo.getCollection("products")
-      filterSkus(NoSite, country,
-        productCollection.findOne("{$and: [{_id:#}, {skus.countries.code:#}]}", id, country).projection(projectProduct(NoSite, fields)).as(classOf[Product]),
-        fields)
-    }
+    findProduct(id, NoSite, country, fields)
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
-    Future {
-      val productCollection = jongo.getCollection("products")
-      filterSkus(site, country,
-        productCollection.findOne("{$and: [{_id:#}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}", id, country, site)
-          .projection(projectProduct(site, fields)).as(classOf[Product]), fields)
-    }
+    findProducts(Seq((id, null)), NoSite, country, fields, minimumFields = false).map(products => products.headOption.orNull)
   }
 
   /**
@@ -311,8 +262,8 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
    * @return the projection
    */
-  private def projectProduct(site: String, fields: Seq[String]) : String = {
-    projectProduct(site, fields, 0)
+  private def projectProduct(site: String, fields: Seq[String]) : BSONDocument = {
+    projectProduct(site, fields, 0, Seq.empty[String])
   }
 
   /**
@@ -325,231 +276,236 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
    * @param skuCount indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projectProduct(site: String, fields: Seq[String], skuCount: Int) : String = {
-    val projection = new StringBuilder(128)
-    var projectionFields = new StringBuilder(128)
+  private def projectProduct(site: String, fields: Seq[String], skuCount: Int, skuIds: Seq[String]) : BSONDocument = {
+    var projection = if(fields.contains("*")) {
+      DefaultEmptyProjection
+    } else {
+      if (fields.size > 0) {
+        var projectedFields = fields.map(field => (mapField(field), Include))
+        val includeSkus = fields.exists(field => field.startsWith("skus."))
 
-    if(fields.contains("*")) {
-      projection.append("{}")
-    }
-    else {
-        projection.append("{")
-        if (fields.size > 0) {
-          var includeSkus = false
-
-          fields.foreach(field => {
-            val f = ProjectionMappings.getOrElse(field, field)
-            projectionFields.append(f).append(":1,")
-            if (f.startsWith("skus.")) {
-              includeSkus = true
-            }
-          })
-          if (includeSkus) {
-            // we can't use elemMatch on nested fields. The country list is small so all countries are loaded and filtered
-            // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
-            // Country properties are flatten into the sku level so the code will never be part of the response
-            projectionFields.append("skus.countries.code:1,")
-            if (site != NoSite) {
-              projectionFields.append("skus.catalogs:1,")
-            }
-          }
-
-        } else {
-          if (skuCount > 0) {
-            projectionFields.append(DefaultSearchProjection)
-          } else {
-            projectionFields.append(DefaultProductProject)
+        if (includeSkus) {
+          // we can't use elemMatch on nested fields. The country list is small so all countries are loaded and filtered
+          // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
+          // Country properties are flatten into the sku level so the code will never be part of the response
+          projectedFields = projectedFields :+ ProjectedSkuCountryCode
+          
+          if (site != NoSite) {
+            projectedFields = projectedFields :+ ProjectedSkuCatalog
           }
         }
-    }
-    
-    if (skuCount > 0) {
-      projection.append(" skus: { $elemMatch: {$or: [")
-      for (x <- 1 to skuCount) {
-        projection.append("{id:#},")
+
+        val projection = BSONDocument(projectedFields)
+
+        projection
+      } else if (skuCount > 0) {
+        DefaultSearchProjection
+      } else {
+        DefaultProductProjection
       }
-      projection.setLength(projection.length - 1)
-      projection.append("]}},")
     }
 
-    projection.append(projectionFields.toString())
-    projection.append("}")
-    projection.toString()
+    if (skuCount > 0) {
+      val obj = BSONDocument(
+        "$elemMatch" -> BSONDocument(
+          "$or" -> skuIds.map(skuId => BSONDocument("id" -> skuId))
+        )
+      )
+
+      projection = BSONDocument(("skus", obj) +: projection.elements)
+    }
+
+    projection
   }
+
+  /**
+   * Helper method to map fields
+   * @param field the field to map
+   * @return the field mapping. If no field mapping found returns the given field
+   */
+  private def mapField(field: String): String = ProjectionMappings.getOrElse(field, field)
 
   /**
    * Creates a projection for the given list of fields (adds includes/excludes). If fields is only *, then no projection is created.
    * @param fields Fields used to created the projection for (include fields)
-   * @param defaultFieldsToHide Fields that will be ignored from the projection (exclude fields)
+   * @param defaultProjection is the default projection in case fields is empty
    * @return A projection to be used while querying Mongo storage.
    */
-  private def projectionAux(fields: Seq[String], defaultFieldsToHide: String) : String = {
-    //If star is provided, then return everything except for hierarchyTokens
+  private def projectionAux(fields: Seq[String], defaultProjection: BSONDocument) : BSONDocument = {
+    //If star is provided, then return everything except for hierarchyTokens (hacky)
     if(fields.contains("*")) {
-      return "{hierarchyTokens:0}"
+      return DefaultNoHierarchyTokensProjection
     }
 
-    val projection = new StringBuilder(128)
-    projection.append("{")
     if (fields.size > 0) {
-      var includeSkus = false
-      fields.foreach(field => {
-        val f = ProjectionMappings.getOrElse(field, field)
-        projection.append(f).append(":1,")
-        if (f.startsWith("skus.")) {
-          includeSkus = true
-        }
-      })
+      val projection = BSONDocument(fields.map(field => (mapField(field), Include)))
+
+      projection
     } else {
-      projection.append(defaultFieldsToHide)
+      defaultProjection
     }
-    projection.append("}")
-    projection.toString()
   }
   
-  private def projectionCategory(fields: Seq[String]) : String = {
-    projectionAux(fields, DefaultCategoryProject)
+  private def projectCategory(fields: Seq[String]) : BSONDocument = {
+    projectionAux(fields, DefaultCategoryProjection)
   }
     
-  private def projectionBrand(fields: Seq[String]) : String = {
-    projectionAux(fields, DefaultBrandProject)
+  private def projectBrand(fields: Seq[String]) : BSONDocument = {
+    projectionAux(fields, DefaultBrandProjection)
   }
 
-  private def projectionFacet(fields: Seq[String]) : String = {
-    projectionAux(fields, DefaultFacetProject)
+  private def projectFacet(fields: Seq[String]) : BSONDocument = {
+    projectionAux(fields, DefaultEmptyProjection)
   }
 
-  private def projectionRule(fields: Seq[String]) : String = {
-    projectionAux(fields, DefaultRuleProject)
+  private def projectRule(fields: Seq[String]) : BSONDocument = {
+    projectionAux(fields, DefaultRuleProjection)
   }
 
-  def saveProduct(product: Product*) : Future[WriteResult] = {
-    Future {
-      val productCollection = jongo.getCollection("products")
-      var result: WriteResult = null
-      product.map( p => result = productCollection.save(p) )
-      result
-    }
+  def saveProduct(product: Product*) : Future[LastError] = {
+    // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
+    Future.sequence(product.map(p => productCollection.save(p))).map(responses => responses.lastOption.orNull)
   }
   
-  def saveCategory(category: Category*) : Future[WriteResult] = {
-    Future {
-      val categoryCollection = jongo.getCollection("categories")
-      var result: WriteResult = null
-      category.map( c => result = categoryCollection.save(c) )
-      result
-    }
+  def saveCategory(category: Category*) : Future[LastError] = {
+    // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
+    Future.sequence(category.map(c => categoryCollection.save(c))).map(responses => responses.lastOption.orNull)
   }
 
   def findCategory(id: String, fields: Seq[String]) : Future[Category] = {
-    Future {
-      var hasChildCategories, hasParentCategories : Boolean = false
-      for (f <- fields) {
-        hasChildCategories = fields.contains("childCategories")
-        hasParentCategories = fields.contains("parentCategories")
-      }
-
-      val categoryCollection = jongo.getCollection("categories")
-      if(hasChildCategories && hasParentCategories) {
-        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}, { parentCategories._id:#}] }", id, id, id).projection(projectionCategory(fields)).as(classOf[Category]))
-      } else if(hasChildCategories) {
-        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { parentCategories._id:#}] }", id, id).projection(projectionCategory(fields)).as(classOf[Category]))
-      } else if(hasParentCategories) {
-        mergeNestedCategories(id, categoryCollection.find("{ $or : [{_id:#}, { childCategories._id:#}] }", id, id).projection(projectionCategory(fields)).as(classOf[Category]))
-      } else {
-        categoryCollection.findOne("{_id:#}", id).projection(projectionCategory(fields)).as(classOf[Category])
-      }
+    var hasChildCategories, hasParentCategories : Boolean = false
+    for (f <- fields) {
+      hasChildCategories = fields.contains("childCategories")
+      hasParentCategories = fields.contains("parentCategories")
     }
-  }
+
+    val projection = projectCategory(fields)
+
+    if (!hasChildCategories && !hasParentCategories) {
+      val query = BSONDocument("_id" -> id)
+      findCategories(query, projection).map(categories => categories.headOption.orNull)
+    } else {
+      val query = if(hasChildCategories && hasParentCategories) {
+        BSONDocument(
+          "$or" -> BSONArray(
+            BSONDocument("_id" -> id),
+            BSONDocument("childCategories._id" -> id),
+            BSONDocument("parentCategories._id" -> id)
+          ))
+      } else if(hasChildCategories) {
+        BSONDocument(
+          "$or" -> BSONArray(
+            BSONDocument("_id" -> id),
+            BSONDocument("parentCategories._id" -> id)
+          ))
+      } else {
+        BSONDocument(
+          "$or" -> BSONArray(
+            BSONDocument("_id" -> id),
+            BSONDocument("childCategories._id" -> id)
+          ))
+      }
+      findCategories(query, projection).map(categories => mergeNestedCategories(id, categories))
+    }
+ }
 
   def findAllCategories(fields: Seq[String]) : Future[Iterable[Category]] = {
-    Future {
-      val categoryCollection = jongo.getCollection("categories")
-      categoryCollection.find().projection(projectionCategory(fields)).as(classOf[Category])
-    }
+    val projection = projectCategory(fields)
+
+    findCategories(AllQuery, projection)
   }
 
   def findCategories(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Category]] = {
-    Future {
-      val categoryCollection = jongo.getCollection("categories")
-      categoryCollection.find("{_id:{$in:#}}", ids).projection(projectionCategory(fields)).as(classOf[Category])
-    }
+    val query = queryById(ids)
+    val projection = projectCategory(fields)
+
+    findCategories(query, projection)
   }
   
-  def saveBrand(brand: Brand*) : Future[WriteResult] = {
-    Future {
-      val brandCollection = jongo.getCollection("brands")
-      var result: WriteResult = null
-      brand.map( b => result = brandCollection.save(b) )
-      result
-    }
+  def saveBrand(brand: Brand*) : Future[LastError] = {
+    // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
+    Future.sequence(brand.map(b => brandCollection.save(b))).map(responses => responses.lastOption.orNull)
   }
   
   def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
-    Future {
-      val brandCollection = jongo.getCollection("brands")
-      brandCollection.findOne("{_id:#}", id).projection(projectionBrand(fields)).as(classOf[Brand])
-    }
+    val query = queryById(Seq(id))
+    val projection = projectBrand(fields)
+
+    findBrands(query, projection).map(brands => brands.headOption.orNull)
   }
-  
+
   def findBrands(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]] = {
-    Future {
-      val brandCollection = jongo.getCollection("brands")
-      brandCollection.find("{_id:{$in:#}}", ids).projection(projectionBrand(fields)).as(classOf[Brand])
-    }
+    val query = queryById(ids)
+    val projection = projectBrand(fields)
+
+    findBrands(query, projection)
   }
 
   def findBrandsByName(names: Iterable[String], fields: Seq[String]) : Future[Iterable[Brand]] = {
-    Future {
-      val brandCollection = jongo.getCollection("brands")
-      brandCollection.find("{name:{$in:#}}", names).projection(projectionBrand(fields)).as(classOf[Brand])
-    }
+    val query = queryByName(names)
+    val projection = projectBrand(fields)
+
+    findBrands(query, projection)
   }
 
-  def saveFacet(facet: Facet*) : Future[WriteResult] = {
-    Future {
-      val facetCollection = jongo.getCollection("facets")
-      var result: WriteResult = null
-      facet.map( c => result = facetCollection.save(c) )
-      result
-    }
+  /**
+   * Helper method to find brands in the database
+   * @param query is the brand query
+   * @param projection is the brand projection
+   * @return a sequence of brands
+   */
+  private def findBrands(query: BSONDocument, projection: BSONDocument) = brandCollection
+    .find(query, projection)
+    .cursor[Brand]
+    .collect[Seq]()
+
+  /**
+   * Helper method to find brands in the database
+   * @param query is the brand query
+   * @param projection is the brand projection
+   * @return a sequence of brands
+   */
+  private def findCategories(query: BSONDocument, projection: BSONDocument) = categoryCollection
+    .find(query, projection)
+    .cursor[Category]
+    .collect[Seq]()
+
+  def saveFacet(facet: Facet*) : Future[LastError] = {
+    // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
+    Future.sequence(facet.map(f => facetCollection.save(f))).map(responses => responses.lastOption.orNull)
   }
 
-  def saveRule(rule: Rule*) : Future[WriteResult] = {
-    Future {
-      val ruleCollection = jongo.getCollection("rules")
-      var result: WriteResult = null
-      rule.map( c => result = ruleCollection.save(c) )
-      result
-    }
+  def saveRule(rule: Rule*) : Future[LastError] = {
+    // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
+    Future.sequence(rule.map(f => ruleCollection.save(f))).map(responses => responses.lastOption.orNull)
   }
 
   def findRule(id: String, fields: Seq[String]) : Future[Rule] = {
-    Future {
-      val ruleCollection = jongo.getCollection("rules")
-      ruleCollection.findOne("{_id:#}", id).projection(projectionRule(fields)).as(classOf[Rule])
-    }
+    findRules(Seq(id), fields).map(rules => rules.headOption.orNull)
   }
 
   def findRules(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Rule]] = {
-    Future {
-      val ruleCollection = jongo.getCollection("rules")
-      ruleCollection.find("{_id:{$in:#}}", ids).projection(projectionRule(fields)).as(classOf[Rule])
-    }
+    val query = queryById(ids)
+    val projection = projectRule(fields)
+
+    ruleCollection
+      .find(query, projection)
+      .cursor[Rule]
+      .collect[Seq]()
   }
 
   def findFacet(id: String, fields: Seq[String]) : Future[Facet] = {
-    Future {
-      val facetCollection = jongo.getCollection("facets")
-      facetCollection.findOne("{_id:#}", id).projection(projectionFacet(fields)).as(classOf[Facet])
-    }
+    findFacets(Seq(id), fields).map(facets => facets.headOption.orNull)
   }
 
   def findFacets(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Facet]] = {
-    Future {
-      val facetCollection = jongo.getCollection("facets")
-      facetCollection.find("{_id:{$in:#}}", ids).projection(projectionFacet(fields)).as(classOf[Facet])
-    }
+    val query = queryById(ids)
+    val projection = projectFacet(fields)
+
+    facetCollection
+      .find(query, projection)
+      .cursor[Facet]
+      .collect[Seq]()
   }
 
   private def mergeNestedCategories(id: String, categories : java.lang.Iterable[Category]) : Category = {
@@ -592,4 +548,107 @@ class MongoStorage(mongo: MongoClient) extends Storage[WriteResult] {
       )
     }
   }
+
+  /**
+   * Helper method to create a simple query to search by id
+   */
+  private def queryById(ids: Iterable[String]) = BSONDocument(
+    "_id" -> BSONDocument(
+      "$in" -> ids
+    ))
+
+  /**
+   * Helper method to create a simple query to search by name
+   */
+  private def queryByName(names: Iterable[String]) = BSONDocument(
+    "name" -> BSONDocument(
+      "$in" -> names
+    ))
+}
+
+object MongoStorage {
+  val NoSite = null
+
+  val Include = BSONInteger(1)
+
+  val Exclude = BSONInteger(0)
+
+  val ProjectionMappings = Map(
+    "skus.allowBackorder" -> "skus.countries.allowBackorder",
+    "skus.listPrice" -> "skus.countries.listPrice",
+    "skus.salePrice" -> "skus.countries.salePrice",
+    "skus.discountPercent" -> "skus.countries.discountPercent",
+    "skus.discountPercent" -> "skus.countries.discountPercent",
+    "skus.url" -> "skus.countries.url",
+    "skus.availability" -> "skus.countries.availability",
+    "skus.availability.status" -> "skus.countries.availability.status",
+    "skus.availability.stockLevel" -> "skus.countries.availability.stockLevel",
+    "skus.stockLevel" -> "skus.countries.stockLevel", // @todo deprecated this
+    "skus.availability.backorderLevel" -> "skus.countries.availability.backorderLevel"
+  )
+
+  val DefaultSearchProjection = BSONDocument(
+    "title" -> Include,
+    "brand.name" -> Include,
+    "customerReviews.count" -> Include,
+    "customerReviews.average" -> Include,
+    "freeGifts" -> Include,
+    "skus.countries.stockLevel" -> Include,
+    "skus.countries.availability.stockLevel" -> Include,
+    "skus.countries.availability.status" -> Include,
+    "skus.countries.code" -> Include,
+    "skus.countries.listPrice" -> Include,
+    "skus.countries.salePrice" -> Include,
+    "skus.countries.discountPercent" -> Include,
+    "skus.countries.onSale" -> Include,
+    "skus.countries.url" -> Include,
+    "skus.title" -> Include,
+    "skus.catalogs" -> Include,
+    "skus.image" -> Include,
+    "skus.isRetail" -> Include,
+    "skus.isCloseout" -> Include,
+    "skus.isOutlet" -> Include,
+    "skus.isPastSeason" -> Include,
+    "skus.id" -> Include
+  )
+
+  val DefaultProductProjection = BSONDocument(
+    "listRank" -> Exclude,
+    "attributes.searchable" -> Exclude,
+    "features.searchable" -> Exclude,
+    "skus.season" -> Exclude,
+    "skus.year" -> Exclude,
+    "skus.isRetail" -> Exclude,
+    "skus.isCloseout" -> Exclude
+  )
+
+  val DefaultCategoryProjection = BSONDocument(
+    "childCategories" -> Exclude,
+    "parentCategories" -> Exclude,
+    "isRuleBased" -> Exclude,
+    "catalogs" -> Exclude
+  )
+
+  val DefaultBrandProjection = BSONDocument(
+    "logo" -> Exclude,
+    "url" -> Exclude,
+    "sites" -> Exclude
+  )
+
+  val DefaultRuleProjection = BSONDocument(
+    "name" -> Include,
+    "ruleType" -> Include
+  )
+
+  val DefaultEmptyProjection = BSONDocument()
+
+  val DefaultNoHierarchyTokensProjection = BSONDocument(
+    "hierarchyTokens" -> Exclude
+  )
+
+  val ProjectedSkuCountryCode = ("skus.countries.code", Include)
+  
+  val ProjectedSkuCatalog = ("skus.catalogs", Include)
+
+  val AllQuery = BSONDocument()
 }

@@ -20,8 +20,7 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json.Json
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /**
  * A image model
@@ -31,12 +30,27 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @author rmerizalde
  */
 case class Image(
-    @JsonProperty("title") var title: Option[String], 
-    @JsonProperty("url")var url: Option[String]) {
-
+  var title: Option[String],
+  var url: Option[String]) {
 }
 
 object Image {
   implicit val readsImage = Json.reads[Image]
   implicit val writesImage = Json.writes[Image]
+
+  implicit object ImageWriter extends BSONDocumentWriter[Image] {
+    import reactivemongo.bson._
+
+    def write(image: Image): BSONDocument = BSONDocument(
+      "title" -> image.title,
+      "url" -> image.url
+    )
+  }
+
+  implicit object ImageReader extends BSONDocumentReader[Image] {
+    def read(doc: BSONDocument): Image = Image(
+      doc.getAs[String]("title"),
+      doc.getAs[String]("url")
+    )
+  }
 }

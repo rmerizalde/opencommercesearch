@@ -21,28 +21,18 @@ package org.opencommercesearch.api.models
 
 
 import play.api.libs.json.Json
-
-import org.opencommercesearch.api.util.{BigDecimalDeserializer, BigDecimalSerializer}
-
-import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.annotation.{JsonDeserialize, JsonSerialize}
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 case class Country(
-  @JsonProperty("code") var code: Option[String] = None,
-  @JsonProperty("listPrice")
-  @JsonSerialize(using = classOf[BigDecimalSerializer])
-  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
+  var code: Option[String] = None,
   var listPrice: Option[BigDecimal] = None,
-  @JsonProperty("salePrice")
-  @JsonSerialize(using = classOf[BigDecimalSerializer])
-  @JsonDeserialize(using = classOf[BigDecimalDeserializer])
   var salePrice: Option[BigDecimal] = None,
-  @JsonProperty("discountPercent") var discountPercent: Option[Int] = None,
-  @JsonProperty("onSale") var onSale: Option[Boolean] = None,
-  @JsonProperty("stockLevel") var stockLevel: Option[Int] = None,
-  @JsonProperty("allowBackorder") var allowBackorder: Option[Boolean] = None,
-  @JsonProperty("url") var url: Option[String] = None,
-  @JsonProperty("availability") var availability: Option[Availability] = None) {
+  var discountPercent: Option[Int] = None,
+  var onSale: Option[Boolean] = None,
+  var stockLevel: Option[Int] = None,
+  var allowBackorder: Option[Boolean] = None,
+  var url: Option[String] = None,
+  var availability: Option[Availability] = None) {
 
 }
 
@@ -50,4 +40,34 @@ case class Country(
 object Country {
   implicit val readsCountry = Json.reads[Country]
   implicit val writesCountry = Json.writes[Country]
+
+  implicit object CountryWriter extends BSONDocumentWriter[Country] {
+    import org.opencommercesearch.bson.BSONFormats._
+
+    def write(country: Country): BSONDocument = BSONDocument(
+      "code" -> country.code,
+      "listPrice" -> country.listPrice,
+      "salePrice" -> country.salePrice,
+      "discountPercent" -> country.discountPercent,
+      "onSale" -> country.onSale,
+      "allowBackorder" -> country.allowBackorder,
+      "url" -> country.url,
+      "availability" -> country.availability
+    )
+  }
+
+  implicit object CountryReader extends BSONDocumentReader[Country] {
+    import org.opencommercesearch.bson.BSONFormats._
+
+    def read(doc: BSONDocument): Country = Country(
+      code = doc.getAs[String]("code"),
+      listPrice = doc.getAs[BigDecimal]("listPrice"),
+      salePrice = doc.getAs[BigDecimal]("salePrice"),
+      discountPercent = doc.getAs[Int]("discountPercent"),
+      onSale = doc.getAs[Boolean]("onSale"),
+      allowBackorder = doc.getAs[Boolean]("allowBackorder"),
+      url = doc.getAs[String]("url"),
+      availability = doc.getAs[Availability]("availability")
+    )
+  }
 }

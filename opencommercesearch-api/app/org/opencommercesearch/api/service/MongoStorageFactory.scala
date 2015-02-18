@@ -19,24 +19,27 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import com.mongodb._
-import play.api.{Logger, Configuration}
-import org.jongo.{Jongo, Mapper}
-import com.mongodb.gridfs.GridFS
-import org.jongo.marshall.jackson.JacksonMapper
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import scala.collection.mutable
 import java.util.concurrent.ConcurrentHashMap
+
+import play.api.Play.current
+import play.api.libs.concurrent.Akka
+import play.api.libs.concurrent.Execution.Implicits._
+import play.api.{Configuration, Logger}
+import reactivemongo.api.{MongoConnection, MongoDriver}
+import reactivemongo.core.commands.LastError
+
+import scala.util.{Failure, Success}
 
 /**
  * MongoDB storage factory implementation
  *
  * @author rmerizalde
  */
-class MongoStorageFactory extends StorageFactory[WriteResult] {
+class MongoStorageFactory extends StorageFactory[LastError] {
 
   val storages = new ConcurrentHashMap[String, MongoStorage]()
-  var mongo: MongoClient = null
+  var driver: MongoDriver = null
+  var connection: MongoConnection = null
   var config: Configuration = null
   var classLoader: ClassLoader = null
 
@@ -61,58 +64,44 @@ class MongoStorageFactory extends StorageFactory[WriteResult] {
     if (storage == null) {
       Logger.info(s"Setting up storage for namespace $namespace")
 
-      val jongoUri = config.getString("jongo.uri").getOrElse("mongodb://127.0.0.1:27017/")
-      val uri = new MongoClientURI(jongoUri)
-
-      this.synchronized {
-        if (mongo == null) {
-          Logger.info(s"Initializing mongo client singleton for namespace $namespace with URI $jongoUri")
-          mongo = new MongoClient(uri)
-        }
-      }
-
-      storage = new MongoStorage(mongo)
+      val database = connection(databaseName)
+      storage = new MongoStorage(database)
 
       if (storages.putIfAbsent(databaseName, storage) == null) {
         Logger.info(s"Creating database for $namespace")
-        val db = mongo.getDB(databaseName)
 
-        val defaultWriteConcern = config.getString("jongo.defaultWriteConcern")
-        for (writeConcern <- defaultWriteConcern) {
-          Logger.info(s"Setting default write concern to $writeConcern for namespace $namespace")
-          db.setWriteConcern(WriteConcern.valueOf(writeConcern))
-        }
-
-        val readPreference = config.getString("jongo.defaultReadPreference").getOrElse("nearest")
-        db.setReadPreference(ReadPreference.valueOf(readPreference))
-        if (uri.getUsername() != null) {
-          Logger.info(s"Authenticating using username ${uri.getUsername()} for namespace $namespace")
-          db.authenticate(uri.getUsername(), uri.getPassword())
-        }
-
-        val jongo = new Jongo(db, createMapper())
-
-        storage.setJongo(jongo)
-        if (config.getBoolean("jongo.gridfs.enabled").getOrElse(false)) {
-          Logger.info(s"Setting up GridFS instance for namespace $namespace")
-          storage.setGridFs(new GridFS(db))
-        }
+        // @todo write concerns? read preferences (nearest)?
         Logger.info(s"Setting up indexes for namespace $namespace")
-        storage.ensureIndexes
+        storage.ensureIndexes()
       }
     }
     storage
   }
 
-  private def createMapper() : Mapper = {
-    new JacksonMapper.Builder().registerModule(new DefaultScalaModule).build()
-  }
-
-  def close : Unit = {
-    if (mongo != null) {
-      Logger.info("Closing mongo client")
-      mongo.close()
+  private def parseConf(): MongoConnection.ParsedURI = {
+    config.getString("mongodb.uri") match {
+      case Some(uri) =>
+        MongoConnection.parseURI(uri) match {
+          case Success(parsedURI) if parsedURI.db.isDefined =>
+            parsedURI
+          case Success(_) =>
+            throw config.globalError(s"Missing database name in mongodb.uri '$uri'")
+          case Failure(e) => throw config.globalError(s"Invalid mongodb.uri '$uri'", Some(e))
+        }
+      case _ =>
+        throw config.globalError("Missing configuration key 'mongodb.uri'")
     }
   }
 
+  def open() : Unit = {
+    val parsedUri = parseConf()
+
+    driver = new MongoDriver(Akka.system(current))
+    connection = driver.connection(parsedUri)
+  }
+
+  def close() : Unit = {
+    storages.clear()
+  }
 }
+

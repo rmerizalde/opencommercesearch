@@ -28,13 +28,7 @@ libraryDependencies ++= Seq(
   "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
   "com.github.fakemongo" % "fongo" % "1.6.0" % "test",
   "com.wordnik" %% "swagger-play2" % "1.3.12",
-  "de.undercouch" % "bson4jackson" % "2.4.0" force(),
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.4.1" force(),
-  "com.fasterxml.jackson.core" % "jackson-annotations" % "2.4.1" force(),
-  "com.fasterxml.jackson.core" % "jackson-core" % "2.4.1" force(),
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.4.0",
-  "org.mongodb" % "mongo-java-driver" % "2.12.5",
-  "org.jongo" % "jongo" % "1.1",
+  "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
   "org.apache.solr" % "solr-core" % "4.8.1" excludeAll(
     ExclusionRule(organization = "log4j"),
     ExclusionRule(organization = "org.slf4j", name = "slf4j-log4j12")

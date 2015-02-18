@@ -1,8 +1,7 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -30,9 +29,22 @@ case class Size(
 }
 
 object Size {
-  @JsonCreator
-  def getInstance() = new Size()
-
   implicit val readsSize = Json.reads[Size]
   implicit val writesSize = Json.writes[Size]
+
+  implicit object SizeWriter extends BSONDocumentWriter[Size] {
+    def write(size: Size): BSONDocument = BSONDocument(
+      "name" -> size.name,
+      "scale" -> size.scale,
+      "preferred" -> size.preferred
+    )
+  }
+
+  implicit object SizeReader extends BSONDocumentReader[Size] {
+    def read(doc: BSONDocument): Size = Size(
+      doc.getAs[String]("name"),
+      doc.getAs[String]("scale"),
+      doc.getAs[Size]("preferred")
+    )
+  }
 }

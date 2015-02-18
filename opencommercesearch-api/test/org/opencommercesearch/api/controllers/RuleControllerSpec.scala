@@ -19,7 +19,6 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import com.mongodb.WriteResult
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
 import org.apache.solr.client.solrj.response.QueryResponse
@@ -37,6 +36,7 @@ import play.api.libs.json.{JsArray, JsError, Json}
 import play.api.mvc.Result
 import play.api.test.Helpers._
 import play.api.test._
+import reactivemongo.core.commands.LastError
 
 import scala.concurrent.Future
 
@@ -51,7 +51,7 @@ class RuleControllerSpec extends Specification with Mockito {
 
       storageFactory = mock[MongoStorageFactory]
       storageFactory.getInstance(anyString) returns storage
-      val writeResult = mock[WriteResult]
+      val writeResult = mock[LastError]
       storage.saveRule(any) returns Future.successful(writeResult)
     }
   }

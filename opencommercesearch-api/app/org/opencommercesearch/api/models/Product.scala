@@ -20,32 +20,23 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.Logger
-import play.api.libs.json._
-
 import java.util
 import java.util.Date
 
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.common.SolrInputDocument
 import org.opencommercesearch.api.Global.{IndexOemProductsEnabled, ProductAvailabilityStatusSummary}
 import org.opencommercesearch.api.Implicits._
 import org.opencommercesearch.api.models.ProductList._
 import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.IndexableElement
-
-import org.apache.commons.lang3.StringUtils
-import org.apache.solr.common.SolrInputDocument
-
-import org.jongo.marshall.jackson.oid.Id
-
-import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
+import play.api.Logger
 import play.api.libs.functional.syntax._
-import scala.Some
+import play.api.libs.json._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 object Product {
-
-  @JsonCreator
-  def getInstance() =  new Product()
 
   implicit val readsProduct : Reads[Product] = (
     (__ \ "id").readNullable[String] ~
@@ -90,36 +81,89 @@ object Product {
     (__ \ "categories").writeNullable[Seq[Category]] ~
     (__ \ "skus").writeNullable[Seq[Sku]] ~
     (__ \ "generation").writeNullable[Generation] ~
-  (__ \ "activationDate").writeNullable[Date] ~
-  (__ \ "isPackage").writeNullable[Boolean] ~
-  (__ \ "isOem").writeNullable[Boolean]
+    (__ \ "activationDate").writeNullable[Date] ~
+    (__ \ "isPackage").writeNullable[Boolean] ~
+    (__ \ "isOem").writeNullable[Boolean]
   ) (unlift(Product.unapply))
 
+
+  implicit object ProductWriter extends BSONDocumentWriter[Product] {
+    import reactivemongo.bson.DefaultBSONHandlers._
+    import org.opencommercesearch.bson.BSONFormats._
+    import reactivemongo.bson._
+
+    def write(product: Product): BSONDocument = BSONDocument(
+      "_id" -> product.id,
+      "title" -> product.title,
+      "description" -> product.description,
+      "shortDescription" -> product.shortDescription,
+      "brand" -> product.brand,
+      "gender" -> product.gender,
+      "sizingChart" -> product.sizingChart,
+      "detailImages" -> product.detailImages,
+      "bulletPoints" -> product.bulletPoints,
+      "attributes" -> product.attributes,
+      "features" -> product.features,
+      "listRank" -> product.listRank,
+      "customerReviews" -> product.customerReviews,
+      "freeGifts" -> product.freeGifts,
+      "categories" -> product.categories,
+      "skus" -> product.skus,
+      "generation" -> product.generation
+    )
+  }
+
+  implicit object ProductReader extends BSONDocumentReader[Product] {
+    import org.opencommercesearch.bson.BSONFormats._
+
+    def read(doc: BSONDocument): Product = Product(
+      doc.getAs[String]("_id"),
+      doc.getAs[String]("title"),
+      doc.getAs[String]("description"),
+      doc.getAs[String]("shortDescription"),
+      doc.getAs[Brand]("brand"),
+      doc.getAs[String]("gender"),
+      doc.getAs[String]("sizingChart"),
+      doc.getAs[Seq[Image]]("detailImages"),
+      doc.getAs[Seq[String]]("bulletPoints"),
+      doc.getAs[Seq[Attribute]]("attributes"),
+      doc.getAs[Seq[Attribute]]("features"),
+      doc.getAs[Int]("listRank"),
+      doc.getAs[CustomerReview]("customerReviews"),
+      doc.getAs[Map[String, Seq[Product]]]("freeGifts"),
+      doc.getAs[String]("availabilityStatus"),
+      doc.getAs[Seq[Category]]("categories"),
+      doc.getAs[Seq[Sku]]("skus"),
+      doc.getAs[Generation]("generation"),
+      doc.getAs[Date]("activationDate"),
+      doc.getAs[Boolean]("isPackage"),
+      doc.getAs[Boolean]("isOem")
+    )
+  }
 }
 
-
 case class Product (
-  @Id var id: Option[String] = None,
-  @JsonProperty("title") var title: Option[String] = None,
-  @JsonProperty("description") var description: Option[String] = None,
-  @JsonProperty("shortDescription") var shortDescription: Option[String] = None,
-  @JsonProperty("brand") var brand: Option[Brand] = None,
-  @JsonProperty("gender") var gender: Option[String] = None,
-  @JsonProperty("sizingChart") var sizingChart: Option[String] = None,
-  @JsonProperty("detailImages") var detailImages: Option[Seq[Image]] = None,
-  @JsonProperty("bulletPoints") var bulletPoints: Option[Seq[String]] = None,
-  @JsonProperty("attributes") var attributes: Option[Seq[Attribute]] = None,
-  @JsonProperty("features") var features: Option[Seq[Attribute]] = None,
-  @JsonProperty("listRank") var listRank: Option[Int] = None,
-  @JsonProperty("customerReviews") var customerReviews: Option[CustomerReview] = None,
-  @JsonProperty("freeGifts") var freeGifts: Option[Map[String, Seq[Product]]] = None,
-  @JsonProperty("availabilityStatus") var availabilityStatus: Option[String] = None,
-  @JsonProperty("categories") var categories: Option[Seq[Category]] = None,
-  @JsonProperty("skus") var skus: Option[Seq[Sku]] = None,
-  @JsonProperty("generation") var generation : Option[Generation] = None,
-  @JsonProperty("activationDate") var activationDate: Option[Date] = None,
-  @JsonProperty("isPackage") var isPackage: Option[Boolean] = None,
-  @JsonProperty("isOem") var isOem: Option[Boolean] = None) extends IndexableElement
+  var id: Option[String] = None,
+  var title: Option[String] = None,
+  var description: Option[String] = None,
+  var shortDescription: Option[String] = None,
+  var brand: Option[Brand] = None,
+  var gender: Option[String] = None,
+  var sizingChart: Option[String] = None,
+  var detailImages: Option[Seq[Image]] = None,
+  var bulletPoints: Option[Seq[String]] = None,
+  var attributes: Option[Seq[Attribute]] = None,
+  var features: Option[Seq[Attribute]] = None,
+  var listRank: Option[Int] = None,
+  var customerReviews: Option[CustomerReview] = None,
+  var freeGifts: Option[Map[String, Seq[Product]]] = None,
+  var availabilityStatus: Option[String] = None,
+  var categories: Option[Seq[Category]] = None,
+  var skus: Option[Seq[Sku]] = None,
+  var generation : Option[Generation] = None,
+  var activationDate: Option[Date] = None,
+  var isPackage: Option[Boolean] = None,
+  var isOem: Option[Boolean] = None) extends IndexableElement
 {
   def getId : String = { this.id.get }
 
@@ -282,9 +326,9 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 }
 
                 for (reviews <- product.customerReviews) {
-                  doc.setField("reviews", reviews.count)
-                  doc.setField("reviewAverage", reviews.average)
-                  doc.setField("bayesianReviewAverage", reviews.bayesianAverage)
+                  doc.setField("reviews", reviews.count.getOrElse(0))
+                  doc.setField("reviewAverage", reviews.average.getOrElse(0.0))
+                  doc.setField("bayesianReviewAverage", reviews.bayesianAverage.getOrElse(0.0))
                 }
 
                 for (country: Country <- countries) {

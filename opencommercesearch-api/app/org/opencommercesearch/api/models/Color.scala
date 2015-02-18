@@ -1,8 +1,7 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -22,13 +21,27 @@ import com.fasterxml.jackson.annotation.JsonProperty
 * specific language governing permissions and limitations
 * under the License.
 */
-case class Color(
-  @JsonProperty("name") var name: Option[String],
-  @JsonProperty("family") var family: Option[String]) {
 
+case class Color(
+  var name: Option[String],
+  var family: Option[String]) {
 }
 
 object Color {
   implicit val readsColorInfo = Json.reads[Color]
   implicit val writesColorInfo = Json.writes[Color]
+
+  implicit object ColorWriter extends BSONDocumentWriter[Color] {
+    def write(color: Color): BSONDocument = BSONDocument(
+      "name" -> color.name,
+      "family" -> color.family
+    )
+  }
+
+  implicit object ColorReader extends BSONDocumentReader[Color] {
+    def read(doc: BSONDocument): Color = Color(
+      doc.getAs[String]("name"),
+      doc.getAs[String]("family")
+    )
+  }
 }

@@ -19,11 +19,8 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import java.util.Date
-
 import play.api.libs.json.Json
-
-import com.fasterxml.jackson.annotation.JsonCreator
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 case class Sku(
   var id: Option[String] = None,
@@ -33,7 +30,7 @@ case class Sku(
   var countries: Option[Seq[Country]] = None,
   var isPastSeason: Option[Boolean] = None,
   var color: Option[Color] = None,
-  var title: Option[java.lang.String] = None,
+  var title: Option[String] = None,
   var isRetail: Option[Boolean] = None,
   var isCloseout: Option[Boolean] = None,
   var isOutlet: Option[Boolean] = None,
@@ -61,11 +58,46 @@ object Sku {
   val Url = "url"
   val Stocklevel = "stockLevel"
 
-  @JsonCreator
-  def getInstance() = new Sku()
-
   implicit val readsSku = Json.reads[Sku]
   implicit val writesSku = Json.writes[Sku]
+
+  implicit object SkuWriter extends BSONDocumentWriter[Sku] {
+    def write(sku: Sku): BSONDocument = BSONDocument(
+      "id" -> sku.id,
+      "season" -> sku.season,
+      "year" -> sku.year,
+      "image" -> sku.image,
+      "countries" -> sku.countries,
+      "isPastSeason" -> sku.isPastSeason,
+      "color" -> sku.color,
+      "title" -> sku.title,
+      "isRetail" -> sku.isRetail,
+      "isCloseout"  -> sku.isCloseout,
+      "isOutlet" -> sku.isOutlet,
+      "size" -> sku.size,
+      "catalogs" -> sku.catalogs,
+      "attributes" -> sku.attributes
+    )
+  }
+
+  implicit object SkuReader extends BSONDocumentReader[Sku] {
+    def read(doc: BSONDocument): Sku = Sku(
+      id = doc.getAs[String]("id"),
+      season = doc.getAs[String]("season"),
+      year = doc.getAs[String]("year"),
+      image = doc.getAs[Image]("image"),
+      countries = doc.getAs[Seq[Country]]("countries"),
+      isPastSeason = doc.getAs[Boolean]("isPastSeason"),
+      color = doc.getAs[Color]("color"),
+      title = doc.getAs[String]("title"),
+      isRetail = doc.getAs[Boolean]("isRetail"),
+      isCloseout = doc.getAs[Boolean]("isCloseout"),
+      isOutlet = doc.getAs[Boolean]("isOutlet"),
+      size = doc.getAs[Size]("size"),
+      catalogs = doc.getAs[Seq[String]]("catalogs"),
+      attributes = doc.getAs[Seq[Attribute]]("attributes")
+    )
+  }
 }
 
 

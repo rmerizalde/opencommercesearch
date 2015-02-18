@@ -19,9 +19,11 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import org.apache.solr.common.SolrDocument
 import play.api.libs.json.Json
 
 import org.opencommercesearch.api.common.FilterQuery
+import reactivemongo.bson.{BSONDocumentWriter, BSONDocument, BSONDocumentReader}
 
 /**
  * A filter class represent a bucket in a facet. Each bucket/filter has a name, count of documents
@@ -52,4 +54,26 @@ case class Filter(
 object Filter {
   implicit val readsFilter = Json.reads[Filter]
   implicit val writesFilter = Json.writes[Filter]
+
+  implicit object FilterWriter extends BSONDocumentWriter[Filter] {
+    import reactivemongo.bson.BSONArrayCollectionReader
+
+    def write(filter: Filter): BSONDocument = BSONDocument(
+      "name" -> filter.name,
+      "count" -> filter.count,
+      "filterQueries" -> filter.filterQueries,
+      "filterQuery" -> filter.filterQuery,
+      "isSelected" -> filter.isSelected
+    )
+  }
+
+  implicit object FilterReader extends BSONDocumentReader[Filter] {
+    def read(doc: BSONDocument): Filter = Filter(
+      doc.getAs[String]("name"),
+      doc.getAs[Long]("count"),
+      doc.getAs[String]("filterQueries"),
+      doc.getAs[String]("filterQuery"),
+      doc.getAs[Boolean]("isSelected")
+    )
+  }
 }

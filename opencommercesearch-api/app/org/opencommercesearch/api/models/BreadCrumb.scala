@@ -21,7 +21,6 @@ package org.opencommercesearch.api.models
 */
 
 import play.api.libs.json._
-import com.fasterxml.jackson.annotation.JsonCreator
 
 case class BreadCrumb(
     var fieldName: Option[String], 
