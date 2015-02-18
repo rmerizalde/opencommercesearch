@@ -373,6 +373,10 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
   }
 
   def findCategory(id: String, fields: Seq[String]) : Future[Category] = {
+    if (id == null) {
+      return Future.successful(null)
+    }
+
     var hasChildCategories, hasParentCategories : Boolean = false
     for (f <- fields) {
       hasChildCategories = fields.contains("childCategories")
