@@ -21,7 +21,6 @@ package org.opencommercesearch.api.models
 
 import java.util.Date
 
-import org.opencommercesearch.api.Implicits._
 import org.opencommercesearch.api.models.Availability._
 import play.api.libs.json.Json
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}

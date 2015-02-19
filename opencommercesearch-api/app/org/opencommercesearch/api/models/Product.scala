@@ -109,7 +109,10 @@ object Product {
       "freeGifts" -> product.freeGifts,
       "categories" -> product.categories,
       "skus" -> product.skus,
-      "generation" -> product.generation
+      "generation" -> product.generation,
+      "activationDate" -> product.activationDate,
+      "isPackage" -> product.isPackage,
+      "isOem" -> product.isOem
     )
   }
 
@@ -131,7 +134,7 @@ object Product {
       doc.getAs[Int]("listRank"),
       doc.getAs[CustomerReview]("customerReviews"),
       doc.getAs[Map[String, Seq[Product]]]("freeGifts"),
-      doc.getAs[String]("availabilityStatus"),
+      None, // avaialabilityStatus is a calculated field
       doc.getAs[Seq[Category]]("categories"),
       doc.getAs[Seq[Sku]]("skus"),
       doc.getAs[Generation]("generation"),
