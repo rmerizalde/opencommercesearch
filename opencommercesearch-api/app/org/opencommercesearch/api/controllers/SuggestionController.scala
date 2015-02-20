@@ -90,15 +90,18 @@ object SuggestionController extends BaseController {
           }
 
           Future.sequence(futureList).map( results => {
-            withCorsHeaders(Ok(Json.obj(
+            val suggestions = Json.obj(results: _*)
+            val productIds = suggestions \ "products" match {
+              case products: JsValue => products \\ "id" map {id => id.as[String]}
+              case _ => Seq.empty[String]
+            }
+            withCacheHeaders(withCorsHeaders(Ok(Json.obj(
               "metadata" -> Json.obj(
                  "found" -> collector.size(),
                  "time" -> (System.currentTimeMillis() - startTime)),
-               "suggestions" -> Json.obj(
-                 results:_*
-               )
-             )))
+              "suggestions" -> suggestions))), productIds)
           })
+
         } else {
           Future.successful(withCorsHeaders(Ok(Json.obj(
            "metadata" -> Json.obj(
