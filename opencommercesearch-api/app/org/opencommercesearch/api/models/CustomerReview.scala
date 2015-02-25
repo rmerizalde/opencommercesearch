@@ -19,17 +19,34 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.{Json}
+import play.api.libs.json.Json
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 case class CustomerReview(
-  var count: Int,
-  var average: Double,
-  var bayesianAverage: Double) {
-  def this() = this(0, 0.0, 0.0)
+  var count: Option[Int] = None,
+  var average: Option[Double] = None,
+  var bayesianAverage: Option[Double] = None) {
 }
 
 object CustomerReview {
-
   implicit val readsCustomerReview = Json.reads[CustomerReview]
   implicit val writesCustomerReview = Json.writes[CustomerReview]
+
+  implicit object CustomerReviewWriter extends BSONDocumentWriter[CustomerReview] {
+    import reactivemongo.bson._
+
+    def write(customerReview: CustomerReview): BSONDocument = BSONDocument(
+      "count" -> customerReview.count,
+      "average" -> customerReview.average,
+      "bayesianAverage" -> customerReview.bayesianAverage
+    )
+  }
+
+  implicit object CustomerReviewReader extends BSONDocumentReader[CustomerReview] {
+    def read(doc: BSONDocument): CustomerReview = CustomerReview(
+      doc.getAs[Int]("count"),
+      doc.getAs[Double]("average"),
+      doc.getAs[Double]("bayesianAverage")
+    )
+  }
 }

@@ -283,7 +283,7 @@ object BrandController extends BaseController with FacetQuery {
    */
   @ApiOperation(value = "Get all categories for a given brand", notes = "Gets a list of the categories associated with a given brand. Only categories that have products in stock are returned. Returns all the corresponding taxonomy for each category found.", response = classOf[Category], httpMethod = "GET")
   @ApiImplicitParams(value = Array(
-    new ApiImplicitParam(name = "fields", value = "Comma delimited category field list", defaultValue = "name", required = false, dataType = "string", paramType = "query"),
+    new ApiImplicitParam(name = "fields", value = "Comma delimited category field list", defaultValue = "name,childCategories", required = false, dataType = "string", paramType = "query"),
     new ApiImplicitParam(name = "preview", value = "Get brand categories in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
   ))
   def findBrandCategoriesById(

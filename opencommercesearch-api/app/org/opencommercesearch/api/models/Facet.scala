@@ -19,13 +19,12 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json._
+import com.fasterxml.jackson.annotation.{JsonIgnore, JsonProperty}
 import org.apache.solr.client.solrj.beans.Field
 import org.apache.solr.common.util.NamedList
-import org.jongo.marshall.jackson.oid.Id
-import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import play.api.libs.json._
+import org.opencommercesearch.bson.BSONFormats._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /**
  * Represents a single Facet
@@ -50,26 +49,25 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @param blackList Black list of facet filters that should be ignored. For example, if your facet is person, you may want to exclude "user" from the filter list since is too common.
  */
 case class Facet(
-  @Id var id: Option[String] = None,
-  //Using both JsonIgnore and JsonProperty to convert Json to Facet properly but when converting from Facet to Json only write ID and Blacklist.
-  @JsonIgnore @JsonProperty("name") var name: Option[String] = None,
-  @JsonIgnore @JsonProperty("type") var `type`: Option[String] = None,
-  @JsonIgnore @JsonProperty("uiType") var uiType: Option[String] = None,
-  @JsonIgnore @JsonProperty("isMultiSelect") var isMultiSelect: Option[Boolean] = None,
-  @JsonIgnore @JsonProperty("fieldName") var fieldName: Option[String] = None,
-  @JsonIgnore @JsonProperty("minBuckets") var minBuckets: Option[Int] = None,
-  @JsonIgnore @JsonProperty("isMixedSorting") var isMixedSorting: Option[Boolean] = None,
-  @JsonIgnore @JsonProperty("minCount") var minCount: Option[Int] = None,
-  @JsonIgnore @JsonProperty("sort") var sort: Option[String] = None,
-  @JsonIgnore @JsonProperty("isMissing") var isMissing: Option[Boolean] = None,
-  @JsonIgnore @JsonProperty("limit") var limit: Option[Int] = None,
-  @JsonIgnore @JsonProperty("start") var start: Option[String] = None,
-  @JsonIgnore @JsonProperty("end") var end: Option[String] = None,
-  @JsonIgnore @JsonProperty("gap") var gap: Option[String] = None,
-  @JsonIgnore @JsonProperty("isHardened") var isHardened: Option[Boolean] = None,
-  @JsonIgnore @JsonProperty("queries") var queries: Option[Array[String]] = None,
-  @JsonProperty("blackList") var blackList: Option[Seq[String]] = None,
-  @JsonIgnore @JsonProperty("filters")  var filters: Option[Seq[Filter]] = None) {
+  var id: Option[String] = None,
+  var name: Option[String] = None,
+  var `type`: Option[String] = None,
+  var uiType: Option[String] = None,
+  var isMultiSelect: Option[Boolean] = None,
+  var fieldName: Option[String] = None,
+  var minBuckets: Option[Int] = None,
+  var isMixedSorting: Option[Boolean] = None,
+  var minCount: Option[Int] = None,
+  var sort: Option[String] = None,
+  var isMissing: Option[Boolean] = None,
+  var limit: Option[Int] = None,
+  var start: Option[String] = None,
+  var end: Option[String] = None,
+  var gap: Option[String] = None,
+  var isHardened: Option[Boolean] = None,
+  var queries: Option[Array[String]] = None,
+  var blackList: Option[Seq[String]] = None,
+  var filters: Option[Seq[Filter]] = None) {
 
   def this() = this(id = None)
 
@@ -216,6 +214,57 @@ object Facet {
 
   implicit val readsFacet = Json.reads[Facet]
   implicit val writesFacet = Json.writes[Facet]
+
+  implicit object FacetWriter extends BSONDocumentWriter[Facet] {
+    import reactivemongo.bson._
+
+    def write(facet: Facet): BSONDocument = BSONDocument(
+      "_id" -> facet.id,
+      "name" -> facet.name,
+      "type" -> facet.`type`,
+      "uiType" -> facet.uiType,
+      "isMultiSelect" -> facet.isMultiSelect,
+      "fieldName" -> facet.fieldName,
+      "minBuckets" -> facet.minBuckets,
+      "isMixedSorting" -> facet.isMixedSorting,
+      "minCount" -> facet.minCount,
+      "sort" -> facet.sort,
+      "isMissing" -> facet.isMissing,
+      "limit" -> facet.limit,
+      "start" -> facet.start,
+      "end" -> facet.end,
+      "gap" -> facet.gap,
+      "isHardened" -> facet.isHardened,
+      "queries" -> facet.queries,
+      "blackList" -> facet.blackList,
+      "filters" -> facet.filters
+
+    )
+  }
+
+  implicit object FacetReader extends BSONDocumentReader[Facet] {
+    def read(doc: BSONDocument): Facet = Facet(
+      doc.getAs[String]("_id"),
+      doc.getAs[String]("name"),
+      doc.getAs[String]("type"),
+      doc.getAs[String]("uiType"),
+      doc.getAs[Boolean]("isMultiSelect"),
+      doc.getAs[String]("fieldName"),
+      doc.getAs[Int]("minBuckets"),
+      doc.getAs[Boolean]("isMixedSorting"),
+      doc.getAs[Int]("minCount"),
+      doc.getAs[String]("sort"),
+      doc.getAs[Boolean]("isMissing"),
+      doc.getAs[Int]("limit"),
+      doc.getAs[String]("start"),
+      doc.getAs[String]("end"),
+      doc.getAs[String]("gap"),
+      doc.getAs[Boolean]("isHardened"),
+      doc.getAs[Array[String]]("queries"),
+      doc.getAs[Seq[String]]("blacklist"),
+      doc.getAs[Seq[Filter]]("filters")
+    )
+  }
 }
 
 /**

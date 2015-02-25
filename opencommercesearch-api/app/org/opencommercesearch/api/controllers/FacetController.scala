@@ -61,6 +61,7 @@ object FacetController extends BaseController {
     query.add("q", "id:" + id)
     query.add("fl", "*")
 
+    // @todo do we really need to query solr and mongo to get a facet
     Logger.debug("Query facet " + id)
     val future = solrServer.query(query).flatMap( response => {
       val results = response.getResults
@@ -70,7 +71,7 @@ object FacetController extends BaseController {
         Logger.debug("Found facet " + id)
         val facet = solrServer.binder.getBean(classOf[Facet], doc)
         val storage = withNamespace(storageFactory, preview)
-        val storageFuture = storage.findFacet(id, Seq.empty)
+        val storageFuture = storage.findFacet(id, fieldList(allowStar = true))
 
         storageFuture map { facetFromStorage =>
           if(facetFromStorage != null) {

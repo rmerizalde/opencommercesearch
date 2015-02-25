@@ -19,24 +19,39 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json._
-
 import java.util
 
-import org.apache.solr.common.SolrDocument
-import org.apache.solr.common.SolrInputDocument
-import org.apache.solr.client.solrj.beans.Field
-import org.apache.commons.lang.StringUtils
-import org.jongo.marshall.jackson.oid.Id
-
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonProperty
+import org.apache.solr.common.{SolrDocument, SolrInputDocument}
 import org.opencommercesearch.search.suggester.IndexableElement
+import play.api.libs.json._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 object Brand {
 
   implicit val readsBrand = Json.reads[Brand]
   implicit val writesBrand = Json.writes[Brand]
+
+  implicit object BrandWriter extends BSONDocumentWriter[Brand] {
+    import reactivemongo.bson._
+
+    def write(brand: Brand): BSONDocument = BSONDocument(
+      "_id" -> brand.id,
+      "name" -> brand.name,
+      "logo" -> brand.logo,
+      "url" -> brand.url,
+      "sites" -> brand.sites
+    )
+  }
+
+  implicit object BrandReader extends BSONDocumentReader[Brand] {
+    def read(doc: BSONDocument): Brand = Brand(
+      doc.getAs[String]("_id"),
+      doc.getAs[String]("name"),
+      doc.getAs[String]("logo"),
+      doc.getAs[String]("url"),
+      doc.getAs[Seq[String]]("sites")
+    )
+  }
 
   def fromDocument(doc : SolrDocument) : Brand = {
     def attribute(name: String) = Option(doc.get(name).asInstanceOf[String])
@@ -62,17 +77,17 @@ object Brand {
  * @author rmerizalde
  */
 case class Brand(
-   @Id var id: Option[String] = None,
-   @JsonProperty("name") var name: Option[String] = None,
-   @JsonProperty("logo") var logo: Option[String] = None,
-   @JsonProperty("url") var url: Option[String] = None,
-   @JsonProperty("sites") var sites: Option[Seq[String]] = None) extends IndexableElement {
+   var id: Option[String] = None,
+   var name: Option[String] = None,
+   var logo: Option[String] = None,
+   var url: Option[String] = None,
+   var sites: Option[Seq[String]] = None) extends IndexableElement {
 
-  def getId : String = this.id.getOrElse(null)
+  def getId : String = this.id.orNull
   
-  def getName : String = this.name.getOrElse(null)
+  def getName : String = this.name.orNull
 
-  def getUrl: String = url.getOrElse(null)
+  def getUrl: String = url.orNull
 
   override def source = "brand"
 
@@ -113,7 +128,7 @@ case class Brand(
   }
 
   def getNgramText : String = {
-    name.getOrElse(null)
+    name.orNull
   }
 
   def getType : String = {

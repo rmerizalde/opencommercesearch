@@ -19,26 +19,26 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
-import org.specs2.mutable.Specification
-import org.specs2.mock._
+import java.util
+
+import org.apache.solr.client.solrj.response.QueryResponse
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
+import org.apache.solr.common.util.{NamedList, SimpleOrderedMap}
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.{Brand, Category, Product}
+import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
 import org.opencommercesearch.common.Context
+import org.opencommercesearch.search.Element
+import org.opencommercesearch.search.collector.SimpleCollector
+import org.specs2.mock._
+import org.specs2.mutable.Specification
 import play.api.i18n.Lang
-import scala.concurrent.{ExecutionContext, Future, Await}
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
-import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
-import org.opencommercesearch.api.Global._
-import ExecutionContext.Implicits.global
-import org.apache.solr.client.solrj.response.QueryResponse
-import org.opencommercesearch.search.Element
 
-import org.opencommercesearch.search.collector.SimpleCollector
-import org.apache.solr.common.util.{SimpleOrderedMap, NamedList}
-import org.apache.solr.common.{SolrDocument, SolrDocumentList}
-import java.util
-import org.opencommercesearch.api.service.{MongoStorageFactory, MongoStorage}
-import org.opencommercesearch.api.models.{Product, Category, Brand}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 /**
  * @author jmendez
@@ -144,10 +144,10 @@ class CatalogSuggesterSpec extends Specification with Mockito {
     category.name = Some("Test Category")
     category.seoUrlToken = Some("/category/url")
 
-    val suggestionProduct = Product.getInstance()
+    val suggestionProduct = new Product()
     suggestionProduct.id = Some("2")
 
-    val catalogProduct = Product.getInstance()
+    val catalogProduct = new Product()
     catalogProduct.id = Some("skuId")
     catalogProduct.title = Some("A title that matches better")
 

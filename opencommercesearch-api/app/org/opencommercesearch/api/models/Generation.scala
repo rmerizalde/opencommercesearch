@@ -19,18 +19,17 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import com.fasterxml.jackson.annotation.JsonProperty
-import play.api.libs.functional.syntax._
 import org.opencommercesearch.api.Implicits._
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /**
- * Created by nkumar on 9/5/14.
+ * @author nkumar
  */
-
 case class Generation (
-  @JsonProperty("number") var number: Option[Int],
-  @JsonProperty("master") var master: Option[Product]) {
+  var number: Option[Int],
+  var master: Option[Product]) {
 }
 
 object Generation {
@@ -43,4 +42,20 @@ object Generation {
     (__ \ "number").writeNullable[Int] ~
     (__ \ "master").lazyWriteNullable(Writes.of[Product])
   ) (unlift(Generation.unapply))
+
+
+  implicit object GenerationWriter extends BSONDocumentWriter[Generation] {
+    import reactivemongo.bson._
+    def write(generation: Generation): BSONDocument = BSONDocument(
+      "number" -> generation.number,
+      "master" -> generation.master
+    )
+  }
+
+  implicit object GenerationReader extends BSONDocumentReader[Generation] {
+    def read(doc: BSONDocument): Generation = Generation(
+      doc.getAs[Int]("number"),
+      doc.getAs[Product]("master")
+    )
+  }
 }

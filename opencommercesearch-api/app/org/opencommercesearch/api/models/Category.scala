@@ -19,20 +19,15 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-
 import java.util
-
-import org.opencommercesearch.api.util.JsUtils.PathAdditions
-import org.opencommercesearch.search.suggester.IndexableElement
 
 import org.apache.commons.lang.StringUtils
 import org.apache.solr.common.SolrInputDocument
-
-import org.jongo.marshall.jackson.oid.Id
-
-import com.fasterxml.jackson.annotation.JsonProperty
+import org.opencommercesearch.api.util.JsUtils.PathAdditions
+import org.opencommercesearch.search.suggester.IndexableElement
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /**
  * A category model.
@@ -46,18 +41,18 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * @author rmerizalde
  */
 case class Category (
-  @Id var id: Option[String] = None,
-  @JsonProperty("name") var name: Option[String] = None,
-  @JsonProperty("alias") var alias: Option[String] = None,
-  @JsonProperty("seoUrlToken") var seoUrlToken: Option[String] = None,
-  @JsonProperty("isRuleBased") var isRuleBased: Option[Boolean] = None,
-  @JsonProperty("ruleFilters") var ruleFilters: Option[Seq[String]] = None,
-  @JsonProperty("sites") var sites: Option[Seq[String]] = None,
-  @JsonProperty("hierarchyTokens") var hierarchyTokens: Option[Seq[String]] = None,
-  @JsonProperty("parentCategories") var parentCategories: Option[Seq[Category]] = None,
-  @JsonProperty("childCategories") var childCategories: Option[Seq[Category]] = None) extends IndexableElement {
+  var id: Option[String] = None,
+  var name: Option[String] = None,
+  var alias: Option[String] = None,
+  var seoUrlToken: Option[String] = None,
+  var isRuleBased: Option[Boolean] = None,
+  var ruleFilters: Option[Seq[String]] = None,
+  var sites: Option[Seq[String]] = None,
+  var hierarchyTokens: Option[Seq[String]] = None,
+  var parentCategories: Option[Seq[Category]] = None,
+  var childCategories: Option[Seq[Category]] = None) extends IndexableElement {
 
-  import Category._
+  import org.opencommercesearch.api.models.Category._
 
   def getId : String = this.id.get
 
@@ -219,6 +214,38 @@ object Category {
     //Prevent empty child lists to be written
     (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
   ) (unlift(Category.unapply))
+
+  implicit object CategoryWriter extends BSONDocumentWriter[Category] {
+    import reactivemongo.bson._
+
+    def write(category: Category): BSONDocument = BSONDocument(
+      "_id" -> category.id,
+      "name" -> category.name,
+      "alias" -> category.alias,
+      "seoUrlToken" -> category.seoUrlToken,
+      "isRuleBased" -> category.isRuleBased,
+      "ruleFilters" -> category.ruleFilters,
+      "sites" -> category.sites,
+      "hierarchyTokens" -> category.hierarchyTokens,
+      "parentCategories" -> category.parentCategories,
+      "childCategories" -> category.childCategories
+    )
+  }
+
+  implicit object CategoryReader extends BSONDocumentReader[Category] {
+    def read(doc: BSONDocument): Category = Category(
+      doc.getAs[String]("_id"),
+      doc.getAs[String]("name"),
+      doc.getAs[String]("alias"),
+      doc.getAs[String]("seoUrlToken"),
+      doc.getAs[Boolean]("isRuleBased"),
+      doc.getAs[Seq[String]]("ruleFilters"),
+      doc.getAs[Seq[String]]("sites"),
+      doc.getAs[Seq[String]]("hierarchyTokens"),
+      doc.getAs[Seq[Category]]("parentCategories"),
+      doc.getAs[Seq[Category]]("childCategories")
+    )
+  }
 }
 
 case class CategoryList(categories: Seq[Category], feedTimestamp: Long) {

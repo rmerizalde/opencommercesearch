@@ -68,12 +68,15 @@ class BaseController extends Controller with ContentPreview with FieldList with 
   }
 
   private def withProductIds(result: Result, ids: String, request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
-    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids))
+    case Some(s) => ids match {
+      case "" =>  result
+      case _ => result.withHeaders(("X-Cache-Product-Ids", ids))
+    }
     case None => result
   }
 
   private def withProductIds(result: Result, ids: Iterable[String], request: Request[AnyContent]) = request.headers.get("X-Cache-Ids") match {
-    case Some(s) => result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
+    case Some(s) => if (ids.isEmpty) result else result.withHeaders(("X-Cache-Product-Ids", ids.mkString(",")))
     case None => result
   }
 

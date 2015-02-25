@@ -19,25 +19,21 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import play.api.libs.json.{JsError, Json}
-import play.api.test._
-import play.api.test.Helpers._
-
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-
+import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.response.FacetField
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery, SolrRequest}
+import org.apache.solr.common.{SolrDocument, SolrDocumentList}
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.models.Category
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-
-import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer, SolrRequest}
-import org.apache.solr.client.solrj.beans.DocumentObjectBinder
-import org.apache.solr.client.solrj.response.FacetField
-import org.apache.solr.common.{SolrDocumentList, SolrDocument}
-
 import org.specs2.mutable._
+import play.api.libs.json.{JsError, Json}
+import play.api.test.Helpers._
+import play.api.test._
+import reactivemongo.core.commands.LastError
 
-import com.mongodb.WriteResult
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 class CategoryControllerSpec extends BaseSpec {
 
@@ -50,7 +46,7 @@ class CategoryControllerSpec extends BaseSpec {
 
       storageFactory = mock[MongoStorageFactory]
       storageFactory.getInstance(anyString) returns storage
-      val writeResult = mock[WriteResult]
+      val writeResult = mock[LastError]
       storage.saveCategory(any) returns Future.successful(writeResult)
 
       CategoryController.categoryService.server = solrServer

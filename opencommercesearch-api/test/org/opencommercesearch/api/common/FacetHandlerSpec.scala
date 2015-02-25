@@ -1,31 +1,28 @@
 package org.opencommercesearch.api.common
 
-import play.api.test._
-import play.api.test.Helpers._
-
-import scala.concurrent.Future
-
-import java.util
 import java.net.URLEncoder
-
-import org.opencommercesearch.api.controllers.BaseSpec
-import org.opencommercesearch.api.models.{BreadCrumb, Facet}
-import org.opencommercesearch.api.service.Storage
+import java.util
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.response.{FacetField, QueryResponse}
 import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.controllers.BaseSpec
+import org.opencommercesearch.api.models.{BreadCrumb, Facet}
+import org.opencommercesearch.api.service.Storage
+import play.api.test.Helpers._
+import play.api.test._
+import reactivemongo.core.commands.LastError
 
-import com.mongodb.WriteResult
+import scala.concurrent.Future
 
 class FacetHandlerSpec extends BaseSpec {
 
-  var facetHandler : FacetHandler = null;
+  var facetHandler : FacetHandler = null
   var solrQuery : SolrQuery = mock[SolrQuery]
   var queryResponse: QueryResponse = mock[QueryResponse]
   var filterQueries: Array[FilterQuery] = Array.empty
   var facetData: Seq[NamedList[AnyRef]]  = Seq.empty
-  var storage: Storage[WriteResult] = mock[Storage[WriteResult]]
+  var storage: Storage[LastError] = mock[Storage[LastError]]
 
 
   private def setup() : Unit = {

@@ -19,24 +19,21 @@ package org.opencommercesearch.api
 * under the License.
 */
 
-import play.api.{Application, Logger, Play}
+import com.wordnik.swagger.converter.ModelConverters
+import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
+import org.opencommercesearch.api.models.Availability._
+import org.opencommercesearch.api.service.MongoStorageFactory
+import org.opencommercesearch.api.util.{BigDecimalConverter, CountryConverter}
 import play.api.libs.json.Json
-import play.api.mvc.{RequestHeader, WithFilters}
 import play.api.mvc.Results._
+import play.api.mvc.{RequestHeader, WithFilters}
+import play.api.{Application, Logger, Play}
 import play.filters.gzip.GzipFilter
 import play.modules.statsd.api.StatsdFilter
 
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
-
-import org.opencommercesearch.api.models.Availability._
-import org.opencommercesearch.api.service.MongoStorageFactory
-import org.opencommercesearch.api.util.{BigDecimalConverter, CountryConverter}
-
-import org.apache.solr.client.solrj.AsyncSolrServer
-import org.apache.solr.client.solrj.impl.AsyncCloudSolrServer
-
-import com.wordnik.swagger.converter.ModelConverters
 
 object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLog) {
   lazy val RealTimeRequestHandler = getConfig("realtimeRequestHandler", "/get")
@@ -97,11 +94,12 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
 
   override def onStart(app: Application) {
     Logger.info("OpenCommerceSearch API has started")
+    storageFactory.open()
   }
 
   override def onStop(app: Application) {
     Logger.info("OpenCommerceSearch API shutdown...")
-    storageFactory.close
+    storageFactory.close()
   }
 
   override def onError(request: RequestHeader, ex: Throwable) = {
