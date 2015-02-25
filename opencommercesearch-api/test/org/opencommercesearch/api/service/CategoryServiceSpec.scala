@@ -19,25 +19,22 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import play.api.test.Helpers._
+import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.common.SolrInputDocument
+import org.junit.runner.RunWith
+import org.mockito.Matchers
+import org.mockito.Mockito.doReturn
+import org.opencommercesearch.api.models.{Category, Product}
+import org.opencommercesearch.common.Context
+import org.specs2.mock.Mockito
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
+import play.api.i18n.Lang
 import play.api.test.FakeApplication
+import play.api.test.Helpers._
+import reactivemongo.core.commands.LastError
 
 import scala.concurrent.Future
-
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.mock.Mockito
-import org.specs2.runner.JUnitRunner
-import org.mockito.Mockito.doReturn
-import org.mockito.Matchers
-import org.opencommercesearch.common.Context
-import org.opencommercesearch.api.models.{Category, Product}
-import org.apache.solr.common.{SolrDocument, SolrInputDocument}
-import org.apache.solr.common.util.NamedList
-import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
-import org.apache.solr.client.solrj.response.QueryResponse
-import play.api.i18n.Lang
-import com.mongodb.WriteResult
 
 @RunWith(classOf[JUnitRunner])
 class CategoryServiceSpec extends Specification with Mockito {
@@ -124,7 +121,7 @@ class CategoryServiceSpec extends Specification with Mockito {
       Future.successful(categoryMap.get(id.asInstanceOf[String]).get)
     }
 
-    doReturn(storage).when(service).withNamespace(any[StorageFactory[WriteResult]])(any[Context])
+    doReturn(storage).when(service).withNamespace(any[StorageFactory[LastError]])(any[Context])
 
     service
   }

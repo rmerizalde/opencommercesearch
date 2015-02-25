@@ -1,0 +1,6 @@
+  <!-- Rule manager component - Filters, boosts or modifies results based on pre-defined business rules -->
+  <searchComponent name="ruleManager" class="solr.RuleManagerComponent">
+    <!--The base name of the rule and facet cores (i.e. if your core is called rulePreview_en, set it to -->
+    <str name="facetsCore">facets</str>
+    <str name="rulesCore">rule</str>
+  </searchComponent>

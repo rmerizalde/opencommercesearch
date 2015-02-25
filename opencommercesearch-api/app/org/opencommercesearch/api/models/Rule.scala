@@ -21,10 +21,9 @@ package org.opencommercesearch.api.models
 
 import java.util.Date
 
-import com.fasterxml.jackson.annotation.{JsonCreator, JsonProperty}
 import org.apache.solr.client.solrj.beans.Field
-import org.jongo.marshall.jackson.oid.Id
 import play.api.libs.json._
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /**
  * Represents a single Rule
@@ -47,27 +46,27 @@ import play.api.libs.json._
  * @param ruleType type of rule
  */
 case class Rule(
-  @Id var id: Option[String] = None,
-  @JsonProperty("name") var name: Option[String] = None,
-  @JsonProperty("query") var query: Option[String] = None,
-  @JsonProperty("sortPriority") var sortPriority: Option[Int] = None,
-  @JsonProperty("combineMode") var combineMode: Option[String] = None,
-  @JsonProperty("startDate") var startDate: Option[String] = None,
-  @JsonProperty("endDate") var endDate: Option[String] = None,
-  @JsonProperty("target") var target: Option[Array[String]] = None,
-  @JsonProperty("subTarget") var subTarget: Option[Array[String]] = None,
-  @JsonProperty("siteId") var siteId: Option[Array[String]] = None,
-  @JsonProperty("catalogId") var catalogId: Option[Array[String]] = None,
-  @JsonProperty("category") var category: Option[Array[String]] = None,
-  @JsonProperty("brandId") var brandId: Option[Array[String]] = None,
-  @JsonProperty("experimental") var experimental: Option[Boolean] = None,
-  @JsonProperty("boostFunction") var boostFunction: Option[String] = None,
-  @JsonProperty("facetField") var facetField: Option[Array[String]] = None,
-  @JsonProperty("facetId") var facetId: Option[Array[String]] = None,
-  @JsonProperty("boostedProducts") var boostedProducts: Option[Array[String]] = None,
-  @JsonProperty("blockedProducts") var blockedProducts: Option[Array[String]] = None,
-  @JsonProperty("ruleType") var ruleType: Option[String] = None,
-  @JsonProperty("redirectUrl") var redirectUrl: Option[String] = None) {
+  var id: Option[String] = None,
+  var name: Option[String] = None,
+  var query: Option[String] = None,
+  var sortPriority: Option[Int] = None,
+  var combineMode: Option[String] = None,
+  var startDate: Option[String] = None,
+  var endDate: Option[String] = None,
+  var target: Option[Array[String]] = None,
+  var subTarget: Option[Array[String]] = None,
+  var siteId: Option[Array[String]] = None,
+  var catalogId: Option[Array[String]] = None,
+  var category: Option[Array[String]] = None,
+  var brandId: Option[Array[String]] = None,
+  var experimental: Option[Boolean] = None,
+  var boostFunction: Option[String] = None,
+  var facetField: Option[Array[String]] = None,
+  var facetId: Option[Array[String]] = None,
+  var boostedProducts: Option[Array[String]] = None,
+  var blockedProducts: Option[Array[String]] = None,
+  var ruleType: Option[String] = None,
+  var redirectUrl: Option[String] = None) {
 
   def this() = this(id = None)
 
@@ -88,12 +87,12 @@ case class Rule(
   @Field
   def setSortPriority(sortPriority: Int) : Unit = { this.sortPriority = Option.apply(sortPriority) }
 
-  def getCombineMode : String = { combineMode.getOrElse(null) }
+  def getCombineMode : String = { combineMode.orNull }
 
   @Field
   def setCombineMode(combineMode: String) : Unit = { this.combineMode = Option.apply(combineMode) }
 
-  def getStartDate : String = { startDate.getOrElse(null) }
+  def getStartDate : String = { startDate.orNull }
 
   @Field
   def setStartDate(startDate: Date) : Unit = { this.startDate = Option.apply(startDate.toString) }
@@ -138,45 +137,122 @@ case class Rule(
   @Field
   def setExperimental(experimental: Boolean) : Unit = { this.experimental = Option.apply(experimental) }
 
-  def getBoostFunction : String = { boostFunction.getOrElse(null) }
+  def getBoostFunction : String = { boostFunction.orNull }
 
   @Field
   def setBoostFunction(boostFunction: String) : Unit = { this.boostFunction = Option.apply(boostFunction) }
 
-  def getFacetField : Array[String] = { facetField.getOrElse(null) }
+  def getFacetField : Array[String] = { facetField.orNull }
 
   @Field
   def setFacetField(facetField: Array[String]) : Unit = { this.facetField = Option.apply(facetField) }
 
-  def getFacetId : Array[String] = { facetId.getOrElse(null) }
+  def getFacetId : Array[String] = { facetId.orNull }
 
   @Field
   def setFacetId(facetId: Array[String]) : Unit = { this.facetId = Option.apply(facetId) }
 
-  def getBoostedProducts : Array[String] = { boostedProducts.getOrElse(null) }
+  def getBoostedProducts : Array[String] = { boostedProducts.orNull }
 
   @Field
   def setBoostedProducts(boostedProducts: Array[String]) : Unit = { this.boostedProducts = Option.apply(boostedProducts) }
 
-  def getBlockedProducts : Array[String] = { blockedProducts.getOrElse(null) }
+  def getBlockedProducts : Array[String] = { blockedProducts.orNull }
 
   @Field
   def setBlockedProducts(blockedProducts: Array[String]) : Unit = { this.blockedProducts = Option.apply(blockedProducts) }
 
-  def getRuleType : String = { ruleType.getOrElse(null) }
+  def getRuleType : String = { ruleType.orNull }
 
   @Field
   def setRuleType(ruleType: String) : Unit = { this.ruleType = Option.apply(ruleType) }
 
-  def getUrl : String = { redirectUrl.getOrElse(null) }
+  def getUrl : String = { redirectUrl.orNull }
 
   @Field("redirectUrl")
   def setUrl(url: String) : Unit = { this.redirectUrl = Option.apply(url) }
 }
 
+/*
+  var id: Option[String] = None,
+  var name: Option[String] = None,
+  var query: Option[String] = None,
+  var sortPriority: Option[Int] = None,
+  var combineMode: Option[String] = None,
+  var startDate: Option[String] = None,
+  var endDate: Option[String] = None,
+  var target: Option[Array[String]] = None,
+  var subTarget: Option[Array[String]] = None,
+  var siteId: Option[Array[String]] = None,
+  var catalogId: Option[Array[String]] = None,
+  var category: Option[Array[String]] = None,
+  var brandId: Option[Array[String]] = None,
+  var experimental: Option[Boolean] = None,
+  var boostFunction: Option[String] = None,
+  var facetField: Option[Array[String]] = None,
+  var facetId: Option[Array[String]] = None,
+  var boostedProducts: Option[Array[String]] = None,
+  var blockedProducts: Option[Array[String]] = None,
+  var ruleType: Option[String] = None,
+  var redirectUrl: Option[String] = None
+ */
 object Rule {
   implicit val readsRule = Json.reads[Rule]
   implicit val writesRule = Json.writes[Rule]
+
+  implicit object RuleWriter extends BSONDocumentWriter[Rule] {
+    import reactivemongo.bson._
+
+    def write(rule: Rule): BSONDocument = BSONDocument(
+      "_id" -> rule.id,
+      "name" -> rule.name,
+      "query" -> rule.query,
+      "sortPriority" -> rule.sortPriority,
+      "combineMode" -> rule.combineMode,
+      "startDate" -> rule.startDate,
+      "endDate" -> rule.endDate,
+      "target" -> rule.target,
+      "subTarget" -> rule.subTarget,
+      "siteId" -> rule.siteId,
+      "catalogId" -> rule.catalogId,
+      "category" -> rule.category,
+      "brandId" -> rule.brandId,
+      "experimental" -> rule.experimental,
+      "boostFunction" -> rule.boostFunction,
+      "facetField" -> rule.facetField,
+      "facetId" -> rule.facetId,
+      "boostedProducts" -> rule.boostedProducts,
+      "blockedProducts" -> rule.blockedProducts,
+      "ruleType" -> rule.ruleType,
+      "redirectUrl" -> rule.redirectUrl
+    )
+  }
+
+  implicit object RuleReader extends BSONDocumentReader[Rule] {
+    def read(doc: BSONDocument): Rule = Rule(
+      doc.getAs[String]("_id"),
+      doc.getAs[String]("name"),
+      doc.getAs[String]("query"),
+      doc.getAs[Int]("sortPriority"),
+      doc.getAs[String]("combineMode"),
+      doc.getAs[String]("startDate"),
+      doc.getAs[String]("endDate"),
+      doc.getAs[Array[String]]("target"),
+      doc.getAs[Array[String]]("subTarget"),
+      doc.getAs[Array[String]]("siteId"),
+      doc.getAs[Array[String]]("catalogId"),
+      doc.getAs[Array[String]]("category"),
+      doc.getAs[Array[String]]("brandId"),
+      doc.getAs[Boolean]("experimental"),
+      doc.getAs[String]("boostFunction"),
+      doc.getAs[Array[String]]("facetField"),
+      doc.getAs[Array[String]]("facetId"),
+      doc.getAs[Array[String]]("boostedProducts"),
+      doc.getAs[Array[String]]("blockedProducts"),
+      doc.getAs[String]("ruleType"),
+      doc.getAs[String]("redirectUrl")
+    )
+  }
 }
 
 /**

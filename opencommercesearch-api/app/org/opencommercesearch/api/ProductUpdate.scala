@@ -14,4 +14,6 @@ sealed class ProductUpdate(implicit context: Context, request: Request[_]) exten
   import Collection._
 
   setParam("collection", searchCollection.name(context.lang))
+
+
 }

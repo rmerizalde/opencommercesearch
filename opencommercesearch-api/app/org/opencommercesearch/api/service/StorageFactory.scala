@@ -49,7 +49,12 @@ trait StorageFactory[T] {
   def getInstance(namespace: String) : Storage[T]
 
   /**
-   * Closes all storage instances created by this factory
+   * Allocates the resources used by this storage factory
    */
-  def close : Unit
+  def open() : Unit
+
+  /**
+   * Releases the resources used by this storage factory
+   */
+  def close() : Unit
 }

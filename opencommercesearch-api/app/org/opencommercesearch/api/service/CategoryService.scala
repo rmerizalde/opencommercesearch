@@ -19,31 +19,27 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
+import java.util
+
+import org.apache.commons.lang3.StringUtils
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
+import org.apache.solr.common.SolrInputDocument
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.ProductFacetQuery
+import org.opencommercesearch.api.common.{ContentPreview, FieldList}
+import org.opencommercesearch.api.models.{Category, Product}
+import org.opencommercesearch.common.Context
 import play.api.Logger
 import play.api.Play.current
 import play.api.cache.Cache
 import play.api.libs.concurrent.Execution.Implicits._
 import play.modules.statsd.api.Statsd
+import reactivemongo.core.commands.LastError
 
-import scala.Some
-import scala.collection.mutable
 import scala.collection.JavaConversions._
-import scala.concurrent.{Await, Future}
+import scala.collection.mutable
 import scala.concurrent.duration._
-
-import java.util
-
-import org.opencommercesearch.api.{ProductFacetQuery, SingleProductQuery}
-import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.common.{ContentPreview, FieldList}
-import org.opencommercesearch.api.models.{Category, Product}
-import org.opencommercesearch.common.Context
-
-import org.apache.commons.lang3.StringUtils
-import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
-import org.apache.solr.common.SolrInputDocument
-
-import com.mongodb.WriteResult
+import scala.concurrent.{Await, Future}
 
 object CategoryService {
   type Taxonomy = Map[String, Category]
@@ -56,7 +52,7 @@ object CategoryService {
  * @param server The Solr server used to fetch data from.
  */
 class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStorageFactory) extends FieldList with ContentPreview {
-  import CategoryService._
+  import org.opencommercesearch.api.service.CategoryService._
 
   private val MaxTries = 3
   private val MaxResults = 50
@@ -382,7 +378,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
    * @param storage Storage used to retrieve category data.
    */
   def getTaxonomyForCategory(categoryId: String, categoryPaths: Iterable[String] = Set.empty, maxLevels: Int,
-                             maxChildren: Int, fields: Seq[String], storage : Storage[WriteResult])
+                             maxChildren: Int, fields: Seq[String], storage : Storage[LastError])
                             (implicit context: Context) : Future[Category] =  {
     //First get the taxonomy
     val taxonomyFuture = getTaxonomy(storage, context.isPreview)
@@ -459,7 +455,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
    * @param storage Storage used to look for category data.
    * @return Map of all existing category ids referencing their corresponding category data. Elements on the map are related to each other based on their taxonomy data.
    */
-  def getTaxonomy(storage : Storage[WriteResult], preview : Boolean = false) : Future[Taxonomy] =  {
+  def getTaxonomy(storage : Storage[LastError], preview : Boolean = false) : Future[Taxonomy] =  {
     //If returning complete taxonomy, see if we already have it on cache.
     val taxonomyCacheKey = TaxonomyCacheKey + getPreviewKeyPrefix(preview)
     val cachedTaxonomy = Cache.get(taxonomyCacheKey)
@@ -717,17 +713,18 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
     Logger.debug(s"Getting taxonomy for product $id")
     
     val storage = withNamespace(storageFactory)
-      getTaxonomy(storage, context.isPreview) map { taxonomy =>
-        var rootCategories = Seq.empty[Category]
-        val categoryIds = getBottomUpCategoryIds(taxonomy, site, productCategoryIds)
-        if(categoryIds != null && !categoryIds.isEmpty) {
-          val sites = if (site == null) findSites(categoryIds, taxonomy) else Set(site)
-          rootCategories = getRoots(taxonomy, sites, updateFields(fields), categoryIds)
-        } else {
-          Logger.debug(s"Category ids for product $id not found for site $site")
-        }
-        Statsd.timing(StatsdBuildProductTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
-        rootCategories
+
+    getTaxonomy(storage, context.isPreview) map { taxonomy =>
+      var rootCategories = Seq.empty[Category]
+      val categoryIds = getBottomUpCategoryIds(taxonomy, site, productCategoryIds)
+      if(categoryIds != null && !categoryIds.isEmpty) {
+        val sites = if (site == null) findSites(categoryIds, taxonomy) else Set(site)
+        rootCategories = getRoots(taxonomy, sites, updateFields(fields), categoryIds)
+      } else {
+        Logger.debug(s"Category ids for product $id not found for site $site")
       }
+      Statsd.timing(StatsdBuildProductTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
+      rootCategories
+    }
   }
 }

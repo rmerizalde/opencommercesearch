@@ -19,12 +19,11 @@ package org.opencommercesearch.cache
 * under the License.
 */
 
+import java.util.concurrent.ConcurrentHashMap
+
 import play.api.libs.concurrent.Execution.Implicits._
 
-import scala.concurrent.{future, promise}
-import scala.concurrent.Future
-
-import java.util.concurrent.ConcurrentHashMap
+import scala.concurrent.{Future, Promise}
 
 /**
  * Remembers the result value of a function
@@ -44,16 +43,15 @@ class DefaultMemoizer[A, V] (val computable: Computable[A, V]) extends Memoizer[
     var f: Future[V] = cache.get(arg)
 
     if (f == null) {
-      var p = promise[V]
+      val p = Promise[V]()
       f = cache.putIfAbsent(arg, p.future)
       if (f == null) {
-        future {
+        Future {
           p.success(computable.compute(arg))
         }.recover {
-          case ex: Throwable => {
+          case ex: Throwable =>
             cache.remove(arg, p.future)
             p.failure(ex)
-          }
         }
         f = p.future
       }

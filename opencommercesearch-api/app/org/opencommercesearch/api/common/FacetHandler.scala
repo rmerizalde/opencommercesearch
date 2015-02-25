@@ -19,26 +19,26 @@ package org.opencommercesearch.api.common
 * under the License.
 */
 
-import scala.collection.JavaConversions._
-import org.opencommercesearch.api.models.{Facet, Filter}
-import org.opencommercesearch.api.util.Util
-import org.apache.solr.common.params.FacetParams
-import org.apache.solr.common.util.NamedList
-import org.apache.solr.client.solrj.response.{RangeFacet, QueryResponse}
+import java.net.URLEncoder
+import java.text.ParseException
+
+import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.response.FacetField.Count
-import org.apache.commons.lang3.StringUtils
-import java.net.URLEncoder
+import org.apache.solr.client.solrj.response.{QueryResponse, RangeFacet}
+import org.apache.solr.common.params.FacetParams
+import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.models.{BreadCrumb, Facet, Filter}
 import org.opencommercesearch.api.service.Storage
-import com.mongodb.WriteResult
-import scala.concurrent.duration._
-import scala.Some
-import scala.concurrent.{ExecutionContext, Await}
-import ExecutionContext.Implicits.global
-import scala.collection.mutable
-import org.opencommercesearch.api.models.BreadCrumb
+import org.opencommercesearch.api.util.Util
 import play.api.Logger
-import java.text.ParseException
+import reactivemongo.core.commands.LastError
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 /**
  * @author rmerizalde
@@ -48,7 +48,7 @@ case class FacetHandler (
   queryResponse: QueryResponse,
   filterQueries: Array[FilterQuery],
   facetData: Seq[NamedList[AnyRef]],
-  storage: Storage[WriteResult]) {
+  storage: Storage[LastError]) {
 
   /**
    * Max time to wait for facet blacklist info
@@ -133,7 +133,7 @@ case class FacetHandler (
           var facetBlackList: Set[String] = Set.empty
 
           //If this is a category facet, then the ID will be None.
-          for(facetId <- f.id) { facetBlackList = facetBlackLists(facetId) }
+          for(facetId <- f.id) { facetBlackList = facetBlackLists.get(facetId).orNull }
 
           for (count <- facetField.getValues) {
             val filterName: String = getCountName(count, if (StringUtils.isNotEmpty(categoryPrefix)) categoryPrefix else prefix)
@@ -345,24 +345,26 @@ case class FacetHandler (
    * @return Map of ids and facet blacklist.
    */
   private def getFacetBlacklists(ids: Seq[String]) : Map[String, Set[String]] = {
-    val future = storage.findFacets(ids, Seq.empty[String]) map { facets =>
-      if(facets != null) {
-        facets map { facet =>
-          var blackList = Set.empty[String]
+    scala.concurrent.blocking {
+      val future = storage.findFacets(ids, Seq.empty[String]) map { facets =>
+        if (facets != null) {
+          facets map { facet =>
+            var blackList = Set.empty[String]
 
-          if(facet.getBlackList != null) {
-            blackList = facet.getBlackList.toSet
+            if (facet.getBlackList != null) {
+              blackList = facet.getBlackList.toSet
+            }
+
+            (facet.getId, blackList)
           }
-
-          (facet.getId, blackList)
+        }
+        else {
+          Seq.empty[(String, Set[String])]
         }
       }
-      else {
-        Seq.empty[(String, Set[String])]
-      }
-    }
 
-    Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]].withDefaultValue(null)
+      Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]].withDefaultValue(null)
+    }
   }
 
   /**

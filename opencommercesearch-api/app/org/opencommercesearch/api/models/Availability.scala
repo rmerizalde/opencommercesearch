@@ -19,15 +19,11 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.Json
-
 import java.util.Date
 
-
-import org.opencommercesearch.api.Implicits._
 import org.opencommercesearch.api.models.Availability._
-
-import com.fasterxml.jackson.annotation.JsonCreator
+import play.api.libs.json.Json
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 case class Availability(
   var status: Option[String] = None,
@@ -63,11 +59,31 @@ object Availability {
 
   val InfiniteStock = -1
 
-  @JsonCreator
-  def getInstance() = new Availability()
 
   implicit val readsAvailability = Json.reads[Availability]
   implicit val writesAvailability = Json.writes[Availability]
+
+  implicit object AvailabilityWriter extends BSONDocumentWriter[Availability] {
+    import org.opencommercesearch.bson.BSONFormats._
+
+    def write(availability: Availability): BSONDocument = BSONDocument(
+      "status" -> availability.status,
+      "stockLevel" -> availability.stockLevel,
+      "backorderLevel" -> availability.backorderLevel,
+      "date" -> availability.date
+    )
+  }
+
+  implicit object AvailabilityReader extends BSONDocumentReader[Availability] {
+    import org.opencommercesearch.bson.BSONFormats._
+
+    def read(doc: BSONDocument): Availability = Availability(
+      doc.getAs[String]("status"),
+      doc.getAs[Int]("stockLevel"),
+      doc.getAs[Int]("backorderLevel"),
+      doc.getAs[Date]("date")
+    )
+  }
 }
 
 

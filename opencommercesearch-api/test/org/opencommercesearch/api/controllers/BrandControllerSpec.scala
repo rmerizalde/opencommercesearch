@@ -20,17 +20,18 @@ package org.opencommercesearch.api.controllers
 */
 
 import org.apache.solr.client.solrj.response.FacetField
+import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery, SolrRequest}
 import org.apache.solr.common.SolrDocumentList
-import play.api.test._
-import play.api.test.Helpers._
-import play.api.libs.json.{JsError, Json}
-import scala.concurrent.{Future}
-import org.specs2.mutable._
-import org.apache.solr.client.solrj.{SolrQuery, SolrRequest, AsyncSolrServer}
-import org.opencommercesearch.api.models.Brand
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.models.Brand
 import org.opencommercesearch.api.service.{MongoStorage, MongoStorageFactory}
-import com.mongodb.WriteResult
+import org.specs2.mutable._
+import play.api.libs.json.{JsError, Json}
+import play.api.test.Helpers._
+import play.api.test._
+import reactivemongo.core.commands.LastError
+
+import scala.concurrent.Future
 
 class BrandControllerSpec extends BaseSpec {
 
@@ -42,7 +43,7 @@ class BrandControllerSpec extends BaseSpec {
 
       storageFactory = mock[MongoStorageFactory]
       storageFactory.getInstance(anyString) returns storage
-      val writeResult = mock[WriteResult]
+      val writeResult = mock[LastError]
       storage.saveBrand(any) returns Future.successful(writeResult)
 
     }

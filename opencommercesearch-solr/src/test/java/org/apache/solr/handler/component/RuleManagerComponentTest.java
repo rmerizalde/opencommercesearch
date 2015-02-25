@@ -19,12 +19,14 @@ package org.apache.solr.handler.component;
 * under the License.
 */
 
+import com.google.common.collect.Lists;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.params.*;
+import org.apache.solr.common.util.NamedList;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.SolrCore;
 import org.apache.solr.request.SolrQueryRequest;
@@ -46,9 +48,11 @@ import org.opencommercesearch.RuleConstants;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import static org.hamcrest.CoreMatchers.hasItems;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -62,7 +66,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 @PrepareForTest({SolrCore.class})
 public class RuleManagerComponentTest {
 
-    enum TestSetType { empty, blockRules, boostRules, facetRules, facetRulesReplace, facetRulesAppend, rulesButNoContent }
+    enum TestSetType { empty, blockRules, boostRules, facetRules, facetRulesReplace, facetRulesAppend, rulesButNoContent, rankingRule }
 
     FieldType defaultFieldType = new FieldType();
 
@@ -95,6 +99,7 @@ public class RuleManagerComponentTest {
         component.rulesCoreName = "rulesCore";
         component.facetsCoreName = "facetsCore";
         component.coreContainer = coreContainer;
+        component.initSeasonMappings(null);
 
         when(req.getParams()).thenReturn(params);
         when(coreContainer.getCore("rulesCore")).thenReturn(rulesCore);
@@ -112,6 +117,50 @@ public class RuleManagerComponentTest {
             @Override
             protected void close() {}
         });
+    }
+
+    @Test
+    public void testInitComponent() throws IOException {
+        NamedList<String> list = new NamedList<String>();
+        list.add("seasonMapping", "expA:1,2,3,4,5,6;expB:7,8,9,10,11,12");
+        component.init(list);
+        int i = 1;
+        for(String actualSeason: component.seasonMapper) {
+            if (i <= 6) {
+                assertEquals("expA", actualSeason);
+            } else {
+                assertEquals("expB", actualSeason);
+            }
+            i++;
+        }
+    }
+
+    @Test
+    public void testInitComponentIncorrectSeasonMapping() throws IOException {
+        NamedList<String> list = new NamedList<String>();
+        list.add("seasonMapping", "someIncorrectMapping");
+        component.init(list);
+        int i = 1;
+        for(String actualSeason: component.seasonMapper) {
+            assertEquals(RuleManagerComponent.DEFAULT_SEASON_MAPPER, actualSeason);
+            i++;
+        }
+    }
+
+    @Test
+    public void testInitComponentWithSomeDefaults() throws IOException {
+        NamedList<String> list = new NamedList<String>();
+        list.add("seasonMapping", "expA:1,2,3,4,5,6");
+        component.init(list);
+        int i = 1;
+        for(String actualSeason: component.seasonMapper) {
+            if (i <= 6) {
+                assertEquals("expA", actualSeason);
+            } else {
+                assertEquals(RuleManagerComponent.DEFAULT_SEASON_MAPPER, actualSeason);
+            }
+            i++;
+        }
     }
 
     @Test
@@ -218,7 +267,26 @@ public class RuleManagerComponentTest {
         assertEquals("isToos asc,fixedBoost(productId,'product3') asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
-    
+
+    @Test
+    public void testRankingRules() throws IOException {
+        prepareRuleDocs(TestSetType.rankingRule);
+        setBaseParams();
+
+        //Should set ranking rules for given products
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+
+        Calendar calendar = Calendar.getInstance();
+        String expectedSeason = component.seasonMapper[calendar.get(Calendar.MONTH)];
+        String expectedYear = Integer.toString(calendar.get(Calendar.YEAR));
+        String expectedBoost = "if(exists(query({!lucene v='(season:" + expectedSeason + " OR year:" + expectedYear + " OR season:SS1)'})),0.5,1.0)";
+        assertEquals(expectedBoost, outParams.get("boost"));
+    }
+
     @Test
     public void testFacetRules() throws IOException {
         //TODO: make a good test for testFacetRules
@@ -329,6 +397,38 @@ public class RuleManagerComponentTest {
         assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
     }
 
+    @Test
+    public void testRulesCategoryPage() throws IOException {
+        prepareRuleDocs(TestSetType.empty);
+        setBaseParams();
+        params.set(RuleManagerParams.PAGE_TYPE, "category");
+        params.set(RuleManagerParams.RULE_PAGE, "true");
+        params.add(CommonParams.FQ, "(someField:val OR season:$SEASON OR year:$YEAR)");
+        params.add(CommonParams.FQ, "otherFilter:val");
+
+        NamedList<String> list = new NamedList<String>();
+        list.add("seasonMapping", "expA:1,2,3,4,5,6;expB:7,8,9,10,11,12");
+        component.init(list);
+
+        //Should set basic params
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+
+        Calendar calendar = Calendar.getInstance();
+        String expectedSeason = component.seasonMapper[calendar.get(Calendar.MONTH)];
+        String expectedYear = Integer.toString(calendar.get(Calendar.YEAR));
+
+        List<String> fqList = Lists.newArrayList(outParams.getParams(CommonParams.FQ));
+        assertThat(fqList, hasItems("category:0.paulcatalog",
+                                    "otherFilter:val",
+                                    "(someField:val OR season:" + expectedSeason + " OR year:" + expectedYear + ")"));
+    }
+
     private void setBaseParams() {
         params.set(RuleManagerParams.RULE, "true");
         params.set(RuleManagerParams.PAGE_TYPE, "search");
@@ -347,6 +447,16 @@ public class RuleManagerComponentTest {
                 break;
             }
 
+            case rankingRule: {
+                setIdsToResultContext(new int[]{0}, rulesCore);
+                Document rankRule = new Document();
+                rankRule.add(new Field(RuleConstants.FIELD_ID, "0", defaultFieldType));
+                rankRule.add(new Field(RuleConstants.FIELD_BOOST_FUNCTION, "if(exists(query({!lucene v='(season:$SEASON OR year:$YEAR OR season:SS1)'})),0.5,1.0)", defaultFieldType));
+                rankRule.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.rankingRule.toString(), defaultFieldType));
+                when(rulesIndexSearcher.doc(0)).thenReturn(rankRule);
+                break;
+            }
+
             case blockRules: {
                 setIdsToResultContext(new int[]{0, 1}, rulesCore);
                 Document blockRule1 = new Document();
@@ -358,8 +468,8 @@ public class RuleManagerComponentTest {
                 blockRule2.add(new Field(RuleConstants.FIELD_ID, "1", defaultFieldType));
                 blockRule2.add(new Field(RuleConstants.FIELD_BLOCKED_PRODUCTS, "product1", defaultFieldType));
                 blockRule2.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.blockRule.toString(), defaultFieldType));
-                when(rulesIndexSearcher.doc(0)).thenReturn(blockRule1);
                 when(rulesIndexSearcher.doc(1)).thenReturn(blockRule2);
+                when(rulesIndexSearcher.doc(0)).thenReturn(blockRule1);
                 break;
             }
 

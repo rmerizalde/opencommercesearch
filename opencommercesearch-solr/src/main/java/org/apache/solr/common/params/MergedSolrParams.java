@@ -19,6 +19,7 @@ package org.apache.solr.common.params;
 * under the License.
 */
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.util.IteratorChain;
 
@@ -190,6 +191,22 @@ public class MergedSolrParams extends SolrQuery {
         c.addIterator(defaults.getParameterNamesIterator());
         c.addIterator(values.keySet().iterator());
         return c;
+    }
+
+    public void replaceVariable(String param, String varName, String varValue){
+        String[] entries = defaults.getParams(param);
+        if (entries != null) {
+           for(int i = 0; i < entries.length; i++) {
+               entries[i] = StringUtils.replace(entries[i], varName, varValue);
+           }
+        }
+
+        entries = values.get(param);
+        if (entries != null) {
+            for(int i = 0; i < entries.length; i++) {
+                entries[i] = StringUtils.replace(entries[i], varName, varValue);
+            }
+        }
     }
 
     @Override

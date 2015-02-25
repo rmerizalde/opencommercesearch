@@ -1,7 +1,7 @@
 package org.opencommercesearch.api.models
 
 import play.api.libs.json.Json
-import com.fasterxml.jackson.annotation.JsonCreator
+import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -27,10 +27,25 @@ case class Attribute(var name: Option[String] = None, var value: Option[String] 
 
 object Attribute {
 
-  @JsonCreator
-  def getInstance() = new Attribute()
-
   implicit val readsAttribute = Json.reads[Attribute]
   implicit val writesAttribute = Json.writes[Attribute]
+  
+  implicit object AttributeWriter extends BSONDocumentWriter[Attribute] {
+    import reactivemongo.bson._
+
+    def write(attribute: Attribute): BSONDocument = BSONDocument(
+      "name" -> attribute.name,
+      "value" -> attribute.value,
+      "searchable" -> attribute.searchable
+    )
+  }
+
+  implicit object AttributeReader extends BSONDocumentReader[Attribute] {
+    def read(doc: BSONDocument): Attribute = Attribute(
+      doc.getAs[String]("name"),
+      doc.getAs[String]("value"),
+      doc.getAs[Boolean]("searchable")
+    )
+  }    
 
 }

@@ -72,7 +72,12 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      * Name of the parameter used when we split a ranking rule using the custom separator 
      */
     public static final String CUSTOM_RANKING_PARAM_NAME = "customRankingRule";
-    
+
+    /**
+     * Default token replacement for the $SEASON variable in rule category pages & ranking rules
+     */
+    public static String DEFAULT_SEASON_MAPPER = "*";
+
     /**
      * Logger instance
      */
@@ -109,6 +114,12 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
     String facetsCoreName;
 
     /**
+     * List that contains a specific season value for each month used when replacing the $SEASON token in 
+     * ranking rules boost expressions
+     */
+    String[] seasonMapper = new String[12];
+
+    /**
      * Binder to transform Lucene docs to objects.
      */
     DocumentObjectBinder binder = new DocumentObjectBinder();
@@ -142,6 +153,49 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         String facetsCoreBaseName = initArgs.get("facetsCore");
         if(facetsCoreBaseName != null) {
             this.facetsCoreBaseName = facetsCoreBaseName;
+        }
+        
+        initSeasonMappings(initArgs.get("seasonMapping"));
+    }
+
+    /**
+     * Initialize the season mappings configuration used during replacements of the
+     * $SEASON token in rule base categories & ranking rule boost expressions.
+     *
+     * The season mapping string should have this format:
+     *
+     * expressionA:1,2,3,4,5,6;expressionB:7,8,9,10,11,12
+     *
+     * where 1,2,3,4 are the months of the year (starting at 1=january)
+     *
+     * If there are missing months in the mapping, then they will be default to the following expression: *
+     *
+     * @param seasonMapping The season mapping parameter specified by the user in this component definition in solrconfig
+     */
+    protected void initSeasonMappings(String seasonMapping) {
+        for (int i = Calendar.JANUARY; i <= Calendar.DECEMBER; i++) {
+            seasonMapper[i] = DEFAULT_SEASON_MAPPER;
+        }
+
+        if (seasonMapping != null) {
+            logger.info("Initializing season mapping: [" + seasonMapping + "]");
+            String[] expressions = seasonMapping.split(";");
+            if (expressions != null) {
+                for (String expression : expressions) {
+                    String[] entry = expression.split(":");
+                    if (entry.length != 2) {
+                        logger.error("Invalid season mapping expression: [" + expression +"]. Correct format: [expression:1,2,3,4;] where 1,2,3,4 are the months of the year");
+                    } else {
+                        String value = entry[0];
+                        String[] months = entry[1].split(",");
+                        for (int i = 0; i < months.length; i++) {
+                            seasonMapper[Integer.parseInt(months[i]) - 1] =  value;
+                        }
+                    }
+                }
+            } else {
+                logger.error("Please provide a valid season mapping configuration parameter. Valid format: [expressionA:1,2,3,4,5,6;expressionB:7,8,9,10,11,12]");
+            }
         }
     }
 
@@ -714,7 +768,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
      */
     private void setFilterQueries(Map<String, NamedList> facets, SolrParams requestParams, MergedSolrParams ruleParams) {
         
-        String isRulePage = requestParams.get("rulePage");
+        String isRulePage = requestParams.get(RuleManagerParams.RULE_PAGE);
         String catalogId = requestParams.get(RuleManagerParams.CATALOG_ID);
         ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, "1." + catalogId + ".");
         ruleParams.addFilterQuery(RuleConstants.FIELD_CATEGORY + ":0." + catalogId);
@@ -731,7 +785,15 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 ruleParams.setFacetPrefix(RuleConstants.FIELD_CATEGORY, categoryFilter);
             }
         }
-        
+
+        if (BooleanUtils.toBoolean(isRulePage)) {
+            //if we are in a rule page, we need to replace the FQ from the original request for possible
+            //appearances of the $YEAR & $SEASON variables, to set the corresponding value
+            Calendar calendar = Calendar.getInstance();
+            ruleParams.replaceVariable(CommonParams.FQ, "$YEAR", Integer.toString(calendar.get(Calendar.YEAR)));
+            ruleParams.replaceVariable(CommonParams.FQ, "$SEASON", seasonMapper[calendar.get(Calendar.MONTH)]);
+        }
+
         String[] filterQueries = requestParams.getParams("rule.fq");
         if (filterQueries == null) {
             return;
@@ -990,9 +1052,9 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
         rankingRule() {
             @Override
             void setParams(RuleManagerComponent component, MergedSolrParams query, List<Document> rules, FacetHandler facetHandler) {
-                                                            
+
                 for (Document rule : rules) {
-                    
+
                     if(filterRule(query, rule)) {
                         continue;
                     }
@@ -1000,6 +1062,11 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                     String boostFunction = rule.get(RuleConstants.FIELD_BOOST_FUNCTION);
                     
                     if (boostFunction != null) {
+                        //If the $YEAR or $SEASON variables appear in the boost function, replace them for the corresponding value
+                        Calendar calendar = Calendar.getInstance();
+                        boostFunction = StringUtils.replace(boostFunction, "$YEAR", Integer.toString(calendar.get(Calendar.YEAR)));
+                        boostFunction = StringUtils.replace(boostFunction, "$SEASON", component.seasonMapper[calendar.get(Calendar.MONTH)]);
+
                         if(StringUtils.contains(boostFunction, RANKING_SEPARATOR)) {
                             // If the ranking rule has our custom ranking separator, split the rule by that
                             // separator.

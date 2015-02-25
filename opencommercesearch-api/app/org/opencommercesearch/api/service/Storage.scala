@@ -210,9 +210,4 @@ trait Storage[T] {
    */
   def findRules(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Rule]]
 
-  /**
-   * Releases the resources used by this storage
-   */
-  def close() : Unit
-
 }
