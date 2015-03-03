@@ -28,17 +28,20 @@ import org.apache.solr.client.solrj.response.FacetField.Count
 import org.apache.solr.client.solrj.response.{QueryResponse, RangeFacet}
 import org.apache.solr.common.params.FacetParams
 import org.apache.solr.common.util.NamedList
+import org.opencommercesearch.api.Global.FacetTtl
+import org.opencommercesearch.api.common.FacetHandler.{EmptyBlackList, FacetBlackListFields}
 import org.opencommercesearch.api.models.{BreadCrumb, Facet, Filter}
 import org.opencommercesearch.api.service.Storage
 import org.opencommercesearch.api.util.Util
 import play.api.Logger
+import play.api.Play.current
+import play.api.cache.Cache
 import reactivemongo.core.commands.LastError
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 
 /**
  * @author rmerizalde
@@ -50,12 +53,7 @@ case class FacetHandler (
   facetData: Seq[NamedList[AnyRef]],
   storage: Storage[LastError]) {
 
-  /**
-   * Max time to wait for facet blacklist info
-   */
-  val MaxFacetBlacklistTimeout = Duration(10, SECONDS)
-
-  def getFacets : Seq[Facet] = {
+  def getFacets : Future[Seq[Facet]] = {
     val facetMap: mutable.LinkedHashMap[String, Facet] = new mutable.LinkedHashMap[String, Facet]
     
     //To preserve the order of the facets first we need to initialize the keys of the linked hash map in the correct order
@@ -76,81 +74,86 @@ case class FacetHandler (
       id.asInstanceOf[String]
     }
 
-    fieldFacets(facetMap, facetIds)
-    rangeFacets(facetMap)
-    queryFacets(facetMap)
+    fieldFacets(facetMap, facetIds) map { _ =>
+      rangeFacets(facetMap)
+      queryFacets(facetMap)
 
-    val sortedFacets = new mutable.ArrayBuffer[Facet](facetMap.size)
-    //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
-    sortedFacets.appendAll(facetMap.values.filterNot( value => null == value))
+      val sortedFacets = new mutable.ArrayBuffer[Facet](facetMap.size)
+      //remove any possible facets that are null cause they were in the rule_facet but not in the solr response
+      sortedFacets.appendAll(facetMap.values.filterNot(value => null == value))
 
-    sortedFacets.filter(facet => {
-      var include = false
+      sortedFacets.filter(facet => {
+        var include = false
 
-      for (filters <- facet.filters) {
-        include = filters.size >= facet.minBuckets.get
-      }
-      include
-    }).map(facet => {
-      // hide fields need internally only
-      facet.id = None
-      facet.fieldName = None
-      facet.isHardened = None
-      facet.start = None
-      facet.end = None
-      facet.gap = None
-      facet.minBuckets = None
-      facet.minCount = None
-      facet.isMissing = None
-      facet.limit = None
-      facet.sort = None
-      facet
-    })
+        for (filters <- facet.filters) {
+          include = filters.size >= facet.minBuckets.get
+        }
+        include
+      }).map(facet => {
+        // hide fields need internally only
+        facet.id = None
+        facet.fieldName = None
+        facet.isHardened = None
+        facet.start = None
+        facet.end = None
+        facet.gap = None
+        facet.minBuckets = None
+        facet.minCount = None
+        facet.isMissing = None
+        facet.limit = None
+        facet.sort = None
+        facet
+      })
+    }
   }
 
-  private def fieldFacets(facetMap: mutable.Map[String, Facet], facetIds: Seq[String]) : Unit = {
+  private def fieldFacets(facetMap: mutable.Map[String, Facet], facetIds: Seq[String]) : Future[Unit] = {
     var categoryPrefix = StringUtils.EMPTY
     if (queryResponse.getResponse != null && queryResponse.getResponse.get("category_prefix") != null) {
       categoryPrefix = queryResponse.getResponse.get("category_prefix").asInstanceOf[String]
     }
     
     if (queryResponse.getFacetFields != null) {
-      val facetBlackLists = getFacetBlacklists(facetIds)
+      retrieveFacetBlacklists(facetIds) map { _ =>
+        for (facetField <- queryResponse.getFacetFields) {
+          var facet: Option[Facet] = None
 
-      for (facetField <- queryResponse.getFacetFields) {
-        var facet : Option[Facet] = None
-
-        if( facetField.getName == "category") {
-          facet = createCategoryFacet(facetField.getName)
-        }
-        else {
-          facet = createFacet(facetField.getName)
-        }
-
-        for (f <- facet) {
-          val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
-          val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
-          var facetBlackList: Set[String] = Set.empty
-
-          //If this is a category facet, then the ID will be None.
-          for(facetId <- f.id) { facetBlackList = facetBlackLists.get(facetId).orNull }
-
-          for (count <- facetField.getValues) {
-            val filterName: String = getCountName(count, if (StringUtils.isNotEmpty(categoryPrefix)) categoryPrefix else prefix)
-            if (facetBlackList == null || !facetBlackList.contains(filterName)) {
-              val filter = new Filter(Some(filterName), Some(count.getCount),
-                Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
-                Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
-                None
-              )
-              filter.setSelected(count.getFacetField.getName, filterName, filterQueries)
-              filters.append(filter)
-            }
+          if (facetField.getName == "category") {
+            facet = createCategoryFacet(facetField.getName)
           }
-          f.filters = Some(filters)
-          facetMap.put(facetField.getName, f)
+          else {
+            facet = createFacet(facetField.getName)
+          }
+
+          for (f <- facet) {
+            val filters = new mutable.ArrayBuffer[Filter](facetField.getValueCount)
+            val prefix = query.getFieldParam(f.getFieldName, FacetParams.FACET_PREFIX)
+            var facetBlackList: Set[String] = EmptyBlackList
+
+            //If this is a category facet, then the ID will be None.
+            for (facetId <- f.id) {
+              facetBlackList = Cache.getAs[Set[String]](facetId).getOrElse(EmptyBlackList)
+            }
+
+            for (count <- facetField.getValues) {
+              val filterName: String = getCountName(count, if (StringUtils.isNotEmpty(categoryPrefix)) categoryPrefix else prefix)
+              if (facetBlackList == null || !facetBlackList.contains(filterName)) {
+                val filter = new Filter(Some(filterName), Some(count.getCount),
+                  Some(URLEncoder.encode(getCountPath(count, f, filterQueries), "UTF-8")),
+                  Some(URLEncoder.encode(count.getAsFilterQuery, "UTF-8")),
+                  None
+                )
+                filter.setSelected(count.getFacetField.getName, filterName, filterQueries)
+                filters.append(filter)
+              }
+            }
+            f.filters = Some(filters)
+            facetMap.put(facetField.getName, f)
+          }
         }
       }
+    } else {
+      Future.successful(())
     }
   }
 
@@ -273,7 +276,7 @@ case class FacetHandler (
 
             if (!facetFieldName.equals(fieldName)) {
               facetFieldName = fieldName
-              facet = createFacet(fieldName).getOrElse(null)
+              facet = createFacet(fieldName).orNull
               filters = new mutable.ArrayBuffer[Filter]()
 
               facet.filters = Some(filters)
@@ -340,30 +343,29 @@ case class FacetHandler (
   }
 
   /**
-   * Get blacklist for some facet ids. Values in the black list should be ignored for each facet.
+   * Populates the cache with blacklists for the givne facet ids
    * @param ids List of ids to return facets from
-   * @return Map of ids and facet blacklist.
+   * @return a future boolean indicating weather the facet were retrieve from the storage or not
    */
-  private def getFacetBlacklists(ids: Seq[String]) : Map[String, Set[String]] = {
-    scala.concurrent.blocking {
-      val future = storage.findFacets(ids, Seq.empty[String]) map { facets =>
-        if (facets != null) {
-          facets map { facet =>
-            var blackList = Set.empty[String]
+  private def retrieveFacetBlacklists(ids: Seq[String]) : Future[Boolean] = {
+    val retrieveBlackLists = ids.exists(id => Cache.get(id).isEmpty)
 
-            if (facet.getBlackList != null) {
-              blackList = facet.getBlackList.toSet
-            }
+    if (retrieveBlackLists) {
+      storage.findFacets(ids, FacetBlackListFields) map { facets =>
+        val foundIds = facets.map(facet => facet.getId).toSet
 
-            (facet.getId, blackList)
-          }
-        }
-        else {
-          Seq.empty[(String, Set[String])]
-        }
+        facets.foreach(facet => {
+          val blackList = if (facet.getBlackList != null) facet.getBlackList.toSet else EmptyBlackList
+          Cache.set(facet.getId, blackList, FacetTtl)
+        })
+
+        ids.foreach(id => if (!foundIds.contains(id)) {
+          Cache.set(id, EmptyBlackList, FacetTtl)
+        })
+        true
       }
-
-      Await.result(future, MaxFacetBlacklistTimeout).toMap[String, Set[String]].withDefaultValue(null)
+    } else {
+      Future.successful(false)
     }
   }
 
@@ -408,7 +410,7 @@ case class FacetHandler (
    * @return
    */
   private def getCountPath(countName: String, countFilterQuery: String, facet: Facet): String = {
-    val fieldName = facet.fieldName.getOrElse(null)
+    val fieldName = facet.fieldName.orNull
     var selectedFilterQuery: FilterQuery = null
     var replacementFilterQuery: String = null
 
@@ -514,4 +516,16 @@ case class FacetHandler (
   private def getCrumbExpression(fieldName: String, expression: String): String = {
       Util.getRangeName(fieldName, Util.getRangeBreadCrumb(fieldName, expression, expression))
   }
+}
+
+object FacetHandler {
+
+  /**
+   * The empty blacklist
+   */
+  val EmptyBlackList = Set.empty[String]
+  /**
+   * The default list of fields to retrieve a facet blacklist
+   */
+  val FacetBlackListFields = Seq("id", "blackList")
 }

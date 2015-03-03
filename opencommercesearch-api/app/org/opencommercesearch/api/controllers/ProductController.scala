@@ -53,7 +53,6 @@ object ProductController extends BaseController {
   val categoryService = new CategoryService(solrServer, storageFactory)
 
   private val OrOperator = "OR"
-  private val AndOperator = "AND"
 
   @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
@@ -385,34 +384,36 @@ object ProductController extends BaseController {
       }
       else if(query.getRows > 0) {
         val unexpectedErrorMessage = s"Unexpected response found for query '$q'"
-        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+        processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-              withCacheHeaders(buildSearchResponse(
-                query = query,
-                breadCrumbs = Some(facetHandler.getBreadCrumbs),
-                facets = Some(facetHandler.getFacets),
-                found = Some(found),
-                productSummary = processGroupSummary(groupSummary),
-                spellCheck = Option(spellCheck),
-                partialMatch = Option(partialMatch),
-                startTime = Some(startTime),
-                products = Some(products map (Json.toJson(_))),
-                debugInfo = buildDebugInfo(response)), products map (_.getId))
+              facetHandler.getFacets map { facets =>
+                withCacheHeaders(buildSearchResponse(
+                  query = query,
+                  breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                  facets = Some(facets),
+                  found = Some(found),
+                  productSummary = processGroupSummary(groupSummary),
+                  spellCheck = Option(spellCheck),
+                  partialMatch = Option(partialMatch),
+                  startTime = Some(startTime),
+                  products = Some(products map (Json.toJson(_))),
+                  debugInfo = buildDebugInfo(response)), products map (_.getId))
+              }
             } else {
-              buildSearchResponse(
+              Future.successful(buildSearchResponse(
                 query = query,
                 found = Some(found),
                 productSummary = processGroupSummary(groupSummary),
                 spellCheck = Option(spellCheck),
                 partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
-                message = Some("No products found"))
+                message = Some("No products found")))
             }
           } else {
             Logger.debug(s"No results found for query '${query.getQuery}', returning spell check suggestions if any.")
-            buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheck), startTime = Some(startTime), message = Some("No products found"))
+            Future.successful(buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheck), startTime = Some(startTime), message = Some("No products found")))
           }
         }
       } else {
@@ -754,30 +755,32 @@ object ProductController extends BaseController {
       solrServer.query(query).flatMap { response =>
         if (query.getRows > 0) {
           val unexpectedErrorMessage = s"Unexpected response found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)"
-          processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+          processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
             if (products != null) {
               if (found > 0) {
                 val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-                withCacheHeaders(buildSearchResponse(
-                  query = query,
-                  breadCrumbs = Some(facetHandler.getBreadCrumbs),
-                  facets = Some(facetHandler.getFacets),
-                  found = Some(found),
-                  productSummary = processGroupSummary(groupSummary),
-                  startTime = Some(startTime),
-                  products = Some(products map (Json.toJson(_))),
-                  debugInfo = buildDebugInfo(response)), products map (_.getId))
+                facetHandler.getFacets map { facets =>
+                  withCacheHeaders(buildSearchResponse(
+                    query = query,
+                    breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                    facets = Some(facets),
+                    found = Some(found),
+                    productSummary = processGroupSummary(groupSummary),
+                    startTime = Some(startTime),
+                    products = Some(products map (Json.toJson(_))),
+                    debugInfo = buildDebugInfo(response)), products map (_.getId))
+                }
               } else {
-                buildSearchResponse(
+                Future.successful(buildSearchResponse(
                   query = query,
                   found = Some(found),
                   productSummary = processGroupSummary(groupSummary),
                   startTime = Some(startTime),
-                  message = Some("No products found"))
+                  message = Some("No products found")))
               }
             } else {
               Logger.debug(s"No results found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)")
-              buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime), message = Some("No products found"))
+              Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime), message = Some("No products found")))
             }
           }
         } else {
