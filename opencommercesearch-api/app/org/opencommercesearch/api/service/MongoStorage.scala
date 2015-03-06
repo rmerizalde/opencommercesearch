@@ -95,8 +95,8 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
         )
       )
 
-      val skuCount = if (minimumFields) ids.size else 0
-      val projection = projectProduct(site, fields, skuCount, ids.map { case (_, skuId) => skuId })
+      val singleSku = minimumFields
+      val projection = projectProduct(site, fields, minimumFields, ids.map { case (_, skuId) => skuId })
       // @todo .filter(_ != null): _*) && stream results instead of collecting
       val productFuture = productCollection
         .find(query, projection)
@@ -136,22 +136,23 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
   private def filterSkus(site: String, country: String, product: Product, fields: Seq[String]) : Product = {
     if (product != null) {
       for (skus <- product.skus) {
-        product.skus = Option(skus.filter { s =>
+        product.skus = Option(skus filter { sku =>
           var includeSku = true
 
           if (site != NoSite) {
-            includeSku = s.catalogs match {
+            includeSku = sku.catalogs match {
               case Some (catalogs) =>
                 catalogs.contains(site)
               case None =>
-                Logger.warn(s"Cannot filter by site '$site', no sites found for sku '${s.id.orNull}'")
+                Logger.warn(s"Cannot filter by site '$site', no sites found for sku '${sku.id.orNull}'")
                 false
             }
           }
           if (!includesSkuField("skus.catalogs", fields, isDefault = false)) {
-            s.catalogs = None
+            sku.catalogs = None
           }
-          includeSku && flattenCountries(country, s)
+
+          includeSku && flattenCountries(country, sku)
         })
       }
 
@@ -160,32 +161,69 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       }
     }
 
+    clearSkuAvailability(product, fields)
+  }
+
+  /**
+   * Cleans availability data not requested. The product's availabilityStatus is a calculated field based on sku data.
+   * However, user can specify what fields to request. Hence, the storage will fetch the necessary data to calculate
+   * the product's availability status (if requested). If the sku's availability was not requested then it gets removed
+   * from the response
+   *
+   * @todo revisit to see if there's a better approach (e.g. would a MongoDB aggregator work for such scenarios)
+   * @param product the product to clean up
+   * @param fields the requested fields
+   * @return the given product
+   */
+  protected[service] def clearSkuAvailability(product: Product, fields: Seq[String]) = {
+    def wereSkusRequested = fields.isEmpty || fields.exists(field => field == "*" || field == "skus" || field.startsWith("skus."))
+
+    for (skus <- product.skus) {
+      product.skus = Option(skus map { sku =>
+        for (availability <- sku.availability) {
+          for (availabilityStatus <- availability.status) {
+            if (!includesField("skus.availability.status", fields, SkuAvailabilityStarFields, isDefault = true)) {
+              availability.status = None
+              if (!fields.exists(field => field.startsWith("skus.availability"))) {
+                sku.availability = None
+              }
+            }
+          }
+        }
+        sku
+      })
+      if (!wereSkusRequested) {
+        product.skus = None
+      }
+    }
+
     product
   }
 
   private def includesProductField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
-    includesField(field, fields, "*", isDefault)
+    includesField(field, fields, ProductStarFields, isDefault)
   }
 
   private def includesSkuField(field: String, fields: Seq[String], isDefault: Boolean = false) = {
-    includesField(field, fields, "skus", isDefault)
+    includesField(field, fields, SkuStarFields, isDefault)
   }
 
   /**
    * Checks if the given field is included in the fields
    * @param field the field to check
    * @param fields the field list
-   * @param nestedStarField the * representation for a nested field. For example, skus.* -> skus
+   * @param nestedStarFields the * representations for a nested field. For example, skus.* -> skus, skus.availability.* -> skus.availability
    * @param isDefault true if the field should be include when no field list is empty. Otherwise false
    * @return true if the the field declaration includes the given field. If not, returns false
    */
-  private def includesField(field: String, fields: Seq[String], nestedStarField: String, isDefault: Boolean = false) = {
+  private def includesField(field: String, fields: Seq[String], nestedStarFields: Seq[String], isDefault: Boolean = false) = {
     def includes(fields: Seq[String]): Boolean = fields match {
       case "*" +: xs => true
-      case `nestedStarField` +: xs => true
+      case x +: xs if nestedStarFields.contains(x) => true
       case x +: xs => if (x.equals(field)) true else includes(xs)
       case Seq() => false
     }
+
     fields match {
       case Nil => isDefault
       case _ => includes(fields)
@@ -263,7 +301,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
    * @return the projection
    */
   private def projectProduct(site: String, fields: Seq[String]) : BSONDocument = {
-    projectProduct(site, fields, 0, Seq.empty[String])
+    projectProduct(site, fields, singleSku = false, Seq.empty[String])
   }
 
   /**
@@ -273,10 +311,10 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
    *
    * @param site is the site to filter by
    * @param fields is the list of fields to return. Fields for nested documents are fully qualified (e.g. skus.color)
-   * @param skuCount indicates weather or not the project will target a single sku per project
+   * @param singleSku indicates weather or not the project will target a single sku per project
    * @return the projection
    */
-  private def projectProduct(site: String, fields: Seq[String], skuCount: Int, skuIds: Seq[String]) : BSONDocument = {
+  protected[service] def projectProduct(site: String, fields: Seq[String], singleSku: Boolean, skuIds: Seq[String]) : BSONDocument = {
     var projection = if(fields.contains("*")) {
       DefaultEmptyProjection
     } else {
@@ -295,17 +333,28 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
           }
         }
 
+        // see clearSkuAvailability
+        if (includesProductField("availabilityStatus", fields, isDefault = true) && !includesField("skus.availability.status", fields, SkuAvailabilityStarFields, isDefault = true)) {
+          if (!includeSkus) {
+            projectedFields = projectedFields :+ ProjectedSkuCountryCode
+            if (site != NoSite) {
+              projectedFields = projectedFields :+ ProjectedSkuCatalog
+            }
+          }
+          projectedFields = projectedFields :+ ProjectedSkuAvailabilityStatus
+        }
+
         val projection = BSONDocument(projectedFields)
 
         projection
-      } else if (skuCount > 0) {
+      } else if (singleSku) {
         DefaultSearchProjection
       } else {
         DefaultProductProjection
       }
     }
 
-    if (skuCount > 0) {
+    if (singleSku) {
       val obj = BSONDocument(
         "$elemMatch" -> BSONDocument(
           "$or" -> skuIds.map(skuId => BSONDocument("id" -> skuId))
@@ -654,5 +703,13 @@ object MongoStorage {
   
   val ProjectedSkuCatalog = ("skus.catalogs", Include)
 
+  val ProjectedSkuAvailabilityStatus = ("skus.countries.availability.status", Include)
+
   val AllQuery = BSONDocument()
+
+  val ProductStarFields = Seq("*")
+
+  val SkuStarFields = Seq("skus")
+
+  val SkuAvailabilityStarFields = Seq("skus.availability") ++ SkuStarFields
 }
