@@ -343,9 +343,9 @@ case class FacetHandler (
   }
 
   /**
-   * Populates the cache with blacklists for the givne facet ids
+   * Populates the cache with blacklists for the given facet ids
    * @param ids List of ids to return facets from
-   * @return a future boolean indicating weather the facet were retrieve from the storage or not
+   * @return a future boolean indicating whether the facet were retrieved from the storage or not
    */
   private def retrieveFacetBlacklists(ids: Seq[String]) : Future[Boolean] = {
     val retrieveBlackLists = ids.exists(id => Cache.get(id).isEmpty)
