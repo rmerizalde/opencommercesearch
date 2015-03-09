@@ -95,6 +95,7 @@ abstract sealed class MeasurementUnit(val symbol: String) {
 object MeasurementUnit {
   def apply(symbol: String) = symbol match {
     case "g" => Gram
+    case "lb" => Pound
     case _ => throw new UnsupportedMeasurementUnit(symbol)
   }
 }
