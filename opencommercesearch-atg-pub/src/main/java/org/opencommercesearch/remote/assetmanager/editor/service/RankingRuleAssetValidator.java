@@ -40,6 +40,7 @@ public class RankingRuleAssetValidator extends DefaultRuleAssetValidator {
 
     @Override
     public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
+        super.doValidation(editorInfo, updates);
         validateQuery(editorInfo, updates);
     }
 

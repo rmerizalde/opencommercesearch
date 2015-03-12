@@ -66,7 +66,9 @@ public class RuleTargetAssetService extends BaseAssetService {
                 if (validatorMap.containsKey(itemType)) {
                     validator = (DefaultRuleAssetValidator) validatorMap.get(itemType);
                 }
-                
+
+                validator.setUserProfile(this.getUserProfile());
+
                 if (isNew) {
                     validator.validateNewAsset(editorInfo, updates);
                 } else {

@@ -21,6 +21,8 @@ package org.opencommercesearch.remote.assetmanager.editor.service;
 
 import java.sql.Timestamp;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.repository.RuleProperty;
@@ -32,16 +34,24 @@ import atg.repository.MutableRepository;
 import atg.repository.MutableRepositoryItem;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.repository.DisplayableItem; 
+import atg.userprofiling.Profile;
 
 public class DefaultRuleAssetValidator extends GenericService {
     
     protected static final String CATEGORY_PAGES = "Category Pages";
     protected static final String SEARCH_PAGES = "Search Pages";
     protected static final String ALL_PAGES = "All Pages";
+    protected static final String WILDCARD = "*";
+    protected static final String ROLES = "roles";
+    protected static final String SKIP_ROLE_NAME = "search-engineers";
+    protected static final String SKIP_ROLE_ID = "irole20002";
 
-    protected static final String ERROR_MSG = "Query can't be empty for search pages. Provide a query or * to match all queries";
+    protected static final String ERROR_MSG = "Query can't be empty for search pages. Provide a query. * is not allowed for search pages";
     protected static final String NULL_PROPERTY_ERROR_MSG = "This field can't be empty, please enter a valid value";
     protected static final String INVALID_END_DATE_ERROR_MSG = "End date must be after start date";
+
+    private Profile userProfile;
 
     /**
      * Called when an asset is created. Ensures that the entered fields are valid.
@@ -51,7 +61,7 @@ public class DefaultRuleAssetValidator extends GenericService {
     public void validateNewAsset(AssetEditorInfo editorInfo, Collection updates) {
         doValidation(editorInfo, updates);
         doDateValidation(editorInfo, updates);
-    }    
+    }
 
     /**
      * Called when an asset is updated. Ensures that the entered fields are valid.
@@ -74,7 +84,7 @@ public class DefaultRuleAssetValidator extends GenericService {
         PropertyUpdate targetProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.TARGET, updates);
         PropertyUpdate queryProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.QUERY, updates);
         
-        if ( targetProperty != null || queryProperty != null) {
+        if ((targetProperty != null || queryProperty != null) && !this.allowToSkipSearchPagesValidation(editorInfo, updates)) {
             validateTargetAndQueryUpdate(editorInfo, targetProperty, queryProperty);
         }
     }
@@ -100,40 +110,41 @@ public class DefaultRuleAssetValidator extends GenericService {
      */
     protected void validateTargetAndQueryUpdate(AssetEditorInfo editorInfo, PropertyUpdate targetProperty, PropertyUpdate queryProperty) {
         
-        String targetValue = null; 
+        String targetValue = null;
+        String queryValue = null;
         
-        if(targetProperty != null) {
+        if (targetProperty != null) {
             targetValue = (String) targetProperty.getPropertyValue();
         }
-        if(StringUtils.isBlank(targetValue)) {
+        if (StringUtils.isBlank(targetValue)) {
             targetValue = getPersistedTarget(editorInfo); 
         }
         
-        if(isLoggingInfo()){
+        if (isLoggingInfo()){
             logInfo("processing target: " + targetValue);
         }
         
-        if(ALL_PAGES.equals(targetValue)) {
+        if (ALL_PAGES.equals(targetValue)) {
             setDefaultQuery(editorInfo, queryProperty);
-        } else if(SEARCH_PAGES.equals(targetValue)) {
-            
-            if(queryProperty != null) {
+        } else if (SEARCH_PAGES.equals(targetValue)) {
+            if (queryProperty != null) {
                 //scenario where we are providing a new query term or we are changing it
-                if (StringUtils.isBlank((String) queryProperty.getPropertyValue())) {
+                queryValue = (String) queryProperty.getPropertyValue();
+                if (StringUtils.isBlank(queryValue) || WILDCARD.equals(queryValue)) {
                     editorInfo.getAssetService().addError(queryProperty.getPropertyName(), ERROR_MSG);
                 }
             } else {
                 //scenario where we are updating this asset but the query term wasn't changed
-                RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
-                if (!hasQuery(currentItem)) {
-                    if(isLoggingInfo()){
+                queryValue = getPersistedQuery(editorInfo);
+                if (StringUtils.isBlank(queryValue) || WILDCARD.equals(queryValue)) {
+                    if (isLoggingInfo()){
                         logInfo("adding error cause asset doesn't have query set for search pages scenario");
                     }
                     editorInfo.getAssetService().addError(RuleProperty.QUERY, ERROR_MSG);
                 }
             }
             
-        } else if(CATEGORY_PAGES.equals(targetValue)) {
+        } else if (CATEGORY_PAGES.equals(targetValue)) {
             setDefaultQuery(editorInfo, queryProperty);
         }
     }
@@ -147,7 +158,7 @@ public class DefaultRuleAssetValidator extends GenericService {
         Timestamp startDate = null;
         Timestamp endDate = null;
 
-        if(startDateProperty == null) {
+        if (startDateProperty == null) {
             //This field wasn't updated, so fetch the value from the asset.
             RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
             startDate = (Timestamp) currentItem.getPropertyValue(RuleProperty.START_DATE);
@@ -155,19 +166,19 @@ public class DefaultRuleAssetValidator extends GenericService {
         else {
             String startDateValue = (String)startDateProperty.getPropertyValue();
 
-            if(startDateValue != null && !startDateValue.isEmpty()) {
+            if (startDateValue != null && !startDateValue.isEmpty()) {
                 startDate = Timestamp.valueOf(startDateValue); //Timestamp.valueOf understands ISO 8601 date format.
             }
         }
 
-        if(endDateProperty == null) {
+        if (endDateProperty == null) {
             //This field wasn't updated, so fetch the value from the asset.
             RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
             endDate = (Timestamp) currentItem.getPropertyValue(RuleProperty.END_DATE);
         }
         else {
             String endDateValue = (String)endDateProperty.getPropertyValue();
-            if(endDateValue == null || endDateValue.isEmpty()) {
+            if (endDateValue == null || endDateValue.isEmpty()) {
                 editorInfo.getAssetService().addError(RuleProperty.END_DATE, NULL_PROPERTY_ERROR_MSG);
                 return; //Don't do more validation.
             }
@@ -176,7 +187,7 @@ public class DefaultRuleAssetValidator extends GenericService {
             }
         }
 
-        if(startDate != null && endDate.before(startDate)) {
+        if (startDate != null && endDate.before(startDate)) {
             editorInfo.getAssetService().addError(RuleProperty.END_DATE, INVALID_END_DATE_ERROR_MSG);
         }
     }
@@ -189,6 +200,11 @@ public class DefaultRuleAssetValidator extends GenericService {
     protected String getPersistedTarget(AssetEditorInfo editorInfo) {
         RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
         return (String) currentItem.getPropertyValue(RuleProperty.TARGET);
+    }
+    
+    protected String getPersistedQuery(AssetEditorInfo editorInfo) {
+        RepositoryItem currentItem = (RepositoryItem) editorInfo.getAssetWrapper().getAsset();
+        return (String) currentItem.getPropertyValue(RuleProperty.QUERY);
     }
 
     protected void setDefaultQuery(AssetEditorInfo editorInfo, PropertyUpdate queryProperty) {
@@ -209,5 +225,32 @@ public class DefaultRuleAssetValidator extends GenericService {
                 logDebug("category or all pages target had a specific query. Keeping it");
             }
         }
+    }
+    
+    protected boolean allowToSkipSearchPagesValidation(AssetEditorInfo editorInfo, Collection updates) {
+        if (this.getUserProfile() != null) {
+            Object roles = this.getUserProfile().getPropertyValue(ROLES);
+            if (roles instanceof Set<?>) {
+                for (Object objRole : (Set<?>) roles) {
+                    String roleId = objRole instanceof RepositoryItem ? ((RepositoryItem)objRole).getRepositoryId() : "";
+                    String roleName = objRole instanceof DisplayableItem ?  ((DisplayableItem)objRole).getItemDisplayName() : "";
+                    if (SKIP_ROLE_NAME.equals(roleName) || SKIP_ROLE_ID.equals(roleId)) {
+                        if (isLoggingInfo()) {
+                            logInfo("This user is allowed to skip Search Pages validation because has " + SKIP_ROLE_NAME + "/" + SKIP_ROLE_ID + " role.");
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    
+    public Profile getUserProfile() {
+        return userProfile;
+    }
+
+    public void setUserProfile(Profile userProfile) {
+        this.userProfile = userProfile;
     }
 }

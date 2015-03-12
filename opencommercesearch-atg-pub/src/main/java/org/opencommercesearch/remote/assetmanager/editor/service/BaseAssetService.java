@@ -25,12 +25,14 @@ import java.util.Collection;
 import org.opencommercesearch.repository.BaseAssetProperty;
 
 import atg.adapter.secure.GenericSecuredRepositoryVersionItem;
+import org.apache.commons.lang.StringUtils;
 import atg.remote.assetmanager.editor.model.AssetViewUpdate;
 import atg.remote.assetmanager.editor.model.PropertyEditorAssetViewUpdate;
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.remote.assetmanager.editor.service.RepositoryAssetServiceImpl;
 import atg.repository.MutableRepositoryItem;
+import atg.repository.RepositoryItem;
 import atg.userprofiling.Profile;
 
 /**
@@ -93,10 +95,11 @@ public class BaseAssetService extends RepositoryAssetServiceImpl {
         //Depending on the asset type, this could be a MutableRepositoryItem or GenericSecuredRepositoryVersionItem
         if(theAsset instanceof GenericSecuredRepositoryVersionItem) {
             GenericSecuredRepositoryVersionItem itemVersion = (GenericSecuredRepositoryVersionItem) theAsset;
-            return (MutableRepositoryItem) itemVersion.getRepositoryItem();
+            RepositoryItem item = itemVersion.getRepositoryItem();
+            return item instanceof MutableRepositoryItem ? (MutableRepositoryItem) item : null;
         }
         else {
-            return (MutableRepositoryItem) theAsset;
+            return theAsset instanceof MutableRepositoryItem ? (MutableRepositoryItem) theAsset : null;
         }
     }
     
@@ -117,12 +120,12 @@ public class BaseAssetService extends RepositoryAssetServiceImpl {
      * @return The element within the collection that matches the property name specified. Otherwise returns null.
      */
     protected static PropertyUpdate findPropertyUpdate(String propName, Collection updates) {
-        if (updates != null) {
+        if (updates != null && StringUtils.isNotBlank(propName)) {
             for (Object update : updates) {
                 AssetViewUpdate viewUpdate = (AssetViewUpdate) update;
                 if ((viewUpdate instanceof PropertyEditorAssetViewUpdate)) {
                     PropertyEditorAssetViewUpdate propertyEditorViewUpdate = (PropertyEditorAssetViewUpdate) viewUpdate;
-                    Collection propertyUpdates = propertyEditorViewUpdate.getPropertyUpdates();
+                    Collection<?> propertyUpdates = propertyEditorViewUpdate.getPropertyUpdates();
                     if (propertyUpdates != null) {
                         for (Object propUpdate : propertyUpdates) {
                             PropertyUpdate propertyUpdate = (PropertyUpdate) propUpdate;

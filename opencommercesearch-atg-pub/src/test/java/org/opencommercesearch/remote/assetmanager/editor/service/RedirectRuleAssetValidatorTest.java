@@ -11,6 +11,7 @@ import java.util.Collection;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.verification.VerificationMode;
 import org.opencommercesearch.repository.RuleProperty;
 
 import atg.remote.assetmanager.editor.model.AssetViewUpdate;
@@ -66,7 +67,7 @@ public class RedirectRuleAssetValidatorTest {
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		updates.add(mockAssetView("query", "*"));
 		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates);
-		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());
+		verify(assetService, atLeastOnce()).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
 	@Test
@@ -91,7 +92,7 @@ public class RedirectRuleAssetValidatorTest {
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		updates.add(mockAssetView("query", "*"));
 		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
-		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());
+		verify(assetService, atLeastOnce()).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
 	@Test
