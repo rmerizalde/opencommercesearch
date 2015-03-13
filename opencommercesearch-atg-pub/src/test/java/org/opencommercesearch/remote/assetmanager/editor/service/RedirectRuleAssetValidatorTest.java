@@ -58,7 +58,7 @@ public class RedirectRuleAssetValidatorTest {
 	public void testValidateNewAsset() {
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		updates.add(mockAssetView("query", "validQuery"));
-		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 
@@ -66,7 +66,7 @@ public class RedirectRuleAssetValidatorTest {
 	public void testValidateNewAssetQueryAll() {
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		updates.add(mockAssetView("query", "*"));
-		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService, atLeastOnce()).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
@@ -74,7 +74,7 @@ public class RedirectRuleAssetValidatorTest {
 	public void testValidateNewAssetAllPages() {
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.ALL_PAGES));
 		updates.add(mockAssetView("query", "validQuery"));
-		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.TARGET), anyString());
 	}
 	
@@ -82,7 +82,7 @@ public class RedirectRuleAssetValidatorTest {
 	public void testValidateNewAssetCategoryPages() {
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.CATEGORY_PAGES));
 		updates.add(mockAssetView("query", "validQuery"));
-		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.TARGET), anyString());
 	}
 	
@@ -91,7 +91,7 @@ public class RedirectRuleAssetValidatorTest {
 		//scenario: if the existing target is search page and we update the query to "*" it should fail 
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		updates.add(mockAssetView("query", "*"));
-		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, atLeastOnce()).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
@@ -100,7 +100,7 @@ public class RedirectRuleAssetValidatorTest {
 		//scenario: if the existing target is all pages and we update the query to "*" it should fail 
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.CATEGORY_PAGES);
 		updates.add(mockAssetView("query", "*"));
-		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
@@ -110,7 +110,7 @@ public class RedirectRuleAssetValidatorTest {
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		when(repoItem.getPropertyValue(RuleProperty.QUERY)).thenReturn("validQuery");
 		updates.add(mockAssetView("date", "03/11/2013"));
-		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 	
@@ -120,7 +120,7 @@ public class RedirectRuleAssetValidatorTest {
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		when(repoItem.getPropertyValue(RuleProperty.QUERY)).thenReturn("*");
 		updates.add(mockAssetView("date", "03/11/2013"));
-		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	
@@ -129,7 +129,7 @@ public class RedirectRuleAssetValidatorTest {
 		//scenario: if we change another attribute not related to target and query was empty it should fail
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		updates.add(mockAssetView("date", "03/11/2013"));
-		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		redirectRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());
 	}
 	

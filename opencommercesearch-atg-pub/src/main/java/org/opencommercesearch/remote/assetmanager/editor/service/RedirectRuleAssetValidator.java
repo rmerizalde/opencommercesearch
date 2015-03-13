@@ -27,6 +27,7 @@ import org.opencommercesearch.repository.RuleProperty;
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.RepositoryItem;
+import atg.userprofiling.Profile;
 
 public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
 
@@ -34,7 +35,7 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
     private static final String TARGET_ERROR_MSG = "Redirect rules only support 'search pages' target";
 
     @Override
-    public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
+    public void doValidation(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
         validateQuery(editorInfo, updates);
     }
 

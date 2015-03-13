@@ -28,6 +28,7 @@ import org.opencommercesearch.repository.RankingRuleProperty;
 import atg.remote.assetmanager.editor.model.PropertyUpdate;
 import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.RepositoryItem;
+import atg.userprofiling.Profile;
 
 /**
  * Validate that if you are specifying the '|' operator in the attribute property
@@ -39,8 +40,8 @@ public class RankingRuleAssetValidator extends DefaultRuleAssetValidator {
     private static final String MISSING_SECOND_EXPRESSION_ERROR_MSG = "The '|' operator requires an expression after it";
 
     @Override
-    public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
-        super.doValidation(editorInfo, updates);
+    public void doValidation(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
+        super.doValidation(editorInfo, updates, profile);
         validateQuery(editorInfo, updates);
     }
 

@@ -68,7 +68,7 @@ public class DefaultRuleAssetValidatorTest {
 	@Test
 	public void testValidateNewAsset() {
 		updates.add(mockAssetView("dateChange", "03/11/2013"));
-		defaultRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 
@@ -77,14 +77,14 @@ public class DefaultRuleAssetValidatorTest {
 		//scenario where we add a new asset  only setting it's target. Query is not specified
 		//ERROR IS EXPECTED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
-		defaultRuleAssetValidator.validateNewAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateNewAsset(editorInfo, updates, null);
 		verify(assetService).addError(anyString(), anyString());		
 	}
 	
 	@Test
 	public void testValidateUpdateAssetNoTargetOrQueryChange() {
 		updates.add(mockAssetView("dateChange", "03/11/2013"));
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 	
@@ -94,7 +94,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR IS EXPECTED
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		updates.add(mockAssetView("query", null));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());	
 	}
 	
@@ -104,7 +104,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR SHOULDN'T NOT BE ADDED
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.ALL_PAGES);
 		updates.add(mockAssetView("query", null));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 	
@@ -114,7 +114,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR SHOULDN'T NOT BE ADDED
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.SEARCH_PAGES);
 		updates.add(mockAssetView("query", "validValue"));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 	
@@ -124,7 +124,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR SHOULDN'T NOT BE ADDED
 		when(repoItem.getPropertyValue(RuleProperty.TARGET)).thenReturn(DefaultRuleAssetValidator.CATEGORY_PAGES);
 		updates.add(mockAssetView("query", "validValue"));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 	}
 	
@@ -133,7 +133,7 @@ public class DefaultRuleAssetValidatorTest {
 		//scenario where we update the target to allpages and query is not set. it should be set as a default value of "*"
 		//ERROR SHOULDN'T NOT BE ADDED AND  DEFAULT QUERY SHOULD BE PERSISTED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.ALL_PAGES));	
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());
 		verify(mutableRepository).updateItem(mutableRepositoryItem);
 		verify(mutableRepositoryItem).setPropertyValue(RuleProperty.QUERY, "*");
@@ -145,7 +145,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR IS EXPECTED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		updates.add(mockAssetView("query", null));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());		
 	}
 	
@@ -155,7 +155,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR IS EXPECTED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		when(repoItem.getPropertyValue(RuleProperty.QUERY)).thenReturn(null);
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService).addError(eq(RuleProperty.QUERY), anyString());		
 	}
 	
@@ -165,7 +165,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR SHOULDN'T NOT BE ADDED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		updates.add(mockAssetView("query", "validQuery"));		
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());		
 	}
 
@@ -175,7 +175,7 @@ public class DefaultRuleAssetValidatorTest {
 		//ERROR SHOULDN'T NOT BE ADDED
 		updates.add(mockAssetView("target", DefaultRuleAssetValidator.SEARCH_PAGES));
 		when(repoItem.getPropertyValue(RuleProperty.QUERY)).thenReturn("validQuery");
-		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+		defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
 		verify(assetService, never()).addError(anyString(), anyString());		
 	}
 	
@@ -185,7 +185,7 @@ public class DefaultRuleAssetValidatorTest {
         //ERROR SHOULDN'T BE ADDED
         updates.add(mockAssetView("endDate", new Timestamp(25000).toString()));
         updates.add(mockAssetView("startDate", new Timestamp(20000).toString()));
-        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
         verify(assetService, never()).addError(eq(RuleProperty.END_DATE), anyString());     
     }
     
@@ -195,7 +195,7 @@ public class DefaultRuleAssetValidatorTest {
         //ERROR IS EXPECTED
         updates.add(mockAssetView("endDate", new Timestamp(20000).toString()));
         updates.add(mockAssetView("startDate", new Timestamp(25000).toString()));
-        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates);
+        defaultRuleAssetValidator.validateUpdateAsset(editorInfo, updates, null);
         verify(assetService).addError(eq(RuleProperty.END_DATE), anyString());     
     }
 	

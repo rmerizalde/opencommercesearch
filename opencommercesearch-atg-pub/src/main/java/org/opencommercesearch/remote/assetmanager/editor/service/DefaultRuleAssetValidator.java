@@ -44,22 +44,21 @@ public class DefaultRuleAssetValidator extends GenericService {
     protected static final String ALL_PAGES = "All Pages";
     protected static final String WILDCARD = "*";
     protected static final String ROLES = "roles";
-    protected static final String SKIP_ROLE_NAME = "search-engineers";
-    protected static final String SKIP_ROLE_ID = "irole20002";
 
     protected static final String ERROR_MSG = "Query can't be empty for search pages. Provide a query. * is not allowed for search pages";
     protected static final String NULL_PROPERTY_ERROR_MSG = "This field can't be empty, please enter a valid value";
     protected static final String INVALID_END_DATE_ERROR_MSG = "End date must be after start date";
 
-    private Profile userProfile;
+    private Set<String> superUserRoleNames = new HashSet<String>();
+    private Set<String> superUserRoleIds = new HashSet<String>();
 
     /**
      * Called when an asset is created. Ensures that the entered fields are valid.
      * @param editorInfo The current editor information (such as the asset being updated)
      * @param updates Collection of updates for the current asset. For example, fields that now have a value.
      */
-    public void validateNewAsset(AssetEditorInfo editorInfo, Collection updates) {
-        doValidation(editorInfo, updates);
+    public void validateNewAsset(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
+        doValidation(editorInfo, updates, profile);
         doDateValidation(editorInfo, updates);
     }
 
@@ -68,8 +67,8 @@ public class DefaultRuleAssetValidator extends GenericService {
      * @param editorInfo The current editor information (such as the asset being updated)
      * @param updates Collection of updates for the current asset. For example, fields that now have a value.
      */
-    public void validateUpdateAsset(AssetEditorInfo editorInfo, Collection updates) {
-        doValidation(editorInfo, updates);
+    public void validateUpdateAsset(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
+        doValidation(editorInfo, updates, profile);
         doDateValidation(editorInfo, updates);
     }
     
@@ -80,11 +79,11 @@ public class DefaultRuleAssetValidator extends GenericService {
      * @param editorInfo The current editor information (such as the asset being updated)
      * @param updates Collection of updates for the current asset. For example, fields that now have a value.
      */
-    public void doValidation(AssetEditorInfo editorInfo, Collection updates) {
+    public void doValidation(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
         PropertyUpdate targetProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.TARGET, updates);
         PropertyUpdate queryProperty  = BaseAssetService.findPropertyUpdate(RuleProperty.QUERY, updates);
         
-        if ((targetProperty != null || queryProperty != null) && !this.allowToSkipSearchPagesValidation(editorInfo, updates)) {
+        if ((targetProperty != null || queryProperty != null) && !this.skipSearchPagesValidation(editorInfo, updates, profile)) {
             validateTargetAndQueryUpdate(editorInfo, targetProperty, queryProperty);
         }
     }
@@ -227,16 +226,16 @@ public class DefaultRuleAssetValidator extends GenericService {
         }
     }
     
-    protected boolean allowToSkipSearchPagesValidation(AssetEditorInfo editorInfo, Collection updates) {
-        if (this.getUserProfile() != null) {
-            Object roles = this.getUserProfile().getPropertyValue(ROLES);
+    protected boolean skipSearchPagesValidation(AssetEditorInfo editorInfo, Collection updates, Profile profile) {
+        if (profile != null) {
+            Object roles = profile.getPropertyValue(ROLES);
             if (roles instanceof Set<?>) {
                 for (Object objRole : (Set<?>) roles) {
                     String roleId = objRole instanceof RepositoryItem ? ((RepositoryItem)objRole).getRepositoryId() : "";
                     String roleName = objRole instanceof DisplayableItem ?  ((DisplayableItem)objRole).getItemDisplayName() : "";
-                    if (SKIP_ROLE_NAME.equals(roleName) || SKIP_ROLE_ID.equals(roleId)) {
+                    if (this.superUserRoleNames.contains(roleName) || this.superUserRoleIds.contains(roleId)) {
                         if (isLoggingInfo()) {
-                            logInfo("This user is allowed to skip Search Pages validation because has " + SKIP_ROLE_NAME + "/" + SKIP_ROLE_ID + " role.");
+                            logInfo("This user is allowed to skip Search Pages validation because has " + roleName + "/" + roleId + " role.");
                         }
                         return true;
                     }
@@ -246,11 +245,30 @@ public class DefaultRuleAssetValidator extends GenericService {
         return false;
     }
     
-    public Profile getUserProfile() {
-        return userProfile;
+    public String[] getSuperUserRoleNames() {
+        return this.superUserRoleNames.toArray(new String[this.superUserRoleNames.size()]);
+    }
+    
+    public void setSuperUserRoleNames(String[] superUserRoleNames) {
+        this.superUserRoleNames.clear();
+        if (superUserRoleNames != null) {
+            for (String role : superUserRoleNames) {
+                this.superUserRoleNames.add(role);
+            }
+        }
+    }
+    
+    public String[] getSuperUserRoleIds() {
+        return this.superUserRoleIds.toArray(new String[this.superUserRoleIds.size()]);
+    }
+    
+    public void setSuperUserRoleIds(String[] superUserRoleIds) {
+        this.superUserRoleIds.clear();
+        if (superUserRoleIds != null) {
+            for (String role : superUserRoleIds) {
+                this.superUserRoleIds.add(role);
+            }
+        }
     }
 
-    public void setUserProfile(Profile userProfile) {
-        this.userProfile = userProfile;
-    }
 }

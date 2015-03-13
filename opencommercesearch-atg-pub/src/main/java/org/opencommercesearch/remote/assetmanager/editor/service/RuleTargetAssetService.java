@@ -30,6 +30,7 @@ import atg.remote.assetmanager.editor.service.AssetEditorInfo;
 import atg.repository.MutableRepositoryItem;
 import atg.repository.RepositoryException;
 import atg.repository.RepositoryItem;
+import atg.userprofiling.Profile;
 
 public class RuleTargetAssetService extends BaseAssetService {
 
@@ -66,13 +67,11 @@ public class RuleTargetAssetService extends BaseAssetService {
                 if (validatorMap.containsKey(itemType)) {
                     validator = (DefaultRuleAssetValidator) validatorMap.get(itemType);
                 }
-
-                validator.setUserProfile(this.getUserProfile());
-
+                
                 if (isNew) {
-                    validator.validateNewAsset(editorInfo, updates);
+                    validator.validateNewAsset(editorInfo, updates, getUserProfile());
                 } else {
-                    validator.validateUpdateAsset(editorInfo, updates);
+                    validator.validateUpdateAsset(editorInfo, updates, getUserProfile());
                 }
             } catch (RepositoryException e) {
                 if (isLoggingError()) {
