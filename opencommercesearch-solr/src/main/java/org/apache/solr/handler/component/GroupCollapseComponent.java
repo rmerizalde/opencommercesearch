@@ -93,11 +93,13 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
         String[] wantedFields = SolrPluginUtils.split(fieldList);
         Set<String> fieldNames = new HashSet<String>();
         IndexSchema schema = rb.req.getSchema();
+        String[] fqs = params.getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
 
         for (String wantedField : wantedFields) {
             FieldType fieldType = schema.getFieldType(wantedField);
-            
-            if (fieldType.getNumericType() != null || fieldType.getTypeName().equals("string")) {
+
+            // @todo: this won't be need when we stop supporting the old summary generation approach
+            if (fieldType.getNumericType() != null || fieldType.getTypeName().equals("string") || fqs != null) {
                 fieldNames.add(wantedField);
             }
             
@@ -137,19 +139,44 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
         NamedList grouped = (NamedList) values.get("grouped");
 
         if (grouped != null) {
-            NamedList groupSummaryRsp = new NamedList();
-
-            for (String field : rb.getGroupingSpec().getFields()) {
-                GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
-
-                NamedList groupField = (NamedList) grouped.get(field);
-
-                if (groupField != null) {
-                    groupFieldSummary.processGroupField(groupField);
-                    groupFieldSummary.addValues(groupSummaryRsp);
+            if (fqs != null) {
+                List<Query> newFilters = new ArrayList<Query>();
+                try {
+                    for (String fq : fqs) {
+                        if (fq != null && fq.trim().length() != 0 && !fq.equals("*:*")) {
+                            QParser fqp = QParser.getParser(fq, null, rb.req);
+                            newFilters.add(fqp.getQuery());
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new IOException(e);
                 }
+
+                if (rb.getGroupingSpec().getFields().length > 0) {
+                    String field = rb.getGroupingSpec().getFields()[0];
+                    GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
+                    NamedList groupSummaryRsp = new NamedList();
+                    Map<String, DocList> expanded = groupsToMap((NamedList) grouped.get(field));
+
+                    groupFieldSummary.processExpandedOrds(expanded, newFilters, groupSummaryRsp, params);
+                    rb.rsp.add("groups_summary", groupSummaryRsp);
+                }
+            } else {
+
+                NamedList groupSummaryRsp = new NamedList();
+
+                for (String field : rb.getGroupingSpec().getFields()) {
+                    GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(field, rb.req.getSearcher(), fieldNames, filterField);
+
+                    NamedList groupField = (NamedList) grouped.get(field);
+
+                    if (groupField != null) {
+                        groupFieldSummary.processGroupField(groupField);
+                        groupFieldSummary.addValues(groupSummaryRsp);
+                    }
+                }
+                rb.rsp.add("groups_summary", groupSummaryRsp);
             }
-            rb.rsp.add("groups_summary", groupSummaryRsp);
 
         } else {
             Map<String, DocList> expanded = (Map<String, DocList>) values.get("expanded");
@@ -157,12 +184,9 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
 
             if (expanded != null) {
                 GroupCollapseSummary groupFieldSummary = new GroupCollapseSummary(getExpandField(params, rb), rb.req.getSearcher(), fieldNames, filterField);
-                String[] fqs = params.getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
-
-                List<Query> newFilters = Collections.emptyList();
 
                 if (fqs != null) {
-                    newFilters = new ArrayList<Query>();
+                    List<Query> newFilters = new ArrayList<Query>();
                     try {
                         for (String fq : fqs) {
                             if (fq != null && fq.trim().length() != 0 && !fq.equals("*:*")) {
@@ -186,6 +210,26 @@ public class GroupCollapseComponent extends SearchComponent implements SolrCoreA
                 log.info("No groups found in query response");
             }
         }
+    }
+
+    private Map<String, DocList> groupsToMap(NamedList groupField) {
+        log.debug("Converting group field to map: %s", groupField);
+        List<NamedList> groups = (List<NamedList>) groupField.get("groups");
+
+        if (groups == null || groups.size() == 0) {
+            log.debug("No groups found for: %s", groupField);
+            return Collections.emptyMap();
+        }
+
+        Map<String, DocList> map = new HashMap<String, DocList>(groups.size());
+        for (NamedList group : groups) {
+            if (group != null) {
+                String groupValue = (String) group.get("groupValue");
+                DocList docList = (DocList) group.get("doclist");
+                map.put(groupValue, docList);
+            }
+        }
+        return map;
     }
 
     private String getExpandField(SolrParams params, ResponseBuilder rb) {

@@ -164,21 +164,32 @@ object ProductController extends BaseController {
    * Helper method to calculate a summary for the given list of products
    */
   private def createProductSummary(products: Iterable[Product]): Option[JsObject] = {
-    var hasSummary = false
-    val summaries: Iterable[(String, JsValueWrapper)] = products withFilter { product =>
+    def colorTransformer(families: JsValue) = families match {
+      case v: JsUndefined => __.json.pick
+      case _ =>
+        (__ \ 'color).json.update(__.read[JsObject].map { o => o ++ Json.obj("families" -> families)}) andThen
+        (__ \ 'colorFamily).json.prune
+    }
+
+    val summaries: Iterable[(String, JsValue)] = (products withFilter { product =>
       product.skus.getOrElse(Seq[Sku]()).size > 0
     } map { product =>
-      val productSummary = new ProductSummary
-
-      product.skus map { skus: Seq[Sku] =>
-        for (sku <- skus) {
-          hasSummary = productSummary.process(sku)
+      ProductSummary.summarize(product) map { summary =>
+        val json = Json.toJson(summary)
+        val colorFamilies = json \ "colorFamily" \ "distinct"
+        val transformedJson = json.transform(colorTransformer(colorFamilies)) match {
+          case JsSuccess(value, _) => value
+          case JsError(errors) =>
+            // setting to debug, transformer will fail when the color field is not selecting. Prevent log polution
+            Logger.debug(s"Cannot transform summary: $errors")
+            // and return original json instead
+            json
         }
+        (product.id.get, transformedJson)
       }
-      val jsonSummary: JsValueWrapper = Json.toJson(productSummary)
-      (product.id.get, jsonSummary)
-    }
-    if (hasSummary) Some(Json.obj(summaries.toSeq: _*)) else None
+    }).flatten
+
+    if (summaries.size > 0) Some(new JsObject(summaries.toSeq)) else None
   }
 
   /**
@@ -223,10 +234,14 @@ object ProductController extends BaseController {
         patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
       }
 
+      // @todo: refactor schema to have all names with consistent case
+      def patchParamName(name: String) = if (name == "onsale") "onSale" else name
+
       implicit val implicitAnyRefWrites = new Writes[Any] {
         def writes(any: Any): JsValue = any match {
           case f: Float => JsNumber(BigDecimal(any.toString))
           case i: Int => JsNumber(any.asInstanceOf[Int])
+          case m: jutil.Map[_, Int] => Json.toJson(m.map(kv => (kv._1.toString, kv._2)).toMap) // todo: dirty hack to serialize the buckets map. Type erasure doesn't play well with pattern matching, figure out workaround
           case a: jutil.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString)}) // todo: support list types other than String
           case _ => JsString(any.toString)
         }
@@ -257,7 +272,7 @@ object ProductController extends BaseController {
                 parameter = parameter.substring(0, parameter.length - context.lang.country.length)
               }
 
-              productSeq += ((parameter, new JsObject(parameterSeq)))
+              productSeq += ((patchParamName(parameter), new JsObject(parameterSeq)))
             }
 
 

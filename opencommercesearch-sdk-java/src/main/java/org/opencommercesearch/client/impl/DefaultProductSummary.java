@@ -5,8 +5,11 @@ import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductSummary;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /*
 * Licensed to OpenCommerceSearch under one
@@ -100,5 +103,19 @@ public class DefaultProductSummary implements ProductSummary {
 
     JsonNode field = data.get(fieldName);
     return field != null ? field.get(value) : null;
+  }
+
+  public Map<String, Integer> getBuckets(String fieldName) {
+    JsonNode buckets = getValue(fieldName, "buckets");
+    if (buckets == null || buckets.size() == 0) {
+      return null;
+    }
+    Map<String, Integer> bucketMap = new HashMap<String, Integer>(buckets.size());
+
+    for (Iterator<String> it = buckets.fieldNames(); it.hasNext();) {
+      String bucket = it.next();
+      bucketMap.put(bucket, buckets.get(bucket).asInt());
+    }
+    return bucketMap;
   }
 }

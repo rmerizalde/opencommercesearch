@@ -1,7 +1,8 @@
 user_home=~
 m2_path="$user_home/.m2/repository"
-class_path="$m2_path/org/opencommercesearch/opencommercesearch-sdk-java/0.7.4-SNAPSHOT/opencommercesearch-sdk-java-0.7.4-SNAPSHOT.jar"
-class_path="$class_path:$m2_path/org/opencommercesearch/opencommercesearch-solr/0.7.4-SNAPSHOT/opencommercesearch-solr-0.7.4-SNAPSHOT.jar"
+version=0.7.10-SNAPSHOT
+class_path="$m2_path/org/opencommercesearch/opencommercesearch-sdk-java/$version/opencommercesearch-sdk-java-$version.jar"
+class_path="$class_path:$m2_path/org/opencommercesearch/opencommercesearch-solr/$version/opencommercesearch-solr-$version.jar"
 class_path="$class_path:$m2_path/com/fasterxml/jackson/core/jackson-core/2.1.4/jackson-core-2.1.4.jar"
 class_path="$class_path:$m2_path/org/apache/solr/solr-core/4.8.1/solr-core-4.8.1.jar"
 class_path="$class_path:$m2_path/org/apache/solr/solr-solrj/4.8.1/solr-solrj-4.8.1.jar"

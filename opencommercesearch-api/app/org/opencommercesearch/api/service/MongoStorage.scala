@@ -272,6 +272,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       sku.discountPercent = country.discountPercent
       sku.url = country.url
       sku.availability = country.availability
+      sku.onSale = country.onSale
 
       if (sku.availability.isEmpty) {
         // support backward compatibility
@@ -632,6 +633,7 @@ object MongoStorage {
     "skus.salePrice" -> "skus.countries.salePrice",
     "skus.discountPercent" -> "skus.countries.discountPercent",
     "skus.discountPercent" -> "skus.countries.discountPercent",
+    "skus.onSale" -> "skus.countries.onSale",
     "skus.url" -> "skus.countries.url",
     "skus.availability" -> "skus.countries.availability",
     "skus.availability.status" -> "skus.countries.availability.status",
