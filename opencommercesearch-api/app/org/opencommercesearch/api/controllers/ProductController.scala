@@ -840,8 +840,8 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(products)
-            futureList = List(productFuture, searchFuture, suggestionFuture)
+            val suggestionFuture = IndexableElement.addToIndex(products.filter(p=> p.isOem.getOrElse(false) == false))
+            futureList = List(productFuture,searchFuture, suggestionFuture)
           }
 
           val future: Future[Result] = Future.sequence(futureList) map { result =>
