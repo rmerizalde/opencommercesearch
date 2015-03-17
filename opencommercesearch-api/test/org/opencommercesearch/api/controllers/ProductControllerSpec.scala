@@ -992,7 +992,7 @@ class ProductControllerSpec extends BaseSpec {
       query.get("group.sort") must beNull
     }
     query.getBool("groupcollapse") must beEqualTo(true)
-    query.get("groupcollapse.fl") must beEqualTo("listPriceUS,salePriceUS,discountPercentUS,color,colorFamily")
+    query.get("groupcollapse.fl") must beEqualTo("listPriceUS,salePriceUS,discountPercentUS,color,colorFamily,isRetail,isOutlet,onsaleUS")
     query.get("groupcollapse.ff") must beEqualTo("isCloseout")
     val facetFields = query.getFacetFields
     facetFields.size must beEqualTo(1)
