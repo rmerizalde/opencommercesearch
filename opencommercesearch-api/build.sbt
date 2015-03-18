@@ -1,4 +1,5 @@
 import de.johoop.jacoco4sbt.HTMLReport
+import play.PlayImport.PlayKeys._
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
@@ -47,6 +48,8 @@ publishTo <<= version { version: String =>
      ("sbt-plugin-releases-pub", scalasbt+"sbt-plugin-releases/")
    Some(Resolver.url(name, new URL(url))(Resolver.mavenStylePatterns))
 }
+
+packagedArtifacts += ((artifact in playPackageAssets).value -> playPackageAssets.value)
 
 // Jacoco
 
