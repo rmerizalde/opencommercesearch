@@ -226,7 +226,7 @@ object ProductController extends BaseController {
             if (colorSummary != null) {
               colorSummary.add("families", families)
             }
-            colorFamilySummary.add("families", families.toString)
+            summaries.remove("colorFamily")
           }
         }
 
