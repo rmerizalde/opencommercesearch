@@ -912,6 +912,7 @@ object ProductController extends BaseController {
       id: String) = ContextAction.async { implicit context => implicit request =>
     val update = new ProductUpdate()
     val feedTimestamp = request.getQueryString("feedTimestamp")
+    val startTime = System.currentTimeMillis()
 
     if (feedTimestamp.isDefined) {
       update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
@@ -919,8 +920,19 @@ object ProductController extends BaseController {
       update.deleteByQuery(s"productId:$id")
     }
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
-      NoContent
+    val future: Future[Result] = update.process(solrServer).flatMap( response => {
+      val storage = withNamespace(storageFactory)
+      storage.deleteProduct(id).map { lastError =>
+        if (lastError.ok) {
+          NoContent
+        } else {
+          InternalServerError(Json.obj(
+            "metadata" -> Json.obj(
+              "time" -> (System.currentTimeMillis() - startTime)),
+            "message" -> s"Unable to delete product $id"))
+        }
+
+      }
     })
 
     withErrorHandling(future, s"Cannot delete product [$id  ]")
