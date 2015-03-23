@@ -53,7 +53,6 @@ object ProductController extends BaseController {
   val categoryService = new CategoryService(solrServer, storageFactory)
 
   private val OrOperator = "OR"
-  private val AndOperator = "AND"
 
   @ApiOperation(value = "Searches products", notes = "Returns product information for a given product", response = classOf[Product], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
@@ -165,21 +164,32 @@ object ProductController extends BaseController {
    * Helper method to calculate a summary for the given list of products
    */
   private def createProductSummary(products: Iterable[Product]): Option[JsObject] = {
-    var hasSummary = false
-    val summaries: Iterable[(String, JsValueWrapper)] = products withFilter { product =>
+    def colorTransformer(families: JsValue) = families match {
+      case v: JsUndefined => __.json.pick
+      case _ =>
+        (__ \ 'color).json.update(__.read[JsObject].map { o => o ++ Json.obj("families" -> families)}) andThen
+        (__ \ 'colorFamily).json.prune
+    }
+
+    val summaries: Iterable[(String, JsValue)] = (products withFilter { product =>
       product.skus.getOrElse(Seq[Sku]()).size > 0
     } map { product =>
-      val productSummary = new ProductSummary
-
-      product.skus map { skus: Seq[Sku] =>
-        for (sku <- skus) {
-          hasSummary = productSummary.process(sku)
+      ProductSummary.summarize(product) map { summary =>
+        val json = Json.toJson(summary)
+        val colorFamilies = json \ "colorFamily" \ "distinct"
+        val transformedJson = json.transform(colorTransformer(colorFamilies)) match {
+          case JsSuccess(value, _) => value
+          case JsError(errors) =>
+            // setting to debug, transformer will fail when the color field is not selecting. Prevent log polution
+            Logger.debug(s"Cannot transform summary: $errors")
+            // and return original json instead
+            json
         }
+        (product.id.get, transformedJson)
       }
-      val jsonSummary: JsValueWrapper = Json.toJson(productSummary)
-      (product.id.get, jsonSummary)
-    }
-    if (hasSummary) Some(Json.obj(summaries.toSeq: _*)) else None
+    }).flatten
+
+    if (summaries.size > 0) Some(new JsObject(summaries.toSeq)) else None
   }
 
   /**
@@ -216,7 +226,7 @@ object ProductController extends BaseController {
             if (colorSummary != null) {
               colorSummary.add("families", families)
             }
-            colorFamilySummary.add("families", families.toString)
+            summaries.remove("colorFamily")
           }
         }
 
@@ -224,10 +234,14 @@ object ProductController extends BaseController {
         patch(namedList(summaries.get("color")), namedList(summaries.get("colorFamily")))
       }
 
+      // @todo: refactor schema to have all names with consistent case
+      def patchParamName(name: String) = if (name == "onsale") "onSale" else name
+
       implicit val implicitAnyRefWrites = new Writes[Any] {
         def writes(any: Any): JsValue = any match {
           case f: Float => JsNumber(BigDecimal(any.toString))
           case i: Int => JsNumber(any.asInstanceOf[Int])
+          case m: jutil.Map[_, Int] => Json.toJson(m.map(kv => (kv._1.toString, kv._2)).toMap) // todo: dirty hack to serialize the buckets map. Type erasure doesn't play well with pattern matching, figure out workaround
           case a: jutil.ArrayList[_] => JsArray(a.map { e => Json.toJson(e.toString)}) // todo: support list types other than String
           case _ => JsString(any.toString)
         }
@@ -258,7 +272,7 @@ object ProductController extends BaseController {
                 parameter = parameter.substring(0, parameter.length - context.lang.country.length)
               }
 
-              productSeq += ((parameter, new JsObject(parameterSeq)))
+              productSeq += ((patchParamName(parameter), new JsObject(parameterSeq)))
             }
 
 
@@ -385,34 +399,36 @@ object ProductController extends BaseController {
       }
       else if(query.getRows > 0) {
         val unexpectedErrorMessage = s"Unexpected response found for query '$q'"
-        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+        processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-              withCacheHeaders(buildSearchResponse(
-                query = query,
-                breadCrumbs = Some(facetHandler.getBreadCrumbs),
-                facets = Some(facetHandler.getFacets),
-                found = Some(found),
-                productSummary = processGroupSummary(groupSummary),
-                spellCheck = Option(spellCheck),
-                partialMatch = Option(partialMatch),
-                startTime = Some(startTime),
-                products = Some(products map (Json.toJson(_))),
-                debugInfo = buildDebugInfo(response)), products map (_.getId))
+              facetHandler.getFacets map { facets =>
+                withCacheHeaders(buildSearchResponse(
+                  query = query,
+                  breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                  facets = Some(facets),
+                  found = Some(found),
+                  productSummary = processGroupSummary(groupSummary),
+                  spellCheck = Option(spellCheck),
+                  partialMatch = Option(partialMatch),
+                  startTime = Some(startTime),
+                  products = Some(products map (Json.toJson(_))),
+                  debugInfo = buildDebugInfo(response)), products map (_.getId))
+              }
             } else {
-              buildSearchResponse(
+              Future.successful(buildSearchResponse(
                 query = query,
                 found = Some(found),
                 productSummary = processGroupSummary(groupSummary),
                 spellCheck = Option(spellCheck),
                 partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
-                message = Some("No products found"))
+                message = Some("No products found")))
             }
           } else {
             Logger.debug(s"No results found for query '${query.getQuery}', returning spell check suggestions if any.")
-            buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheck), startTime = Some(startTime), message = Some("No products found"))
+            Future.successful(buildSearchResponse(query = query, found = Some(0), spellCheck =  Option(spellCheck), startTime = Some(startTime), message = Some("No products found")))
           }
         }
       } else {
@@ -754,30 +770,32 @@ object ProductController extends BaseController {
       solrServer.query(query).flatMap { response =>
         if (query.getRows > 0) {
           val unexpectedErrorMessage = s"Unexpected response found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)"
-          processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+          processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
             if (products != null) {
               if (found > 0) {
                 val facetHandler = buildFacetHandler(response, query, query.filterQueries)
-                withCacheHeaders(buildSearchResponse(
-                  query = query,
-                  breadCrumbs = Some(facetHandler.getBreadCrumbs),
-                  facets = Some(facetHandler.getFacets),
-                  found = Some(found),
-                  productSummary = processGroupSummary(groupSummary),
-                  startTime = Some(startTime),
-                  products = Some(products map (Json.toJson(_))),
-                  debugInfo = buildDebugInfo(response)), products map (_.getId))
+                facetHandler.getFacets map { facets =>
+                  withCacheHeaders(buildSearchResponse(
+                    query = query,
+                    breadCrumbs = Some(facetHandler.getBreadCrumbs),
+                    facets = Some(facets),
+                    found = Some(found),
+                    productSummary = processGroupSummary(groupSummary),
+                    startTime = Some(startTime),
+                    products = Some(products map (Json.toJson(_))),
+                    debugInfo = buildDebugInfo(response)), products map (_.getId))
+                }
               } else {
-                buildSearchResponse(
+                Future.successful(buildSearchResponse(
                   query = query,
                   found = Some(found),
                   productSummary = processGroupSummary(groupSummary),
                   startTime = Some(startTime),
-                  message = Some("No products found"))
+                  message = Some("No products found")))
               }
             } else {
               Logger.debug(s"No results found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)")
-              buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime), message = Some("No products found"))
+              Future.successful(buildSearchResponse(query = query, found = Some(0), startTime = Some(startTime), message = Some("No products found")))
             }
           }
         } else {
@@ -837,8 +855,8 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(products)
-            futureList = List(productFuture, searchFuture, suggestionFuture)
+            val suggestionFuture = IndexableElement.addToIndex(products.filter(p=> p.isOem.getOrElse(false) == false))
+            futureList = List(productFuture,searchFuture, suggestionFuture)
           }
 
           val future: Future[Result] = Future.sequence(futureList) map { result =>
@@ -894,6 +912,7 @@ object ProductController extends BaseController {
       id: String) = ContextAction.async { implicit context => implicit request =>
     val update = new ProductUpdate()
     val feedTimestamp = request.getQueryString("feedTimestamp")
+    val startTime = System.currentTimeMillis()
 
     if (feedTimestamp.isDefined) {
       update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
@@ -901,8 +920,19 @@ object ProductController extends BaseController {
       update.deleteByQuery(s"productId:$id")
     }
 
-    val future: Future[Result] = update.process(solrServer).map( response => {
-      NoContent
+    val future: Future[Result] = update.process(solrServer).flatMap( response => {
+      val storage = withNamespace(storageFactory)
+      storage.deleteProduct(id).map { lastError =>
+        if (lastError.ok) {
+          NoContent
+        } else {
+          InternalServerError(Json.obj(
+            "metadata" -> Json.obj(
+              "time" -> (System.currentTimeMillis() - startTime)),
+            "message" -> s"Unable to delete product $id"))
+        }
+
+      }
     })
 
     withErrorHandling(future, s"Cannot delete product [$id  ]")

@@ -188,7 +188,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
     "brand" -> "brands"
   )
 
-  override def responseName(source: String) : String = source2ResponseName.get(source).getOrElse(source)
+  override def responseName(source: String) : String = source2ResponseName.getOrElse(source, source)
 
   override def sources() = typeToClass.keySet
 
@@ -215,7 +215,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
           for (group <- command.getValues) {
             val `type` = if (group.getGroupValue == null) "userQuery" else group.getGroupValue
-            val clazz = typeToClass.get(`type`).getOrElse(null)
+            val clazz = typeToClass.get(`type`).orNull
 
             if (clazz != null) {
               val docs = group.getResult.map(doc => amendId(doc, `type`))

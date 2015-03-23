@@ -43,6 +43,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MaxRuleIndexBatchSize = getConfig("index.rule.batchsize.max", 100)
   lazy val MaxUpdateFacetBatchSize = getConfig("index.facet.batchsize.max", 100)
   lazy val SearchCustomParams = searchRequestCustomParams
+  lazy val FacetTtl = getConfig("facet.ttl", 60 * 30)
 
   // @todo deprecate category collections
   lazy val CategoryPreviewCollection = getConfig("preview.collection.category", "categoriesPreview")
@@ -53,7 +54,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val FacetPublicCollection = getConfig("public.collection.facet", "facetsPublic") 
   lazy val SuggestCollection = getConfig("public.collection.suggest", "autocomplete")
   lazy val CategoryCacheTtl = getConfig("category.cache.ttl", 60 * 10)
-  lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 40)
+  lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 60)
   lazy val MaxBrandPaginationLimit = getConfig("pagination.limit.max", 3000)
   lazy val DefaultPaginationLimit = getConfig("pagination.limit.default", 10)
   lazy val MaxFacetPaginationLimit = getConfig("facet.pagination.limit.max", 5000)

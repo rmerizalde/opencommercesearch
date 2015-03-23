@@ -205,10 +205,11 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
       val listPrice = s"listPrice$country"
       val salePrice = s"salePrice$country"
       val discountPercent = s"discountPercent$country"
+      val isOnSale = s"onsale$country"
 
       val collapseMethod = if (request == null) null else request.getQueryString("groupcollapse.method").orNull
 
-      setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent,color,colorFamily")
+      setParam("groupcollapse.fl", s"$listPrice,$salePrice,$discountPercent,color,colorFamily,isRetail,isOutlet,$isOnSale")
 
       // this is a temporal param, after testing it will either be removed or made permanent for filter grouping
       if ("ords" == collapseMethod) {
@@ -218,6 +219,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         set(s"f.$discountPercent.sf", "min", "max")
         set("f.color.sf", "count")
         set("f.colorFamily.sf", "distinct")
+        set("f.isRetail.sf", "bucket")
+        set("f.isOutlet.sf", "bucket")
+        set(s"f.$isOnSale.sf", "bucket")
       } else {
         setParam("groupcollapse.ff", "isCloseout")
       }
@@ -301,10 +305,10 @@ private object Query {
       if (decoded == url) {
         return url
       }
-      return decodeUrl(decoded, encoding)
+      decodeUrl(decoded, encoding)
     } catch {
       case iae: IllegalArgumentException =>
-        return url
+        url
     }
   }
 
@@ -350,7 +354,7 @@ class ProductMoreLikeThisQuery(pid: String, site: String)(implicit context: Cont
     setRequestHandler("/mlt")
     if (StringUtils.isNotBlank(site)) {
       //return only products for the given site
-      addFilterQuery(s"category:0.${site}")
+      addFilterQuery(s"category:0.$site")
     }
     //skip toos products from the similar results
     addFilterQuery("isToos:false")
@@ -359,7 +363,7 @@ class ProductMoreLikeThisQuery(pid: String, site: String)(implicit context: Cont
   }
   
   override def withGrouping(): ProductQuery = {
-    withGrouping("filter", groupTotalCount, 1, false)
+    withGrouping("filter", groupTotalCount, 1, collapse = false)
   }
 }
 
@@ -382,10 +386,10 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
      request.getQueryString("outlet") match {
       case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
       case _ =>
-        val isOnSaleParam = "onsale" + context.lang.country
-        val isOnSale = request.getQueryString("onsale")
-        isOnSale match {
-          case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
+        val isOnSaleParamName = "onsale" + context.lang.country
+        val isOnSaleParam = request.getQueryString("onsale")
+        isOnSaleParam match {
+          case Some(isOnSale) => addFilterQuery(s"$isOnSaleParamName:$isOnSale")
           case _ => addFilterQuery("isOutlet:false")
         }
      }
@@ -433,7 +437,7 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
   import Query._
   import org.opencommercesearch.api.Collection._
 
-  private var closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse(StringUtils.EMPTY).split(",").toSet
   
   def this(facetField: String)(implicit context: Context, request: Request[AnyContent]) = this(facetField, null)
 
@@ -457,17 +461,14 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     if (request != null) {
       
       request.getQueryString("outlet") match {
-	    case Some(isOutlet) => {
+	    case Some(isOutlet) =>
 	      addFilterQuery(s"isOutlet:$isOutlet")
-	    }
 	    case _ =>
-	      val isOnSaleParam = "onsale" + context.lang.country;
-	      val isOnSale = request.getQueryString("onsale")
-	      isOnSale match {
-	        case Some(isOnSale) => addFilterQuery(s"$isOnSaleParam:$isOnSale")
-	        case _ => {
-	          addFilterQuery("isOutlet:false")
-	        }
+	      val isOnSaleParamName = "onsale" + context.lang.country
+	      val isOnSaleParam = request.getQueryString("onsale")
+	      isOnSaleParam match {
+	        case Some(isOnSale) => addFilterQuery(s"$isOnSaleParamName:$isOnSale")
+	        case _ => addFilterQuery("isOutlet:false")
 	      }
 	  }
     } else {

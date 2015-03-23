@@ -1,9 +1,8 @@
 package org.apache.solr.handler.component;
 
-import java.io.IOException;
-import java.util.*;
-
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.*;
 import org.apache.lucene.search.FieldCache;
@@ -11,17 +10,22 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.util.BytesRef;
 import org.apache.solr.common.params.CommonParams;
 import org.apache.solr.common.params.GroupCollapseParams;
-import org.apache.solr.common.params.GroupParams;
 import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.apache.solr.schema.FieldType;
 import org.apache.solr.schema.SchemaField;
-import org.apache.solr.search.*;
+import org.apache.solr.search.DocIterator;
+import org.apache.solr.search.DocList;
+import org.apache.solr.search.DocSet;
+import org.apache.solr.search.SolrIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.solr.handler.component.GroupCollapseComponent.COLOR_FIELD;
+import java.io.IOException;
+import java.util.*;
+
 import static org.apache.solr.handler.component.GroupCollapseComponent.COLORFAMILY_FIELD;
+import static org.apache.solr.handler.component.GroupCollapseComponent.COLOR_FIELD;
 
 public class GroupCollapseSummary {
 	
@@ -119,16 +123,16 @@ public class GroupCollapseSummary {
             for (Map.Entry<String, DocList> entry : expanded.entrySet()) {
                 String groupValue = entry.getKey();
 
-                NamedList group = (NamedList) groups.get(groupValue);
+                    NamedList group = (NamedList) groups.get(groupValue);
                 if (group == null){
                     group = new NamedList();
                     groups.add(groupValue, group);
                 }
 
-
-                Set<Long> ordSet = new HashSet<Long>();
+                Map<Long, Integer> ordMap = new LinkedHashMap<Long, Integer>();
                 long max = Long.MIN_VALUE;
                 long min = Long.MAX_VALUE;
+
 
                 DocSet docSet = processedFilter.answer.intersection(entry.getValue());
 
@@ -136,16 +140,20 @@ public class GroupCollapseSummary {
                     docSet = entry.getValue();
                 }
 
-                for (DocIterator it = docSet.iterator(); it.hasNext(); ) {
+                for (DocIterator it = entry.getValue().iterator(); it.hasNext(); ) {
                     int docId = it.nextDoc();
 
-                    valueSet.setDocument(docId);
-                    // take first ord
-                    long ord = valueSet.nextOrd();
-                    if (ord != SortedSetDocValues.NO_MORE_ORDS) {
-                        max = Math.max(ord, max);
-                        min = Math.min(ord, min);
-                        ordSet.add(ord);
+                    if (docSet.exists(docId)) {
+                        valueSet.setDocument(docId);
+                        // take first ord
+                        long ord = valueSet.nextOrd();
+                        if (ord != SortedSetDocValues.NO_MORE_ORDS) {
+                            max = Math.max(ord, max);
+                            min = Math.min(ord, min);
+
+                            Integer count = (Integer) ObjectUtils.defaultIfNull(ordMap.get(ord), NumberUtils.INTEGER_ZERO);
+                            ordMap.put(ord, count + 1);
+                        }
                     }
                 }
 
@@ -153,30 +161,43 @@ public class GroupCollapseSummary {
 
                 for (String function : fieldSummaryFunctions) {
                     if ("min".equals(function)) {
-                        if (ordSet.size() > 0 ) {
+                        if (ordMap.size() > 0 ) {
                             valueSet.lookupOrd(min, bytesRef);
                             fieldSummary.add("min", fieldType.toObject(schemaField, bytesRef));
                         }
                     } else if ("max".equals(function)) {
-                        if (ordSet.size() > 0 ) {
+                        if (ordMap.size() > 0 ) {
                             valueSet.lookupOrd(max, bytesRef);
                             fieldSummary.add("max", fieldType.toObject(schemaField, bytesRef));
                         }
                     } else if ("count".equals(function)) {
-                        fieldSummary.add("count", ordSet.size());
+                        fieldSummary.add("count", ordMap.size());
                     } else if ("distinct".equals(function)) {
-                        Set<Object> objSet = new HashSet<Object>(ordSet.size());
-                        for (Long ord : ordSet) {
+                        Set<Object> objSet = new LinkedHashSet<Object>(ordMap.size());
+                        for (Long ord : ordMap.keySet()) {
                             valueSet.lookupOrd(ord, bytesRef);
                             objSet.add(fieldType.toObject(schemaField, bytesRef));
                         }
                         fieldSummary.add("distinct", objSet);
+                    } else if ("bucket".equals(function)) {
+                        if (ordMap.size() > 0) {
+                            Map<Object, Integer> map = new LinkedHashMap<Object, Integer>(ordMap.size());
+
+                            for (Map.Entry<Long, Integer> e : ordMap.entrySet()) {
+                                valueSet.lookupOrd(e.getKey(), bytesRef);
+                                map.put(fieldType.toObject(schemaField, bytesRef), e.getValue());
+                            }
+
+                            fieldSummary.add("buckets", map);
+                        }
                     } else {
                         throw new IllegalArgumentException("Invalid function " + function);
                     }
                 }
 
-                group.add(fieldName, fieldSummary);
+                if (fieldSummary.size() > 0) {
+                    group.add(fieldName, fieldSummary);
+                }
             }
         }
 

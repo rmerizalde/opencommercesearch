@@ -19,111 +19,100 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.Json
+import play.api.libs.json._
 
-sealed case class PriceSummary(var min: BigDecimal, var max: BigDecimal) {
-  def process(price: BigDecimal) = {
-    min = min.min(price)
-    max = max.min(price)
-  }
-}
-
-private object PriceSummary {
-  implicit val readsPriceSummary = Json.reads[PriceSummary]
-  implicit val writesPriceSummary = Json.writes[PriceSummary]
-}
-
-sealed case class DiscountSummary(var min: Int, var max: Int) {
-  def process(discount: Int) = {
-    min = min.min(discount)
-    max = max.min(discount)
-  }
-}
-
-private object DiscountSummary {
-  implicit val readsDiscountSummary = Json.reads[DiscountSummary]
-  implicit val writesDiscountSummary = Json.writes[DiscountSummary]
-}
-
-sealed case class ColorSummary(
+/**
+ * Provides functionality to summarize field values. Supports the same functions as the group summary component in the
+ * search engine
+ */
+sealed case class FieldSummary[T] (
+  values: Option[Seq[T]],
+  var min: Option[T] = None,
+  var max: Option[T] = None,
   var count: Option[Int] = None,
-  var families: Option[Set[String]] = None) {
+  var distinct: Option[Set[T]] = None,
+  var buckets: Option[Map[String, Int]] = None)(implicit ordering: Ordering[T]) {
 
-  var names: Option[Set[String]] = None
+  def summarize(functions: Seq[String]) = functions.foreach {
+    case "min" => Min()
+    case "max" => Max()
+    case "count" => Count()
+    case "bucket" => Bucket()
+    case "distinct" => Distinct()
+    case _ =>
+  }
 
-  def process(color: Color) {
-    for (name <- color.name) {
-      if (names.isDefined) {
-        names = Some(names.get + name.toLowerCase)
-      } else {
-        names = Some(Set(name.toLowerCase))
-      }
-      count = Some(names.get.size)
-    }
-    for (family <- color.family) {
-      if (families.isDefined) {
-        families = Some(families.get + family.toLowerCase)
-      } else {
-        families = Some(Set(family.toLowerCase))
-      }
-    }
+  private val Min = () => min = values.map(_.min(ordering))
+  private val Max = () => max = values.map(_.max(ordering))
+  private val Count = () => count = values.map(_.toSet.size)
+  private val Bucket = () => buckets = values.map(_.map(_.toString).foldLeft(Map.empty[String, Int].withDefaultValue(0))(bucket))
+  private val Distinct = () => distinct = values.map(_.toSet)
+
+  private def bucket(bucketMap: Map[String, Int], value: String): Map[String, Int] = {
+    val count: Int = bucketMap(value) + 1
+    bucketMap + (value -> count)
   }
 }
 
-private object ColorSummary {
-  implicit val readsDiscountSummary = Json.reads[ColorSummary]
-  implicit val writesDiscountSummary = Json.writes[ColorSummary]
+object FieldSummary {
+  implicit def FieldSummaryWrites[T](implicit fmt: Writes[T]): Writes[FieldSummary[T]] = new Writes[FieldSummary[T]] {
+    def writes(fs: FieldSummary[T]): JsValue = {
+      val fields = Seq(
+        fs.min.map(m => ("min", fmt.writes(m))),
+        fs.max.map(m => ("max", fmt.writes(m))),
+        fs.count.map(c => ("count", Json.toJson(c))),
+        fs.distinct.map(d => ("distinct", Json.toJson(d))),
+        fs.buckets.map(b => ("buckets", Json.toJson(b))))
+
+      new JsObject(fields.flatten)
+    }
+  }
 }
 
 case class ProductSummary(
-  var listPrice: Option[PriceSummary] = None,
-  var salePrice: Option[PriceSummary] = None,
-  var discountPercent: Option[DiscountSummary] = None,
-  var color: Option[ColorSummary] = None) {
-
-  private def processPrice(price: BigDecimal, priceSummary: Option[PriceSummary]) = priceSummary match {
-    case Some(summary) => summary.process(price); priceSummary
-    case None => Some(new PriceSummary(price, price))
-  }
-
-  private def processDiscount(discount: Int, discountSummary: Option[DiscountSummary]) = discountSummary match {
-    case Some(summary) => summary.process(discount); discountSummary
-    case None => Some(new DiscountSummary(discount, discount))
-  }
-
-  private def processColor(color: Color, colorSummary: Option[ColorSummary]) = colorSummary match {
-    case Some(summary) =>
-      summary.process(color)
-      colorSummary
-    case None =>
-      val summary = new ColorSummary()
-      summary.process(color)
-      Some(summary)
-  }
-
-  def process(sku: Sku) = {
-    var processed = false
-    for (price <- sku.listPrice) {
-      listPrice = processPrice(price, listPrice)
-      processed = true
-    }
-    for (price <- sku.salePrice) {
-      salePrice = processPrice(price, salePrice)
-      processed = true
-    }
-    for (discount <- sku.discountPercent) {
-      discountPercent = processDiscount(discount, discountPercent)
-      processed = true
-    }
-    for (c <- sku.color) {
-      color = processColor(c, color)
-      processed = true
-    }
-    processed
-  }
+  var listPrice: Option[FieldSummary[BigDecimal]] = None,
+  var salePrice: Option[FieldSummary[BigDecimal]] = None,
+  var discountPercent: Option[FieldSummary[Int]] = None,
+  var color: Option[FieldSummary[String]] = None,
+  var colorFamily: Option[FieldSummary[String]] = None,
+  var isRetail: Option[FieldSummary[Boolean]] = None,
+  var isOutlet: Option[FieldSummary[Boolean]] = None,
+  var onSale: Option[FieldSummary[Boolean]] = None) {
 }
 
 object ProductSummary {
-  implicit val readsProductSummary = Json.reads[ProductSummary]
   implicit val writesProductSummary = Json.writes[ProductSummary]
+  val MinMax = Seq("min", "max")
+  val Count = Seq("count")
+  val Distinct = Seq("distinct")
+  val Bucket = Seq("bucket")
+
+  def summarize(product: Product): Option[ProductSummary] = {
+    def fieldSummary[T](values: Seq[Option[T]], functions: Seq[String])(implicit ordering: Ordering[T]) = {
+      values.flatten match {
+        case Seq() => None
+        case v =>
+          val fs = FieldSummary[T](Some(v))
+          fs.summarize(functions)
+          Some(fs)
+      }
+    }
+
+    product.skus.map { skus =>
+      skus.map(sku => (sku.listPrice, sku.salePrice, sku.discountPercent, sku.color.map(_.name).flatten, sku.color.map(_.family).flatten, sku.isRetail, sku.isOutlet, sku.onSale))
+    } match {
+      case Some(tuples) =>
+        Some(new ProductSummary(
+          fieldSummary(tuples.map(_._1), MinMax),
+          fieldSummary(tuples.map(_._2), MinMax),
+          fieldSummary(tuples.map(_._3), MinMax),
+          fieldSummary(tuples.map(_._4), Count),
+          fieldSummary(tuples.map(_._5), Distinct),
+          fieldSummary(tuples.map(_._6), Bucket),
+          fieldSummary(tuples.map(_._7), Bucket),
+          fieldSummary(tuples.map(_._8), Bucket)))
+      case None => None
+    }
+
+  }
 }

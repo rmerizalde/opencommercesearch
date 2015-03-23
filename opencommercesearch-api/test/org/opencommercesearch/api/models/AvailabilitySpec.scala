@@ -19,14 +19,11 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
-import play.api.libs.json.Json
+import org.specs2.mock.Mockito
+import org.specs2.mutable.Specification
 
-import java.util.Date
-
-import org.opencommercesearch.api.controllers.BaseSpec
-
-class AvailabilitySpec extends BaseSpec {
-  import Availability._
+class AvailabilitySpec extends Specification with Mockito {
+  import org.opencommercesearch.api.models.Availability._
 
   "Availability" should {
 

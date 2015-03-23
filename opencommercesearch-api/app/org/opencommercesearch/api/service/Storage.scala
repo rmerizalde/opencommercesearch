@@ -87,6 +87,21 @@ trait Storage[T] {
    */
   def saveProduct(product: Product*) : Future[T]
 
+  /**
+   * Deletes the product with the given id
+   * @param product is the product to delete
+   * @return the results of writing the last product
+   */
+  def deleteProduct(product: Product) : Future[T] = deleteProduct(product.id.orNull)
+
+
+  /**
+   * Deletes the product with the given id
+   * @param id is the id of the product to delete
+   * @return the results of writing the last product
+   */
+  def deleteProduct(id: String) : Future[T]
+
     /**
    * Saves the given list of categories. Returns the result of the last write
    * @param category is one or more categories to store

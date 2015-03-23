@@ -25,6 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.opencommercesearch.SearchServer;
 import org.opencommercesearch.SearchServerException;
@@ -33,7 +37,9 @@ import atg.deployment.common.Status;
 import atg.deployment.common.event.DeploymentEvent;
 import atg.deployment.common.event.DeploymentEventListener;
 import atg.nucleus.GenericService;
+import atg.nucleus.ServiceException;
 import atg.repository.RepositoryException;
+
 import org.opencommercesearch.feed.FacetFeed;
 import org.opencommercesearch.feed.RuleFeed;
 import org.opencommercesearch.feed.CategoryFeed;
@@ -64,6 +70,7 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     private List<String> categoryTriggerItemDescriptorNames;
     private boolean enableEvaluation;
     private EvaluationServiceSender evaluationServiceSender;
+    private ExecutorService executor;
 
     /**
      * Whether or not the indexing deployment listener is enabled.
@@ -183,6 +190,18 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
     }
 
     @Override
+    public void doStartService() throws ServiceException {
+        super.doStartService();
+        executor = Executors.newSingleThreadExecutor();
+    }
+
+    @Override
+    public void doStopService() throws ServiceException {
+        super.doStopService();
+        executor.shutdown();
+    }
+
+    @Override
     public void deploymentEvent(DeploymentEvent event) {
         if(!isEnabled()) {
             if(isLoggingInfo()) {
@@ -216,15 +235,19 @@ public class IndexingDeploymentListener extends GenericService implements Deploy
 
                         String descriptorName = repositoryName + ":" + itemDescriptorName;
                         if(!ruleRan && getRulesTriggerItemDescriptorNames().contains(descriptorName)) {
-                            try {
-                                getRuleFeed().startFeed();
-                                ruleRan = true;
-                            }
-                            catch (Exception ex) {
-                                if(isLoggingError()) {
-                                    logError("Rules REST feed failed", ex);
+                        	ruleRan = true;
+                            executor.execute(new Runnable() {
+                                public void run() {
+                                    try {
+                                        getRuleFeed().startFeed();
+                                    }
+                                    catch (Exception ex) {
+                                        if(isLoggingError()) {
+                                            logError("Rules REST feed failed", ex);
+                                        }
+                                    }
                                 }
-                            }
+                            });
                         }
 
                         if(!facetRan && getFacetsTriggerItemDescriptorNames().contains(descriptorName)) {

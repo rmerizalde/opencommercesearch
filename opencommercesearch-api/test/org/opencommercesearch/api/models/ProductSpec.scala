@@ -19,12 +19,12 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import org.specs2.mock.Mockito
+import org.specs2.mutable.Specification
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
 
-import org.opencommercesearch.api.controllers.BaseSpec
-
-class ProductSpec extends BaseSpec {
+class ProductSpec extends Specification with Mockito {
 
   import org.opencommercesearch.api.models.Availability._
 
