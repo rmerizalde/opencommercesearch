@@ -20,6 +20,7 @@ package org.opencommercesearch.client;
 */
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Represents product summary information for a product.
@@ -42,4 +43,6 @@ public interface ProductSummary {
   public List<String> getColorFamilies();
 
   public Integer getColorCount();
+
+  public Map<String, Integer> getBuckets(String fieldName);
 }

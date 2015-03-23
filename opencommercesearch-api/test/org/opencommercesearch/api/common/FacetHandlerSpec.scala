@@ -13,7 +13,8 @@ import play.api.test.Helpers._
 import play.api.test._
 import reactivemongo.core.commands.LastError
 
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 class FacetHandlerSpec extends BaseSpec {
 
@@ -84,31 +85,34 @@ class FacetHandlerSpec extends BaseSpec {
     }
 
     "Remove facet filters when blacklisted" in {
-      val facet = Facet.getInstance()
-      facet.setId("facetId")
-      facet.setBlackList(Seq("bluee"))
-      storage.findFacets(any, any) returns Future.successful(Seq(facet))
-      val facetFields: util.List[FacetField] = new util.LinkedList[FacetField]()
-      val facetField = new FacetField("colorFamily")
-      facetField.add("blue", 34)
-      facetField.add("bluee", 1)
-      facetFields.add(facetField)
-      queryResponse.getFacetFields() returns facetFields
+      running(FakeApplication()) {
+        val facet = Facet.getInstance()
+        facet.setId("facetId")
+        facet.setBlackList(Seq("bluee"))
+        storage.findFacets(any, any) returns Future.successful(Seq(facet))
+        val facetFields: util.List[FacetField] = new util.LinkedList[FacetField]()
+        val facetField = new FacetField("colorFamily")
+        facetField.add("blue", 34)
+        facetField.add("bluee", 1)
+        facetFields.add(facetField)
+        queryResponse.getFacetFields returns facetFields
 
-      val rawFacetData = new NamedList[AnyRef]()
-      rawFacetData.add("name", "colorFamily")
-      rawFacetData.add("id", "facetId")
-      rawFacetData.add("fieldName", "colorFamily")
-      rawFacetData.add("minBuckets", "1")
+        val rawFacetData = new NamedList[AnyRef]()
+        rawFacetData.add("name", "colorFamily")
+        rawFacetData.add("id", "facetId")
+        rawFacetData.add("fieldName", "colorFamily")
+        rawFacetData.add("minBuckets", "1")
 
-      facetHandler = new FacetHandler(solrQuery, queryResponse, Array.empty[FilterQuery], Seq(rawFacetData), storage)
+        facetHandler = new FacetHandler(solrQuery, queryResponse, Array.empty[FilterQuery], Seq(rawFacetData), storage)
 
-      val facets = facetHandler.getFacets
-
-      facets.size mustEqual 1
-      facets(0).getName mustEqual "colorFamily"
-      facets(0).filters.get.size mustEqual 1
-      facets(0).filters.get(0).name.get mustEqual "blue"
+        val future = facetHandler.getFacets map { facets =>
+          facets.size mustEqual 1
+          facets(0).getName mustEqual "colorFamily"
+          facets(0).filters.get.size mustEqual 1
+          facets(0).filters.get(0).name.get mustEqual "blue"
+        }
+        Await.result(future, Duration.Inf)
+      }
     }
   }
 

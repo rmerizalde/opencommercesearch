@@ -47,11 +47,11 @@ public class RuleTargetAssetServiceTest {
         Collection updates = new ArrayList();
         AssetEditorInfo editorInfo = mockEditorInfo("facetRule");
         ruleTargetAssetService.validateNewAsset(editorInfo, updates);
-        verify(defaultValidator).validateNewAsset(editorInfo, updates);
+        verify(defaultValidator).validateNewAsset(editorInfo, updates, null);
         
         editorInfo = mockEditorInfo("redirectRule");
         ruleTargetAssetService.validateNewAsset(editorInfo, updates);
-        verify(redirectValidator).validateNewAsset(editorInfo, updates);
+        verify(redirectValidator).validateNewAsset(editorInfo, updates, null);
     }
 
     @Test
@@ -59,11 +59,11 @@ public class RuleTargetAssetServiceTest {
         Collection updates = new ArrayList();
         AssetEditorInfo editorInfo = mockEditorInfo("facetRule");
         ruleTargetAssetService.validateUpdateAsset(editorInfo, updates);
-        verify(defaultValidator).validateUpdateAsset(editorInfo, updates);
+        verify(defaultValidator).validateUpdateAsset(editorInfo, updates, null);
         
         editorInfo = mockEditorInfo("redirectRule");
         ruleTargetAssetService.validateUpdateAsset(editorInfo, updates);
-        verify(redirectValidator).validateUpdateAsset(editorInfo, updates);
+        verify(redirectValidator).validateUpdateAsset(editorInfo, updates, null);
     }
 
     private AssetEditorInfo mockEditorInfo(String itemDescriptorName) throws RepositoryException{

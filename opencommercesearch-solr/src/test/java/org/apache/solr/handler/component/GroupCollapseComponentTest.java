@@ -204,6 +204,8 @@ public class GroupCollapseComponentTest {
         verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+        verify(params).getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
+
         verifyNoMoreInteractions(rb);
         verifyNoMoreInteractions(params);
 
@@ -235,6 +237,7 @@ public class GroupCollapseComponentTest {
         verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+        verify(params).getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
         verifyNoMoreInteractions(rb);
         verifyNoMoreInteractions(params);
 
@@ -265,6 +268,7 @@ public class GroupCollapseComponentTest {
         verify(params).getBool(GroupCollapseParams.GROUP_COLLAPSE, false);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FL);
         verify(params).get(GroupCollapseParams.GROUP_COLLAPSE_FF);
+        verify(params).getParams(GroupCollapseParams.GROUP_COLLAPSE_FQ);
         verifyNoMoreInteractions(rb);
         verifyNoMoreInteractions(params);
 
