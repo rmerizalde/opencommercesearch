@@ -864,39 +864,6 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
-  "send 204 when a product is deleted by id" in new Products {
-    running(FakeApplication()) {
-      testDeleteById(NO_CONTENT)
-    }
-  }
-
-    "send 500 when a product delete by id fails" in new Products {
-    running(FakeApplication()) {
-      testDeleteById(INTERNAL_SERVER_ERROR)
-    }
-  }
-
-
-  def testDeleteById(responseCode: Int) = {
-    val productId = "PRD0001"
-
-    val url = routes.ProductController.deleteById(productId).url
-    val fakeRequest = FakeRequest(DELETE, url)
-
-    val lastError = mock[LastError]
-    val storage = storageFactory.getInstance("namespace")
-
-    lastError.ok returns responseCode == NO_CONTENT
-    storage.deleteProduct(any[String]) returns Future.successful(lastError)
-    setupUpdate
-
-    val result = route(fakeRequest)
-
-    validateUpdateResult(result.get, responseCode)
-    there was one(storage).deleteProduct(productId)
-  }
-
-
   /**
    * Helper method to validate the debug section is available in the metadata
    * @param json

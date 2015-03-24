@@ -416,10 +416,6 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
     // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
     Future.sequence(product.map(p => productCollection.save(p))).map(responses => responses.lastOption.orNull)
   }
-
-  def deleteProduct(id: String) : Future[LastError] = {
-    productCollection.remove(BSONDocument("_id" -> id))
-  }
   
   def saveCategory(category: Category*) : Future[LastError] = {
     // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
