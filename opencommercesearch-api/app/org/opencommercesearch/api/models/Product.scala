@@ -212,17 +212,6 @@ case class Product (
 
 case class ProductList(products: Seq[Product], feedTimestamp: Long) {
 
-  private def isPoos(country: Country): Boolean = country.availability match {
-    case Some(availability) => availability.status.orNull == Availability.PermanentlyOutOfStock
-    case None => false
-  }
-
-  private def hasNonPoos(sku: Sku): Boolean = sku.countries match {
-    case Some(countries) => countries.collectFirst {
-      case country if !isPoos(country) => true
-    }.getOrElse(false)
-    case None => false
-  }
 
   def toDocuments(service: CategoryService)(implicit context: Context) : util.List[SolrInputDocument] = {
     def setSize(doc: SolrInputDocument, size: Size) = {
@@ -245,7 +234,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
            skus <- product.skus; listRank <- product.listRank) {
         val isOem = product.isOem.getOrElse(false)
         val nonPoosSku = skus.collectFirst {
-          case sku: Sku if hasNonPoos(sku) => sku
+          case sku: Sku if sku.hasNonPoos() => sku
         }
 
         if (nonPoosSku.isDefined && (IndexOemProductsEnabled || !isOem)) {
@@ -259,7 +248,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           var skuSort = 0
 
           for (sku: Sku <- skus) {
-            if (hasNonPoos(sku)) {
+            if (sku.hasNonPoos()) {
               expectedDocCount += 1
 
               for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
