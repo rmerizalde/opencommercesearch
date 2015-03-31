@@ -22,6 +22,7 @@ package org.opencommercesearch.api.controllers
 import java.{util => jutil}
 import javax.ws.rs.{PathParam, QueryParam}
 
+import org.opencommercesearch.api.i18n.Lang
 import com.wordnik.swagger.annotations._
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
@@ -39,7 +40,6 @@ import org.opencommercesearch.api.service.CategoryService
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
-import play.api.i18n.Lang
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
@@ -882,7 +882,7 @@ object ProductController extends BaseController {
     val update = new ProductUpdate()
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
     var future: Future[Result] = null
-    if (context.isPublic && context.lang == Lang.apply("EN")) {
+    if (context.isPublic && context.lang == Lang.English) {
       val updateSuggestionsQuery = new AsyncUpdateRequest()
       updateSuggestionsQuery.setParam("collection", SuggestCollection)
       updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)

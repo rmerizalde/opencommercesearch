@@ -19,8 +19,8 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
+import org.opencommercesearch.api.i18n.Lang
 import play.api.Logger
-import play.api.i18n.Lang
 import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.collection.JavaConversions._
@@ -104,7 +104,7 @@ object IndexableElement {
    * @return Future with the index result
    */
   def addToIndex(elements : Seq[IndexableElement], fetchCount: Boolean = false,feedTimeStamp:Long = System.currentTimeMillis())(implicit context: Context) : Future[UpdateResponse] = {
-    if (context.isPublic && context.lang == Lang.apply("EN")) {
+    if (context.isPublic && context.lang == Lang.English) {
       val solrDocs = getDocsToIndex(elements, fetchCount, feedTimeStamp)
 
       val updateQuery = new AsyncUpdateRequest()
