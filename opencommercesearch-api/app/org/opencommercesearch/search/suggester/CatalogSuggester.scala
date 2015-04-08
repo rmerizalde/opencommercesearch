@@ -188,12 +188,23 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
     "brand" -> "brands"
   )
 
+  val DoubleQuote = "\""
+
+  def quote(str: String): String = str match {
+    case null => str
+    case "" => str
+    case _ if !str.startsWith(DoubleQuote) => quote(DoubleQuote + str)
+    case _ if !str.endsWith(DoubleQuote) => str + DoubleQuote
+    case _ => str
+  }
+
   override def responseName(source: String) : String = source2ResponseName.getOrElse(source, source)
 
   override def sources() = typeToClass.keySet
 
   protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
-    val query = new SolrQuery(q)
+
+    val query = new SolrQuery(quote(q))
     query.setParam("collection", SuggestCollection)
       .setFields("id", "userQuery")
       .setFilterQueries(s"siteId:$site")
