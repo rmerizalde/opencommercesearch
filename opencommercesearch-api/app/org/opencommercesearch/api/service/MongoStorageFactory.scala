@@ -51,6 +51,8 @@ class MongoStorageFactory extends StorageFactory[LastError] {
     this.classLoader = classLoader
   }
 
+  def getDatabase(name: String) = connection(name)
+
   /**
    * Returns the storage for the given namespace
    *
