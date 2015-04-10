@@ -19,5 +19,5 @@ package org.opencommercesearch.api.i18n
 */
 
 object Lang {
-  val English = play.api.i18n.Lang.apply("EN")
+  val English = "en"
 }

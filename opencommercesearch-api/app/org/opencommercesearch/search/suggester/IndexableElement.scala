@@ -104,7 +104,7 @@ object IndexableElement {
    * @return Future with the index result
    */
   def addToIndex(elements : Seq[IndexableElement], fetchCount: Boolean = false,feedTimeStamp:Long = System.currentTimeMillis())(implicit context: Context) : Future[UpdateResponse] = {
-    if (context.isPublic && context.lang == Lang.English) {
+    if (context.isPublic && context.lang.language == Lang.English) {
       val solrDocs = getDocsToIndex(elements, fetchCount, feedTimeStamp)
 
       val updateQuery = new AsyncUpdateRequest()
