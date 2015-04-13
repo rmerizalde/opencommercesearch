@@ -25,7 +25,6 @@ import org.opencommercesearch.api.Global._
 import org.apache.solr.client.solrj.impl.{AsyncCloudSolrServer, AsyncHttpSolrServer}
 import org.apache.solr.common.cloud.ClusterState
 import scala.collection.JavaConverters._
-import java.io.StringWriter
 import org.noggit.{CharArr, JSONWriter}
 
 object ApiInfoController extends BaseController {

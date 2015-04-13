@@ -49,6 +49,13 @@ case class Sku(
     case Some(a) => a.status
     case None => None
   }
+
+  def hasNonPoos(): Boolean = countries match {
+    case Some(countries) => countries.collectFirst {
+      case country if !country.isPoos() => true
+    }.getOrElse(false)
+    case None => false
+  }
 }
 
 object Sku {

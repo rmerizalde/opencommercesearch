@@ -34,6 +34,10 @@ case class Country(
   var url: Option[String] = None,
   var availability: Option[Availability] = None) {
 
+  def isPoos(): Boolean = availability match {
+    case Some(availability) => availability.status.orNull == Availability.PermanentlyOutOfStock
+    case None => false
+  }
 }
 
 
