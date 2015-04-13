@@ -7,7 +7,7 @@
     <groupId>org.opencommercesearch</groupId>
     <artifactId>opencommercesearch-atg-pub</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.11-SNAPSHOT</version>
+    <version>0.7.12-SNAPSHOT</version>
     <inceptionYear>2012</inceptionYear>
     <licenses>
         <license>
@@ -71,7 +71,7 @@
       <dependency>
         <groupId>org.opencommercesearch</groupId>
         <artifactId>opencommercesearch-atg-common</artifactId>
-        <version>0.7.11-SNAPSHOT</version>
+        <version>0.7.12-SNAPSHOT</version>
       </dependency>
 
       <dependency>
