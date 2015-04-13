@@ -22,9 +22,11 @@ package org.opencommercesearch.api.controllers
 import java.{util => jutil}
 import javax.ws.rs.{PathParam, QueryParam}
 
+import org.opencommercesearch.api.i18n.Lang
 import com.wordnik.swagger.annotations._
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
+import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.{GroupCommand, QueryResponse, SpellCheckResponse, UpdateResponse}
 import org.apache.solr.client.solrj.util.ClientUtils
 import org.apache.solr.common.util.NamedList
@@ -855,7 +857,7 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(products.filter(p=> p.isOem.getOrElse(false) == false))
+            val suggestionFuture = IndexableElement.addToIndex(filterProducts(productList.products),false,productList.feedTimestamp)
             futureList = List(productFuture,searchFuture, suggestionFuture)
           }
 
@@ -879,6 +881,10 @@ object ProductController extends BaseController {
     }
   }
 
+  private def filterProducts(products: Seq[Product]): Seq[Product] = {
+    products.filter(p => !p.isOem.getOrElse(false) && p.skus.getOrElse(Seq.empty[Sku]).map(s => s.hasNonPoos()).contains(true))
+  }
+
   @ApiOperation(value = "Deletes products", notes = "Deletes products that were not updated in a given feed", httpMethod = "DELETE")
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
@@ -888,15 +894,21 @@ object ProductController extends BaseController {
       @ApiParam(value = "The feed timestamp. All products with a different timestamp are deleted", required = true)
       @QueryParam("feedTimestamp")
       feedTimestamp: Long) = ContextAction.async { implicit context => implicit request =>
-
     val update = new ProductUpdate()
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
-
-    val future: Future[Result] = update.process(solrServer).map( response => {
-      NoContent
-    })
-
-
+    var future: Future[Result] = null
+    if (context.isPublic && context.lang == Lang.English) {
+      val updateSuggestionsQuery = new AsyncUpdateRequest()
+      updateSuggestionsQuery.setParam("collection", SuggestCollection)
+      updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)
+      future = update.process(solrServer).flatMap( response => {
+        updateSuggestionsQuery.process(solrServer).map{response => NoContent }
+      })
+    } else {
+      future = update.process(solrServer).map( response => {
+        NoContent
+      })
+    }
     withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
   }
 

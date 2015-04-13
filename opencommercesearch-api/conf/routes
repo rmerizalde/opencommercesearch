@@ -31,6 +31,10 @@ PUT           /v1/products                                               org.ope
 DELETE        /v1/products                                               org.opencommercesearch.api.controllers.ProductController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long)
 DELETE        /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.deleteById(version: Int = 1, id: String)
 
+# boosts
+GET           /v1/boosts/:id                                             org.opencommercesearch.api.controllers.BoostController.findById(version: Int = 1, id: String)
+PUT           /v1/boosts                                                 org.opencommercesearch.api.controllers.BoostController.bulkCreateOrUpdate(version: Int = 1)
+
 # category routes
 GET           /v1/categories/suggestions                                 org.opencommercesearch.api.controllers.CategoryController.findSuggestions(version: Int = 1, q: String, site: String)
 GET           /v1/categories                                             org.opencommercesearch.api.controllers.CategoryController.findBySite(version: Int = 1, site: String, outlet: Boolean ?= false)
@@ -70,6 +74,7 @@ GET           /api-docs/products                                         control
 GET           /api-docs/queries                                          controllers.ApiHelpController.getResource(path = "queries")
 GET           /api-docs/facets                                           controllers.ApiHelpController.getResource(path = "facets")
 GET           /api-docs/rules                                            controllers.ApiHelpController.getResource(path = "rules")
+GET           /api-docs/boosts                                           controllers.ApiHelpController.getResource(path = "boosts")
 
 GET           /images/*file                                              controllers.Assets.at(path="/public/images", file)
 GET           /assets/*file                                              controllers.Assets.at(path="/public", file)
