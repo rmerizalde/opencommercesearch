@@ -897,7 +897,7 @@ object ProductController extends BaseController {
     val update = new ProductUpdate()
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
     var future: Future[Result] = null
-    if (context.isPublic && context.lang == Lang.English) {
+    if (context.isPublic && context.lang.language == Lang.English) {
       val updateSuggestionsQuery = new AsyncUpdateRequest()
       updateSuggestionsQuery.setParam("collection", SuggestCollection)
       updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)
