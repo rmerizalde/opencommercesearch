@@ -63,8 +63,14 @@ public class RankingRuleAssetValidator extends DefaultRuleAssetValidator {
     private void validate(AssetEditorInfo editorInfo, String attributeValue) {
         if( StringUtils.countMatches(attributeValue, RuleManager.RANKING_SEPARATOR) > 1) {
             editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, TOO_MANY_PIPE_OPERATOR_ERROR_MSG);
+            if (isLoggingWarning()) {
+                logWarning(TOO_MANY_PIPE_OPERATOR_ERROR_MSG);
+            }
         } else if( StringUtils.endsWith(attributeValue, RuleManager.RANKING_SEPARATOR)){
             editorInfo.getAssetService().addError(RankingRuleProperty.ATTRIBUTE, MISSING_SECOND_EXPRESSION_ERROR_MSG);
+            if (isLoggingWarning()) {
+                logWarning(MISSING_SECOND_EXPRESSION_ERROR_MSG);
+            }
         }
     }
 }
