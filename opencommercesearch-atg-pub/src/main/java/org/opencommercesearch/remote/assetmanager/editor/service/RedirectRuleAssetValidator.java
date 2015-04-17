@@ -48,11 +48,17 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
             //if we are updating the target to something other that SEARCH_PAGES, then show an error
             if(! SEARCH_PAGES.equals(targetProperty.getPropertyValue())) {
                 editorInfo.getAssetService().addError(RuleProperty.TARGET, TARGET_ERROR_MSG);
+                if (isLoggingWarning()) {
+                    logWarning(TARGET_ERROR_MSG);
+                }
             }
         } else {
             String target = (String) currentItem.getPropertyValue(RuleProperty.TARGET);
             if(! SEARCH_PAGES.equals(target)) {
                 editorInfo.getAssetService().addError(RuleProperty.TARGET, TARGET_ERROR_MSG);
+                if (isLoggingWarning()) {
+                    logWarning(TARGET_ERROR_MSG);
+                }
             }
         }
         
@@ -63,6 +69,9 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
             String query = (String) queryProperty.getPropertyValue();
             if("*".equals(query)){
                 editorInfo.getAssetService().addError(RuleProperty.QUERY, QUERY_ERROR_MSG);
+                if (isLoggingWarning()) {
+                    logWarning(QUERY_ERROR_MSG);
+                }
             }
             
             if(StringUtils.isNotBlank(query)) {
@@ -73,6 +82,9 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
             String query = (String) currentItem.getPropertyValue(RuleProperty.QUERY);
             if("*".equals(query)) {
                 editorInfo.getAssetService().addError(RuleProperty.QUERY, QUERY_ERROR_MSG);
+                if (isLoggingWarning()) {
+                    logWarning(QUERY_ERROR_MSG);
+                }
             }
             
             if(StringUtils.isNotBlank(query)) {
@@ -82,6 +94,9 @@ public class RedirectRuleAssetValidator extends DefaultRuleAssetValidator {
         
         if(isEmpty) {
             editorInfo.getAssetService().addError(RuleProperty.QUERY, ERROR_MSG);
+            if (isLoggingWarning()) {
+                logWarning(ERROR_MSG);
+            }
         }
     }
 }
