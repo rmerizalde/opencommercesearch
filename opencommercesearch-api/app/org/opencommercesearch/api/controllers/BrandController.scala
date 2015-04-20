@@ -27,6 +27,7 @@ import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.common.FacetQuery
 import org.opencommercesearch.api.models.{Brand, BrandList, Category}
 import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.util.Timer
 import org.opencommercesearch.api.util.Util._
 import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
@@ -56,18 +57,18 @@ object BrandController extends BaseController with FacetQuery {
 
     Logger.debug("Query brand " + id)
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val storage = withNamespace(storageFactory)
     val storageFuture = storage.findBrand(id, fieldList(allowStar = true)).map( brand => {
       if (brand != null) {
         Logger.debug("Found brand " + id)
         Ok(Json.obj(
-          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "metadata" -> Json.obj("time" -> timer.stop()),
           "brand" -> Json.toJson(brand)))
       } else {
         Logger.debug("Brand " + id + " not found")
         NotFound(Json.obj(
-          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "metadata" -> Json.obj("time" -> timer.stop()),
           "message" -> s"Cannot find brand with id [$id]"
         ))
       }
@@ -228,7 +229,7 @@ object BrandController extends BaseController with FacetQuery {
    @QueryParam("site")
    site: String) = ContextAction.async { implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val brandFacetQuery = new ProductFacetQuery("brandId", site)
       .withPagination()
 
@@ -255,7 +256,7 @@ object BrandController extends BaseController with FacetQuery {
               brandInfoFuture = storage.findBrands(brandIds, fieldList(allowStar = true)).map( brandList => {
                 Ok(Json.obj(
                   "metadata" -> Json.obj(
-                    "time" -> (System.currentTimeMillis() - startTime)),
+                    "time" -> timer.stop()),
                   "brands" -> Json.toJson(brandList))
                 )
               })
@@ -295,7 +296,7 @@ object BrandController extends BaseController with FacetQuery {
    @QueryParam("site")
    site: String) = ContextAction.async { implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val categoryFacetQuery = new ProductFacetQuery("ancestorCategoryId", site)
       .withBrand(id)
       .withPagination()
@@ -309,7 +310,7 @@ object BrandController extends BaseController with FacetQuery {
     val future = categoryService.getBrandTaxonomy(id, site, fieldList(allowStar = true)) flatMap { roots =>
       Future(Ok(Json.obj(
         "metadata" -> Json.obj(
-          "time" -> (System.currentTimeMillis() - startTime)),
+          "time" -> timer.stop()),
         "categories" -> Json.toJson(roots)))
       )
     }
@@ -332,7 +333,7 @@ object BrandController extends BaseController with FacetQuery {
    @QueryParam("site")
    site: String) = ContextAction.async { implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val brandFacetQuery = new ProductFacetQuery("brandId", site)
       .withPagination()
 
@@ -425,7 +426,7 @@ object BrandController extends BaseController with FacetQuery {
                 Future.sequence(resultList).map(brandList => {
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
-                      "time" -> (System.currentTimeMillis() - startTime)),
+                      "time" -> timer.stop()),
                     "brandCategories" -> brandList.foldRight(List.empty[Iterable[JsObject]]) {
                     (iterable, accum) =>
                       iterable :: accum

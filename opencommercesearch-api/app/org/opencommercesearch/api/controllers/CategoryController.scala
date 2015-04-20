@@ -27,6 +27,7 @@ import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.request.AsyncUpdateRequest
 import org.apache.solr.client.solrj.response.FacetField
 import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.util.Timer
 import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.common.FacetQuery
 import org.opencommercesearch.api.models.{Brand, Category, CategoryList}
@@ -64,7 +65,7 @@ object CategoryController extends BaseController with FacetQuery {
       @QueryParam("outlet")
       outlet: Boolean) = ContextAction.async {  implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val site = request.getQueryString("site").orNull
 
     val futures: Seq[Future[Option[Category]]] = StringUtils.split(id, ',') map { catId =>
@@ -120,12 +121,12 @@ object CategoryController extends BaseController with FacetQuery {
       if (cats.size > 1) {
         Ok(Json.obj(
           "metadata" -> Json.obj(
-            "time" -> (System.currentTimeMillis() - startTime)),
+            "time" -> timer.stop()),
           "categories" -> cats))
       } else if (cats.size == 1) {
         Ok(Json.obj(
           "metadata" -> Json.obj(
-            "time" -> (System.currentTimeMillis() - startTime)),
+            "time" -> timer.stop()),
           "category" -> cats(0)))
       }
       else {
@@ -155,7 +156,7 @@ object CategoryController extends BaseController with FacetQuery {
                 @QueryParam("outlet")
                 outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val categoryFacetQuery = new ProductFacetQuery("categoryPath")
       .withFacetPrefix(s"$site.")
       .withFilterQueries()
@@ -191,7 +192,7 @@ object CategoryController extends BaseController with FacetQuery {
                 if(category != null) {
                   Ok(Json.obj(
                     "metadata" -> Json.obj(
-                      "time" -> (System.currentTimeMillis() - startTime)),
+                      "time" -> timer.stop()),
                     "categories" -> category.childCategories))
                 }
                 else {
@@ -303,6 +304,8 @@ object CategoryController extends BaseController with FacetQuery {
     findSuggestionsFor("category", query, site)
   }
 
+  override protected def withCorsHeaders(result: Result): Result = super.withCorsHeaders(result)
+
   @ApiOperation(value = "Return all brands", notes = "Returns all brands for a given category", response = classOf[Brand], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Category not found")))
   @ApiImplicitParams(value = Array(
@@ -323,7 +326,7 @@ object CategoryController extends BaseController with FacetQuery {
      @QueryParam("outlet")
      outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val brandFacetQuery = new ProductFacetQuery("brand", site)
       .withPagination()
 
@@ -357,7 +360,7 @@ object CategoryController extends BaseController with FacetQuery {
             Ok(Json.obj(
                     "metadata" -> Json.obj(
                        "found" -> brandNames.size,
-                       "time" -> (System.currentTimeMillis() - startTime)),
+                       "time" -> timer.stop()),
                     "brands" -> Json.toJson(sortedBrands)
               ))
           } else {

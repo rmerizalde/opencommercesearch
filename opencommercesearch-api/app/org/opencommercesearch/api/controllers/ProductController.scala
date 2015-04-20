@@ -22,7 +22,6 @@ package org.opencommercesearch.api.controllers
 import java.{util => jutil}
 import javax.ws.rs.{PathParam, QueryParam}
 
-import org.opencommercesearch.api.i18n.Lang
 import com.wordnik.swagger.annotations._
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
@@ -34,9 +33,11 @@ import org.opencommercesearch.api.Collection._
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api._
 import org.opencommercesearch.api.common.{FacetHandler, FilterQuery}
+import org.opencommercesearch.api.i18n.Lang
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.models.debug.DebugInfo
 import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.util.Timer
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
@@ -857,7 +858,7 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(filterProducts(productList.products),false,productList.feedTimestamp)
+            val suggestionFuture = IndexableElement.addToIndex(filterProducts(productList.products), fetchCount = false, productList.feedTimestamp)
             futureList = List(productFuture,searchFuture, suggestionFuture)
           }
 
@@ -951,7 +952,7 @@ object ProductController extends BaseController {
       @ApiParam(value = "Partial product title", required = true)
       @QueryParam("q")
       q: String) = ContextAction.async { implicit context => implicit request =>
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val query = new SolrQuery(q)
 
     query.set("group", true)
@@ -978,14 +979,14 @@ object ProductController extends BaseController {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
               "suggestions" -> Json.toJson(
                 products map (Json.toJson(_))))))
             } else {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "suggestions" -> Json.arr()
               )))
             }
@@ -993,7 +994,7 @@ object ProductController extends BaseController {
             Logger.debug(s"Unexpected response found for query $q")
             withCorsHeaders(InternalServerError(Json.obj(
               "metadata" -> Json.obj(
-                "time" -> (System.currentTimeMillis() - startTime)),
+                "time" -> timer.stop()),
               "message" -> "Unable to execute query")))
           }
         }
@@ -1001,7 +1002,7 @@ object ProductController extends BaseController {
         Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime))))))
+            "time" -> timer.stop())))))
       }
     })
     withErrorHandling(future, s"Cannot search for [$q]")
@@ -1023,7 +1024,7 @@ object ProductController extends BaseController {
               @QueryParam("site")
               site: String) = ContextAction.async { implicit context =>  implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val query = new ProductSearchQuery(s"generation_master:$id AND -productId:$id", site)
       .withPagination()
       .withGrouping()
@@ -1038,14 +1039,14 @@ object ProductController extends BaseController {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))))))
             } else {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "products" -> Json.arr()
               )))
             }
@@ -1053,7 +1054,7 @@ object ProductController extends BaseController {
             Logger.debug(s"No generations found for product $id")
             withCorsHeaders(NotFound(Json.obj(
               "metadata" -> Json.obj(
-                "time" -> (System.currentTimeMillis() - startTime)),
+                "time" -> timer.stop()),
               "message" -> s"Cannot find generations for product id [$id]")))
           }
         }
@@ -1061,7 +1062,7 @@ object ProductController extends BaseController {
         Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime))))))
+            "time" -> timer.stop())))))
       }
     })
     withErrorHandling(future, s"Cannot find products for [$id]")
