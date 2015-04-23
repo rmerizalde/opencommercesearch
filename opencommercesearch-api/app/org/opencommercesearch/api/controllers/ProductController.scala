@@ -913,30 +913,64 @@ object ProductController extends BaseController {
     withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
   }
 
+  object FromValue extends Enumeration {
+    type FormValue = Value
+    val index, storage, all = Value
+  }
+
   @ApiOperation(value = "Deletes products", notes = "Deletes the given product", httpMethod = "DELETE")
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "feedTimestamp", value = "The feed timestamp. If provided, only skus with a different timestamp are deleted", required = false, dataType = "long", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "from", value = "Determine if the product will be deleted from index, storage or both", defaultValue = "index", required = false, dataType = "String", paramType = "query")
   ))
   def deleteById(
       version: Int = 1,
       @ApiParam(value = "A product id", required = false)
       @PathParam("id")
       id: String) = ContextAction.async { implicit context => implicit request =>
-    val update = new ProductUpdate()
-    val feedTimestamp = request.getQueryString("feedTimestamp")
+    val timer = new Timer()
+    val from = FromValue.withName(request.getQueryString("from").getOrElse("index"))
+    var future: Future[Result] = null
+    if (!from.equals(FromValue.storage)) {
+      val update = new ProductUpdate()
+      val feedTimestamp = request.getQueryString("feedTimestamp")
 
-    if (feedTimestamp.isDefined) {
-      update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
+      if (feedTimestamp.isDefined) {
+        update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
+      } else {
+        update.deleteByQuery(s"productId:$id")
+      }
+      future = update.process(solrServer).flatMap {
+        response => {
+          Logger.info(s"Deleting product $id from index")
+          if (from.equals(FromValue.all)) {
+            deleteFromStorage(id,timer)
+          } else {
+            Future.successful(NoContent)
+          }
+        }
+      }
     } else {
-      update.deleteByQuery(s"productId:$id")
+      future = deleteFromStorage(id,timer)
     }
-
-    val future: Future[Result] = update.process(solrServer).map( response => {
-      NoContent
-    })
-
     withErrorHandling(future, s"Cannot delete product [$id  ]")
+  }
+
+  def deleteFromStorage(id: String, timer:Timer)(implicit context: Context, request: Request[AnyContent]):Future[Result] ={
+
+    val storage = withNamespace(storageFactory)
+    Logger.info(s"Deleting product $id from storage")
+    storage.deleteProduct(id).map { lastError =>
+      if (lastError.ok) {
+        NoContent
+      } else {
+        InternalServerError(Json.obj(
+          "metadata" -> Json.obj(
+          "time" -> timer.stop()),
+          "message" -> s"Unable to delete product $id from storage"))
+      }
+    }
   }
 
   @ApiOperation(value = "Suggests products", notes = "Returns product suggestions for given partial product title", response = classOf[Product], httpMethod = "GET")
