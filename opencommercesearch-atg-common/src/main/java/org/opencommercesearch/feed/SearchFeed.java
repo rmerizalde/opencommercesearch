@@ -548,20 +548,20 @@ public abstract class SearchFeed extends GenericService {
      * @param id is the id of the product to be deleted
      * @param feedTimestamp is the feed's timestamp
      */
-    public void delete(String id, long feedTimestamp) {
+    public void delete(String id, long feedTimestamp, String from) {
         Set<String> languages = new HashSet<String>();
 
         for (Locale locale : localeService.getSupportedLocales()) {
             if (!languages.contains(locale.getLanguage())) {
-                delete(id, feedTimestamp, locale);
+                delete(id, feedTimestamp, locale, from);
                 languages.add(locale.getLanguage());
             }
         }
     }
 
-    protected void delete(String id, long feedTimestamp, Locale locale) {
+    protected void delete(String id, long feedTimestamp, Locale locale, String from) {
         try {
-            final String endpointUrl = urlWithParameters(getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id)) + "feedTimestamp=" + feedTimestamp;
+            final String endpointUrl = urlWithParameters(getProductService().getUrl4Endpoint(Endpoint.PRODUCTS, id)) + "feedTimestamp=" + feedTimestamp + "&from="+from;
             final Request request = new Request(Method.DELETE, endpointUrl);
             final ClientInfo clientInfo = request.getClientInfo();
             clientInfo.setAcceptedLanguages(Arrays.asList(new Preference<Language>(new Language(locale.getLanguage()))));
