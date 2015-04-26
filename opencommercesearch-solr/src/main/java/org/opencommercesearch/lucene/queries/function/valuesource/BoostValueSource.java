@@ -32,7 +32,7 @@ import java.util.Map;
  * Value source for dynamic boosts. A dynamic boost can be associated with a product or a sku. The function first parameter
  * is the field name to be used as the boost key.
  *
- * @authoer rmerizalde
+ * @author rmerizalde
  */
 public class BoostValueSource extends ValueSource {
     private final String field;
