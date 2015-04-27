@@ -7,21 +7,21 @@ The boost function allows adding dynamic boosts to search requests. The componen
 the search request in order to fetch the boost values for the current page. The component will retrieve the boosts using
 the OCS Boost API. Here are ways on how to use the function:
 
- sort=boost(productId) desc
+sort=boost(productId) desc
 
- // query hook
- term OR _val_:boost(productId)
+// query hook
+term OR _val_:boost(productId)
 
- // additive boost (short hand for query hook)
- bf=boost(productId)
+// additive boost (short hand for query hook)
+bf=boost(productId)
 
- // multiplicative boost
- boost=SUM(1, boost(productId))
+// multiplicative boost
+boost=SUM(1, boost(productId))
 
- The application can choose to boost by product or sku. To boost by sku simply change productId to id. Note, the application
- need to write the sku boosts accordingly.
+The application can choose to boost by product or sku. To boost by sku simply change productId to id. Note, the application
+need to write the sku boosts accordingly.
 
- For more information on the Boost API see BoostController @ https://github.com/rmerizalde/opencommercesearch/tree/develop/opencommercesearch-api
+For more information on the Boost API see BoostController @ https://github.com/rmerizalde/opencommercesearch/tree/develop/opencommercesearch-api
 
 
 Fixed Boost Function
