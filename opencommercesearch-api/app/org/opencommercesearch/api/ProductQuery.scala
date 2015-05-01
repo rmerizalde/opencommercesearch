@@ -111,26 +111,24 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
   def withSorting() : ProductQuery = {
     val encodedSortParam = if(request != null) request.getQueryString("sort").getOrElse("") else ""
     val sortParam = URLDecoder.decode(encodedSortParam, "UTF-8")
-    val sortSpecs = StringUtils.split(sortParam, ",")
+    val sortSpecs = StringUtils.split(sortParam, ",").map(s => s.trim)
     if (sortSpecs != null && sortSpecs.length > 0) {
       val country = context.lang.country
       for (sortSpec <- sortSpecs) {
-        val selectedOrder = if (sortSpec.trim.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
+        val selectedOrder = if (sortSpec.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
 
-        if (sortSpec.indexOf("discountPercent") != -1) {
+        if (sortSpec.startsWith("discountPercent")) {
           addSort(s"discountPercent$country", selectedOrder)
-        }
-        if (sortSpec.indexOf("reviewAverage") != -1) {
+        } else if (sortSpec.startsWith("reviewAverage")) {
           addSort("bayesianReviewAverage", selectedOrder)
-        }
-        if (sortSpec.indexOf("price") != -1) {
+        } else if (sortSpec.startsWith("price")) {
           addSort(s"salePrice$country", selectedOrder)
-        }
-        if (sortSpec.indexOf("activationDate") != -1) {
+        } else if (sortSpec.startsWith("activationDate")) {
           addSort("activationDate", selectedOrder)
-        }
-        if (sortSpec.indexOf("bestSeller") != -1) {
+        } else if (sortSpec.startsWith("bestSeller")) {
           addSort(s"field(sellRank$site)", selectedOrder)
+        } else if (sortSpec.startsWith("id ")) {
+          addSort("id", selectedOrder)
         }
       }
     }

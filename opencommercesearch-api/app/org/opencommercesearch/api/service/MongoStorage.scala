@@ -738,6 +738,7 @@ object MongoStorage {
   val Exclude = BSONInteger(0)
 
   val ProjectionMappings = Map(
+    "categories.id" -> "categories._id",
     "skus.allowBackorder" -> "skus.countries.allowBackorder",
     "skus.listPrice" -> "skus.countries.listPrice",
     "skus.salePrice" -> "skus.countries.salePrice",

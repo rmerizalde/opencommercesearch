@@ -107,7 +107,7 @@ object ProductController extends BaseController {
 
       if (products != null) {
        //Check if we should include the category taxonomy or not
-        val includeTaxonomy = fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories"))
+        val includeTaxonomy = fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("se"))
 
         if (includeTaxonomy) {
           val productListFuture = products map { product =>
@@ -204,7 +204,10 @@ object ProductController extends BaseController {
       field.startsWith("categories.") || field.equals("*")
   } map {
     field =>
-      field.replaceFirst("categories\\.", "")
+      field.replaceFirst("categories\\.", "") match {
+        case "id" => "_id"
+        case f => f
+      }
   }
 
   /**
@@ -295,7 +298,7 @@ object ProductController extends BaseController {
    * @param errorMessage is the error message
    * @return a tuple with the total number of products found and the list of product documents in the response and the group summary
    */
-  private def processSearchResults[R](response: QueryResponse, errorMessage: String)(implicit context: Context, req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
+  private def processSearchResults[R](site: String, response: QueryResponse, errorMessage: String)(implicit context: Context, req: Request[R]) : Future[(Int, Iterable[Product], NamedList[Object])] = {
     val groupResponse = response.getGroupResponse
 
     if (groupResponse != null) {
@@ -314,10 +317,28 @@ object ProductController extends BaseController {
             }
 
             val storage = withNamespace(storageFactory)
-            storage.findProducts(productsIds, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
+            val fields = fieldList(allowStar = true)
+            storage.findProducts(productsIds, context.lang.country, fields, minimumFields = true).flatMap { products =>
               val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
-              (resultCount(command), products, groupSummary)
+              val includeTaxonomy = site != null && (fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories")))
+
+              if (includeTaxonomy) {
+                val t = System.currentTimeMillis()
+                val productListFuture = products map { product =>
+                  val categoryIds = product.categories.getOrElse(Seq.empty).map(category => category.getId).toSet
+                  categoryService.getProductTaxonomy(product.getId, site, getCategoryFields(fields), categoryIds) map { categories =>
+                    product.categories = Option(categories)
+                    product
+                  }
+                }
+
+                Future sequence productListFuture map { products =>
+                  (resultCount(command), products, groupSummary)
+                }
+              } else {
+                Future((resultCount(command), products, groupSummary))
+              }
             }
           } else {
             Future.successful((0, null, null))
@@ -402,7 +423,7 @@ object ProductController extends BaseController {
       }
       else if(query.getRows > 0) {
         val unexpectedErrorMessage = s"Unexpected response found for query '$q'"
-        processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
+        processSearchResults(site, response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               val facetHandler = buildFacetHandler(response, query, query.filterQueries)
@@ -773,7 +794,7 @@ object ProductController extends BaseController {
       solrServer.query(query).flatMap { response =>
         if (query.getRows > 0) {
           val unexpectedErrorMessage = s"Unexpected response found for category '$categoryId' (brand=$brandId isOutlet:$isOutlet)"
-          processSearchResults(response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
+          processSearchResults(site, response, unexpectedErrorMessage).flatMap { case (found, products, groupSummary) =>
             if (products != null) {
               if (found > 0) {
                 val facetHandler = buildFacetHandler(response, query, query.filterQueries)
@@ -1007,7 +1028,7 @@ object ProductController extends BaseController {
     val future: Future[Result] = solrServer.query(solrQuery).flatMap( response => {
       if (query.getRows > 0) {
         var unexpectedErrorMessage = s"Unexpected response found for query '$q'"
-        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+        processSearchResults(null, response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               withCorsHeaders(Ok(Json.obj(
@@ -1067,7 +1088,7 @@ object ProductController extends BaseController {
     val future: Future[Result] = solrServer.query(query).flatMap( response => {
       if (query.getRows > 0) {
         val unexpectedErrorMessage = s"Unexpected response found for product '$id'"
-        processSearchResults(response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
+        processSearchResults(site, response, unexpectedErrorMessage).map { case (found, products, groupSummary) =>
           if (products != null) {
             if (found > 0) {
               withCorsHeaders(Ok(Json.obj(
