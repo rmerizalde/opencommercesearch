@@ -19,17 +19,18 @@ package org.opencommercesearch.api.controllers
 * under the License.
 */
 
-import javax.ws.rs.PathParam
+import javax.ws.rs.{PathParam, QueryParam}
 
 import com.wordnik.swagger.annotations._
-import org.apache.commons.codec.binary.Hex
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.models.{PageBoost, ProductBoost}
+import org.opencommercesearch.api.models.PageBoost
+import org.opencommercesearch.api.util.Timer
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
 import play.api.mvc._
 import reactivemongo.api.collections.default.BSONCollection
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.BSONDocument
 
 import scala.concurrent.Future
@@ -39,6 +40,10 @@ object BoostController extends Controller {
 
   val database = storageFactory.getDatabase("core")
   val collection = database[BSONCollection]("boosts")
+
+
+  Logger.info(s"Setting up indexes for boost collection")
+  collection.indexesManager.ensure(new Index(key = Seq(("feedTimestamp", IndexType.Ascending)), name = Some("feed_timestamp_idx"), sparse = true))
 
   @ApiOperation(value = "Searches product boots", notes = "Returns product boosts for a given page type", response = classOf[Product], httpMethod = "GET")
   @ApiResponses(value = Array(new ApiResponse(code = 404, message = "Product not found")))
@@ -51,22 +56,22 @@ object BoostController extends Controller {
     @PathParam("id")
     id: String) = Action.async { request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val query = BSONDocument("_id" -> id)
 
     def response(page: Option[PageBoost]) = page match {
       case Some(p) =>
         Ok(Json.obj(
-          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "metadata" -> Json.obj("time" -> timer.stop()),
           "boosts" -> Json.toJson(p.boosts)))
       case None =>
-        NotFound(Json.obj("metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime))))
+        NotFound(Json.obj("metadata" -> Json.obj("time" -> timer.stop())))
     }
 
     def errorResponse(throwable: Throwable) = {
       Logger.error("Cannot retrieve boosts", throwable)
       InternalServerError(Json.obj(
-        "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+        "metadata" -> Json.obj("time" -> timer.stop()),
         "message" -> "Cannot retrieve boosts"
       ))
     }
@@ -77,13 +82,34 @@ object BoostController extends Controller {
       .recover({ case t => errorResponse(t) })
   }
 
+  @ApiOperation(value = "Deletes boosts", notes = "Deletes boosts that were not updated in a given feed", httpMethod = "DELETE")
+  def deleteByTimestamp(
+      version: Int = 1,
+      @ApiParam(value = "The feed timestamp. All boosts with a different timestamp are deleted", required = true)
+      @QueryParam("feedTimestamp")
+      feedTimestamp: Long) = Action.async { request =>
+    val timer = new Timer()
+
+    collection.remove(BSONDocument("feedTimestamp" -> BSONDocument("$ne" -> feedTimestamp))) map { res =>
+      if (res.ok) {
+        Ok(Json.obj("metadata" -> Json.obj("time" -> timer.stop())))
+      } else {
+        InternalServerError(Json.obj(
+          "metadata" -> Json.obj("time" -> timer.stop()),
+          "message" -> s"Cannot delete boosts by feed timestamp ($feedTimestamp)"
+        ))
+      }
+    }
+  }
+
+
   def bulkCreateOrUpdate(version: Int) = Action.async(parse.json(maxLength = 1024 * 2000)) { request =>
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
 
     Json.fromJson[Seq[PageBoost]](request.body) map { pages =>
       if (pages.size > MaxBoostBatchSize) {
         Future.successful(BadRequest(Json.obj(
-          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "metadata" -> Json.obj("time" -> timer.stop()),
           "message" -> s"Exceeded number of boosts. Maximum is $MaxBoostBatchSize")))
       } else {
         Future.sequence(pages.map(p => collection.save(p))) map { lastErrors =>
@@ -94,7 +120,7 @@ object BoostController extends Controller {
             }
 
             InternalServerError(Json.obj(
-              "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+              "metadata" -> Json.obj("time" -> timer.stop()),
               "message" -> s"Cannot stored boosts. Found ${failures.size} failures"
             ))
           } else {
@@ -106,7 +132,7 @@ object BoostController extends Controller {
       case e: JsError =>
         Logger.error("Cannot create/update boosts " + e.errors)
         Future.successful(BadRequest(Json.obj(
-          "metadata" -> Json.obj("time" -> (System.currentTimeMillis() - startTime)),
+          "metadata" -> Json.obj("time" -> timer.stop()),
           "message" -> "Missing required fields"
         )))
     }

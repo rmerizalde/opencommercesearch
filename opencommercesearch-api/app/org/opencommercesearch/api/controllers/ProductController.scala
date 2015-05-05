@@ -22,7 +22,6 @@ package org.opencommercesearch.api.controllers
 import java.{util => jutil}
 import javax.ws.rs.{PathParam, QueryParam}
 
-import org.opencommercesearch.api.i18n.Lang
 import com.wordnik.swagger.annotations._
 import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
@@ -34,9 +33,11 @@ import org.opencommercesearch.api.Collection._
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api._
 import org.opencommercesearch.api.common.{FacetHandler, FilterQuery}
+import org.opencommercesearch.api.i18n.Lang
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.models.debug.DebugInfo
 import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.api.util.Timer
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.search.suggester.IndexableElement
 import play.api.Logger
@@ -857,7 +858,7 @@ object ProductController extends BaseController {
             val productUpdate = new ProductUpdate
             productUpdate.add(skuDocs)
             val searchFuture: Future[UpdateResponse] = productUpdate.process(solrServer)
-            val suggestionFuture = IndexableElement.addToIndex(filterProducts(productList.products),false,productList.feedTimestamp)
+            val suggestionFuture = IndexableElement.addToIndex(filterProducts(productList.products), fetchCount = false, productList.feedTimestamp)
             futureList = List(productFuture,searchFuture, suggestionFuture)
           }
 
@@ -897,7 +898,7 @@ object ProductController extends BaseController {
     val update = new ProductUpdate()
     update.deleteByQuery("-indexStamp:" + feedTimestamp)
     var future: Future[Result] = null
-    if (context.isPublic && context.lang == Lang.English) {
+    if (context.isPublic && context.lang.language == Lang.English) {
       val updateSuggestionsQuery = new AsyncUpdateRequest()
       updateSuggestionsQuery.setParam("collection", SuggestCollection)
       updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)
@@ -912,30 +913,64 @@ object ProductController extends BaseController {
     withErrorHandling(future, s"Cannot delete product before feed timestamp [$feedTimestamp]")
   }
 
+  object FromValue extends Enumeration {
+    type FormValue = Value
+    val index, storage, all = Value
+  }
+
   @ApiOperation(value = "Deletes products", notes = "Deletes the given product", httpMethod = "DELETE")
   @ApiImplicitParams(value = Array(
     new ApiImplicitParam(name = "feedTimestamp", value = "The feed timestamp. If provided, only skus with a different timestamp are deleted", required = false, dataType = "long", paramType = "query"),
-    new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+    new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query"),
+    new ApiImplicitParam(name = "from", value = "Determine if the product will be deleted from index, storage or both", defaultValue = "index", required = false, dataType = "String", paramType = "query")
   ))
   def deleteById(
       version: Int = 1,
       @ApiParam(value = "A product id", required = false)
       @PathParam("id")
       id: String) = ContextAction.async { implicit context => implicit request =>
-    val update = new ProductUpdate()
-    val feedTimestamp = request.getQueryString("feedTimestamp")
+    val timer = new Timer()
+    val from = FromValue.withName(request.getQueryString("from").getOrElse("index"))
+    var future: Future[Result] = null
+    if (!from.equals(FromValue.storage)) {
+      val update = new ProductUpdate()
+      val feedTimestamp = request.getQueryString("feedTimestamp")
 
-    if (feedTimestamp.isDefined) {
-      update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
+      if (feedTimestamp.isDefined) {
+        update.deleteByQuery(s"productId:$id AND -indexStamp: ${feedTimestamp.get}")
+      } else {
+        update.deleteByQuery(s"productId:$id")
+      }
+      future = update.process(solrServer).flatMap {
+        response => {
+          Logger.info(s"Deleting product $id from index")
+          if (from.equals(FromValue.all)) {
+            deleteFromStorage(id,timer)
+          } else {
+            Future.successful(NoContent)
+          }
+        }
+      }
     } else {
-      update.deleteByQuery(s"productId:$id")
+      future = deleteFromStorage(id,timer)
     }
-
-    val future: Future[Result] = update.process(solrServer).map( response => {
-      NoContent
-    })
-
     withErrorHandling(future, s"Cannot delete product [$id  ]")
+  }
+
+  def deleteFromStorage(id: String, timer:Timer)(implicit context: Context, request: Request[AnyContent]):Future[Result] ={
+
+    val storage = withNamespace(storageFactory)
+    Logger.info(s"Deleting product $id from storage")
+    storage.deleteProduct(id).map { lastError =>
+      if (lastError.ok) {
+        NoContent
+      } else {
+        InternalServerError(Json.obj(
+          "metadata" -> Json.obj(
+          "time" -> timer.stop()),
+          "message" -> s"Unable to delete product $id from storage"))
+      }
+    }
   }
 
   @ApiOperation(value = "Suggests products", notes = "Returns product suggestions for given partial product title", response = classOf[Product], httpMethod = "GET")
@@ -951,7 +986,7 @@ object ProductController extends BaseController {
       @ApiParam(value = "Partial product title", required = true)
       @QueryParam("q")
       q: String) = ContextAction.async { implicit context => implicit request =>
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val query = new SolrQuery(q)
 
     query.set("group", true)
@@ -978,14 +1013,14 @@ object ProductController extends BaseController {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
               "suggestions" -> Json.toJson(
                 products map (Json.toJson(_))))))
             } else {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "suggestions" -> Json.arr()
               )))
             }
@@ -993,7 +1028,7 @@ object ProductController extends BaseController {
             Logger.debug(s"Unexpected response found for query $q")
             withCorsHeaders(InternalServerError(Json.obj(
               "metadata" -> Json.obj(
-                "time" -> (System.currentTimeMillis() - startTime)),
+                "time" -> timer.stop()),
               "message" -> "Unable to execute query")))
           }
         }
@@ -1001,7 +1036,7 @@ object ProductController extends BaseController {
         Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime))))))
+            "time" -> timer.stop())))))
       }
     })
     withErrorHandling(future, s"Cannot search for [$q]")
@@ -1023,7 +1058,7 @@ object ProductController extends BaseController {
               @QueryParam("site")
               site: String) = ContextAction.async { implicit context =>  implicit request =>
 
-    val startTime = System.currentTimeMillis()
+    val timer = new Timer()
     val query = new ProductSearchQuery(s"generation_master:$id AND -productId:$id", site)
       .withPagination()
       .withGrouping()
@@ -1038,14 +1073,14 @@ object ProductController extends BaseController {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "products" -> Json.toJson(
                   products map (Json.toJson(_))))))
             } else {
               withCorsHeaders(Ok(Json.obj(
                 "metadata" -> Json.obj(
                   "found" -> found,
-                  "time" -> (System.currentTimeMillis() - startTime)),
+                  "time" -> timer.stop()),
                 "products" -> Json.arr()
               )))
             }
@@ -1053,7 +1088,7 @@ object ProductController extends BaseController {
             Logger.debug(s"No generations found for product $id")
             withCorsHeaders(NotFound(Json.obj(
               "metadata" -> Json.obj(
-                "time" -> (System.currentTimeMillis() - startTime)),
+                "time" -> timer.stop()),
               "message" -> s"Cannot find generations for product id [$id]")))
           }
         }
@@ -1061,7 +1096,7 @@ object ProductController extends BaseController {
         Future.successful(withCorsHeaders(Ok(Json.obj(
           "metadata" -> Json.obj(
             "found" -> response.getResults.getNumFound,
-            "time" -> (System.currentTimeMillis() - startTime))))))
+            "time" -> timer.stop())))))
       }
     })
     withErrorHandling(future, s"Cannot find products for [$id]")

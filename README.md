@@ -1,7 +1,31 @@
-commercesearch
-===============
+OpenCommerceSearch
+==================
 
-Installation
+OpenCommerceSearch is an e-commerce API on top of Solr. It extends Solr to add common e-commerce business rules. The API can be used to power search pages,
+navigation pages, autocomplete/instant search, product detail pages, custom landing pages and other product widgets. The API is currently powering these use cases 
+and more at http://www.backcountry.com and http://www.competitivecyclist.com.
+
+The project is organized in multiple modules:
+
+* opencommercesearch-api: this is the API users and applications interact with. Written in Scala using Play Framework, ReactiveMongo and Play-SolrJ
+* opencommercesearch-common: small library with common Scala classes used by the API and other Scala extensions. For example, the instant search @
+Backcountry.com uses OCS out of the box suggestions for queries, products, brands and categories. Additionally, Backcountry has implemented a custom
+suggester for its Explore posts section and added it as plug to their OCS API.
+* opencommercesearch-sdk-java: provides a Java SDK to interact with OCS API endpoints.
+* opencommercesearch-sdk-js: provides a JavaScript SDK to interact with OCS API endpoints. Comming soon...
+* opencommercesearch-relevancy-tool: an editorial tool to measure the relevancy impact of user defined rules. The tool is written with AngularJS and Firebase and currently uses NDCG 
+as the relevancy metric.
+* opencommercesearch-solr: provides a number of custom Solr extensions used by the API
+
+Finally, there are a couple modules to integrate Open Commerce Search with ATG Web Commerce:
+
+* opencommercesearch-atg-pub: includes ATG repository definitions and BCC UI customizations. Such customizations allow business users to create custom define rules like: facets,
+manual boosts, ranking rules, blocking rules, A/B tests, etc. The BCC interacts with OCS API to include the rules within the OCS API.
+* opencommercesearh-atg-common: this is a legacy module. Still has some functionality used to integrate ATG and OCS. Includes stuff like a base search feed classes and components
+to synchronized synonym lists with Zookeeper.
+
+ATG Installation (legacy)
+-------------------------
 
 * Copy the opencommercesearch-solr jar to the lib directory under the lib directory in Sorl home directory.
 
