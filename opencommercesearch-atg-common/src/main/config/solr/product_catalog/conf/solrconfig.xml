@@ -123,7 +123,7 @@
         <float name="thresholdTokenFrequency">.01</float>
       -->
     </lst>
-    
+
     <!-- a spellchecker that can break or combine words.  See "/spell" handler below for usage -->
     <lst name="spellchecker">
       <str name="name">wordbreak</str>
@@ -138,6 +138,14 @@
   <valueSourceParser name="fixedBoost"
     class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
 
+  <valueSourceParser name="fixedBoost"
+    class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
+
+  <valueSourceParser name="boost"
+    class="org.opencommercesearch.lucene.queries.function.valuesource.BoostValueSourceParser">
+    <str name="boostApiHost">http://localhost:9000</str>
+    <str name="boostLimit">20</str>
+  </valueSourceParser>
 
   <xi:include href="xinclude/admin-handler.xml" parse="xml"
     xmlns:xi="http://www.w3.org/2001/XInclude" />

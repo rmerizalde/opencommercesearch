@@ -20,6 +20,7 @@ package org.opencommercesearch.api.service
 */
 
 import org.opencommercesearch.api.models._
+import reactivemongo.core.commands.LastError
 import scala.concurrent.Future
 
 /**
@@ -86,6 +87,13 @@ trait Storage[T] {
    * @return the results of writing the last product
    */
   def saveProduct(product: Product*) : Future[T]
+
+  /**
+   * Delete the product with the given id. Returns the result of the deleting the product
+   * @param id is of the product to delete
+   * @return the result of deleting the product
+   */
+  def deleteProduct(id: String) : Future[T]
 
     /**
    * Saves the given list of categories. Returns the result of the last write

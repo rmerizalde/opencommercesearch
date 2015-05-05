@@ -126,6 +126,37 @@ class ProductControllerSpec extends BaseSpec {
         }
       }
     }
+    
+    "send at least the limit of product query" in new Products {
+      running(FakeApplication()) {
+
+        val category = Category.getInstance(Some("someCategory"))
+        category.sites = Option(Seq("mysite"))
+
+        val product = new Product()
+        val (expectedId, expectedTitle) = ("PRD1000", "A Product")
+
+        product.id = Some(expectedId)
+        product.title = Some(expectedTitle)
+
+        val expectedSku = new Sku()
+        expectedSku.id = Some("PRD1000-BLK-ONESIZE")
+        product.skus = Some(Seq(expectedSku))
+        product.categories = Some(Seq(category))
+
+        val storage = storageFactory.getInstance("namespace")
+        storage.findProducts(any, any, any, any, any) returns Future.successful(List.fill(MaxPaginationLimit)( product ))
+        storage.findProducts(any, any, any, any) returns Future.successful(List.fill(MaxPaginationLimit)( product ))
+        storage.findAllCategories(any) returns Future.successful(Seq(category))
+
+        val result = route(FakeRequest(GET, routes.ProductController.findById(expectedId, "mysite").url))
+        validateQueryResult(result.get, OK, "application/json")
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "products").as[Seq[Product]].size must be beGreaterThanOrEqualTo (60)
+
+      }
+    }
+
 
     "send 200 when spellcheck=yes just return the spell checking information" in new Products {
       running(fakeApplication()) {

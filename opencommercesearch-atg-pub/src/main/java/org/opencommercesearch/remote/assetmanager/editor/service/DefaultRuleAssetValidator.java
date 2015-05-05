@@ -218,6 +218,9 @@ public class DefaultRuleAssetValidator extends GenericService {
                 rep.updateItem(mutableItem);
             } catch (RepositoryException e) {
                 editorInfo.getAssetService().addError("error adding default query to rule:" +currentItem.getRepositoryId());
+                if (isLoggingWarning()) {
+                    logWarning("error adding default query to rule:" +currentItem.getRepositoryId());
+                }
             }
         } else {
             if (isLoggingDebug()) {
@@ -234,8 +237,8 @@ public class DefaultRuleAssetValidator extends GenericService {
                     String roleId = objRole instanceof RepositoryItem ? ((RepositoryItem)objRole).getRepositoryId() : "";
                     String roleName = objRole instanceof DisplayableItem ?  ((DisplayableItem)objRole).getItemDisplayName() : "";
                     if (this.superUserRoleNames.contains(roleName) || this.superUserRoleIds.contains(roleId)) {
-                        if (isLoggingInfo()) {
-                            logInfo("This user is allowed to skip Search Pages validation because has " + roleName + "/" + roleId + " role.");
+                        if (isLoggingWarning()) {
+                            logWarning("This user is allowed to skip Search Pages validation because has " + roleName + "/" + roleId + " role.");
                         }
                         return true;
                     }

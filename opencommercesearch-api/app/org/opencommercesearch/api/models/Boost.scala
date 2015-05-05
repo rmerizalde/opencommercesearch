@@ -49,7 +49,7 @@ object ProductBoost {
   }
 }
 
-case class PageBoost(id: String, boosts: Option[Seq[ProductBoost]]) {
+case class PageBoost(id: String, feedTimestamp: Long, boosts: Option[Seq[ProductBoost]]) {
 }
 
 object PageBoost {
@@ -61,6 +61,7 @@ object PageBoost {
 
     def write(pageBoost: PageBoost): BSONDocument = BSONDocument(
       "_id" -> pageBoost.id,
+      "feedTimestamp" -> pageBoost.feedTimestamp,
       "boosts" -> pageBoost.boosts
     )
   }
@@ -69,6 +70,7 @@ object PageBoost {
 
     def read(doc: BSONDocument): PageBoost = PageBoost(
       doc.getAs[String]("_id").orNull,
+      doc.getAs[Long]("feedTimestamp").getOrElse(0),
       doc.getAs[Seq[ProductBoost]]("boosts")
     )
   }

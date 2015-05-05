@@ -7,7 +7,7 @@
     <groupId>org.opencommercesearch</groupId>
     <artifactId>opencommercesearch-solr</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.11-SNAPSHOT</version>
+    <version>0.7.12-SNAPSHOT</version>
     <inceptionYear>2012</inceptionYear>
 
     <properties>
@@ -34,6 +34,11 @@
     </repositories>
 
     <dependencies>
+      <dependency>
+	<groupId>org.json</groupId>
+	<artifactId>json</artifactId>
+	<version>20140107</version>
+      </dependency>
       <!-- Solr -->
       <dependency>
 	      <groupId>org.apache.solr</groupId>

@@ -19,6 +19,13 @@ Production environments should overwrite this file with custom settings
                  initialSize="512"
                  autowarmCount="0"/>
 
+  <cache name="boostCache"
+      class="solr.LRUCache"
+      size="512"
+      initialSize="512"
+      autowarmCount="512"
+      regenerator="org.opencommercesearch.search.BoostCacheRegenerator"/>
+
 
   <enableLazyFieldLoading>true</enableLazyFieldLoading>
   <queryResultWindowSize>20</queryResultWindowSize>

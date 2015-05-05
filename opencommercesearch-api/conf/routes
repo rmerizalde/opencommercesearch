@@ -34,6 +34,7 @@ DELETE        /v1/products/:id                                           org.ope
 # boosts
 GET           /v1/boosts/:id                                             org.opencommercesearch.api.controllers.BoostController.findById(version: Int = 1, id: String)
 PUT           /v1/boosts                                                 org.opencommercesearch.api.controllers.BoostController.bulkCreateOrUpdate(version: Int = 1)
+DELETE        /v1/boosts                                                 org.opencommercesearch.api.controllers.BoostController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long)
 
 # category routes
 GET           /v1/categories/suggestions                                 org.opencommercesearch.api.controllers.CategoryController.findSuggestions(version: Int = 1, q: String, site: String)
