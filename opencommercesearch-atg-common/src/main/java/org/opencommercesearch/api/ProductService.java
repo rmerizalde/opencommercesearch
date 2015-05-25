@@ -39,7 +39,8 @@ public class ProductService extends GenericService {
         RULES,
         PRODUCTS,
         CATEGORIES,
-        FACETS;
+        FACETS,
+        PRODUCT_CONTENT;
 
         private String lowerCaseName;
 
@@ -108,7 +109,13 @@ public class ProductService extends GenericService {
 
         endpointUrl = getHost() + endpointUrl;
         if (id != null) {
-            endpointUrl += "/" + id;
+            if (endpointUrl.contains("${id}")) {
+                endpointUrl = endpointUrl.replace("${id}", id);
+            } else {
+                endpointUrl += "/" + id;
+            }
+        } else {
+            endpointUrl = endpointUrl.replace("/${id}", "");
         }
         endpointUrl += (getPreview()? "?preview=true": "");
         return endpointUrl;
