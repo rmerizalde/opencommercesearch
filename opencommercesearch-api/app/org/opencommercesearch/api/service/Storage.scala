@@ -217,5 +217,33 @@ trait Storage[T] {
    * @return List of rules from storage
    */
   def findRules(ids: Iterable[String], fields: Seq[String]) : Future[Iterable[Rule]]
+  
+    /**
+   * Finds the content for products with the given ids. Ids is a sequence of tuples. The first element of the tuple is the product id.
+   * @param ids is a sequence of product id tuples
+   * @param site is the site to search contents
+   * @return
+   */
+  def findContent(ids: Seq[(String, String)], site:String) : Future[Iterable[ProductContent]]
 
+  /**
+   * Finds the content for products with the given ids. Ids is a sequence of tuples. The first element of the tuple is the product id.
+   * @param ids is a sequence of product id tuples
+   * @return
+   */
+  def findContent(ids: Seq[(String, String)]) : Future[Iterable[ProductContent]]
+  
+  /**
+   * Saves the given list of product contents. Returns the result of the last write
+   * @param product is one or more products to store
+   * @return the results of writing the last product content
+   */
+  def saveProductContent(feedTimestamp: Long, site: String, contents: ProductContent*) : Future[LastError]
+  
+  /**
+   * Delete the content with the given id. Returns the result of deleting the content
+   * @param id is of the content to delete
+   * @return the result of deleting the content
+   */
+  def deleteContent(id: String, feedTimestamp: Long, site: String) : Future[LastError]
 }

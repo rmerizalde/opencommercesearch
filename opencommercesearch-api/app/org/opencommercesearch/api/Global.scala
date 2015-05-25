@@ -52,7 +52,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val RulePreviewCollection = getConfig("preview.collection.rule", "rulePreview")
   lazy val RulePublicCollection = getConfig("public.collection.rule", "rulePublic")
   lazy val FacetPreviewCollection = getConfig("preview.collection.facet", "facetsPreview")
-  lazy val FacetPublicCollection = getConfig("public.collection.facet", "facetsPublic") 
+  lazy val FacetPublicCollection = getConfig("public.collection.facet", "facetsPublic")
   lazy val SuggestCollection = getConfig("public.collection.suggest", "autocomplete")
   lazy val CategoryCacheTtl = getConfig("category.cache.ttl", 60 * 10)
   lazy val MaxPaginationLimit = getConfig("pagination.limit.max", 60)
