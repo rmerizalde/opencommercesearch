@@ -7,7 +7,7 @@
     <groupId>org.opencommercesearch</groupId>
     <artifactId>opencommercesearch-sdk-java</artifactId>
     <packaging>jar</packaging>
-    <version>0.7.12-SNAPSHOT</version>
+    <version>0.7.13-SNAPSHOT</version>
     <inceptionYear>2014</inceptionYear>
 
     <properties>
@@ -21,7 +21,7 @@
         <slf4j.version>1.6.6</slf4j.version>
         <logback.version>1.1.2</logback.version>
         <jackson.version>2.1.4</jackson.version>
-        <opencommercesearch.version>0.7.12-SNAPSHOT</opencommercesearch.version>
+        <opencommercesearch.version>0.7.13-SNAPSHOT</opencommercesearch.version>
     </properties>
 
     <scm>

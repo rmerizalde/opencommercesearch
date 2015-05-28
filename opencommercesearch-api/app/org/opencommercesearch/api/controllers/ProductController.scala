@@ -1173,4 +1173,153 @@ object ProductController extends BaseController {
       }
     }
   }
+
+  @ApiOperation(value = "Find product contents", notes = "Returns product content for given product", response = classOf[ProductContent], httpMethod = "GET")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "preview", value = "Display preview results", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def findProductContent(
+    version: Int,
+    @ApiParam(value = "Find product content", required = true)
+    @PathParam("id") id: String 
+    @ApiParam(value = "Site to browse", required = false),
+    @QueryParam("site") site: String) = ContextAction.async { 
+    implicit context => implicit request =>
+      Logger.debug(s"Query product $id")
+
+      val timer = Timer()
+      val startTime = Some(System.currentTimeMillis())
+      val storage = withNamespace(storageFactory)
+      val contentIds = StringUtils.split(id, ",").map(i => (i, null))
+      val contentFuture = if (site != null) {
+        storage.findContent(contentIds, site)
+      } else {
+        storage.findContent(contentIds)
+      }
+
+      val future = contentFuture.map(content => {
+        if (content.size > 0) {
+          Logger.debug("Found ProductContent " + id)
+          Ok(Json.obj(
+            "metadata" -> Json.obj("time" -> timer.stop()),
+            "productContents" -> Json.toJson(content))
+          )
+        } else {
+          Logger.debug("ProductContent " + id + " not found")
+          NotFound(Json.obj(
+            "metadata" -> Json.obj("time" -> timer.stop()),
+            "message" -> s"Cannot find ProductContent with id [$id]"
+          ))
+        }
+      })
+
+      withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
+  }
+
+  @ApiOperation(value = "Deletes product content by Id", notes = "Deletes the content for given product", httpMethod = "DELETE")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "feedTimestamp", value = "The feed timestamp. If provided, only content with a different timestamp are deleted", required = false, dataType = "long", paramType = "query"),
+    new ApiImplicitParam(name = "preview", value = "Deletes products in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def deleteContentById(
+    version: Int = 1,
+    @ApiParam(value = "A content id", required = true)
+    @PathParam("id") id: String 
+    @ApiParam(value = "Site to browse", required = true),
+    @QueryParam("site") site: String) = ContextAction.async { 
+    implicit context => implicit request =>
+      val timer = new Timer()
+      val feedTimestamp = request.getQueryString("feedTimestamp")
+      var future: Future[Result] = null
+ 
+      if (feedTimestamp.isDefined) {
+        val timestamp = {
+          try {
+            feedTimestamp.get.toLong
+          } catch {
+            case e: Exception => 0
+          }
+        } : Long
+
+        future = deleteContentFromStorage(timer, id, timestamp, site)
+      } else {
+        future = deleteContentFromStorage(timer, id = id, site = site)
+      }
+
+      withErrorHandling(future, s"Cannot delete content before feed timestamp [$feedTimestamp]")
+  }
+  
+  @ApiOperation(value = "Deletes content", notes = "Delete content that was not updated in a given feed", httpMethod = "DELETE")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "preview", value = "Delete content in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  def deleteContentByTimestamp(
+    version: Int = 1,
+    @ApiParam(value = "The feed timestamp. All content with a different timestamp are deleted", required = true)
+    @QueryParam("feedTimestamp") feedTimestamp: Long
+    @ApiParam(value = "Site to browse", required = true),
+    @QueryParam("site") site: String) = ContextAction.async { 
+    implicit context => implicit request =>
+      val timer = new Timer()
+      var future: Future[Result] = deleteContentFromStorage(timer, feedTimestamp = feedTimestamp, site = site)
+
+      withErrorHandling(future, s"Cannot delete categories before feed timestamp [$feedTimestamp]")
+  }
+
+  def deleteContentFromStorage(timer:Timer, id: String = null, feedTimestamp: Long = 0, site: String)(implicit context: Context, request: Request[AnyContent]):Future[Result] ={
+    val storage = withNamespace(storageFactory)
+    Logger.info(s"Deleting content $id from storage with timestamp $feedTimestamp")
+    storage.deleteContent(id, feedTimestamp, site).map { lastError =>
+      if (lastError.ok) {
+        NoContent
+      } else {
+        InternalServerError(Json.obj(
+          "metadata" -> Json.obj(
+          "time" -> timer.stop()),
+          "message" -> s"Unable to delete content $id from storage"))
+      }
+    }
+  }
+
+  @ApiOperation(value = "Creates product content", notes = "Creates/updates content for the given products", httpMethod = "PUT")
+  @ApiImplicitParams(value = Array(
+    new ApiImplicitParam(name = "contents", value = "Content to create/update", required = true, dataType = "org.opencommercesearch.api.models.ProductContent", paramType = "body"),
+    new ApiImplicitParam(name = "preview", value = "Create product content in preview", defaultValue = "false", required = false, dataType = "boolean", paramType = "query")
+  ))
+  @ApiResponses(value = Array(
+    new ApiResponse(code = 400, message = "Missing required fields"),
+    new ApiResponse(code = 400, message = "Exceeded maximum number of contents that can be created at once")
+  ))
+  def bulkCreateOrUpdateProductContent(
+    version: Int = 1,
+    @ApiParam(value = "Site to browse", required = true)
+    @QueryParam("site") site: String) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) {
+    implicit context => implicit request =>
+      Json.fromJson[ProductContentList](request.body).map { contentList =>
+        val timer = Timer()
+        val contents = contentList.contents
+        val feedTimestamp = contentList.feedTimestamp
+
+        if (contents.size > MaxProductIndexBatchSize) {
+          Future.successful(BadRequest(Json.obj("message" -> s"Exceeded number of contents. Maximum is $MaxProductIndexBatchSize")))
+        } else {
+          try {
+            val storage = withNamespace(storageFactory)
+            val contentFuture = storage.saveProductContent(feedTimestamp, site, contents:_*)
+            val future: Future[Result] = contentFuture map { result =>
+              Created
+            }
+
+            withErrorHandling(future, s"Cannot store products with ids [${contents map (_.id.get) mkString ","}]")
+          } catch {
+            case e: IllegalArgumentException =>
+              Logger.error(e.getMessage)
+              Future.successful(BadRequest(Json.obj("message" -> e.getMessage)))
+          }
+      }
+    }.recoverTotal {
+      case e: JsError =>
+        Future.successful(BadRequest(Json.obj("message" -> "Missing required fields")))
+    }
+  }
 }

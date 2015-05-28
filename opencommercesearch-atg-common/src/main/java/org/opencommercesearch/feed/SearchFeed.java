@@ -500,7 +500,7 @@ public abstract class SearchFeed extends GenericService {
                         if (isLoggingDebug()) {
                             logDebug("Unable to convert product list to JSON");
                         }
-                    }
+                     }
                 }
             };
             final Request request = new Request(Method.PUT, endpointUrl, new EncodeRepresentation(Encoding.GZIP, representation));

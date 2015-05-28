@@ -5,7 +5,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
 name := "opencommercesearch-api"
 
-version := "0.7.12-SNAPSHOT"
+version := "0.7.13-SNAPSHOT"
 
 scalaVersion := "2.11.1"
 
@@ -23,7 +23,7 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   cache, filters,
   "org.opencommercesearch" %% "play-solrj" % "0.5-SNAPSHOT",
-  "org.opencommercesearch" %% "opencommercesearch-common" % "0.7.12-SNAPSHOT"  changing(),
+  "org.opencommercesearch" %% "opencommercesearch-common" % "0.7.13-SNAPSHOT"  changing(),
   "com.typesafe.play.plugins" %% "play-statsd" % "2.3.0",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.hamcrest" % "hamcrest-all" % "1.3" % "test",
