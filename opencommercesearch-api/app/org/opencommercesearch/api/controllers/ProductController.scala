@@ -1201,19 +1201,19 @@ object ProductController extends BaseController {
         if (content.size > 0) {
           Logger.debug("Found ProductContent " + id)
           Ok(Json.obj(
-            "metadata" -> Json.obj("time" -> timer.stop()),
+            "metadata" -> Json.obj("time" -> timer.stop(), "found" -> content.size),
             "productContents" -> Json.toJson(content))
           )
         } else {
           Logger.debug("ProductContent " + id + " not found")
           NotFound(Json.obj(
             "metadata" -> Json.obj("time" -> timer.stop()),
-            "message" -> s"Cannot find ProductContent with id [$id]"
+            "message" -> s"Cannot find product contents"
           ))
         }
       })
 
-      withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
+      withErrorHandling(future, s"Cannot retrieve product contents")
   }
 
   @ApiOperation(value = "Deletes product content by Id", notes = "Deletes the content for given product", httpMethod = "DELETE")
@@ -1246,7 +1246,7 @@ object ProductController extends BaseController {
         future = deleteContentFromStorage(timer, id = id, site = site)
       }
 
-      withErrorHandling(future, s"Cannot delete content before feed timestamp [$feedTimestamp]")
+      withErrorHandling(future, s"Cannot delete product contents before feed timestamp [$feedTimestamp], site [$site], id [$id]")
   }
   
   @ApiOperation(value = "Deletes content", notes = "Delete content that was not updated in a given feed", httpMethod = "DELETE")
@@ -1263,12 +1263,12 @@ object ProductController extends BaseController {
       val timer = new Timer()
       var future: Future[Result] = deleteContentFromStorage(timer, feedTimestamp = feedTimestamp, site = site)
 
-      withErrorHandling(future, s"Cannot delete categories before feed timestamp [$feedTimestamp]")
+      withErrorHandling(future, s"Cannot delete product contents before feed timestamp [$feedTimestamp], site [$site]")
   }
 
   def deleteContentFromStorage(timer:Timer, id: String = null, feedTimestamp: Long = 0, site: String)(implicit context: Context, request: Request[AnyContent]):Future[Result] ={
     val storage = withNamespace(storageFactory)
-    Logger.info(s"Deleting content $id from storage with timestamp $feedTimestamp")
+    Logger.info(s"Deleting product content $id from storage with timestamp $feedTimestamp")
     storage.deleteContent(id, feedTimestamp, site).map { lastError =>
       if (lastError.ok) {
         NoContent
@@ -1276,7 +1276,7 @@ object ProductController extends BaseController {
         InternalServerError(Json.obj(
           "metadata" -> Json.obj(
           "time" -> timer.stop()),
-          "message" -> s"Unable to delete content $id from storage"))
+          "message" -> s"Unable to delete product content $id from storage"))
       }
     }
   }
@@ -1301,7 +1301,7 @@ object ProductController extends BaseController {
         val feedTimestamp = contentList.feedTimestamp
 
         if (contents.size > MaxProductIndexBatchSize) {
-          Future.successful(BadRequest(Json.obj("message" -> s"Exceeded number of contents. Maximum is $MaxProductIndexBatchSize")))
+          Future.successful(BadRequest(Json.obj("message" -> s"Exceeded number of product contents. Maximum is $MaxProductIndexBatchSize")))
         } else {
           try {
             val storage = withNamespace(storageFactory)
@@ -1310,7 +1310,7 @@ object ProductController extends BaseController {
               Created
             }
 
-            withErrorHandling(future, s"Cannot store products with ids [${contents map (_.id.get) mkString ","}]")
+            withErrorHandling(future, s"Cannot store product contents with ids [${contents map (_.id.get) mkString ","}]")
           } catch {
             case e: IllegalArgumentException =>
               Logger.error(e.getMessage)
