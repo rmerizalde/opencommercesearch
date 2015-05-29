@@ -1,18 +1,33 @@
+import java.util.Properties
+
+import sbt.KeyRanks._
+import sbt.Keys._
+
+import scala.io.Source
+
+val versions = SettingKey[Properties]("versions", "Module & dependency versions", APlusSetting)
+
+versions := {
+  val properties = new Properties()
+  properties.load(Source.fromFile("../versions.sbt").reader())
+  properties
+}
+
 name := "opencommercesearch-common"
 
-version := "0.7.14-SNAPSHOT"
+version := versions.value.getProperty("ocs")
 
-scalaVersion := "2.11.1"
+scalaVersion := versions.value.getProperty("scala")
 
 libraryDependencies ++= Seq(
-  "org.opencommercesearch" %% "play-solrj" % "0.5-SNAPSHOT" % "provided",
-  "org.scalatest" %% "scalatest" % "2.1.5" % "test",
-  "org.mockito" % "mockito-all" % "1.9.5"
+  "org.opencommercesearch" %% "play-solrj" % versions.value.getProperty("play-solrj") % "provided",
+  "org.scalatest" %% "scalatest" % versions.value.getProperty("scalatest") % "test",
+  "org.mockito" % "mockito-all" % versions.value.getProperty("mockito-all") % "test"
 )
 
 resolvers ++= Seq(
-  "SBT Plugin Snapshot Repository" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-snapshots/",
-  "SBT Plugin Release Repository" at "http://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/",
+  "oss-releases" at "http://oss.jfrog.org/artifactory/libs-release/",
+  "oss-snapshots" at "http://oss.jfrog.org/artifactory/libs-snapshot/",
   "Typesafe Snapshot Repository" at "http://repo.typesafe.com/typesafe/snapshots/",
   "Typesafe Release Repository" at "http://repo.typesafe.com/typesafe/releases/"
 )
@@ -21,12 +36,12 @@ organization := "org.opencommercesearch"
 
 publishMavenStyle := true
 
-publishTo <<= (version) { version: String =>
-  val scalasbt = "http://repo.scala-sbt.org/scalasbt/"
+publishTo <<= version { version: String =>
+  val baseUrl = "http://oss.jfrog.org/artifactory/"
   val (name, url) = if (version.contains("-SNAPSHOT"))
-    ("sbt-plugin-snapshots", scalasbt+"sbt-plugin-snapshots")
+    ("oss-snapshots-pub", baseUrl + "oss-snapshot-local/")
   else
-    ("sbt-plugin-releases", scalasbt+"sbt-plugin-releases")
+    ("oss-pub", baseUrl + "oss-release-local/")
   Some(Resolver.url(name, new URL(url))(Resolver.mavenStylePatterns))
 }
 

@@ -1,0 +1,13 @@
+ocs=0.7.13-SNAPSHOT
+play-solrj=0.5-SNAPSHOT
+play-statsd=2.3.0
+scala=2.11.1
+reactivemongo=0.10.5.0.akka23
+solr=4.8.1
+swagger-play2=1.3.12
+json=20140107
+scalatest=2.1.5
+mockito=1.9.5
+mockito-all=1.9.5
+hamcrest-all=1.3
+powermock=1.5

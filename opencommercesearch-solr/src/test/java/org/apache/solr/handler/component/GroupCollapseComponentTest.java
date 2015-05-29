@@ -39,6 +39,7 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -57,6 +58,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
  * @author rmerizalde
  */
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore("org.jacoco.agent.rt.*")
 @PrepareForTest({GroupCollapseComponent.class, IndexSchema.class, Document.class, org.apache.lucene.document.FieldType.NumericType.class})
 public class GroupCollapseComponentTest {
 

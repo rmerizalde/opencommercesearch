@@ -46,6 +46,7 @@ import org.mockito.stubbing.Answer;
 import org.opencommercesearch.FacetConstants;
 import org.opencommercesearch.RuleConstants;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 import static org.hamcrest.CoreMatchers.hasItems;
@@ -64,6 +65,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({SolrCore.class})
+@PowerMockIgnore("org.jacoco.agent.rt.*")
 public class RuleManagerComponentTest {
 
     enum TestSetType { empty, blockRules, boostRules, facetRules, facetRulesReplace, facetRulesAppend, rulesButNoContent, rankingRule }
