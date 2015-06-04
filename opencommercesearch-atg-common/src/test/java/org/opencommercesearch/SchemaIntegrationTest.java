@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 
@@ -80,16 +81,26 @@ public abstract class SchemaIntegrationTest {
             this.indexWords = indexWords;
         }
 
-        public ArrayList<NamedList<Object>> getQueryWords() {
-            return queryWords;
+        public List<String> getQueryWords() {
+            ArrayList<String> words = new ArrayList<String>(queryWords.size());
+
+            for (NamedList<Object> queryWord : queryWords) {
+                words.add((String) queryWord.get("text"));
+            }
+            return words;
         }
 
-        public ArrayList<NamedList<Object>> getIndexWords() {
-            return indexWords;
+        public List<String> getIndexWords() {
+            List<String> words = new ArrayList<String>(indexWords.size());
+
+            for (NamedList<Object> indexWord : indexWords) {
+                words.add((String) indexWord.get("text"));
+            }
+            return words;
         }
 
-        public ArrayList<NamedList<Object>>[] getWords() {
-            return new ArrayList[] {queryWords, indexWords};
+        public List<String>[] getWords() {
+            return new List[] {getQueryWords(), getIndexWords()};
         }
     }
 }

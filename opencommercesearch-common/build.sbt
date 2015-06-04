@@ -9,7 +9,7 @@ val versions = SettingKey[Properties]("versions", "Module & dependency versions"
 
 versions := {
   val properties = new Properties()
-  properties.load(Source.fromFile("../versions.sbt").reader())
+  properties.load(Source.fromFile("../version.properties").reader())
   properties
 }
 

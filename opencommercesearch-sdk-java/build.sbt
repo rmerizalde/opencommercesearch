@@ -2,9 +2,10 @@ import java.net.URL
 import java.util.Properties
 
 import de.johoop.jacoco4sbt.HTMLReport
-import sbt.{Resolver, SettingKey}
+import de.johoop.jacoco4sbt.JacocoPlugin.jacoco
 import sbt.KeyRanks._
 import sbt.Keys._
+import sbt.{Resolver, SettingKey}
 
 import scala.io.Source
 
@@ -16,15 +17,20 @@ versions := {
   properties
 }
 
-name := "opencommercesearch-solr"
+name := "opencommercesearch-sdk-java"
 
 version := versions.value.getProperty("ocs")
 
 scalaVersion := versions.value.getProperty("scala")
 
 libraryDependencies ++= Seq(
-  "org.json" % "json" % versions.value.getProperty("json") % "provided",
-  "org.apache.solr" % "solr-core" % versions.value.getProperty("solr") % "provided",
+  "org.opencommercesearch" % "opencommercesearch-solr" % versions.value.getProperty("ocs") changing(),
+  "com.fasterxml.jackson.core" % "jackson-databind" % versions.value.getProperty("jackson"),
+  "commons-lang" % "commons-lang" % versions.value.getProperty("commons-lang"),
+  "commons-cli" % "commons-cli" % versions.value.getProperty("commons-cli"),
+  "ch.qos.logback" % "logback-classic" % versions.value.getProperty("logback"),
+  "ch.qos.logback" % "logback-core" % versions.value.getProperty("logback"),
+  "org.restlet.jee" % "org.restlet" % versions.value.getProperty("restlet-jee"),
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "org.mockito" % "mockito-core" % versions.value.getProperty("mockito") % "test",
   "org.powermock" % "powermock-module-junit4" % versions.value.getProperty("powermock") % "test",

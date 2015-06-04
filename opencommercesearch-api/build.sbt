@@ -11,7 +11,7 @@ val versions = SettingKey[Properties]("versions", "Module & dependency versions"
 
 versions := {
   val properties = new Properties()
-  properties.load(Source.fromFile("../versions.sbt").reader())
+  properties.load(Source.fromFile("../version.properties").reader())
   properties
 }
 
@@ -32,7 +32,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   cache, filters,
-  "org.opencommercesearch" %% "play-solrj" % versions.value.getProperty("play-solrj"),
+  "org.opencommercesearch" %% "play-solrj" % versions.value.getProperty("play-solrj") changing(),
   "org.opencommercesearch" %% "opencommercesearch-common" % versions.value.getProperty("ocs") changing(),
   "com.typesafe.play.plugins" %% "play-statsd" % versions.value.getProperty("play-statsd"),
   "com.wordnik" %% "swagger-play2" % versions.value.getProperty("swagger-play2"),

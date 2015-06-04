@@ -52,6 +52,7 @@ public class FeedLocaleServiceTest {
         assertEquals(Locale.US, localeService.getLocale());
         localeService.pushLocale(Locale.CANADA_FRENCH);
         assertEquals(Locale.CANADA_FRENCH, localeService.getLocale());
+        localeService.popLocale();
     }
 
     @Test
