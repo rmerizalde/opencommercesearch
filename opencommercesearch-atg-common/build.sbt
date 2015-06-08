@@ -24,8 +24,8 @@ version := versions.value.getProperty("ocs")
 scalaVersion := versions.value.getProperty("scala")
 
 libraryDependencies ++= Seq(
-  "org.apache.solr" % "solr-test-framework" % versions.value.getProperty("solr") % "test" excludeAll ExclusionRule(organization = "org.apache.lucene", name = "lucene-core"),
-  "org.apache.lucene" % "lucene-core" % versions.value.getProperty("solr") % "test",
+  "org.apache.lucene" % "lucene-test-framework" % versions.value.getProperty("solr") % "test",
+  "org.apache.solr" % "solr-test-framework" % versions.value.getProperty("solr") % "test",
   "org.apache.solr" % "solr-core" % versions.value.getProperty("solr"),
   "org.opencommercesearch" % "opencommercesearch-solr" % versions.value.getProperty("ocs") changing(),
   "org.opencommercesearch" % "opencommercesearch-sdk-java" % versions.value.getProperty("ocs") changing() excludeAll ExclusionRule(organization = "ch.qos.logback"),
@@ -51,6 +51,8 @@ unmanagedJars in Compile += file(sys.env("ATG_HOME") + "/DAS/lib/classes.jar")
 unmanagedJars in Compile += file(sys.env("ATG_HOME") + "/DCS/lib/classes.jar")
 
 unmanagedJars in Compile += file(sys.env("ATG_HOME") + "/Publishing/base/lib/classes.jar")
+
+unmanagedJars in Test += file(System.getProperty("user.home") + "/.ivy2/cache/org.apache.lucene/lucene-test-framework/jars/lucene-test-framework-" + versions.value.getProperty("solr") + ".jar")
 
 resolvers ++= Seq(
   "oss-releases" at "http://oss.jfrog.org/artifactory/libs-release/",
@@ -83,6 +85,7 @@ unmanagedResourceDirectories in Test += baseDirectory.value / "src/test/config"
 
 unmanagedResourceDirectories in Test += baseDirectory.value / "testdata"
 
+
 // Compiler
 
 javacOptions in compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:none")
@@ -91,7 +94,7 @@ javacOptions in compile ++= Seq("-source", "1.6", "-target", "1.6", "-Xlint:none
 
 fork in Test := true
 
-javaOptions in Test += "-XX:-UseSplitVerifier"
+javaOptions in Test ++= Seq("-XX:-UseSplitVerifier", "-ea")
 
 parallelExecution in Test := true
 
