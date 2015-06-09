@@ -24,8 +24,6 @@ version := versions.value.getProperty("ocs")
 scalaVersion := versions.value.getProperty("scala")
 
 libraryDependencies ++= Seq(
-  "org.apache.lucene" % "lucene-test-framework" % versions.value.getProperty("solr") % "test",
-  "org.apache.solr" % "solr-test-framework" % versions.value.getProperty("solr") % "test",
   "org.apache.solr" % "solr-core" % versions.value.getProperty("solr"),
   "org.opencommercesearch" % "opencommercesearch-solr" % versions.value.getProperty("ocs") changing(),
   "org.opencommercesearch" % "opencommercesearch-sdk-java" % versions.value.getProperty("ocs") changing() excludeAll ExclusionRule(organization = "ch.qos.logback"),
@@ -36,6 +34,8 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-annotations" % versions.value.getProperty("jackson"),
   "com.fasterxml.jackson.core" % "jackson-core" % versions.value.getProperty("jackson"),
   "com.fasterxml.jackson.core" % "jackson-databind" % versions.value.getProperty("jackson"),
+  "org.apache.lucene" % "lucene-test-framework" % versions.value.getProperty("solr") % "test",
+  "org.apache.solr" % "solr-test-framework" % versions.value.getProperty("solr") % "test",
   "javax.servlet" % "servlet-api" % "2.4" % "test",
   "com.novocode" % "junit-interface" % "0.11" % "test",
   "org.mockito" % "mockito-core" % versions.value.getProperty("mockito") % "test",

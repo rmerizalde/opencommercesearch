@@ -31,7 +31,7 @@ resolvers ++= Seq(
 
 
 libraryDependencies ++= Seq(
-  cache, filters,
+  cache, filters, ws,
   "org.opencommercesearch" %% "play-solrj" % versions.value.getProperty("play-solrj") changing(),
   "org.opencommercesearch" %% "opencommercesearch-common" % versions.value.getProperty("ocs") changing(),
   "com.typesafe.play.plugins" %% "play-statsd" % versions.value.getProperty("play-statsd"),
