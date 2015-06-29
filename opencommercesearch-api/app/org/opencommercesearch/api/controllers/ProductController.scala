@@ -904,7 +904,7 @@ object ProductController extends BaseController {
   }
 
   private def filterProducts(products: Seq[Product]): Seq[Product] = {
-    products.filter(p => !p.isOem.getOrElse(false) && p.skus.getOrElse(Seq.empty[Sku]).map(s => s.hasNonPoos()).contains(true))
+    products.filter(p => !p.isOem.getOrElse(false) && p.skus.getOrElse(Seq.empty[Sku]).map(s => s.hasNonPoos).contains(true))
   }
 
   @ApiOperation(value = "Deletes products", notes = "Deletes products that were not updated in a given feed", httpMethod = "DELETE")

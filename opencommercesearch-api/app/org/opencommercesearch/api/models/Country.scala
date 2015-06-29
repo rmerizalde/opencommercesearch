@@ -25,17 +25,22 @@ import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 case class Country(
   var code: Option[String] = None,
+  @deprecated("Use defaultPrice")
   var listPrice: Option[BigDecimal] = None,
+  @deprecated("Use defaultPrice")
   var salePrice: Option[BigDecimal] = None,
+  @deprecated("Use defaultPrice")
   var discountPercent: Option[Int] = None,
+  var defaultPrice: Option[Price] = None,
+  var catalogPrices: Option[Map[String, Price]] = None,
   var onSale: Option[Boolean] = None,
   var stockLevel: Option[Int] = None,
   var allowBackorder: Option[Boolean] = None,
   var url: Option[String] = None,
   var availability: Option[Availability] = None) {
 
-  def isPoos(): Boolean = availability match {
-    case Some(availability) => availability.status.orNull == Availability.PermanentlyOutOfStock
+  def isPoos: Boolean = availability match {
+    case Some(avail) => avail.status.orNull == Availability.PermanentlyOutOfStock
     case None => false
   }
 }
@@ -56,7 +61,10 @@ object Country {
       "onSale" -> country.onSale,
       "allowBackorder" -> country.allowBackorder,
       "url" -> country.url,
-      "availability" -> country.availability
+      "availability" -> country.availability,
+      "defaultPrice" -> country.defaultPrice,
+      "catalogPrices" -> country.catalogPrices
+
     )
   }
 
@@ -71,7 +79,9 @@ object Country {
       onSale = doc.getAs[Boolean]("onSale"),
       allowBackorder = doc.getAs[Boolean]("allowBackorder"),
       url = doc.getAs[String]("url"),
-      availability = doc.getAs[Availability]("availability")
+      availability = doc.getAs[Availability]("availability"),
+      defaultPrice = doc.getAs[Price]("defaultPrice"),
+      catalogPrices = doc.getAs[Map[String, Price]]("catalogPrices")
     )
   }
 }
