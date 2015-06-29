@@ -59,7 +59,8 @@ class MongoStorageSpec extends Specification with Mockito {
         "skus.countries.salePrice" -> Include,
         ProjectedSkuCountryCode,
         ProjectedSkuCatalog,
-        ProjectedSkuAvailabilityStatus
+        ProjectedSkuAvailabilityStatus,
+        ProjectedSkuCountryCatalogPrices
       )
 
       BSONDocument.pretty(projection) shouldEqual BSONDocument.pretty(expectedProject)
@@ -76,7 +77,8 @@ class MongoStorageSpec extends Specification with Mockito {
         "sku.availability.stockLevel" -> Include,
         ProjectedSkuCountryCode,
         ProjectedSkuCatalog,
-        ProjectedSkuAvailabilityStatus
+        ProjectedSkuAvailabilityStatus,
+        ProjectedSkuCountryCatalogPrices
       )
 
       BSONDocument.pretty(projection) shouldEqual BSONDocument.pretty(expectedProject)
