@@ -19,13 +19,19 @@ package org.opencommercesearch.client.impl;
 * under the License.
 */
 
-import java.util.Locale;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.Locale;
+import java.util.Map;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Country {
   private String code;
   private Double listPrice;
   private Double salePrice;
   private Integer discountPercent;
+  private Price defaultPrice;
+  private Map<String, Price> catalogPrices;
   private String url;
   private Boolean allowBackorder;
   private Availability availability;
@@ -82,12 +88,28 @@ public class Country {
     return discountPercent;
   }
 
-  public Boolean getOnSale() {
-    return discountPercent > 0;
-  }
-
   public void setDiscountPercent(Integer discountPercent) {
     this.discountPercent = discountPercent;
+  }
+
+  public Price getDefaultPrice() {
+    return defaultPrice;
+  }
+
+  public void setDefaultPrice(Price defaultPrice) {
+    this.defaultPrice = defaultPrice;
+  }
+
+  public Map<String, Price> getCatalogPrices() {
+    return catalogPrices;
+  }
+
+  public void setCatalogPrices(Map<String, Price> catalogPrices) {
+    this.catalogPrices = catalogPrices;
+  }
+
+  public Boolean getOnSale() {
+    return discountPercent > 0;
   }
 
   public String getUrl() {

@@ -23,7 +23,7 @@
      this file, see http://wiki.apache.org/solr/SolrConfigXml. 
 -->
 <config>
-  <luceneMatchVersion>LUCENE_CURRENT</luceneMatchVersion>
+  <luceneMatchVersion>LUCENE_48</luceneMatchVersion>
 
   <dataDir>${solr.data.dir:}</dataDir>
 

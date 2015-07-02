@@ -170,7 +170,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
             sku.catalogs = None
           }
 
-          includeSku && flattenCountries(country, sku)
+          includeSku && flattenCountries(site, country, sku)
         })
       }
 
@@ -275,7 +275,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
    * @param sku the sku to filter & flatten
    * @return true if the skus had the given country, otherwise returns false
    */
-  private def flattenCountries(country: String, sku: Sku) : Boolean = {
+  private def flattenCountries(site: String, country: String, sku: Sku) : Boolean = {
     var filteredCountries: Seq[Country] = null
     for (countries <- sku.countries) {
       filteredCountries = countries.filter((c: Country) => country.equals(c.code.get))
@@ -291,6 +291,20 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       sku.url = country.url
       sku.availability = country.availability
       sku.onSale = country.onSale
+
+      for (defaultPrice <- country.defaultPrice) {
+        sku.listPrice = defaultPrice.listPrice
+        sku.salePrice = defaultPrice.salePrice
+        sku.discountPercent = defaultPrice.discountPercent
+      }
+
+      for (catalogPrices <- country.catalogPrices;
+        catalogPrice <- catalogPrices.get(site)) {
+        for (listPrice <- sku.listPrice; price <- catalogPrice.listPrice) { sku.listPrice = catalogPrice.listPrice }
+        for (salePrice <- sku.salePrice; price <- catalogPrice.salePrice) sku.salePrice = catalogPrice.salePrice
+        for (discountPercent <- sku.discountPercent; discount <- catalogPrice.discountPercent) sku.discountPercent = catalogPrice.discountPercent
+        for (onSale <- sku.onSale; sale <- catalogPrice.onSale) sku.onSale = catalogPrice.onSale
+      }
 
       if (sku.availability.isEmpty) {
         // support backward compatibility
@@ -361,6 +375,10 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
             }
           }
           projectedFields = projectedFields :+ ProjectedSkuAvailabilityStatus
+        }
+
+        if (fields.contains("skus.listPrice") || fields.contains("skus.salePrice") || fields.contains("skus.discountPercent") || fields.contains("skus.onSale")) {
+          projectedFields = projectedFields :+ ProjectedSkuCountryCatalogPrices
         }
 
         val projection = BSONDocument(projectedFields)
@@ -738,11 +756,15 @@ object MongoStorage {
   val Exclude = BSONInteger(0)
 
   val ProjectionMappings = Map(
+    "categories.id" -> "categories._id",
     "skus.allowBackorder" -> "skus.countries.allowBackorder",
     "skus.listPrice" -> "skus.countries.listPrice",
     "skus.salePrice" -> "skus.countries.salePrice",
     "skus.discountPercent" -> "skus.countries.discountPercent",
-    "skus.discountPercent" -> "skus.countries.discountPercent",
+    // @todo this are the new mapping that will be used once the country fields are fully deprecated.
+    //"skus.listPrice" -> "skus.countries.defaultPrice.listPrice",
+    //"skus.salePrice" -> "skus.countries.defaultPrice.salePrice",
+    //"skus.discountPercent" -> "skus.countries.defaultPrice.discountPercent",
     "skus.onSale" -> "skus.countries.onSale",
     "skus.url" -> "skus.countries.url",
     "skus.availability" -> "skus.countries.availability",
@@ -823,6 +845,8 @@ object MongoStorage {
   val ProjectedSkuCatalog = ("skus.catalogs", Include)
 
   val ProjectedSkuAvailabilityStatus = ("skus.countries.availability.status", Include)
+
+  val ProjectedSkuCountryCatalogPrices = ("skus.countries.catalogPrices", Include)
 
   val AllQuery = BSONDocument()
 

@@ -50,7 +50,8 @@ case class Category (
   var sites: Option[Seq[String]] = None,
   var hierarchyTokens: Option[Seq[String]] = None,
   var parentCategories: Option[Seq[Category]] = None,
-  var childCategories: Option[Seq[Category]] = None) extends IndexableElement {
+  var childCategories: Option[Seq[Category]] = None,
+  var attributes: Option[Map[String, String]] = None) extends IndexableElement {
 
   import org.opencommercesearch.api.models.Category._
 
@@ -128,6 +129,10 @@ object Category {
     if(isCopyField("childCategories")) {
       copy.childCategories = category.childCategories
     }
+
+    if(isCopyField("attributes")) {
+      copy.attributes = category.attributes
+    }
     copy
   }
 
@@ -198,7 +203,8 @@ object Category {
     (__ \ "sites").readNullable[Seq[String]] ~
     (__ \ "hierarchyTokens").readNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
-    (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory))
+    (__ \ "childCategories").lazyReadNullable(Reads.list[Category](readsCategory)) ~
+    (__ \ "attributes").lazyReadNullable(Reads.map[String])
   ) (Category.apply _)
 
   implicit val writesCategory : Writes[Category] = (
@@ -212,10 +218,12 @@ object Category {
     (__ \ "hierarchyTokens").writeNullable[Seq[String]] ~
     (__ \ "parentCategories").lazyWriteNullable(Writes.traversableWrites[Category](writesCategory)) ~
     //Prevent empty child lists to be written
-    (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory))
+    (__ \ "childCategories").lazyWriteNullableIterable[Seq[Category]](Writes.traversableWrites[Category](writesCategory)) ~
+    (__ \ "attributes").lazyWriteNullable(Writes.map[String])
   ) (unlift(Category.unapply))
 
   implicit object CategoryWriter extends BSONDocumentWriter[Category] {
+    import org.opencommercesearch.bson.BSONFormats._
     import reactivemongo.bson._
 
     def write(category: Category): BSONDocument = BSONDocument(
@@ -228,11 +236,14 @@ object Category {
       "sites" -> category.sites,
       "hierarchyTokens" -> category.hierarchyTokens,
       "parentCategories" -> category.parentCategories,
-      "childCategories" -> category.childCategories
+      "childCategories" -> category.childCategories,
+      "attributes" -> category.attributes
     )
   }
 
   implicit object CategoryReader extends BSONDocumentReader[Category] {
+    import org.opencommercesearch.bson.BSONFormats._
+
     def read(doc: BSONDocument): Category = Category(
       doc.getAs[String]("_id"),
       doc.getAs[String]("name"),
@@ -243,7 +254,8 @@ object Category {
       doc.getAs[Seq[String]]("sites"),
       doc.getAs[Seq[String]]("hierarchyTokens"),
       doc.getAs[Seq[Category]]("parentCategories"),
-      doc.getAs[Seq[Category]]("childCategories")
+      doc.getAs[Seq[Category]]("childCategories"),
+      doc.getAs[Map[String, String]]("attributes")
     )
   }
 }

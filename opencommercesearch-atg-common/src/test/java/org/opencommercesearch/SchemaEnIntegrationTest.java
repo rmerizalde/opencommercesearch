@@ -19,16 +19,17 @@ package org.opencommercesearch;
 * under the License.
 */
 
-import org.apache.solr.common.util.NamedList;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.opencommercesearch.junit.SearchTest;
 import org.opencommercesearch.junit.runners.SearchJUnit4ClassRunner;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author rmerizalde
@@ -46,117 +47,89 @@ public class SchemaEnIntegrationTest extends SchemaIntegrationTest {
     public void testLowerCaseFilter(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "This is an English TEST");
 
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
+        for (List<String> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("english", words.get(0).get("text"));
-            assertEquals("test", words.get(1).get("text"));
+            assertThat(words, containsInAnyOrder("english", "test"));
         }
     }
 
     @SearchTest
     public void testWordDelimiterFilterApostrophe(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "O'neil's");
-        ArrayList<NamedList<Object>> words = analysis.getQueryWords();
+        List<String> words = analysis.getQueryWords();
 
         assertEquals("Failed validating word count: ", 2, words.size());
-        assertEquals("o", words.get(0).get("text"));
-        assertEquals("neil", words.get(1).get("text"));
+        assertThat(words, containsInAnyOrder("o", "neil"));
 
         words = analysis.getIndexWords();
         assertEquals("Failed validating word count: ", 3, words.size());
-        assertEquals("o", words.get(0).get("text"));
-        assertEquals("neil", words.get(1).get("text"));
-        assertEquals("oneil", words.get(2).get("text"));
+        assertThat(words, containsInAnyOrder("o", "neil", "oneil"));
     }
 
     @SearchTest
     public void testWordDelimiterFilterDash(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "gore-tex");
-        ArrayList<NamedList<Object>> words = analysis.getQueryWords();
+        List<String> words = analysis.getQueryWords();
 
         assertEquals("Failed validating word count: ", 2, words.size());
-        assertEquals("gore", words.get(0).get("text"));
-        assertEquals("tex", words.get(1).get("text"));
+        assertThat(words, containsInAnyOrder("gore", "tex"));
 
         words = analysis.getIndexWords();
         assertEquals("Failed validating word count: ", 3, words.size());
-        assertEquals("gore", words.get(0).get("text"));
-        assertEquals("tex", words.get(1).get("text"));
-        assertEquals("goretex", words.get(2).get("text"));
+        assertThat(words, containsInAnyOrder("gore", "goretex", "tex"));
     }
 
     @SearchTest
     public void testWordDelimiterFilterSlash(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "Norrona 29/");
 
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
+        for (List<String> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 2, words.size());
-            assertEquals("norrona", words.get(0).get("text"));
-            assertEquals("29", words.get(1).get("text"));
+            assertThat(words, containsInAnyOrder("norrona", "29"));
         }
     }
 
     @SearchTest
     public void testWordDelimiterFilterNumbers(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "backpacks - 2440-2463cu in");
-        ArrayList<NamedList<Object>> words = analysis.getQueryWords();
+        List<String> words = analysis.getQueryWords();
 
         assertEquals("Failed validating word count: ", 4, words.size());
-        assertEquals("backpack", words.get(0).get("text"));
-        assertEquals("2440", words.get(1).get("text"));
-        assertEquals("2463", words.get(2).get("text"));
-        assertEquals("cu", words.get(3).get("text"));
+        assertThat(words, containsInAnyOrder("backpack", "2440", "2463", "cu"));
 
         words = analysis.getIndexWords();
         assertEquals("Failed validating word count: ", 5, words.size());
-        assertEquals("backpack", words.get(0).get("text"));
-        assertEquals("2440", words.get(1).get("text"));
-        assertEquals("2463", words.get(2).get("text"));
-        assertEquals("24402463", words.get(3).get("text"));
-        assertEquals("cu", words.get(4).get("text"));
+        assertThat(words, containsInAnyOrder("backpack", "2440", "2463", "24402463", "cu"));
     }
 
     @SearchTest
     public void testWordDelimiterFilterSizes(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "Tires 26\"");
 
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
+        for (List<String> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 3, words.size());
-            assertEquals("tires", words.get(0).get("text"));
-            assertEquals("tire", words.get(1).get("text"));
-            assertEquals("26", words.get(2).get("text"));
+            assertThat(words, containsInAnyOrder("tires", "tire", "26"));
         }
 
         analysis = analyzeFieldName(server, "text", "Tires 26x1.95");
-        ArrayList<NamedList<Object>> words = analysis.getIndexWords();
+        List<String> words = analysis.getIndexWords();
 
         assertEquals("Failed validating word count: ", 7, words.size());
-        assertEquals("tires", words.get(0).get("text"));
-        assertEquals("tire", words.get(1).get("text"));
-        assertEquals("26", words.get(2).get("text"));
-        assertEquals("x", words.get(3).get("text"));
-        assertEquals("1", words.get(4).get("text"));
-        assertEquals("95", words.get(5).get("text"));
-        assertEquals("195", words.get(6).get("text"));
+        assertThat(words, containsInAnyOrder("tires", "tire", "26", "x", "1", "95", "195"));
 
         words = analysis.getIndexWords();
 
         assertEquals("Failed validating word count: ",7, words.size());
-        assertEquals("tires", words.get(0).get("text"));
-        assertEquals("tire", words.get(1).get("text"));
-        assertEquals("26", words.get(2).get("text"));
-        assertEquals("x", words.get(3).get("text"));
-        assertEquals("1", words.get(4).get("text"));
-        assertEquals("95", words.get(5).get("text"));
+        assertThat(words, containsInAnyOrder("tires", "tire", "26", "x", "1", "95", "195"));
     }
 
     @SearchTest
     public void testKeywordFilter(SearchServer server) throws SearchServerException {
         Analysis analysis = analyzeFieldName(server, "text", "Alpinestars");
 
-        for (ArrayList<NamedList<Object>> words : analysis.getWords()) {
+        for (List<String> words : analysis.getWords()) {
             assertEquals("Failed validating word count: ", 1, words.size());
-            assertEquals("alpinestars", words.get(0).get("text"));
+            assertThat(words, containsInAnyOrder("alpinestars"));
         }
     }
 }

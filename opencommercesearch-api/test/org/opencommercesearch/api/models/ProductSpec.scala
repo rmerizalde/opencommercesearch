@@ -19,6 +19,9 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import org.apache.solr.common.SolrInputDocument
+import org.opencommercesearch.api.service.CategoryService
+import org.opencommercesearch.common.Context
 import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import play.api.test.FakeApplication
@@ -64,6 +67,92 @@ class ProductSpec extends Specification with Mockito {
       running(FakeApplication()) {
         new Product(skus = createSkusWithStatus("PermanentlyOutOfStock","PermanentlyOutOfStock", "PermanentlyOutOfStock", "PermanentlyOutOfStock")).availabilityStatus must beEqualTo(Some(PermanentlyOutOfStock))
       }
+    }
+
+    "should generate a document field per site specific field" in {
+      running(FakeApplication()) {
+        val countryUS = Country(
+          code = Some("US"),
+          listPrice = Some(BigDecimal(199.5)),
+          salePrice = Some(BigDecimal(199.5)),
+          discountPercent = Some(0),
+          onSale = Some(false),
+          defaultPrice = Some(Price(
+            listPrice = Some(BigDecimal(199.5)),
+            salePrice = Some(BigDecimal(199.5)),
+            discountPercent = Some(0),
+            onSale = Some(false)
+          )),
+          catalogPrices = Some(Map(
+            "site2" -> Price(
+                listPrice = Some(BigDecimal(199.5)),
+                salePrice = Some(BigDecimal(149.5)),
+                discountPercent = Some(25),
+                onSale = Some(true)
+            )
+          ))
+        )
+        val countryCA = Country(
+          code = Some("CA"),
+          listPrice = Some(BigDecimal(198.5)),
+          salePrice = Some(BigDecimal(198.5)),
+          discountPercent = Some(0),
+          onSale = Some(false),
+          defaultPrice = Some(Price(
+            listPrice = Some(BigDecimal(198.5)),
+            salePrice = Some(BigDecimal(198.5)),
+            discountPercent = Some(0),
+            onSale = Some(false)
+          )),
+          catalogPrices = Some(Map(
+            "site2" -> Price(
+                listPrice = Some(BigDecimal(198.5)),
+                salePrice = Some(BigDecimal(128.5)),
+                discountPercent = Some(35),
+                onSale = Some(true)
+            )
+          ))
+        )
+        val sku = Sku(
+          id = Some("PRD0001-S"),
+          image = Some(Image(title = Some("Image Title"), url = Some("image.url"))),
+          isRetail = Some(true),
+          isCloseout = Some(false),
+          countries = Some(Seq(countryUS, countryCA)),
+          catalogs = Some(Seq("site1", "site2"))
+        )
+        val product = new Product(
+          id = Some("PRD0001"),
+          title = Some("Product Title"),
+          brand = Some(Brand(id = Some("brandId"), name = Some("Brand Name"))),
+          skus = Some(Seq(sku)),
+          listRank = Some(1)
+        )
+
+        val productList = ProductList(Seq(product), System.currentTimeMillis())
+        val service = mock[CategoryService]
+        implicit val context = mock[Context]
+        val doc = productList.toDocuments(service).get(0)
+
+        def validateSiteSpecificField(name: String, country: String, defaultValue: Any, site1Value: Any, site2Value: Any) = {
+          doc.getFieldValue(name + country) shouldEqual defaultValue
+          doc.getFieldValue(name + country + "site1") shouldEqual site1Value
+          doc.getFieldValue(name + country + "site2") shouldEqual site2Value
+        }
+
+        doc.getFieldValue("listPriceUS") shouldEqual 199.5
+        validateSiteSpecificField("salePrice", "US", 199.5, 199.5, 149.5)
+        validateSiteSpecificField("discountPercent", "US", 0, 0, 25)
+        validateSiteSpecificField("onsale", "US", false, false, true)
+
+
+        doc.getFieldValue("listPriceCA") shouldEqual 198.5
+        validateSiteSpecificField("salePrice", "CA", 198.5, 198.5, 128.5)
+        validateSiteSpecificField("discountPercent", "CA", 0, 0, 35)
+        validateSiteSpecificField("onsale", "CA", false, false, true)
+      }
+
+
     }
   }
 

@@ -50,9 +50,9 @@ case class Sku(
     case None => None
   }
 
-  def hasNonPoos(): Boolean = countries match {
-    case Some(countries) => countries.collectFirst {
-      case country if !country.isPoos() => true
+  def hasNonPoos: Boolean = countries match {
+    case Some(c) => c.collectFirst {
+      case country if !country.isPoos => true
     }.getOrElse(false)
     case None => false
   }

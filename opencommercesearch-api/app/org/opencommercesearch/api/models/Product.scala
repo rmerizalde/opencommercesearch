@@ -234,7 +234,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
            skus <- product.skus; listRank <- product.listRank) {
         val isOem = product.isOem.getOrElse(false)
         val nonPoosSku = skus.collectFirst {
-          case sku: Sku if sku.hasNonPoos() => sku
+          case sku: Sku if sku.hasNonPoos => sku
         }
 
         if (nonPoosSku.isDefined && (IndexOemProductsEnabled || !isOem)) {
@@ -248,7 +248,7 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
           var skuSort = 0
 
           for (sku: Sku <- skus) {
-            if (sku.hasNonPoos()) {
+            if (sku.hasNonPoos) {
               expectedDocCount += 1
 
               for (id <- sku.id; image <- sku.image; isRetail <- sku.isRetail;
@@ -331,14 +331,34 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                       doc.setField("listPrice" + code, listPrice)
                     }
 
+                    // helper function to set a multi-site price property
+                    def setPricingField(propertyName: String, propertyGetter: (Price) => Any, defaultPropertyValue: Any) = {
+                      sku.catalogs.map(_.foreach({catalog =>
+                        country.catalogPrices.map { catalogPrices =>
+                          val value = catalogPrices.get(catalog).map(p => propertyGetter(p)) match {
+                            case Some(Some(propertyValue)) => propertyValue
+                            case None => defaultPropertyValue
+                          }
+                          doc.setField(propertyName + code + catalog, value)
+                        }
+                      }))
+                    }
+
                     for (salePrice <- country.salePrice) {
+                      // keep for backwards compatibility
                       doc.setField("salePrice" + code, salePrice)
+                      setPricingField("salePrice", price => price.salePrice, salePrice)
                     }
                     for (discountPercent <- country.discountPercent) {
+                      // keep for backwards compatibility
                       doc.setField("discountPercent" + code, discountPercent)
+                      setPricingField("discountPercent", price => price.discountPercent, discountPercent)
                     }
+
                     for (onSale <- country.onSale) {
+                      // keep for backwards compatibility
                       doc.setField("onsale" + code, onSale)
+                      setPricingField("onsale", price => price.onSale, onSale)
                     }
 
                     for (availability <- country.availability) {

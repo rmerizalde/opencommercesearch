@@ -19,17 +19,15 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
+import atg.beans.DynamicBeans;
 import atg.beans.DynamicPropertyDescriptor;
+import atg.beans.PropertyNotFoundException;
 import atg.json.JSONArray;
 import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.nucleus.GenericService;
 import atg.nucleus.ServiceException;
-import atg.repository.Repository;
-import atg.repository.RepositoryException;
-import atg.repository.RepositoryItem;
-import atg.repository.RepositoryItemDescriptor;
-import atg.repository.RepositoryView;
+import atg.repository.*;
 import atg.repository.rql.RqlStatement;
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.api.ProductService;
@@ -218,7 +216,7 @@ public abstract class BaseRestFeed extends GenericService {
         try {
             itemDescriptorCustomPropertyMappings = new HashMap<String, Map<String, String>>();
             for (Map.Entry<String, String> entry : getCustomPropertyMappings().entrySet()) {
-                String[] parts = StringUtils.split(entry.getKey(), '.');
+                String[] parts = StringUtils.split(entry.getKey(), ".", 2);
 
                 if (parts.length == 2) {
                     String itemDescriptorName = parts[0];
@@ -248,7 +246,7 @@ public abstract class BaseRestFeed extends GenericService {
         RepositoryItemDescriptor itemDescriptor = getRepository().getItemDescriptor(itemDescriptorName);
 
         if (itemDescriptor != null) {
-            DynamicPropertyDescriptor propertyDescriptor = itemDescriptor.getPropertyDescriptor(propertyName);
+            RepositoryPropertyDescriptor propertyDescriptor = getPropertyDescriptor(itemDescriptor, propertyName);
 
             if (propertyDescriptor != null) {
                 Map<String, String> mappings = itemDescriptorCustomPropertyMappings.get(itemDescriptorName);
@@ -270,6 +268,33 @@ public abstract class BaseRestFeed extends GenericService {
         }
     }
 
+    private RepositoryPropertyDescriptor getPropertyDescriptor(RepositoryItemDescriptor itemDescriptor, String propertyName) {
+        int index = propertyName.indexOf(".");
+
+        if (index == -1) {
+            return asRepositoryPropertyDescriptor(itemDescriptor.getPropertyDescriptor(propertyName), itemDescriptor);
+        } else {
+            String property = propertyName.substring(0, index);
+            String nestedProperty = propertyName.substring(index + 1);
+            RepositoryPropertyDescriptor propertyDescriptor = asRepositoryPropertyDescriptor(itemDescriptor.getPropertyDescriptor(property), itemDescriptor);
+
+            if (propertyDescriptor == null) {
+                return null;
+            }
+            return getPropertyDescriptor(propertyDescriptor.getPropertyItemDescriptor(), nestedProperty);
+        }
+    }
+
+    private RepositoryPropertyDescriptor asRepositoryPropertyDescriptor(DynamicPropertyDescriptor propertyDescriptor, RepositoryItemDescriptor itemDescriptor) {
+        if (propertyDescriptor instanceof RepositoryItemDescriptor) {
+            if (isLoggingError()) {
+                logError("Only RepositoryPropertyDescriptor is supported, skipping " + propertyDescriptor.getName() + " on " + itemDescriptor);
+            }
+            return null;
+        }
+        return (RepositoryPropertyDescriptor) propertyDescriptor;
+    }
+
     /**
      * Helper method to populate custom properties from a repository item into a jsonObject
      */
@@ -283,8 +308,27 @@ public abstract class BaseRestFeed extends GenericService {
         if (mappings != null) {
             for (Map.Entry<String, String> entry : mappings.entrySet()) {
                 String jsonPropertyName = entry.getValue();
-                Object propertyValue = item.getPropertyValue(entry.getKey());
-                json.put(jsonPropertyName, propertyValue);
+                try {
+                    Object propertyValue = DynamicBeans.getSubPropertyValue(item, entry.getKey());
+                    if (jsonPropertyName.startsWith("attributes.")) {
+                        if (!json.has("attributes")) {
+                            json.put("attributes", new JSONObject());
+                        }
+                        JSONObject attributes = json.getJSONObject("attributes");
+                        if (propertyValue != null) {
+                            attributes.put(jsonPropertyName.substring("attributes.".length()), propertyValue.toString());
+                        }
+                    } else {
+                        json.put(jsonPropertyName, propertyValue);
+                    }
+                    if (isLoggingDebug()) {
+                        logDebug("Setting '" + jsonPropertyName + "' to '" + propertyValue + "' for " + item);
+                    }
+                } catch (PropertyNotFoundException ex) {
+                    if (isLoggingError()) {
+                        logError("Property " + entry.getKey() + " not found in " + item, ex);
+                    }
+                }
             }
         }
     }
@@ -655,6 +699,10 @@ public abstract class BaseRestFeed extends GenericService {
      */
     public void setCustomPropertyMappings(Map<String, String> customPropertyMappings) {
       this.customPropertyMappings = customPropertyMappings;
+    }
+
+    protected Map<String, Map<String, String>> getItemDescriptorCustomPropertyMappings() {
+        return itemDescriptorCustomPropertyMappings;
     }
 
     /**
