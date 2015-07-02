@@ -19,22 +19,23 @@ package org.opencommercesearch.feed;
 * under the License.
 */
 
-import atg.beans.DynamicPropertyDescriptor;
+import atg.adapter.gsa.GSAPropertyDescriptor;
+import atg.beans.DynamicBeans;
 import atg.json.JSONArray;
 import atg.json.JSONException;
 import atg.json.JSONObject;
-import atg.repository.Repository;
-import atg.repository.RepositoryException;
-import atg.repository.RepositoryItem;
-import atg.repository.RepositoryItemDescriptor;
-import atg.repository.RepositoryView;
+import atg.repository.*;
 import atg.repository.rql.RqlStatement;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.opencommercesearch.api.ProductService;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.Method;
@@ -43,6 +44,8 @@ import org.restlet.data.Status;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.Assert.assertEquals;
@@ -51,6 +54,8 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+@RunWith(PowerMockRunner.class)
+@PrepareForTest({DynamicBeans.class})
 public class BaseRestFeedTest {
 
     @Mock
@@ -75,7 +80,13 @@ public class BaseRestFeedTest {
     private RepositoryItemDescriptor itemDescriptor;
 
     @Mock
-    private DynamicPropertyDescriptor propertyDescriptor;
+    private RepositoryItemDescriptor nestedItemDescritpor;
+
+    @Mock
+    private GSAPropertyDescriptor propertyDescriptor;
+
+    @Mock
+    private GSAPropertyDescriptor nestedPropertyDescriptor;
 
     @Mock
     private ProductService productService;
@@ -124,6 +135,8 @@ public class BaseRestFeedTest {
         when(itemA.getItemDescriptor()).thenReturn(itemDescriptor);
         when(itemB.getRepositoryId()).thenReturn("itemB");
         when(itemB.getItemDescriptor()).thenReturn(itemDescriptor);
+
+        PowerMockito.mockStatic(DynamicBeans.class);
     }
 
     @Test
@@ -145,10 +158,16 @@ public class BaseRestFeedTest {
         indexItems(true);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testIndexItemsWithNestedCustomProperty() throws Exception {
+        when(repository.getItemDescriptor("brand")).thenReturn(itemDescriptor);
+        when(itemDescriptor.getItemDescriptorName()).thenReturn("brand");
+        when(itemDescriptor.getPropertyDescriptor("logo")).thenReturn(propertyDescriptor);
+        when(propertyDescriptor.getPropertyItemDescriptor()).thenReturn(nestedItemDescritpor);
+        when(nestedItemDescritpor.getPropertyDescriptor("url")).thenReturn(nestedPropertyDescriptor);
         feed.setCustomPropertyMappings(Collections.singletonMap("brand.logo.url", "alias"));
         feed.doStartService();
+        assertEquals(1, feed.getItemDescriptorCustomPropertyMappings().size());
     }
 
     @Test
@@ -168,21 +187,33 @@ public class BaseRestFeedTest {
      */
     private void indexItemWithCustomProperty(boolean validCustomProperty) throws Exception {
         when(repository.getItemDescriptor("brand")).thenReturn(itemDescriptor);
+
         when(itemDescriptor.getItemDescriptorName()).thenReturn("brand");
         if (validCustomProperty) {
             when(itemDescriptor.getPropertyDescriptor("shortDisplayName")).thenReturn(propertyDescriptor);
+            when(itemDescriptor.getPropertyDescriptor("thumbnailUrl")).thenReturn(nestedPropertyDescriptor);
         }
 
         feed.setLoggingError(false);
-        feed.setCustomPropertyMappings(Collections.singletonMap("brand.shortDisplayName", "alias"));
+        Map<String, String> customMappings = new HashMap<String, String>();
+        customMappings.put("brand.shortDisplayName", "alias");
+        customMappings.put("brand.thumbnailUrl", "attributes.thumbnailUrl");
+        feed.setCustomPropertyMappings(customMappings);
         feed.doStartService();
+        PowerMockito.doReturn("myBrand").when(DynamicBeans.class, "getSubPropertyValue", any(RepositoryItem.class), eq("shortDisplayName"));
+        PowerMockito.doReturn("brand.png").when(DynamicBeans.class, "getSubPropertyValue", any(RepositoryItem.class), eq("thumbnailUrl"));
+
         indexItems(false);
-        verify(repository, times(1)).getItemDescriptor("brand");
+        verify(repository, times(2)).getItemDescriptor("brand");
         verify(itemDescriptor, times(1)).getPropertyDescriptor("shortDisplayName");
+        verify(itemDescriptor, times(1)).getPropertyDescriptor("thumbnailUrl");
         if (validCustomProperty) {
             verify(itemDescriptor, times(2)).getItemDescriptorName();
-            verify(itemA, times(1)).getPropertyValue("shortDisplayName");
-            verify(itemB, times(1)).getPropertyValue("shortDisplayName");
+            PowerMockito.verifyStatic(times(1));
+            DynamicBeans.getSubPropertyValue(itemA, "shortDisplayName");
+            DynamicBeans.getSubPropertyValue(itemB, "shortDisplayName");
+            DynamicBeans.getSubPropertyValue(itemA, "thumbnailUrl");
+            DynamicBeans.getSubPropertyValue(itemB, "thumbnailUrl");
             verify(itemA, times(1)).getItemDescriptor();
             verify(itemB, times(1)).getItemDescriptor();
         }

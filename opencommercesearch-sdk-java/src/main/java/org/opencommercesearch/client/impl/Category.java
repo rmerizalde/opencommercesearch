@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -42,6 +43,8 @@ public class Category {
   private String url;
   private boolean isRuleBased;
   private Set<String> sites;
+
+  private Map<String, String> attributes;
 
   public Category() {}
 
@@ -112,5 +115,13 @@ public class Category {
 
   public void setSites(Set<String> sites) {
     this.sites = sites;
+  }
+
+  public Map<String, String> getAttributes() {
+    return attributes;
+  }
+
+  public void setAttributes(Map<String, String> attributes) {
+    this.attributes = attributes;
   }
 }
