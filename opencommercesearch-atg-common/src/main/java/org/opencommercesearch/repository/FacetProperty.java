@@ -27,6 +27,8 @@ public class FacetProperty {
     public static final String TYPE = "facetType";
     public static final String IS_MULTI_SELECT = "isMultiSelect";
     public static final String IS_MIXED_SORTING = "isMixedSorting";
+    public static final String IS_BY_COUNTRY = "isByCountry";
+    public static final String IS_BY_SITE = "isBySite";
     public static final String NAME = "name";
     public static final String UI_TYPE = "uiType";
     public static final String MIN_BUCKETS = "minBuckets";

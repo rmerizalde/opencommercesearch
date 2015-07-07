@@ -788,6 +788,8 @@ object MongoStorage {
     "skus.countries.salePrice" -> Include,
     "skus.countries.discountPercent" -> Include,
     "skus.countries.onSale" -> Include,
+    "skus.countries.defaultPrice" -> Include,
+    "skus.countries.catalogPrices" -> Include,
     "skus.countries.url" -> Include,
     "skus.title" -> Include,
     "skus.catalogs" -> Include,

@@ -50,7 +50,7 @@
       <not><tableExists tableName="cs_rule"/></not>
       <not><tableExists tableName="cs_rule_cats"/></not>
     </preConditions>
-    
+
     <createTable tableName="cs_rule">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false"/>
@@ -112,7 +112,7 @@
       <not><tableExists tableName="cs_boost_rule"/></not>
       <not><tableExists tableName="cs_boost_rule_prods"/></not>
     </preConditions>
-    
+
     <createTable tableName="cs_boost_rule">
       <column name="rule_id" type="VARCHAR2(40 BYTE)">
         <constraints nullable="false" primaryKey="true" primaryKeyName="cs_boost_rule_pk"
@@ -293,7 +293,7 @@
       </column>
       <column name="field_name" type="VARCHAR2(30 BYTE)">
         <constraints nullable="false" />
-      </column>      
+      </column>
     </createTable>
 
     <createTable tableName="cs_query_facet_queries">
@@ -324,41 +324,41 @@
       </column>
     </createTable>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="11">
     <preConditions onFail="MARK_RAN">
         <foreignKeyConstraintExists foreignKeyName="cs_rule_site_site_fk" />
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_site_site_fk" baseTableName="cs_rule_sites"/>
-  </changeSet> 
-  
+  </changeSet>
+
   <changeSet author="commercesearch" id="12">
     <preConditions onFail="MARK_RAN">
-        <foreignKeyConstraintExists foreignKeyName="cs_rule_sites" /> 
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_sites" />
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_catalog_cat_fk" baseTableName="cs_rule_catalogs"/>
-  </changeSet>  
-  
+  </changeSet>
+
   <changeSet author="commercesearch" id="13">
     <preConditions onFail="MARK_RAN">
-        <foreignKeyConstraintExists foreignKeyName="cs_rule_cat_cat_fk" /> 
+        <foreignKeyConstraintExists foreignKeyName="cs_rule_cat_cat_fk" />
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_rule_cat_cat_fk" baseTableName="cs_rule_cats"/>
-  </changeSet>  
-  
+  </changeSet>
+
   <changeSet author="commercesearch" id="14">
     <preConditions onFail="MARK_RAN">
-        <foreignKeyConstraintExists foreignKeyName="cs_boot_rule_prod_prod_fk"  /> 
+        <foreignKeyConstraintExists foreignKeyName="cs_boot_rule_prod_prod_fk"  />
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_boot_rule_prod_prod_fk" baseTableName="cs_boost_rule_prods"/>
-  </changeSet>       
-     
+  </changeSet>
+
   <changeSet author="commercesearch" id="15">
     <preConditions onFail="MARK_RAN">
-        <foreignKeyConstraintExists foreignKeyName="cs_block_rule_prod_prod_fk" /> 
+        <foreignKeyConstraintExists foreignKeyName="cs_block_rule_prod_prod_fk" />
     </preConditions>
     <dropForeignKeyConstraint constraintName="cs_block_rule_prod_prod_fk" baseTableName="cs_block_rule_prods"/>
-  </changeSet>  
+  </changeSet>
 
 
   <changeSet author="commercesearch" id="16">
@@ -390,7 +390,7 @@
         </createTable>
         <addPrimaryKey tableName="cs_category_rule_expression" columnNames="category_id,rule_expression_id,position" constraintName="cs_cat_rul_exp_pk"/>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="17">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="cs_ranking_rule"/></not>
@@ -407,10 +407,10 @@
       </column>
       <column name="strength" type="VARCHAR2(20 BYTE)">
         <constraints nullable="true" />
-      </column>  
+      </column>
       <column name="attribute_name" type="VARCHAR2(60 BYTE)">
         <constraints nullable="true" />
-      </column>            
+      </column>
     </createTable>
 
     <createTable tableName="cs_ranking_rule_expression">
@@ -424,7 +424,7 @@
     </createTable>
     <addPrimaryKey tableName="cs_ranking_rule_expression" columnNames="rule_id,rule_expression_id,position" constraintName="cs_ranking_rule_expr_pk"/>
   </changeSet>
-  
+
  <changeSet author="commercesearch" id="19">
     <preConditions onFail="MARK_RAN">
     <not><columnExists tableName="cs_rule" columnName="target"/></not>
@@ -458,14 +458,14 @@
                  ON (ucc.constraint_name = uc.constraint_name)
           WHERE  utc.table_name = 'CS_RULE'
           AND     (   uc.constraint_type = 'C'
-                 OR uc.constraint_type IS NULL) 
+                 OR uc.constraint_type IS NULL)
           AND    utc.column_name = 'QUERY'
           AND    uc.search_condition is not null;
       </sqlCheck></not>
     </preConditions>
-    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>    
+    <dropNotNullConstraint tableName="cs_rule" columnName="query"/>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="22">
     <preConditions onFail="MARK_RAN">
       <not><columnExists tableName="cs_facet" columnName="ui_type"/></not>
@@ -477,14 +477,14 @@
         </column>
     </addColumn>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="23">
         <preConditions onFail="MARK_RAN">
             <not><sqlCheck expectedResult="0">select count(*) from cs_rule where target = '1' and type = '5'</sqlCheck></not>
         </preConditions>
         <sql>update cs_rule set target='2' where target = '1' and type = '5';</sql>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="24">
     <preConditions onFail="MARK_RAN">
       <not><columnExists tableName="cs_facet" columnName="min_buckets"/></not>
@@ -496,7 +496,7 @@
         </column>
     </addColumn>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="25">
     <preConditions onFail="MARK_RAN">
       <not><columnExists tableName="cs_ranking_rule" columnName="notes" /></not>
@@ -505,7 +505,7 @@
     <modifyDataType tableName="cs_ranking_rule" columnName="attribute_name" newDataType="varchar(256)"/>
 
     <addColumn tableName="cs_ranking_rule">
-        <column name="notes" type="varchar(512)"> 
+        <column name="notes" type="varchar(512)">
             <constraints nullable="true"/>
         </column>
     </addColumn>
@@ -530,9 +530,9 @@
           AND    uc.search_condition is not null;
       </sqlCheck>
     </preConditions>
-    <addNotNullConstraint tableName="cs_rule" columnName="target"/>    
-  </changeSet> 
-  
+    <addNotNullConstraint tableName="cs_rule" columnName="target"/>
+  </changeSet>
+
   <changeSet author="commercesearch" id="27">
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
@@ -553,14 +553,14 @@
       </sqlCheck>
     </preConditions>
     <sql>UPDATE cs_ranking_rule SET notes='Update me' WHERE notes IS NULL</sql>
-    <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>    
+    <addNotNullConstraint tableName="cs_ranking_rule" columnName="notes"/>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="28">
     <preConditions onFail="MARK_RAN">
         <not><columnExists tableName="cs_rule" columnName="sort_priority"/></not>
         <not><columnExists tableName="cs_rule" columnName="combine_mode"/></not>
-    </preConditions>  
+    </preConditions>
     <addColumn tableName="cs_rule">
         <column name="sort_priority" type="number(19)" defaultValueNumeric="0">
             <constraints nullable="true"/>
@@ -570,72 +570,72 @@
         <column name="combine_mode" type="VARCHAR2(15 BYTE)" defaultValue="1">
             <constraints nullable="true"/>
         </column>
-    </addColumn>  
-  </changeSet> 
-  
+    </addColumn>
+  </changeSet>
+
   <changeSet author="commercesearch" id="29">
     <preConditions onFail="MARK_RAN">
         <not><columnExists tableName="cs_facet_rule_facets" columnName="position"/></not>
-    </preConditions>  
+    </preConditions>
     <addColumn tableName="cs_facet_rule_facets">
         <column name="position" type="number(19)" defaultValueNumeric="0" />
-    </addColumn>  
-  </changeSet>   
-  
+    </addColumn>
+  </changeSet>
+
   <changeSet author="commercesearch" id="30">
     <preConditions onFail="MARK_RAN">
         <primaryKeyExists tableName="cs_facet_rule_facets" primaryKeyName="cs_facet_rule_facet_pk"/>
-    </preConditions>     
+    </preConditions>
     <dropPrimaryKey tableName="cs_facet_rule_facets" constraintName="cs_facet_rule_facet_pk"/>
     <addPrimaryKey tableName="cs_facet_rule_facets" columnNames="rule_id,facet_id,position" constraintName="cs_facet_rule_facet_pk"/>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="31">
     <preConditions onFail="MARK_RAN">
         <tableExists tableName="cs_facet_rule_facets"/>
     </preConditions>
     <sql>DELETE cs_facet_rule_facets WHERE position = 0</sql>
-  </changeSet> 
-  
+  </changeSet>
+
   <changeSet author="commercesearch" id="32">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_facet"/>
       <not><columnExists tableName="cs_facet" columnName="system_name"/></not>
     </preConditions>
-    
+
     <addColumn tableName="cs_facet">
         <column name="system_name" type="VARCHAR2(30 BYTE)" />
     </addColumn>
-      
+
     <sql>UPDATE cs_facet SET system_name = name</sql>
 
     <addNotNullConstraint tableName="cs_facet" columnName="system_name" />
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="33">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_rule"/>
       <not><columnExists tableName="cs_rule" columnName="include_subcats"/></not>
     </preConditions>
-    
+
     <addColumn tableName="cs_rule">
         <column name="include_subcats" type="NUMBER(1)" defaultValueNumeric="0" />
     </addColumn>
-      
+
     <sql>UPDATE cs_rule SET include_subcats = 1</sql>
 
     <addNotNullConstraint tableName="cs_rule" columnName="include_subcats" />
-  </changeSet>  
-  
+  </changeSet>
+
   <changeSet author="commercesearch" id="34">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_redirect_rule"/>
       <columnExists tableName="cs_redirect_rule" columnName="url"/>
     </preConditions>
-    
+
     <modifyDataType tableName="cs_redirect_rule" columnName="url" newDataType="VARCHAR2(1024)"/>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="35">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_rule"/>
@@ -643,8 +643,8 @@
     </preConditions>
 
     <modifyDataType tableName="cs_rule" columnName="name" newDataType="VARCHAR2(256)"/>
-  </changeSet>          
-  
+  </changeSet>
+
 
 
 <changeSet author="commercesearch" id="36">
@@ -693,7 +693,7 @@
         <column name="item_owner" type="VARCHAR2(128)"/>
     </addColumn>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="38">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="cs_facet_blacklist"/></not>
@@ -737,8 +737,8 @@
     <addForeignKeyConstraint baseColumnNames="syn_list_id" baseTableName="cs_synonym" constraintName="CS_SYN_FK" deferrable="false" initiallyDeferred="false"
                              referencedColumnNames="syn_list_id" referencedTableName="cs_synonym_list"/>
     <dropTable cascadeConstraints="true" tableName="cs_syn_list_mapping"/>
-  </changeSet>          
-                                                                                                   
+  </changeSet>
+
   <changeSet author="commercesearch" id="41">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_synonym_list"/>
@@ -748,18 +748,18 @@
     <addColumn tableName="cs_synonym_list">
       <column name="fileName" type="VARCHAR2(256)"/>
     </addColumn>
-                                                                                                                                              
+
    <sql>update cs_synonym_list set fileName = 'query_synonyms' where name ='Query Synonyms'</sql>
    <sql>update cs_synonym_list set fileName = 'index_synonyms' where name ='Index Synonyms'</sql>
    <sql>update cs_synonym_list set fileName = 'query_parser_synonyms' where name ='Query Parser Synonyms'</sql>
    <sql>update cs_synonym_list set fileName = 'facet_synonyms' where name ='Facet Synonyms'</sql>
-                                                                                                                                                                  
+
    <addNotNullConstraint tableName="cs_synonym_list" columnName="fileName" />
   </changeSet>
 
   <!-- New control/review fields for all base search assets on the BCC-->
   <changeSet author="commercesearch" id="44">
-    <preConditions onFail="MARK_RAN">    
+    <preConditions onFail="MARK_RAN">
       <tableExists tableName="cs_facet"/>
       <not><columnExists tableName="cs_facet" columnName="creationDate"/></not>
       <not><columnExists tableName="cs_facet" columnName="lastModifiedDate"/></not>
@@ -773,7 +773,7 @@
       <not><columnExists tableName="cs_rule" columnName="createdBy"/></not>
       <not><columnExists tableName="cs_rule" columnName="lastModifiedBy"/></not>
       <not><columnExists tableName="cs_rule" columnName="rationale"/></not>
-      
+
       <tableExists tableName="cs_synonym"/>
       <not><columnExists tableName="cs_synonym" columnName="creationDate"/></not>
       <not><columnExists tableName="cs_synonym" columnName="lastModifiedDate"/></not>
@@ -787,7 +787,7 @@
       <not><columnExists tableName="cs_synonym_list" columnName="createdBy"/></not>
       <not><columnExists tableName="cs_synonym_list" columnName="lastModifiedBy"/></not>
       <not><columnExists tableName="cs_synonym_list" columnName="rationale"/></not>
-      
+
     </preConditions>
 
     <addColumn tableName="cs_facet">
@@ -828,7 +828,7 @@
     <sql>update cs_synonym_list set rationale = '4' WHERE rationale IS NULL</sql>
     <sql>update cs_synonym set rationale = '4' WHERE rationale IS NULL</sql>
 
-    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />    
+    <addNotNullConstraint tableName="cs_facet" columnName="rationale" />
     <addNotNullConstraint tableName="cs_rule" columnName="rationale" />
     <addNotNullConstraint tableName="cs_synonym_list" columnName="rationale" />
     <addNotNullConstraint tableName="cs_synonym" columnName="rationale" />
@@ -838,12 +838,12 @@
     <sql>UPDATE cs_rule SET start_date = CURRENT_DATE WHERE start_date = null</sql>
     <sql>UPDATE cs_rule SET end_date = CURRENT_DATE + 45 WHERE end_date = null</sql>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="46">
     <sql>UPDATE cs_rule SET start_date = CURRENT_DATE WHERE start_date IS null</sql>
     <sql>UPDATE cs_rule SET end_date = CURRENT_DATE + 45 WHERE end_date IS null</sql>
   </changeSet>
-  
+
     <!-- Add mixed sorting option support for field facets-->
   <changeSet author="commercesearch" id="47">
     <preConditions onFail="MARK_RAN">
@@ -857,7 +857,7 @@
       </column>
     </addColumn>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="48">
     <preConditions onFail="MARK_RAN">
     <not><columnExists tableName="cs_rule" columnName="sub_target"/></not>
@@ -885,7 +885,7 @@
       </column>
     </createTable>
   </changeSet>
-  
+
   <changeSet author="commercesearch" id="50">
       <preConditions onFail="MARK_RAN">
         <tableExists tableName="cs_rule"/>
@@ -898,7 +898,7 @@
       </addColumn>
       <sql>update cs_rule set experimental = '0' WHERE experimental IS NULL</sql>
   </changeSet>
-    
+
   <changeSet author="commercesearch" id="51">
     <preConditions onFail="MARK_RAN">
       <not><tableExists tableName="cs_acls_syn_list"/></not>
@@ -954,5 +954,26 @@
         <constraints nullable="false" />
       </column>
     </createTable>
-</changeSet>
+  </changeSet>
+
+  <changeSet author="commercesearch" id="52">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="cs_facet"/>
+      <not><columnExists tableName="cs_facet" columnName="is_by_country"/></not>
+      <not><columnExists tableName="cs_facet" columnName="is_by_site"/></not>
+    </preConditions>
+
+    <addColumn tableName="cs_facet">
+      <column name="is_by_country" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+
+    <addColumn tableName="cs_facet">
+      <column name="is_by_site" type="NUMBER(1)">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+  </changeSet>
+
 </databaseChangeLog>

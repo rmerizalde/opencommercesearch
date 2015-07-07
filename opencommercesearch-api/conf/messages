@@ -10,6 +10,18 @@ facet.range.stockLevelUS.before=$[v2] And Less
 facet.range.stockLevelUS.inrange=$[v1]-$[v2]
 facet.range.stockLevelUS.after=$[v1] And More
 
+facet.range.salePrice.before=Under $$[v2]
+facet.range.salePrice.inrange=$$[v1]-$$[v2]
+facet.range.salePrice.after=$$[v1] And Up
+
+facet.range.listPrice.before=Under $$[v2]
+facet.range.listPrice.inrange=$$[v1]-$$[v2]
+facet.range.listPrice.after=$$[v1] And Up
+
+facet.range.stockLevel.before=$[v2] And Less
+facet.range.stockLevel.inrange=$[v1]-$[v2]
+facet.range.stockLevel.after=$[v1] And More
+
 facet.range.reviewAverage.before=$[v1] Stars & Up
 facet.range.reviewAverage.before.1=$[v1] Star & Up
 facet.range.reviewAverage.inrange=$[v1] Stars & Up
@@ -22,6 +34,10 @@ facet.range.reviewAverage.crumb=$[v1] Stars & Up
 facet.range.discountPercentUS.before=> $[v1]% Off
 facet.range.discountPercentUS.inrange=> $[v1]% Off
 facet.range.discountPercentUS.after=> $[v1]% Off
+
+facet.range.discountPercent.before=> $[v1]% Off
+facet.range.discountPercent.inrange=> $[v1]% Off
+facet.range.discountPercent.after=> $[v1]% Off
 
 facet.range.activationDate.before=Last $[days] days
 facet.range.activationDate.inrange=Last $[days] days

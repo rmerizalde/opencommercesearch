@@ -45,6 +45,11 @@ public interface RuleManagerParams {
     public static final String CATALOG_ID = "catalogId";
 
     /**
+     * Catalog country currently being searched.
+     */
+    public static final String COUNTRY_ID = "country";
+
+    /**
      * Category filter to apply. Certain rules only apply for specific categories.
      */
     public static final String CATEGORY_FILTER = "categoryFilter";

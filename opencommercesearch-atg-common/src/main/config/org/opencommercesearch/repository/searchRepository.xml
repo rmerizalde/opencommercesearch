@@ -322,6 +322,16 @@
                   column-name="min_buckets" required="false" category="Optional">
           <attribute name="propertySortPriority" value="3" />
         </property>
+        <property name="isByCountry" data-type="boolean" display-name="By Country (default false)"
+                column-name="is_by_country" required="false" category="Optional">
+        <attribute name="propertySortPriority" value="4" />
+        </property>
+        <property name="isBySite" data-type="boolean" display-name="By Site (default false)"
+                column-name="is_by_site" required="false" category="Optional">
+        <attribute name="propertySortPriority" value="5" />
+        </property>
+
+
         
         <!-- Review fields -->
         <property name="creationDate" data-type="timestamp" display-name="Creation Date" 

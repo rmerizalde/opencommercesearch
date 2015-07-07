@@ -315,7 +315,7 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 augmentedParams.addSort("score", SolrQuery.ORDER.desc);
                 augmentedParams.addSort("_version_", SolrQuery.ORDER.desc);
 
-                Map<String, NamedList> facets = facetHandler.getFacets();
+                Map<String, NamedList> facets = facetHandler.getFacets(augmentedParams);
                 setFilterQueries(facets, requestParams, augmentedParams);
                 rb.rsp.add("rule_facets", facets.values());
             }

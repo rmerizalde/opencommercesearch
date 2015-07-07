@@ -94,6 +94,8 @@ case class FacetHandler (
         facet.id = None
         facet.fieldName = None
         facet.isHardened = None
+        facet.isByCountry = None
+        facet.isBySite = None
         facet.start = None
         facet.end = None
         facet.gap = None
@@ -157,6 +159,17 @@ case class FacetHandler (
     }
   }
 
+  private def originalFieldName(fieldName: String): String = {
+    val facetDefinition = facetData.find(nl => fieldName.equals(nl.get(Facet.FieldName)))
+
+    facetDefinition match {
+      case Some(fd) =>
+        val originalFieldName = fd.get("originalFieldName").asInstanceOf[String]
+        if (originalFieldName != null) originalFieldName else fieldName
+      case None => fieldName
+    }
+  }
+
   private def rangeFacets(facetMap: mutable.Map[String, Facet]) : Unit = {
     if (queryResponse.getFacetRanges != null) {
       for (range <- queryResponse.getFacetRanges) {
@@ -174,7 +187,7 @@ case class FacetHandler (
             if (prevCount == null) {
               prevCount = count
             } else {
-              val rangeFilter = createRangeFilter(range.getName, f, Util.ResourceInRange,
+              val rangeFilter = createRangeFilter(originalFieldName(range.getName), f, Util.ResourceInRange,
                 prevCount.getValue, count.getValue, prevCount.getCount)
               filters.add(rangeFilter)
               prevCount = count
@@ -190,7 +203,7 @@ case class FacetHandler (
               value2 += gap
             }
             
-            val filter = createRangeFilter(range.getName, f, Util.ResourceInRange, prevCount.getValue, value2.toString, prevCount.getCount) 
+            val filter = createRangeFilter(range.getName, f, Util.ResourceInRange, prevCount.getValue, value2.toString, prevCount.getCount)
             if (filter != null){
                 filters.add(filter)
             }
@@ -232,7 +245,7 @@ case class FacetHandler (
       val v1 = removeDecimals(value1)
       val v2 = removeDecimals(value2)
       val filterQuery = s"$fieldName:[$v1 TO v2]"
-      val filterName = Util.getRangeName(fieldName, key, v1, v2, null)
+      val filterName = Util.getRangeName(originalFieldName(fieldName), key, v1, v2, null)
       filter = new Filter(
         Some(filterName),
         Some(count),
@@ -278,7 +291,6 @@ case class FacetHandler (
               facetFieldName = fieldName
               facet = createFacet(fieldName).orNull
               filters = new mutable.ArrayBuffer[Filter]()
-
               facet.filters = Some(filters)
               facetMap.put(fieldName, facet)
             }
@@ -287,7 +299,7 @@ case class FacetHandler (
                     
             try{
                 val filter = new Filter(
-                  Some(FilterQuery.unescapeQueryChars(Util.getRangeName(fieldName, expression))),
+                  Some(FilterQuery.unescapeQueryChars(Util.getRangeName(originalFieldName(fieldName), expression))),
                   Some(count),
                   Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
                   Some(URLEncoder.encode(filterQuery, "UTF-8")),
@@ -514,7 +526,8 @@ case class FacetHandler (
   
   @throws(classOf[ParseException])
   private def getCrumbExpression(fieldName: String, expression: String): String = {
-      Util.getRangeName(fieldName, Util.getRangeBreadCrumb(fieldName, expression, expression))
+    val name = originalFieldName(fieldName)
+    Util.getRangeName(name, Util.getRangeBreadCrumb(name, expression, expression))
   }
 }
 

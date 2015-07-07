@@ -42,6 +42,8 @@
 
    <field name="uiType"           type="string"   indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" termVectors="false" termPositions="false" termOffsets="false" />
    <field name="isMultiSelect"    type="boolean"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" default="false" />
+   <field name="isByCountry"      type="boolean"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" default="false" />
+   <field name="isBySite"         type="boolean"  indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" default="false" />
    <field name="minBuckets"       type="int"      indexed="true"  stored="true"  required="false" multiValued="false" omitNorms="true" />
 
    <!--Field facet fields-->

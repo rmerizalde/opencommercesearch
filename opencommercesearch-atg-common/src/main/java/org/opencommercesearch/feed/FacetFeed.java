@@ -61,6 +61,8 @@ public class FacetFeed extends BaseRestFeed {
         facetJsonObj.put(FacetConstants.FIELD_UI_TYPE, facet.getPropertyValue(FacetProperty.UI_TYPE));
         facetJsonObj.put(FacetConstants.FIELD_MULTISELECT, facet.getPropertyValue(FacetProperty.IS_MULTI_SELECT));
         facetJsonObj.put(FacetConstants.FIELD_MIN_BUCKETS, facet.getPropertyValue(FacetProperty.MIN_BUCKETS));
+        facetJsonObj.put(FacetConstants.FIELD_BY_COUNTRY, facet.getPropertyValue(FacetProperty.IS_BY_COUNTRY));
+        facetJsonObj.put(FacetConstants.FIELD_BY_SITE, facet.getPropertyValue(FacetProperty.IS_BY_SITE));
 
         if(facetType.equals(FacetConstants.FACET_TYPE_FIELD)) {
             facetJsonObj.put(FacetConstants.FIELD_MIXED_SORTING, facet.getPropertyValue(FacetProperty.IS_MIXED_SORTING));
