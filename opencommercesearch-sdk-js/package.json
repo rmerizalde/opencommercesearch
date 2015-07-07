@@ -1,0 +1,22 @@
+{
+  "name": "opencommercesearch-sdk-js",
+  "version": "1.0.0",
+  "description": "Javascript SDK for the OpenCommerceSearch Product API.",
+  "author": "Miles Dickson",
+  "main": "ProductApi.js",
+  "dependencies": {
+    "q": "^1.2.0",
+    "superagent": "^1.2.0"
+  },
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-jshint": "^0.11.2",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-mocha-cli": "^1.13.0",
+    "mocha": "^2.2.5",
+    "sinon": "^1.14.1",
+    "underscore": "^1.8.3"
+  },
+  "license": "MIT",
+  "private": true
+}
