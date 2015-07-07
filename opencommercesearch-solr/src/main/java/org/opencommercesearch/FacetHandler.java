@@ -19,6 +19,7 @@ package org.opencommercesearch;
 * under the License.
 */
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexableField;
@@ -26,7 +27,10 @@ import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.util.ClientUtils;
 import org.apache.solr.common.params.FacetParams;
 import org.apache.solr.common.params.MergedSolrParams;
+import org.apache.solr.common.params.RuleManagerParams;
+import org.apache.solr.common.params.SolrParams;
 import org.apache.solr.common.util.NamedList;
+import org.apache.solr.handler.component.RuleManagerComponent;
 
 import java.util.*;
 
@@ -47,20 +51,22 @@ public class FacetHandler {
     static {
         ignoredFields.add("_version_");
         ignoredFields.add(FacetConstants.FIELD_QUERIES);
+        ignoredFields.add(FacetConstants.FIELD_BY_COUNTRY);
+        ignoredFields.add(FacetConstants.FIELD_BY_SITE);
     }
 
     /**
      * List of facets registered on this facet handler. The list is indexed by facet field name.
      */
     private LinkedHashMap<String, Document> facets = new LinkedHashMap<String, Document>();
-    
+
     /**
      * Enum of valid facet types known to the facet handler.
      */
     enum FacetType {
         fieldFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
+                String fieldName = fieldName(facet.get(FacetConstants.FIELD_FIELD_NAME), query, facet);
                 String localParams = "{!ex=collapse}";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -81,7 +87,7 @@ public class FacetHandler {
         },
         rangeFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
+                String fieldName = fieldName(facet.get(FacetConstants.FIELD_FIELD_NAME), query, facet);
                 int start = facet.get(FacetConstants.FIELD_START) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_START)) : 0;
                 int end = facet.get(FacetConstants.FIELD_END) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_END)) : 0;
                 int gap = facet.get(FacetConstants.FIELD_GAP) != null? Integer.valueOf(facet.get(FacetConstants.FIELD_GAP)) : 0;
@@ -94,10 +100,8 @@ public class FacetHandler {
                 }
 
                 query.addNumericRangeFacet(fieldName, start, end, gap);
-
-                if(StringUtils.isNotBlank(localParams)) {
-                    query.add(FacetParams.FACET_RANGE, localParams + fieldName);
-                }
+                query.remove(FacetParams.FACET_RANGE, fieldName);
+                query.add(FacetParams.FACET_RANGE, localParams + fieldName);
 
                 boolean hardened = getBooleanFromField(facet.get(FacetConstants.FIELD_HARDENED));
                 if(hardened) {
@@ -116,7 +120,7 @@ public class FacetHandler {
         },
         queryFacet() {
             void setParams(MergedSolrParams query, Document facet) {
-                String fieldName = facet.get(FacetConstants.FIELD_FIELD_NAME);
+                String fieldName = fieldName(facet.get(FacetConstants.FIELD_FIELD_NAME), query, facet);
                 String localParams = "{!ex=collapse}";
                 boolean isMultiSelect = getBooleanFromField(facet.get(FacetConstants.FIELD_MULTISELECT));
 
@@ -164,6 +168,30 @@ public class FacetHandler {
                 query.add("f." + fieldName + ".facet.range." + paramName, value.toString());
             }
         }
+    }
+
+    /**
+     * Appends the country and/or site if the facet is country and/or site specific. If the fieldName already ends
+     * with the country code, nothing gets appended.
+     * @param fieldName is the field name
+     * @param facet is the facet's document
+     * @return the calculated facet name
+     */
+    static String fieldName(String fieldName, SolrQuery query, Document facet) {
+        if (fieldName == null || facet == null) {
+            return fieldName;
+        }
+
+        String country = query.get(RuleManagerParams.COUNTRY_ID, "US");
+        String site = query.get(RuleManagerParams.CATALOG_ID);
+
+        if (BooleanUtils.toBoolean(facet.get(FacetConstants.FIELD_BY_COUNTRY)) == Boolean.TRUE && !fieldName.endsWith(country)) {
+            fieldName += country;
+        }
+        if (BooleanUtils.toBoolean(facet.get(FIELD_BY_SITE)) == Boolean.TRUE && site != null) {
+            fieldName += site;
+        }
+        return fieldName;
     }
 
     /**
@@ -261,19 +289,27 @@ public class FacetHandler {
      * Gets facets as an array of named lists.
      * @return All facets registered on this handler, as an array of named lists.
      */
-    public Map<String, NamedList> getFacets() {
+    public Map<String, NamedList> getFacets(SolrQuery query) {
         Map<String, NamedList> result = new LinkedHashMap<String, NamedList>();
         for(String fieldName : facets.keySet()) {
             NamedList<String> namedList = new NamedList<String>();
-
             Document facet = getFacetItem(fieldName);
+            String facetFieldName = fieldName(fieldName, query, facet);
+
             if(facet != null) {
                 for (IndexableField field : facet) {
                     if(!ignoredFields.contains(field.name())) {
-                        namedList.add(field.name(), field.stringValue());
+                        if (field.name().equals("fieldName")) {
+                            namedList.add(field.name(), facetFieldName);
+                            if (!facetFieldName.equals(fieldName)) {
+                                namedList.add("originalFieldName", fieldName);
+                            }
+                        } else {
+                            namedList.add(field.name(), field.stringValue());
+                        }
                     }
                 }
-                result.put(fieldName, namedList);
+                result.put(facetFieldName, namedList);
             }
         }
 

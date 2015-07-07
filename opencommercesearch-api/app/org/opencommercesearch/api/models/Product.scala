@@ -332,15 +332,13 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                     }
 
                     // helper function to set a multi-site price property
-                    def setPricingField(propertyName: String, propertyGetter: (Price) => Any, defaultPropertyValue: Any) = {
+                    def setPricingField(propertyName: String, propertyGetter: (Price) => Option[Any], defaultPropertyValue: Any) = {
                       sku.catalogs.map(_.foreach({catalog =>
-                        country.catalogPrices.map { catalogPrices =>
-                          val value = catalogPrices.get(catalog).map(p => propertyGetter(p)) match {
-                            case Some(Some(propertyValue)) => propertyValue
-                            case None => defaultPropertyValue
-                          }
-                          doc.setField(propertyName + code + catalog, value)
+                        val value = country.catalogPrices.flatMap { catalogPrices =>
+                          catalogPrices.get(catalog).flatMap(p => propertyGetter(p))
                         }
+
+                        doc.setField(propertyName + code + catalog, value.getOrElse(defaultPropertyValue))
                       }))
                     }
 

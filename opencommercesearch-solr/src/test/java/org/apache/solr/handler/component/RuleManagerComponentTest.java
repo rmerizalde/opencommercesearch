@@ -312,6 +312,74 @@ public class RuleManagerComponentTest {
     }
 
     @Test
+    public void testLocaleFacetRules() throws IOException {
+        testLocaleFacetRules(null, null);
+    }
+
+    @Test
+    public void testLocaleFacetRulesWithCountry() throws IOException {
+        testLocaleFacetRules("US", null);
+    }
+
+    @Test
+    public void testLocaleFacetRulesWithNoDefaultCountry() throws IOException {
+        testLocaleFacetRules("CR", null);
+    }
+
+    @Test
+    public void testLocaleFacetRulesWithCountryAndSite() throws IOException {
+        testLocaleFacetRules("US", "paulcatalog");
+    }
+
+    @Test
+    public void testLocaleFacetRulesWithSite() throws IOException {
+        testLocaleFacetRules(null, "paulcatalog");
+    }
+
+
+    private void testLocaleFacetRules(String country, String site) throws IOException {
+        prepareRuleFacetDocs(country, site, true);
+        setBaseParams(country);
+
+        //Should set basic facet params
+        component.prepare(rb);
+        ArgumentCaptor<MergedSolrParams> argumentCaptor = ArgumentCaptor.forClass(MergedSolrParams.class);
+        verify(req).setParams(argumentCaptor.capture());
+
+        SolrParams outParams = argumentCaptor.getValue();
+        assertEquals("isToos asc,score desc,_version_ desc", outParams.get(CommonParams.SORT));
+        assertEquals("1.paulcatalog.", outParams.get("f.category.facet.prefix"));
+
+        String[] facetFields = outParams.getParams(FacetParams.FACET_FIELD);
+        assertEquals(2, facetFields.length);
+        assertEquals("{!ex=collapse}" + fieldName("fieldName1", country, site), facetFields[0]);
+        assertEquals("{!ex=collapse}" + fieldName("fieldName2", country, site), facetFields[1]);
+        String[] rangeFields = outParams.getParams(FacetParams.FACET_RANGE);
+        assertEquals(1, rangeFields.length);
+        String fieldName3 = fieldName("fieldName3", country, site);
+        assertEquals("{!ex=collapse}"  + fieldName3, rangeFields[0]);
+        assertEquals(Integer.valueOf(0), outParams.getFieldInt(fieldName3, FacetParams.FACET_RANGE_START));
+
+        String[] queryFields = outParams.getParams(FacetParams.FACET_QUERY);
+        String fieldName4 = fieldName("fieldName4", country, site);
+        assertEquals("{!ex=collapse}"  + fieldName4 + ":fq", queryFields[0]);
+        assertEquals("true", outParams.get(FacetParams.FACET));
+    }
+
+    private String fieldName(String name, String country, String site) {
+        if (country == null && site == null) {
+            return name;
+        }
+        if (country != null && !name.endsWith(country)) {
+            name += country;
+        }
+        if (site != null) {
+            name += site;
+        }
+        return name;
+    }
+
+    @Test
     public void testFacetRulesReplace() throws IOException {
         //TODO: make a good test for testFacetRules
         prepareRuleDocs(TestSetType.facetRulesReplace);
@@ -432,11 +500,18 @@ public class RuleManagerComponentTest {
     }
 
     private void setBaseParams() {
+        setBaseParams(null);
+    }
+
+    private void setBaseParams(String country) {
         params.set(RuleManagerParams.RULE, "true");
         params.set(RuleManagerParams.PAGE_TYPE, "search");
         params.set(RuleManagerParams.CATALOG_ID, "paulcatalog");
         params.set(CommonParams.Q, "some books");
         params.set(FacetParams.FACET, true);
+        if (country != null) {
+            params.set(RuleManagerParams.COUNTRY_ID, country);
+        }
     }
 
     /**
@@ -498,30 +573,7 @@ public class RuleManagerComponentTest {
             }
 
             case facetRules: {
-                setIdsToResultContext(new int[]{0}, rulesCore);
-                Document facetRule = new Document();
-                facetRule.add(new Field(RuleConstants.FIELD_ID, "0", defaultFieldType));
-                facetRule.add(new Field(RuleConstants.FIELD_FACET_ID, "facet1", defaultFieldType));
-                facetRule.add(new Field(RuleConstants.FIELD_FACET_ID, "facet2", defaultFieldType));
-                facetRule.add(new Field(RuleConstants.FIELD_COMBINE_MODE, RuleConstants.COMBINE_MODE_REPLACE, defaultFieldType));
-                facetRule.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.facetRule.toString(), defaultFieldType));
-
-                when(rulesIndexSearcher.doc(0)).thenReturn(facetRule);
-
-                setIdsToResultContext(new int[]{0, 1}, facetsCore);
-
-                Document facet1 = new Document();
-                facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName1", defaultFieldType));
-                facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
-
-                Document facet2= new Document();
-                facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, "fieldName2", defaultFieldType));
-                facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
-
-                when(facetsIndexSearcher.doc(0)).thenReturn(facet1);
-                when(facetsIndexSearcher.doc(1)).thenReturn(facet2);
+                prepareRuleFacetDocs(null, null, true);
                 break;
             }
 
@@ -594,6 +646,74 @@ public class RuleManagerComponentTest {
 
                 break;
             }
+        }
+    }
+
+    private void prepareRuleFacetDocs(String country, String site, boolean allTypes) throws IOException {
+        setIdsToResultContext(new int[]{0}, rulesCore);
+        Document facetRule = new Document();
+        facetRule.add(new Field(RuleConstants.FIELD_ID, "0", defaultFieldType));
+        facetRule.add(new Field(RuleConstants.FIELD_FACET_ID, "facet1", defaultFieldType));
+        facetRule.add(new Field(RuleConstants.FIELD_FACET_ID, "facet2", defaultFieldType));
+        facetRule.add(new Field(RuleConstants.FIELD_COMBINE_MODE, RuleConstants.COMBINE_MODE_REPLACE, defaultFieldType));
+        facetRule.add(new Field(RuleConstants.FIELD_RULE_TYPE, RuleManagerComponent.RuleType.facetRule.toString(), defaultFieldType));
+
+        when(rulesIndexSearcher.doc(0)).thenReturn(facetRule);
+
+        if (allTypes) {
+            setIdsToResultContext(new int[]{0, 1, 2, 3}, facetsCore);
+        } else {
+            setIdsToResultContext(new int[]{0, 1}, facetsCore);
+        }
+
+        Document facet1 = new Document();
+        String field1 = "fieldName1";
+        facet1.add(new Field(FacetConstants.FIELD_ID, "facet1", defaultFieldType));
+        facet1.add(new Field(FacetConstants.FIELD_FIELD_NAME, field1, defaultFieldType));
+        facet1.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
+        setCountryAndSiteFields(country, site, facet1);
+
+        Document facet2= new Document();
+        String field2 = "fieldName2";
+        if (country != null) {
+            // test backwards compatibility
+            field2 += country;
+        }
+        facet2.add(new Field(FacetConstants.FIELD_ID, "facet2", defaultFieldType));
+        facet2.add(new Field(FacetConstants.FIELD_FIELD_NAME, field2, defaultFieldType));
+        facet2.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_FIELD, defaultFieldType));
+        setCountryAndSiteFields(country, site, facet2);
+
+        when(facetsIndexSearcher.doc(0)).thenReturn(facet1);
+        when(facetsIndexSearcher.doc(1)).thenReturn(facet2);
+
+        if (allTypes) {
+            Document rangeFacet = new Document();
+            String field3 = "fieldName3";
+            rangeFacet.add(new Field(FacetConstants.FIELD_ID, "facet3", defaultFieldType));
+            rangeFacet.add(new Field(FacetConstants.FIELD_FIELD_NAME, field3, defaultFieldType));
+            rangeFacet.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_RANGE, defaultFieldType));
+            setCountryAndSiteFields(country, site, rangeFacet);
+            when(facetsIndexSearcher.doc(2)).thenReturn(rangeFacet);
+
+
+            Document queryFacet = new Document();
+            String field4 = "fieldName4";
+            queryFacet.add(new Field(FacetConstants.FIELD_ID, "facet3", defaultFieldType));
+            queryFacet.add(new Field(FacetConstants.FIELD_FIELD_NAME, field4, defaultFieldType));
+            queryFacet.add(new Field(FacetConstants.FIELD_TYPE, FacetConstants.FACET_TYPE_QUERY, defaultFieldType));
+            queryFacet.add(new Field(FacetConstants.FIELD_QUERIES, "fq", defaultFieldType));
+            setCountryAndSiteFields(country, site, queryFacet);
+            when(facetsIndexSearcher.doc(3)).thenReturn(queryFacet);
+        }
+    }
+
+    private void setCountryAndSiteFields(String country, String site, Document facet) {
+        if (country != null) {
+            facet.add(new Field(FacetConstants.FIELD_BY_COUNTRY, "true", defaultFieldType));
+        }
+        if (site != null) {
+            facet.add(new Field(FacetConstants.FIELD_BY_SITE, "true", defaultFieldType));
         }
     }
 

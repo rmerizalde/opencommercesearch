@@ -57,6 +57,8 @@ case class Facet(
   var fieldName: Option[String] = None,
   var minBuckets: Option[Int] = None,
   var isMixedSorting: Option[Boolean] = None,
+  var isByCountry: Option[Boolean] = None,
+  var isBySite: Option[Boolean] = None,
   var minCount: Option[Int] = None,
   var sort: Option[String] = None,
   var isMissing: Option[Boolean] = None,
@@ -115,6 +117,16 @@ case class Facet(
   @Field
   def setIsMixedSorting(isMixedSorting: Boolean) : Unit = { this.isMixedSorting = Some(isMixedSorting) }
 
+  def getIsByCountry : java.lang.Boolean = { isByCountry.getOrElse(null).asInstanceOf[java.lang.Boolean] }
+
+  @Field
+  def setIsByCountry(isByCountry: Boolean) : Unit = { this.isByCountry = Some(isByCountry) }
+
+  def getIsBySite : java.lang.Boolean = { isBySite.getOrElse(null).asInstanceOf[java.lang.Boolean] }
+
+  @Field
+  def setIsBySite(isBySite: Boolean) : Unit = { this.isBySite = Some(isBySite) }
+
   def getMinCount : Integer = { minCount.getOrElse(null).asInstanceOf[Integer] }
 
   @Field
@@ -172,6 +184,8 @@ object Facet {
   val MinBuckets = "minBuckets"
   val IsMultiSelect = "isMultiSelect"
   val IsMixedSorting = "isMixedSorting"
+  val IsByCountry = "isByCountry"
+  val IsBySite = "isBySite"
   val UiType = "uiType"
   val IsHardened = "isHardened"
   var Start = "start"
@@ -198,6 +212,8 @@ object Facet {
       Option(facetDefinition.get(FieldName)),
       Option(if (minBuckets != null) minBuckets.toInt else 2),
       Option("T".equals(facetDefinition.get(IsMixedSorting))),
+      Option("T".equals(facetDefinition.get(IsByCountry))),
+      Option("T".equals(facetDefinition.get(IsBySite))),
       if (minCount != null) Some(minCount.toInt) else None,
       Option(facetDefinition.get(Sort)),
       Option("T".equals(facetDefinition.get(IsMissing))),
@@ -227,6 +243,8 @@ object Facet {
       "fieldName" -> facet.fieldName,
       "minBuckets" -> facet.minBuckets,
       "isMixedSorting" -> facet.isMixedSorting,
+      "isByCountry" -> facet.isByCountry,
+      "isBySite" -> facet.isBySite,
       "minCount" -> facet.minCount,
       "sort" -> facet.sort,
       "isMissing" -> facet.isMissing,
@@ -252,6 +270,8 @@ object Facet {
       doc.getAs[String]("fieldName"),
       doc.getAs[Int]("minBuckets"),
       doc.getAs[Boolean]("isMixedSorting"),
+      doc.getAs[Boolean]("isByCountry"),
+      doc.getAs[Boolean]("isBySite"),
       doc.getAs[Int]("minCount"),
       doc.getAs[String]("sort"),
       doc.getAs[Boolean]("isMissing"),

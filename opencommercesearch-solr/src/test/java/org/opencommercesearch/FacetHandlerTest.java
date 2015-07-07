@@ -22,6 +22,7 @@ package org.opencommercesearch;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.common.params.MergedSolrParams;
 import org.apache.solr.common.util.NamedList;
 import org.junit.Before;
@@ -110,7 +111,7 @@ public class FacetHandlerTest {
     @Test
     public void testGetFacets() throws IOException {
         addFacets();
-        Map<String, NamedList> facets = facetHandler.getFacets();
+        Map<String, NamedList> facets = facetHandler.getFacets(new SolrQuery());
         assertEquals(3, facets.size());
         List<NamedList> facetList = new ArrayList<NamedList>(facets.values());
         assertEquals("queryName", facetList.get(0).get(FacetConstants.FIELD_FIELD_NAME));

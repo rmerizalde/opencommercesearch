@@ -215,7 +215,7 @@ object ProductController extends BaseController {
    * @param groupSummary returned by Solr
    * @return an array for products containing its summary
    */
-  private def processGroupSummary(groupSummary: NamedList[Object])(implicit context: Context) : Option[JsObject] = {
+  private def processGroupSummary(site: String, groupSummary: NamedList[Object])(implicit context: Context) : Option[JsObject] = {
     if (groupSummary != null && groupSummary.size() > 0) {
       def namedList(value: AnyRef) = value.asInstanceOf[NamedList[AnyRef]]
 
@@ -274,6 +274,9 @@ object ProductController extends BaseController {
 
               //Remove country from parameters
               var parameter = parameterSummary.getKey
+              if (parameter.endsWith(site)) {
+                parameter = parameter.substring(0, parameter.length - site.length)
+              }
               if (parameter.endsWith(context.lang.country)) {
                 parameter = parameter.substring(0, parameter.length - context.lang.country.length)
               }
@@ -318,7 +321,7 @@ object ProductController extends BaseController {
 
             val storage = withNamespace(storageFactory)
             val fields = fieldList(allowStar = true)
-            storage.findProducts(productsIds, context.lang.country, fields, minimumFields = true).flatMap { products =>
+            storage.findProducts(productsIds, site, context.lang.country, fields, minimumFields = true).flatMap { products =>
               val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
               val includeTaxonomy = site != null && (fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories")))
@@ -433,7 +436,7 @@ object ProductController extends BaseController {
                   breadCrumbs = Some(facetHandler.getBreadCrumbs),
                   facets = Some(facets),
                   found = Some(found),
-                  productSummary = processGroupSummary(groupSummary),
+                  productSummary = processGroupSummary(site, groupSummary),
                   spellCheck = Option(spellCheck),
                   partialMatch = Option(partialMatch),
                   startTime = Some(startTime),
@@ -444,7 +447,7 @@ object ProductController extends BaseController {
               Future.successful(buildSearchResponse(
                 query = query,
                 found = Some(found),
-                productSummary = processGroupSummary(groupSummary),
+                productSummary = processGroupSummary(site, groupSummary),
                 spellCheck = Option(spellCheck),
                 partialMatch = Option(partialMatch),
                 startTime = Some(startTime),
@@ -804,7 +807,7 @@ object ProductController extends BaseController {
                     breadCrumbs = Some(facetHandler.getBreadCrumbs),
                     facets = Some(facets),
                     found = Some(found),
-                    productSummary = processGroupSummary(groupSummary),
+                    productSummary = processGroupSummary(site, groupSummary),
                     startTime = Some(startTime),
                     products = Some(products map (Json.toJson(_))),
                     debugInfo = buildDebugInfo(response)), products map (_.getId))
@@ -813,7 +816,7 @@ object ProductController extends BaseController {
                 Future.successful(buildSearchResponse(
                   query = query,
                   found = Some(found),
-                  productSummary = processGroupSummary(groupSummary),
+                  productSummary = processGroupSummary(site, groupSummary),
                   startTime = Some(startTime),
                   message = Some("No products found")))
               }

@@ -18,7 +18,7 @@ class FloatGroupFieldSummary extends GroupFieldSummary<Float> {
     }
 
     void addValues(NamedList rsp) {
-        rsp.add("min", min);
-        rsp.add("max", max);
+        rsp.add("min", min == Float.POSITIVE_INFINITY? 0 : min);
+        rsp.add("max", max == Float.NEGATIVE_INFINITY? 0 : max);
     }
 }

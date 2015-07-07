@@ -68,6 +68,10 @@ public class FacetConstants {
 
     public static final String FIELD_MIXED_SORTING = "isMixedSorting";
 
+    public static final String FIELD_BY_COUNTRY = "isByCountry" ;
+
+    public static final String FIELD_BY_SITE = "isBySite" ;
+
     // Field facet fields
     public static final String FIELD_LIMIT = "limit";
     public static final String FIELD_MIN_COUNT = "minCount";

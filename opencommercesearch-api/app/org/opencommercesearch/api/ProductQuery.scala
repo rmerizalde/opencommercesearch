@@ -122,7 +122,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         } else if (sortSpec.startsWith("reviewAverage")) {
           addSort("bayesianReviewAverage", selectedOrder)
         } else if (sortSpec.startsWith("price")) {
-          addSort(s"salePrice$country", selectedOrder)
+          addSort(s"salePrice$country$currentSite", selectedOrder)
         } else if (sortSpec.startsWith("activationDate")) {
           addSort("activationDate", selectedOrder)
         } else if (sortSpec.startsWith("bestSeller")) {
@@ -166,6 +166,11 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     val groupMethod = if (request == null) null else request.getQueryString("group.method").orNull
     withGrouping(groupMethod, groupTotalCount, limit, collapse)
   }
+
+  private def currentSite = {
+    import play.api.Play.current
+    if (Play.configuration.getBoolean("siteSpecificFields").getOrElse(false)) site else StringUtils.EMPTY
+  }
   
   /**
    * Sets parameters to group skus by product
@@ -186,14 +191,14 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         set(ExpandParams.EXPAND + "all", true)
         set(ExpandParams.EXPAND_FIELD)
         set(ExpandParams.EXPAND_ROWS, limit)
-        set(ExpandParams.EXPAND_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
+        set(ExpandParams.EXPAND_SORT, s"isCloseout asc, salePrice${context.lang.country}$currentSite asc, sort asc, score desc")
       } else {
         set(GroupParams.GROUP, true)
         set(GroupParams.GROUP_FIELD, "productId")
         set(GroupParams.GROUP_TOTAL_COUNT, totalCount)
         set(GroupParams.GROUP_LIMIT, limit)
         set(GroupParams.GROUP_FACET, false)
-        set(GroupParams.GROUP_SORT, s"isCloseout asc, salePrice${context.lang.country} asc, sort asc, score desc")
+        set(GroupParams.GROUP_SORT, s"isCloseout asc, salePrice${context.lang.country}$currentSite asc, sort asc, score desc")
       }
     }
 
@@ -201,9 +206,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     if (collapse) {
       val country = context.lang.country
       val listPrice = s"listPrice$country"
-      val salePrice = s"salePrice$country"
-      val discountPercent = s"discountPercent$country"
-      val isOnSale = s"onsale$country"
+      val salePrice = s"salePrice$country$currentSite"
+      val discountPercent = s"discountPercent$country$currentSite"
+      val isOnSale = s"onsale$country$currentSite"
 
       val collapseMethod = if (request == null) null else request.getQueryString("groupcollapse.method").orNull
 
