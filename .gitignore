@@ -6,4 +6,4 @@
 target/
 lib/classes.jar
 repo
-
+*/node_modules/*
