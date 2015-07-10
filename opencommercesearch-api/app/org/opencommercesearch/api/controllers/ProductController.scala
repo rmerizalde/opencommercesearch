@@ -107,7 +107,7 @@ object ProductController extends BaseController {
 
       if (products != null) {
        //Check if we should include the category taxonomy or not
-        val includeTaxonomy = fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("se"))
+        val includeTaxonomy = fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories"))
 
         if (includeTaxonomy) {
           val productListFuture = products map { product =>
