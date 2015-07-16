@@ -324,6 +324,9 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 }
 
                 for (country: Country <- countries) {
+                  for (isLive <- country.isLive) {
+                    doc.setField("isLive", isLive)
+                  }
                   for (code <- country.code) {
                     doc.addField("country", code)
 

@@ -35,6 +35,7 @@ public class Country {
   private String url;
   private Boolean allowBackorder;
   private Availability availability;
+  private Boolean isLive;
 
   public Country(String code) {
     this.code = code;
@@ -128,7 +129,15 @@ public class Country {
     this.allowBackorder = allowBackorder;
   }
 
-  public Availability getAvailability() { return availability; }
+  public Boolean getIsLive() {
+    return isLive;
+  }
+
+  public void setIsLive(Boolean isLive) {
+    this.isLive = isLive;
+  }
+
+public Availability getAvailability() { return availability; }
 
   public void setAvailability(Availability availability) { this.availability = availability; }
 }
