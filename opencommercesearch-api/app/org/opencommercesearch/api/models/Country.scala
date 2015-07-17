@@ -37,7 +37,8 @@ case class Country(
   var stockLevel: Option[Int] = None,
   var allowBackorder: Option[Boolean] = None,
   var url: Option[String] = None,
-  var availability: Option[Availability] = None) {
+  var availability: Option[Availability] = None,
+  var isLive: Option[Boolean] = None) {
 
   def isPoos: Boolean = availability match {
     case Some(avail) => avail.status.orNull == Availability.PermanentlyOutOfStock
@@ -63,7 +64,8 @@ object Country {
       "url" -> country.url,
       "availability" -> country.availability,
       "defaultPrice" -> country.defaultPrice,
-      "catalogPrices" -> country.catalogPrices
+      "catalogPrices" -> country.catalogPrices,
+      "isLive" -> country.isLive
 
     )
   }
@@ -81,7 +83,8 @@ object Country {
       url = doc.getAs[String]("url"),
       availability = doc.getAs[Availability]("availability"),
       defaultPrice = doc.getAs[Price]("defaultPrice"),
-      catalogPrices = doc.getAs[Map[String, Price]]("catalogPrices")
+      catalogPrices = doc.getAs[Map[String, Price]]("catalogPrices"),
+      isLive = doc.getAs[Boolean]("isLive")
     )
   }
 }
