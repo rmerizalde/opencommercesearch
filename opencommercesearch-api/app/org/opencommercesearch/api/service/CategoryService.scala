@@ -631,7 +631,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
       categoryCopy
     }
 
-    sites.map(site => copy(taxonomy(site))).toSeq
+    sites.map(site => taxonomy.get(site).map(t => copy(t))).flatten.toSeq
   }
 
   /**
