@@ -69,7 +69,7 @@ class MultiSuggesterSpec extends Specification with Mockito {
         val solrServer = setupSolrServer()
         val storage = setupMongo()
 
-        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean]) returns Future.successful(Iterable.empty[Product])
+        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
         val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
         val results = Await.result(searchFuture, Duration.Inf)
@@ -93,7 +93,7 @@ class MultiSuggesterSpec extends Specification with Mockito {
         val solrServer = setupSolrServer()
         val storage = setupMongo()
 
-        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean]) returns Future.successful(Iterable.empty[Product])
+        storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
         val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
         val results = Await.result(searchFuture, Duration.Inf)

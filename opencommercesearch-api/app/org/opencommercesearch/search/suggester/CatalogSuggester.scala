@@ -111,7 +111,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
     def getElements(docs: Seq[SolrDocument])(implicit context : Context) : Future[Seq[E]] = {
       val ids: Seq[(String, String)] = docs.map(doc => (doc.getFieldValue("id").asInstanceOf[String], null))
-      withNamespace(storageFactory).findProducts(ids, context.lang.country, ProductSuggester.fields, minimumFields = false).map(products => {
+      withNamespace(storageFactory).findProducts(ids, context.lang.country, ProductSuggester.fields, minimumFields = false, context.isPreview).map(products => {
         products.toSeq.asInstanceOf[Seq[E]]
       })
     }
@@ -142,7 +142,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
         }
 
         if (ids.size > 0) {
-          withNamespace(storageFactory).findProducts(ids, context.lang.country, fields, minimumFields = true).map(products => {
+          withNamespace(storageFactory).findProducts(ids, context.lang.country, fields, minimumFields = true, context.isPreview).map(products => {
             products.foreach(p => {
               for (skus <- p.skus) {
                 skus.foreach(sku => {
