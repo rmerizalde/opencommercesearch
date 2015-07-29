@@ -20,8 +20,12 @@ package org.opencommercesearch.api.models
 */
 
 
+import java.util.Date
+
 import play.api.libs.json.Json
-import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
+import reactivemongo.bson._
+//DO NOT REMOVE THIS IMPORT OTHERWISE THE LAUNCH DATE WILL LOOSE THE TIME PART
+import org.opencommercesearch.api.Implicits._
 
 case class Country(
   var code: Option[String] = None,
@@ -37,7 +41,8 @@ case class Country(
   var stockLevel: Option[Int] = None,
   var allowBackorder: Option[Boolean] = None,
   var url: Option[String] = None,
-  var availability: Option[Availability] = None) {
+  var availability: Option[Availability] = None,
+  var launchDate: Option[Date] = None) {
 
   def isPoos: Boolean = availability match {
     case Some(avail) => avail.status.orNull == Availability.PermanentlyOutOfStock
@@ -52,36 +57,38 @@ object Country {
 
   implicit object CountryWriter extends BSONDocumentWriter[Country] {
     import org.opencommercesearch.bson.BSONFormats._
+    import reactivemongo.bson._
 
     def write(country: Country): BSONDocument = BSONDocument(
-      "code" -> country.code,
-      "listPrice" -> country.listPrice,
-      "salePrice" -> country.salePrice,
-      "discountPercent" -> country.discountPercent,
-      "onSale" -> country.onSale,
-      "allowBackorder" -> country.allowBackorder,
-      "url" -> country.url,
-      "availability" -> country.availability,
-      "defaultPrice" -> country.defaultPrice,
-      "catalogPrices" -> country.catalogPrices
-
-    )
+        "code" -> country.code,
+        "listPrice" -> country.listPrice,
+        "salePrice" -> country.salePrice,
+        "discountPercent" -> country.discountPercent,
+        "onSale" -> country.onSale,
+        "allowBackorder" -> country.allowBackorder,
+        "url" -> country.url,
+        "availability" -> country.availability,
+        "defaultPrice" -> country.defaultPrice,
+        "catalogPrices" -> country.catalogPrices,
+        "launchDate" -> country.launchDate
+      )
   }
 
   implicit object CountryReader extends BSONDocumentReader[Country] {
     import org.opencommercesearch.bson.BSONFormats._
 
     def read(doc: BSONDocument): Country = Country(
-      code = doc.getAs[String]("code"),
-      listPrice = doc.getAs[BigDecimal]("listPrice"),
-      salePrice = doc.getAs[BigDecimal]("salePrice"),
-      discountPercent = doc.getAs[Int]("discountPercent"),
-      onSale = doc.getAs[Boolean]("onSale"),
-      allowBackorder = doc.getAs[Boolean]("allowBackorder"),
-      url = doc.getAs[String]("url"),
-      availability = doc.getAs[Availability]("availability"),
-      defaultPrice = doc.getAs[Price]("defaultPrice"),
-      catalogPrices = doc.getAs[Map[String, Price]]("catalogPrices")
-    )
+        code = doc.getAs[String]("code"),
+        listPrice = doc.getAs[BigDecimal]("listPrice"),
+        salePrice = doc.getAs[BigDecimal]("salePrice"),
+        discountPercent = doc.getAs[Int]("discountPercent"),
+        onSale = doc.getAs[Boolean]("onSale"),
+        allowBackorder = doc.getAs[Boolean]("allowBackorder"),
+        url = doc.getAs[String]("url"),
+        availability = doc.getAs[Availability]("availability"),
+        defaultPrice = doc.getAs[Price]("defaultPrice"),
+        catalogPrices = doc.getAs[Map[String, Price]]("catalogPrices"),
+        launchDate = doc.getAs[Date]("launchDate")
+      )
   }
 }

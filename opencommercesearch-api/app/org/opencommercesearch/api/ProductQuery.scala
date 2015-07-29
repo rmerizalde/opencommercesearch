@@ -101,10 +101,15 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
   def withFilterQueries() : ProductQuery = {
     _filterQueries = setFilterQueriesFor(this)
 
+
+    //if the preview=true query parameter is true, then don't apply the launch date filter query
+    if (FilterLiveProductsEnabled && ! context.isPreview) {
+      this.addFilterQuery("-launchDate:[NOW/HOUR TO *]")
+    }
+
     defaultFilterQueriesParams.foreach(fq => {
       this.addFilterQuery(fq)
     })
-
     this
   }
 

@@ -84,9 +84,9 @@ object ProductController extends BaseController {
     val fields = fieldList(allowStar = true)
 
     if (site != null) {
-      productFuture = storage.findProducts(productIds, site, context.lang.country, fields, minimumFields = false)
+      productFuture = storage.findProducts(productIds, site, context.lang.country, fields, minimumFields = false, context.isPreview )
     } else {
-      productFuture = storage.findProducts(productIds, context.lang.country, fields, minimumFields = false)
+      productFuture = storage.findProducts(productIds, context.lang.country, fields, minimumFields = false, context.isPreview )
     }
 
     val future = productFuture flatMap { products =>
@@ -321,7 +321,7 @@ object ProductController extends BaseController {
 
             val storage = withNamespace(storageFactory)
             val fields = fieldList(allowStar = true)
-            storage.findProducts(productsIds, site, context.lang.country, fields, minimumFields = true).flatMap { products =>
+            storage.findProducts(productsIds, site, context.lang.country, fields, minimumFields = true, context.isPreview ).flatMap { products =>
               val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
               val includeTaxonomy = site != null && (fields.isEmpty || fields.exists(field => field.equals("*") || field.startsWith("categories")))
@@ -364,7 +364,7 @@ object ProductController extends BaseController {
           (productId, skuId)
         }
 
-        storage.findProducts(productsIds, context.lang.country, fieldList(allowStar = true), minimumFields = true).map { products =>
+        storage.findProducts(productsIds, context.lang.country, fieldList(allowStar = true), minimumFields = true, context.isPreview).map { products =>
           val groupSummary = response.getResponse.get("groups_summary").asInstanceOf[NamedList[Object]]
 
           (response.getResults.getNumFound.toInt, products, groupSummary)
@@ -1171,9 +1171,9 @@ object ProductController extends BaseController {
           var productFuture: Future[Iterable[Product]] = null
           val fields = fieldList(allowStar = true)
           if (site != null) {
-            productFuture = storage.findProducts(productIds, site, context.lang.country, fields, minimumFields = true)
+            productFuture = storage.findProducts(productIds, site, context.lang.country, fields, minimumFields = true, context.isPreview)
           } else {
-            productFuture = storage.findProducts(productIds, context.lang.country, fields, minimumFields = true)
+            productFuture = storage.findProducts(productIds, context.lang.country, fields, minimumFields = true, context.isPreview)
           }
 
           productFuture.map(products => {

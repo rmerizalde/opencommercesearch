@@ -153,8 +153,8 @@ class CatalogSuggesterSpec extends Specification with Mockito {
 
     storage.findBrands(===(Seq("0")), any) returns Future(Seq(brand))
     storage.findCategories(===(Seq("1")), any) returns Future(Seq(category))
-    storage.findProducts(===(Seq(("2", null))), any, any, any) returns Future(Seq(suggestionProduct))
-    storage.findProducts(===(Seq(("productId", "skuId"))), any, any, any) returns Future(Seq(catalogProduct))
+    storage.findProducts(===(Seq(("2", null))), any, any, any, any) returns Future(Seq(suggestionProduct))
+    storage.findProducts(===(Seq(("productId", "skuId"))), any, any, any, any) returns Future(Seq(catalogProduct))
   }
 
   def setupSolrServer(returnUserQueries : Boolean = true, returnCatalogResults : Boolean = false) = {

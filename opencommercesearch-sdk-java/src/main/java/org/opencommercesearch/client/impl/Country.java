@@ -21,6 +21,7 @@ package org.opencommercesearch.client.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
@@ -35,6 +36,7 @@ public class Country {
   private String url;
   private Boolean allowBackorder;
   private Availability availability;
+  private Date launchDate;
 
   public Country(String code) {
     this.code = code;
@@ -128,7 +130,15 @@ public class Country {
     this.allowBackorder = allowBackorder;
   }
 
-  public Availability getAvailability() { return availability; }
+  public Date getLaunchDate() {
+    return launchDate;
+  }
+
+  public void setLaunchDate(Date launchDate) {
+    this.launchDate = launchDate;
+  }
+
+public Availability getAvailability() { return availability; }
 
   public void setAvailability(Availability availability) { this.availability = availability; }
 }
