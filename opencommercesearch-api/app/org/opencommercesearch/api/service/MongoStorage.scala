@@ -19,14 +19,18 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
+import java.sql.Timestamp
+import java.util.Calendar
+
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.MongoStorage._
+import org.opencommercesearch.api.Global.{FilterLiveProductsEnabled}
 import play.api.Logger
 import play.api.libs.concurrent.Execution.Implicits._
 import reactivemongo.api.DefaultDB
 import reactivemongo.api.collections.default.BSONCollection
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONArray, BSONDocument, BSONInteger}
+import reactivemongo.bson.{BSONDocument, BSONArray, BSONInteger}
 import reactivemongo.core.commands.{Count, LastError}
 
 import scala.collection.JavaConversions._
@@ -53,9 +57,11 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
     val productIndexesManger = productCollection.indexesManager
     val skuCatalogIndex = new Index(key = Seq(("skus.catalogs", IndexType.Ascending)), name = Some("sku_catalog_idx"), sparse = true)
     val skuCountryIndex = new Index(key = Seq(("skus.catalogs", IndexType.Ascending)), name = Some("sku_country_idx"), sparse = true)
+    val skuLaunchDate = new Index(key = Seq(("skus.countries.launchDate", IndexType.Ascending)), name = Some("sku_launchdate_idx"), sparse = true)
 
     productIndexesManger.ensure(skuCatalogIndex)
     productIndexesManger.ensure(skuCountryIndex)
+    productIndexesManger.ensure(skuLaunchDate)
 
     val brandNameIndex = new Index(key = Seq(("name", IndexType.Ascending)), name = Some("brand_name_idx"), sparse = true)
 
@@ -75,31 +81,44 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
     }
   }
 
-  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean) : Future[Iterable[Product]] = {
-    findProducts(ids, NoSite, country, fields, isSearch)
+  def findProducts(ids: Seq[(String, String)], country: String, fields: Seq[String], isSearch:Boolean, preview:Boolean) : Future[Iterable[Product]] = {
+    findProducts(ids, NoSite, country, fields, isSearch, preview)
   }
 
-  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean) : Future[Iterable[Product]] = {
+  def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean, preview:Boolean) : Future[Iterable[Product]] = {
     if (ids.size > 0) {
       // the product query is like {$and: [{_id: {$in: [#,..,#]}}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
-      val query = BSONDocument(
-        "$and" -> BSONArray(
-          BSONDocument(
-            "_id" -> BSONDocument(
-              "$in" -> (ids map {t => t._1})
-            ),
-            "skus" -> BSONDocument(
-              "$elemMatch" -> BSONDocument(
-                if (site != null) {
-                  "countries.code" -> country
-                  "catalogs" -> site
-                } else {
-                  "countries.code" -> country
-                }
-              )
+
+      // or like {$and: [{_id: {$in: [#,..,#]}}, {$or: [{skus.countries.launchDate: {$exists: false}}, {skus.countries.launchDate: {$lte: now()}}]},
+      //                 {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+      var andArray = BSONArray(
+        BSONDocument(
+          "_id" -> BSONDocument(
+            "$in" -> (ids map {t => t._1})
+          ),
+          "skus" -> BSONDocument(
+            "$elemMatch" -> BSONDocument(
+              if (site != null) {
+                "countries.code" -> country
+                "catalogs" -> site
+              } else {
+                "countries.code" -> country
+              }
             )
           )
         )
+      )
+      if (FilterLiveProductsEnabled && !preview) {
+        val currentTimeMillis = Calendar.getInstance().getTimeInMillis
+        andArray = andArray ++ BSONDocument(
+          "$or" -> BSONArray(
+            BSONDocument("skus.countries.launchDate" -> BSONDocument("$exists" -> false)),
+            BSONDocument("skus.countries.launchDate" -> BSONDocument("$lte" -> currentTimeMillis))
+          )
+        )
+      }
+      val query = BSONDocument(
+        "$and" -> andArray
       )
 
       val singleSku = minimumFields
@@ -142,7 +161,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
   }
 
   def findProduct(id: String, site: String, country: String, fields: Seq[String]) : Future[Product] = {
-    findProducts(Seq((id, null)), NoSite, country, fields, minimumFields = false).map(products => products.headOption.orNull)
+    findProducts(Seq((id, null)), NoSite, country, fields, minimumFields = false, preview = false).map(products => products.headOption.orNull)
   }
 
   /**
@@ -292,6 +311,17 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       sku.availability = country.availability
       sku.onSale = country.onSale
 
+      for (launchDate <- country.launchDate) {
+        //only add, to the attributes, the launchDate property if the
+        //filter live products feature is enabled and this current product launch date is in the future
+        //this is to allow identifying not live products when the preview=false query param is available
+        if (FilterLiveProductsEnabled && launchDate.after(Calendar.getInstance().getTime)) {
+          val attribute = new Attribute(Some("launchDate"), Some(launchDate.toString))
+          val attributeList = sku.attributes.getOrElse(Seq.empty[Attribute])
+          sku.attributes = Some(attributeList ++ Some(attribute))
+        }
+      }
+
       for (defaultPrice <- country.defaultPrice) {
         sku.listPrice = defaultPrice.listPrice
         sku.salePrice = defaultPrice.salePrice
@@ -364,6 +394,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
           if (site != NoSite) {
             projectedFields = projectedFields :+ ProjectedSkuCatalog
           }
+
         }
 
         // see clearSkuAvailability
@@ -790,6 +821,7 @@ object MongoStorage {
     "skus.countries.onSale" -> Include,
     "skus.countries.defaultPrice" -> Include,
     "skus.countries.catalogPrices" -> Include,
+    "skus.countries.launchDate" -> Include,
     "skus.countries.url" -> Include,
     "skus.title" -> Include,
     "skus.catalogs" -> Include,

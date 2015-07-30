@@ -270,4 +270,5 @@ public class Sku {
     }
     attributes.add(new Attribute(name, value));
   }
+
 }

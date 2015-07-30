@@ -20,6 +20,7 @@ package org.opencommercesearch.api.models
 * under the License.
 */
 
+import java.sql.Timestamp
 import java.util
 import java.util.Date
 
@@ -324,6 +325,9 @@ case class ProductList(products: Seq[Product], feedTimestamp: Long) {
                 }
 
                 for (country: Country <- countries) {
+                  for (launchDate <- country.launchDate) {
+                    doc.setField("launchDate", launchDate)
+                  }
                   for (code <- country.code) {
                     doc.addField("country", code)
 
