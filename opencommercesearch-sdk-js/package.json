@@ -1,9 +1,17 @@
 {
   "name": "opencommercesearch-sdk-js",
-  "version": "1.0.0",
+  "version": "0.0.8",
   "description": "Javascript SDK for the OpenCommerceSearch Product API.",
-  "author": "Miles Dickson",
+  "author": "opencommercesearch <dev@opencommercesearch.org>",
   "main": "ProductApi.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rmerizalde/opencommercesearch.git"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "grunt test"
+  },
   "dependencies": {
     "q": "^1.2.0",
     "superagent": "^1.2.0"
@@ -17,6 +25,5 @@
     "sinon": "^1.14.1",
     "underscore": "^1.8.3"
   },
-  "license": "MIT",
-  "private": true
+  "license": "MIT"
 }

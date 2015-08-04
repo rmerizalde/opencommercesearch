@@ -28,8 +28,8 @@ describe('core', function() {
         assert(!ProductApi.helpers, 'helper methods were not returned');
     });
 
-    it('should return 25 properties', function() {
-        assert.equal(_.size(ProductApi), 25, 'all properties were returned');
+    it('should return 26 properties', function() {
+        assert.equal(_.size(ProductApi), 26, 'all properties were returned');
     });
 });
 
