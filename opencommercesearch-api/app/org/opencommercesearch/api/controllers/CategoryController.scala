@@ -104,7 +104,9 @@ object CategoryController extends BaseController with FacetQuery {
                 Some(cat)
               }
             } else {
-              Future.successful(None)
+              storage.findCategory(catId, fieldList(allowStar = true)) map { cat =>
+                Option(cat) filter { _.isRuleBased.getOrElse(false) }
+              }
             }
           } getOrElse {
             Future.successful(None)
@@ -338,10 +340,10 @@ object CategoryController extends BaseController with FacetQuery {
     solrServer.query(brandFacetQuery).flatMap( response => {
       //query the SOLR product catalog with the query we generated in the code above.
       val brandFacet = response.getFacetField("brand")
-      
+
       if (brandFacet != null && brandFacet.getValueCount > 0) {
-        //if we have results from the product catalog collection, 
-        //then generate another SOLR query object to query the brand collection. 
+        //if we have results from the product catalog collection,
+        //then generate another SOLR query object to query the brand collection.
         //The query consists of a bunch of 'OR' statements generated from the brand facet filter elements
         val brandNames: Iterable[String] = brandFacet.getValues map { filter =>  filter.getName }
 
@@ -379,8 +381,7 @@ object CategoryController extends BaseController with FacetQuery {
         Future[Result](NotFound(Json.obj(
                 "message" -> s"No brands available for category id [$id]"
         )))
-      } 
+      }
     })
   }
 }
- 
