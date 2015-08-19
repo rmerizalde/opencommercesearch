@@ -19,6 +19,11 @@ package org.opencommercesearch.lucene.queries.function.valuesource;
 * under the License.
 */
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.http.HttpEntity;
@@ -44,11 +49,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * The boost value source parser is in charge of loading the boosts for the current request. To minimize the amount of
  * calls to the Boost API it keeps a cache with most recently used boosts.
@@ -61,6 +61,7 @@ public class BoostValueSourceParser extends ValueSourceParser {
     public static final String BOOST_API_HOST = "boostApiHost";
     public static final String BOOST_LIMIT = "boostLimit";
     public static final String BOOST_ID = "boostId";
+    public static final String TREATMENT_ID = "treatmentId";
 
     private static Logger log = LoggerFactory.getLogger(BoostValueSourceParser.class);
 
@@ -112,6 +113,13 @@ public class BoostValueSourceParser extends ValueSourceParser {
 
         SolrParams params = fp.getReq().getParams();
         String boostId = params.get(BOOST_ID);
+        String treatmentId = params.get(TREATMENT_ID);
+        if (StringUtils.isNotBlank(treatmentId)) {
+            if (log.isDebugEnabled()) {
+                log.debug("There is treatment enabled:" + treatmentId);
+            }
+            boostId += "_" + treatmentId;
+        }
 
         SchemaField f = fp.getReq().getSchema().getField(field);
         ValueSource fieldValueSource = f.getType().getValueSource(f, fp);
