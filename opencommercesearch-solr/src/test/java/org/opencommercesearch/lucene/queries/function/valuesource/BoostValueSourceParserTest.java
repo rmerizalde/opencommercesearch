@@ -51,6 +51,7 @@ import java.util.Map;
 import static org.mockito.Mockito.*;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.opencommercesearch.lucene.queries.function.valuesource.BoostValueSourceParser.BOOST_ID;
+import static org.opencommercesearch.lucene.queries.function.valuesource.BoostValueSourceParser.TREATMENT_ID;
 
 /**
  * @author rmerizalde
@@ -119,6 +120,23 @@ public class BoostValueSourceParserTest {
     @Test
     public void testCachedBoosts() throws Exception {
         when(boostCache.get(boostId)).thenReturn(createBoosts());
+        ValueSource vs = vsp.parse(fp);
+
+        verifyZeroInteractions(httpClient);
+
+        FunctionValues values = vs.getValues(null, null);
+        Assert.assertEquals(0.7f, values.floatVal(0), 0.0f);
+        Assert.assertEquals(0.6f, values.floatVal(1), 0.0f);
+        Assert.assertEquals(0.5f, values.floatVal(2), 0.0f);
+        for (int i = 3; i <= 10; i++) {
+            Assert.assertEquals(0.0f, values.floatVal(i), 0.0f);
+        }
+    }
+    
+    @Test
+    public void testCachedBoostsWithTreatment() throws Exception {
+        when(params.get(TREATMENT_ID)).thenReturn("b");
+        when(boostCache.get(boostId + "_b")).thenReturn(createBoosts());
         ValueSource vs = vsp.parse(fp);
 
         verifyZeroInteractions(httpClient);

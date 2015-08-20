@@ -6,7 +6,6 @@ module.exports = function(grunt) {
         jshint: {
             src: [src, 'Gruntfile.js'],
             options: {
-                reporter: require('jshint-stylish'),
                 asi: true,
                 boss: true,
                 browser: true,
@@ -42,14 +41,15 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-mocha-cli');
 
-    grunt.registerTask('default', [
-        'jshint',
-        'mochacli',
-        'watch'
-    ]);
+    grunt.registerTask('default', ['test']);
 
     grunt.registerTask('test', [
         'jshint',
         'mochacli'
+    ]);
+
+    grunt.registerTask('develop', [
+        'test',
+        'watch'
     ]);
 };

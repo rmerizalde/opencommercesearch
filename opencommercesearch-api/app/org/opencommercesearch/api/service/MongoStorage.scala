@@ -390,7 +390,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
           // in-memory. If skus are been return as part of the response we need to force the country code to do the filtering.
           // Country properties are flatten into the sku level so the code will never be part of the response
           projectedFields = projectedFields :+ ProjectedSkuCountryCode
-          
+
           if (site != NoSite) {
             projectedFields = projectedFields :+ ProjectedSkuCatalog
           }
@@ -462,11 +462,11 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       defaultProjection
     }
   }
-  
+
   private def projectCategory(fields: Seq[String]) : BSONDocument = {
     projectionAux(fields, DefaultCategoryProjection)
   }
-    
+
   private def projectBrand(fields: Seq[String]) : BSONDocument = {
     projectionAux(fields, DefaultBrandProjection)
   }
@@ -487,7 +487,7 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
   def deleteProduct(id: String) : Future[LastError] = {
     productCollection.remove(BSONDocument("_id" -> id))
   }
-  
+
   def saveCategory(category: Category*) : Future[LastError] = {
     // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
     Future.sequence(category.map(c => categoryCollection.save(c))).map(responses => responses.lastOption.orNull)
@@ -546,12 +546,12 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
 
     findCategories(query, projection)
   }
-  
+
   def saveBrand(brand: Brand*) : Future[LastError] = {
     // @todo: keeping backward compatible interface. Ideally, return a Future[Seq[LastError]]
     Future.sequence(brand.map(b => brandCollection.save(b))).map(responses => responses.lastOption.orNull)
   }
-  
+
   def findBrand(id: String, fields: Seq[String]) : Future[Brand] = {
     val query = queryById(Seq(id))
     val projection = projectBrand(fields)
@@ -650,11 +650,11 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
             if(mainDoc != null) {
                 addNestedCategoryNames(mainDoc.childCategories, lookupMap)
                 addNestedCategoryNames(mainDoc.parentCategories, lookupMap)
-            } 
+            }
         }
         mainDoc
   }
-  
+
   private def addNestedCategoryNames(categories: Option[Seq[Category]], lookupMap: mutable.HashMap[String, Category] ) = {
     for( cats <- categories) {
       cats.foreach(
@@ -673,11 +673,11 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
       )
     }
   }
-  
+
   def findContent(ids: Seq[(String, String)]) : Future[Iterable[ProductContent]] = {
     findContent(ids, NoSite)
   }
-  
+
   def findContent(ids: Seq[(String, String)], site:String) : Future[Iterable[ProductContent]] = {
     if (ids.size > 0) {
 
@@ -844,10 +844,11 @@ object MongoStorage {
   )
 
   val DefaultCategoryProjection = BSONDocument(
+    "catalogs" -> Exclude,
     "childCategories" -> Exclude,
+    "hierarchyTokens" -> Exclude,
     "parentCategories" -> Exclude,
-    "isRuleBased" -> Exclude,
-    "catalogs" -> Exclude
+    "ruleFilters" -> Exclude
   )
 
   val DefaultBrandProjection = BSONDocument(
@@ -875,7 +876,7 @@ object MongoStorage {
   )
 
   val ProjectedSkuCountryCode = ("skus.countries.code", Include)
-  
+
   val ProjectedSkuCatalog = ("skus.catalogs", Include)
 
   val ProjectedSkuAvailabilityStatus = ("skus.countries.availability.status", Include)

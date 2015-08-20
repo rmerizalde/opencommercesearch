@@ -1,5 +1,6 @@
 var q = require('q');
 var request = require('superagent');
+var querystring = require('querystring');
 
 module.exports = function ProductApi(params) {
     var api = {},
@@ -28,7 +29,7 @@ module.exports = function ProductApi(params) {
     // id placeholders
     var brandId =    '/{{brandId}}',
         categoryId = '/{{categoryId}}',
-        itemId =         '/{{itemId}}',
+        itemId =     '/{{itemId}}',
         productId =  '/{{productId}}',
         queryId =    '{{q}}';
 
@@ -83,9 +84,7 @@ module.exports = function ProductApi(params) {
             if (!settings.isServer && !isGet) {
                 msg = 'client only supports GET methods';
                 deferred.reject('Error: ' + msg);
-                if (settings.debug) {
-                    console.warn(moduleName + msg);
-                }
+                helpers.logDebug(msg);
                 return deferred.promise;
             }
 
@@ -95,6 +94,7 @@ module.exports = function ProductApi(params) {
                     xdr;
 
                 if (settings.isServer || !window.XDomainRequest) {
+                    helpers.logDebug(url + '?' + querystring.stringify(requestData.params));
                     request(method, url)[dataMethod](params)
                         .end(function(err, res) {
                             if (corsRetry && err) {
@@ -169,6 +169,11 @@ module.exports = function ProductApi(params) {
                 params: helpers.buildOptions(endpoint.opt, requestParams)
             };
         },
+        logDebug: function(message) {
+          if (settings.debug) {
+            console.log(moduleName + message);
+          }
+        },
         template: function(template, data) {
             var key, reg;
 
@@ -210,10 +215,13 @@ module.exports = function ProductApi(params) {
     });
 
     setEndpoint('searchProducts', {
-        opt: {
-            limit: 40
-        },
+        opt: { limit: 40 },
         tpl: productRoute
+    });
+
+    setEndpoint('browseBrand', {
+      opt: { limit: 40 },
+      tpl: brandRoute + brandId + productRoute
     });
 
     setEndpoint('browseCategory', {
