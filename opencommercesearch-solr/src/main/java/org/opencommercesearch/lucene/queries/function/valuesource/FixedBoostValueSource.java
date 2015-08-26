@@ -19,20 +19,12 @@ package org.opencommercesearch.lucene.queries.function.valuesource;
 * under the License.
 */
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.lucene.index.*;
+import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.queries.function.FunctionValues;
 import org.apache.lucene.queries.function.ValueSource;
-import org.apache.lucene.queries.function.docvalues.FloatDocValues;
 import org.apache.lucene.queries.function.docvalues.IntDocValues;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.FieldCache;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.mutable.MutableValueInt;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 /**

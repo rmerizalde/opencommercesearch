@@ -134,7 +134,11 @@ public class GroupCollapseSummary {
                 long min = Long.MAX_VALUE;
 
 
-                DocSet docSet = processedFilter.answer.intersection(entry.getValue());
+                DocSet docSet = entry.getValue();
+
+                if (processedFilter.answer != null) {
+                    entry.getValue().intersection(processedFilter.answer);
+                }
 
                 if (docSet.size() == 0) {
                     docSet = entry.getValue();

@@ -137,9 +137,6 @@
   <valueSourceParser name="fixedBoost"
     class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
 
-  <valueSourceParser name="fixedBoost"
-    class="org.opencommercesearch.lucene.queries.function.valuesource.FixedBoostValueSourceParser" />
-
   <valueSourceParser name="boost"
     class="org.opencommercesearch.lucene.queries.function.valuesource.BoostValueSourceParser">
     <str name="boostApiHost">http://localhost:9000</str>
