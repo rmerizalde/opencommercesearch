@@ -132,7 +132,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         } else if (sortSpec.startsWith("activationDate")) {
           addSort("activationDate", selectedOrder)
         } else if (sortSpec.startsWith("bestSeller")) {
-          addSort(s"field(sellRank$site)", selectedOrder)
+          addSort(s"sellRank$site", selectedOrder)
+        } else if (sortSpec.startsWith("revenue")) {
+          addSort(s"revenue$site", selectedOrder)
         } else if (sortSpec.startsWith("id ")) {
           addSort("id", selectedOrder)
         }

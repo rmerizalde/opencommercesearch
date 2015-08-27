@@ -26,12 +26,25 @@ class ProductQuerySpec extends Specification with Mockito {
   "ProductQuery" should {
     "Sorts by best seller desc" in {
      running(FakeApplication()) {
-       setupSortBy("bestSeller", "field(sellRanksite) desc" )
+       setupSortBy("bestSeller", "sellRanksite desc" )
      }
     }
     "Sorts by best seller asc" in {
      running(FakeApplication()) {
-       setupSortBy("bestSeller asc", "field(sellRanksite) asc" )
+       setupSortBy("bestSeller asc", "sellRanksite asc" )
+     }
+    }
+  }
+
+  "ProductQuery" should {
+    "Sorts by revenue desc" in {
+     running(FakeApplication()) {
+       setupSortBy("revenue", "revenuesite desc" )
+     }
+    }
+    "Sorts by revenue asc" in {
+     running(FakeApplication()) {
+       setupSortBy("revenue asc", "revenuesite asc" )
      }
     }
   }
