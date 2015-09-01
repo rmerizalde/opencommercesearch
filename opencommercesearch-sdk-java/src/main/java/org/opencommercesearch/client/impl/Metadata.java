@@ -86,7 +86,7 @@ public class Metadata {
         return facets;
     }
 
-    protected void setFacets(Facet[] facets) {
+    public void setFacets(Facet[] facets) {
         this.facets = facets;
     }
 
@@ -94,7 +94,7 @@ public class Metadata {
         return breadCrumbs;
     }
 
-    protected void setBreadCrumbs(BreadCrumb[] breadCrumbs) {
+    public void setBreadCrumbs(BreadCrumb[] breadCrumbs) {
         this.breadCrumbs = breadCrumbs;
     }
 
