@@ -439,7 +439,7 @@ public class RuleManagerComponentTest {
     public void testQueryWithSorts() throws IOException {
         prepareRuleDocs(TestSetType.rulesButNoContent);
         setBaseParams();
-        params.set(CommonParams.SORT, "reviewAverage desc", "reviews asc", "reviews desc", "score asc");
+        params.set(CommonParams.SORT, "reviewAverage desc,reviews asc,reviews desc,score asc");
 
         //Should do nothing (including not failing!)
         component.prepare(rb);
@@ -455,7 +455,7 @@ public class RuleManagerComponentTest {
     public void testBoostRulesWithSorts() throws IOException {
         prepareRuleDocs(TestSetType.boostRules);
         setBaseParams();
-        params.set(CommonParams.SORT, "reviewAverage desc", "reviews asc", "reviews desc", "score asc");
+        params.set(CommonParams.SORT, "reviewAverage desc,reviews asc,reviews desc,score asc");
 
         //Should ignore boost for given products and prefer the incoming sort options
         component.prepare(rb);

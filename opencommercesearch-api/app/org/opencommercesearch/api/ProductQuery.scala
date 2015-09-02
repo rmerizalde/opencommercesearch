@@ -1,6 +1,6 @@
 package org.opencommercesearch.api
 
-import play.api.Play
+import play.api.{Configuration, Play}
 import play.api.mvc.{AnyContent, Request}
 
 import java.net.URLDecoder
@@ -28,7 +28,8 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
   import org.opencommercesearch.api.Collection._
 
   private var _filterQueries: Array[FilterQuery] = null
-  private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  private val closeoutSites = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  private val groupingFilters = Play.current.configuration.getConfig("search.group.collapse.fq").getOrElse(Configuration.empty)
   protected val metadataFields = if (request != null) StringUtils.split(request.getQueryString("metadata").getOrElse(""), ',') else Array.empty[String]
 
 
@@ -123,7 +124,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         val selectedOrder = if (sortSpec.endsWith(" asc")) SolrQuery.ORDER.asc else SolrQuery.ORDER.desc
 
         if (sortSpec.startsWith("discountPercent")) {
-          addSort(s"discountPercent$country", selectedOrder)
+          addSort(s"discountPercent$country$currentSite", selectedOrder)
         } else if (sortSpec.startsWith("reviewAverage")) {
           addSort("bayesianReviewAverage", selectedOrder)
         } else if (sortSpec.startsWith("price")) {
@@ -131,7 +132,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
         } else if (sortSpec.startsWith("activationDate")) {
           addSort("activationDate", selectedOrder)
         } else if (sortSpec.startsWith("bestSeller")) {
-          addSort(s"field(sellRank$site)", selectedOrder)
+          addSort(s"sellRank$site", selectedOrder)
+        } else if (sortSpec.startsWith("revenue")) {
+          addSort(s"revenue$site", selectedOrder)
         } else if (sortSpec.startsWith("id ")) {
           addSort("id", selectedOrder)
         }
@@ -221,7 +224,9 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 
       // this is a temporal param, after testing it will either be removed or made permanent for filter grouping
       if ("ords" == collapseMethod) {
-        setParam("groupcollapse.fq", "isCloseout:false")
+        groupingFilters.getString(site) foreach { groupingFilter =>
+          setParam("groupcollapse.fq", groupingFilter)
+        }
         set(s"f.$listPrice.sf", "min", "max")
         set(s"f.$salePrice.sf", "min", "max")
         set(s"f.$discountPercent.sf", "min", "max")

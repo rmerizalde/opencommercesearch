@@ -278,13 +278,15 @@ public class RuleManagerComponent extends SearchComponent implements SolrCoreAwa
                 augmentedParams = new MergedSolrParams(requestParams);
 
                 //Set sorting options (re-arrange sort incoming fields)
-                String[] sortFields = requestParams.getParams(CommonParams.SORT);
+                String sorts = requestParams.get(CommonParams.SORT);
 
                 //Always push the products out of stock to the bottom, even when manual boosts have been selected
                 augmentedParams.setSort(RuleConstants.FIELD_IS_TOOS, SolrQuery.ORDER.asc);
 
                 //Now put any incoming sort options (if any)
-                if (sortFields != null) {
+                if (sorts != null) {
+                    String[] sortFields = sorts.split(",");
+
                     Set<String> sortFieldSet = new HashSet<String>(sortFields.length);
 
                     for (String sortField : sortFields) {

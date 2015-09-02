@@ -389,7 +389,7 @@ class ProductControllerSpec extends BaseSpec {
         validateCommonQueryParams(productQuery, expectedGroupSorting = true)
         validateSearchParams(productQuery)
 
-        productQuery.get("sort") must beEqualTo("discountPercentUS desc")
+        productQuery.get("sort") must beEqualTo("discountPercentUSmysite desc")
 
         val json = Json.parse(contentAsString(result.get))
         (json \ "product").validate[Product].map { product =>
