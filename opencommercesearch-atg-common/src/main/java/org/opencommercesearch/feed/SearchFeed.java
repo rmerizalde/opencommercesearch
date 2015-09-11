@@ -339,7 +339,10 @@ public abstract class SearchFeed extends GenericService {
                         if (isProductIndexable(product)) {
                             processProduct(product, products);
                             indexedProductCount.incrementAndGet();
-                            sendProducts(products, type, feedTimestamp, getIndexBatchSize(), true);
+                            if (sendProducts(products, type, feedTimestamp, getIndexBatchSize(), true) != -1) {
+                                products = new SearchFeedProducts();
+                            }
+
                         }
                         processedProductCount.incrementAndGet();
                         localProductProcessedCount++;
@@ -381,18 +384,16 @@ public abstract class SearchFeed extends GenericService {
     }
 
     private static class SendQueueItem {
-        Locale locale;
         FeedType type;
         long feedTimestamp;
-        ProductList productList;
+        SearchFeedProducts products;
 
         SendQueueItem() {}
 
-        SendQueueItem(Locale locale, FeedType type, long feedTimestamp, ProductList productList) {
-            this.locale = locale;
+        SendQueueItem(FeedType type, long feedTimestamp, SearchFeedProducts products) {
             this.type = type;
             this.feedTimestamp = feedTimestamp;
-            this.productList = productList;
+            this.products = products;
         }
     }
 
@@ -416,10 +417,7 @@ public abstract class SearchFeed extends GenericService {
                         break;
                     }
 
-                    int count = item.productList.getProducts().size();
-                    if(!sendProducts(item.locale, item.type, item.feedTimestamp, item.productList)) {
-                        failedProductCount.addAndGet(count);
-                    }
+                    sendProducts(item.products, item.type, item.feedTimestamp);
                 }
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
@@ -440,43 +438,70 @@ public abstract class SearchFeed extends GenericService {
      * @param products the lists of products to be indexed
      * @param type is the feed's type
      * @param feedTimestamp the feed's timestamp
-     * @param min the minimum size of of a product list. If the size is not met then the products are not sent
-     *            for indexing
+     * @param min the minimum sku count for a locale batch. The products will be indexed if at least one locale has the
+     *            minimum number of skus
      * @param async determines if the products should be send right away or asynchronously.
      * return If async, always zero. If not async, the number of successfully sent products.
+     *
+     * @return the number of products sent. If the products were schedule to be sent asynchronously return 0. If the min
+     * sku count was not met return -1.
      */
     public int sendProducts(SearchFeedProducts products, FeedType type, long feedTimestamp, int min, boolean async) {
+        if (products.getMaxSkuCount() < min) {
+            return -1;
+        }
+
+        if (async) {
+            sendQueue.offer(new SendQueueItem(type, feedTimestamp, products));
+            return 0;
+        } else {
+            return sendProducts(products, type, feedTimestamp);
+        }
+    }
+
+    /**
+     * Helper method to send the products for the given locale
+     */
+    private int sendProducts(SearchFeedProducts products, FeedType type, long feedTimestamp) {
         int sent = 0;
         for (Locale locale : products.getLocales()) {
             List<Product> productList = products.getProducts(locale);
+            sent += sendProducts(locale, type, feedTimestamp, products, productList);
+        }
+        failedProductCount.addAndGet(products.getFailedProducts().size());
+        products.clearFailures();
+        return sent;
+    }
 
-            if (products.getSkuCount(locale) > min) {
-                try {
-                    if (async) {
-                        List<Product> clone = new ArrayList<Product>(productList.size());
-                        clone.addAll(productList);
-                        sendQueue.offer(new SendQueueItem(locale, type, feedTimestamp, new ProductList(clone, feedTimestamp)));
-                        //If an async call is made, this always return true.
-                        return 0;
-                    } else {
-                        int count = productList.size();
-                        if(!sendProducts(locale, type, feedTimestamp, new ProductList(productList, feedTimestamp))) {
-                            failedProductCount.addAndGet(count);
-                            return sent;
-                        }
-                        else {
-                            sent += count;
-                        }
-                    }
-                } finally {
-                    productList.clear();
-                }
-            }
-            else {
-                sent += productList.size();
-            }
+
+    /**
+     * Send a product to the API individually. This is the fail over when a product batch fails. In many scenarios, a batch
+     * fails due to a single product.
+     */
+    private int sendProductsIndividually(Locale locale, FeedType type, long feedTimestamp, SearchFeedProducts products, List<Product> productList) {
+        if (productList == null) {
+            return 0;
         }
 
+        if (productList.size() <= 1) {
+            if (productList.size() > 0) {
+                products.addFailure(productList.get(0));
+            }
+            return 0;
+        }
+
+        logInfo("Try sending products [" + productsId(productList) + "] for " + locale.getLanguage() + " individually");
+
+        int sent = 0;
+
+        ArrayList<Product> singleProductList = new ArrayList<Product>(1);
+        for (Product product : productList) {
+            singleProductList.clear();
+            singleProductList.add(product);
+            if (sendProducts(locale, type, feedTimestamp, products, singleProductList) > 0) {
+                ++sent;
+            }
+        }
         return sent;
     }
 
@@ -484,7 +509,7 @@ public abstract class SearchFeed extends GenericService {
      * Helper method that actually sends the products for indexing
      * @return False if there are errors sending the product, true otherwise.
      */
-    private boolean sendProducts(final Locale locale, final FeedType type, final long feedTimestamp, final ProductList productList) {
+    private int sendProducts(final Locale locale, final FeedType type, final long feedTimestamp, final SearchFeedProducts products, final List<Product> productList) {
         try {
             final StreamRepresentation representation = new StreamRepresentation(MediaType.APPLICATION_JSON) {
                 @Override
@@ -495,7 +520,7 @@ public abstract class SearchFeed extends GenericService {
                 @Override
                 public void write(OutputStream outputStream) throws IOException {
                     try {
-                        getObjectMapper().writeValue(outputStream, productList);
+                        getObjectMapper().writeValue(outputStream, new ProductList(productList, feedTimestamp));
                     } catch (IOException ex) {
                         if (isLoggingDebug()) {
                             logDebug("Unable to convert product list to JSON");
@@ -513,14 +538,14 @@ public abstract class SearchFeed extends GenericService {
 
                 if (!response.getStatus().equals(Status.SUCCESS_CREATED)) {
                     if (isLoggingInfo()) {
-                        logInfo("Sending products [" + productsId(productList.getProducts()) + "] fail with status: " + response.getStatus() + " ["
+                        logInfo("Sending products [" + productsId(productList) + "] for " + locale.getLanguage() + " failed with status: " + response.getStatus() + " ["
                                 + errorMessage(response.getEntity()) + "]");
                     }
-                    onProductsSentError(type, feedTimestamp, locale, productList.getProducts(), response);
-                    return false;
+                    onProductsSentError(type, feedTimestamp, locale, productList, response);
+                    return sendProductsIndividually(locale, type, feedTimestamp, products, productList);
                 } else {
-                    onProductsSent(type, feedTimestamp, locale, productList.getProducts(), response);
-                    return true;
+                    onProductsSent(type, feedTimestamp, locale, productList, response);
+                    return productList.size();
 
                 }
             } finally {
@@ -532,13 +557,13 @@ public abstract class SearchFeed extends GenericService {
        }
         catch (Exception ex) {
             if (isLoggingInfo()) {
-                logInfo("Sending products [" + productsId(productList.getProducts()) + "] failed with unexpected exception", ex);
+                logInfo("Sending products [" + productsId(productList) + "] for " + locale.getLanguage() + " failed with unexpected exception", ex);
             }
-            onProductsSentError(type, feedTimestamp, locale, productList.getProducts(), ex);
-            return false;
+            onProductsSentError(type, feedTimestamp, locale, productList, ex);
+            return sendProductsIndividually(locale, type, feedTimestamp, products, productList);
         }
         finally {
-            productList.getProducts().clear();
+            productList.clear();
         }
     }
 

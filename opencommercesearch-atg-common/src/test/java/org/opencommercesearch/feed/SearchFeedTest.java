@@ -347,18 +347,18 @@ public class SearchFeedTest {
         products.add(Locale.US, p);
         products.add(Locale.CANADA, p);
 
-        //Async returns product count when index batch is not reached
-        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 3, true);
-        assertEquals(2, sent);
+        //Async returns -1 when index batch is not reached
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 4, true);
+        assertEquals(-1, sent);
         assertEquals(2, products.getProductCount());
 
         products = new SearchFeedProducts();
         products.add(Locale.US, p);
         products.add(Locale.CANADA, p);
 
-        //Sync returns product count when index batch not reached
-        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 3, false);
-        assertEquals(2, sent);
+        //Sync returns -1 when index batch not reached
+        sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 4, false);
+        assertEquals(-1, sent);
         assertEquals(2, products.getProductCount());
 
         //Test sync with batch failure
@@ -375,6 +375,8 @@ public class SearchFeedTest {
         sent = feed.sendProducts(products, SearchFeed.FeedType.FULL_FEED, 0, 2, false);
         assertEquals(2, sent);
         assertEquals(0, products.getProductCount());
+        // keep same error count from previous run
+        assertEquals(1, feed.getCurrentFailedProductCount());
     }
 
     @Test

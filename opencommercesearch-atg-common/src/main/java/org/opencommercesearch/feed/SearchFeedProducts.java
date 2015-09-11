@@ -25,6 +25,8 @@ import org.opencommercesearch.client.Product;
 
 public class SearchFeedProducts {
     private Map<Locale, List<Product>> productsByLocale = new HashMap<Locale, List<Product>>();
+    // failures are counted by product. If a product fails for 1 or more locales only one failure is counted
+    Set<String> failedProducts = new HashSet<String>();
 
     /**
      * Searches for a product ID with the given locale.
@@ -90,9 +92,31 @@ public class SearchFeedProducts {
         return count;
     }
 
+    public int getMaxSkuCount() {
+        int maxCount = 0;
+        for (Locale locale : getLocales()) {
+            maxCount = Math.max(maxCount, getSkuCount(locale));
+        }
+        return maxCount;
+    }
+
+
     public void clear() {
         for (Locale locale : getLocales()) {
             productsByLocale.get(locale).clear();
         }
+        failedProducts.clear();
+    }
+
+    void addFailure(Product product) {
+        failedProducts.add(product.getId());
+    }
+
+    Set<String> getFailedProducts() {
+        return failedProducts;
+    }
+
+    void clearFailures() {
+        failedProducts.clear();
     }
 }
