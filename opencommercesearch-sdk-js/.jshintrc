@@ -1,20 +1,26 @@
 {
     "passfail": false,
     "maxerr": 100,
+
     "browser": false,
     "node": true,
     "rhino": false,
     "couch": false,
     "wsh": false,
+
     "jquery": false,
     "prototypejs": false,
     "mootools": false,
     "dojo": false,
-    "predef": ["describe", "after", "before", "it", "beforeEach", "afterEach"],
+
+    "predef": ["describe", "after", "before", "it", "beforeEach", "afterEach", "-Promise"],
+
     "debug": false,
     "devel": false,
+
     "strict": true,
     "globalstrict": true,
+
     "asi": false,
     "laxbreak": false,
     "bitwise": false,
@@ -27,7 +33,7 @@
     "forin": false,
     "immed": true,
     "latedef": false,
-    "loopfunc": false,
+    "loopfunc": true,
     "noarg": false,
     "regexp": false,
     "regexdash": false,
@@ -46,6 +52,7 @@
     "iterator": false,
     "funcscope": false,
     "esnext": false,
+
     "newcap": false,
     "noempty": false,
     "nonew": false,
@@ -57,8 +64,14 @@
     "indent": 4,
     "white": false,
     "quotmark": "single",
+
     "maxparams": 5,
     "maxdepth": 3,
-    "maxstatements": 25,
-    "maxcomplexity": 6
+    "maxstatements": 35,
+    "maxcomplexity": 9,
+
+    "globals": {
+      "window": true,
+      "XDomainRequest": true
+    }
 }
