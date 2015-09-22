@@ -1,6 +1,6 @@
 {
   "name": "opencommercesearch-sdk-js",
-  "version": "0.0.8",
+  "version": "0.0.11",
   "description": "Javascript SDK for the OpenCommerceSearch Product API.",
   "author": "opencommercesearch <dev@opencommercesearch.org>",
   "main": "ProductApi.js",
@@ -13,17 +13,20 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "q": "^1.2.0",
-    "superagent": "^1.2.0"
+    "bluebird": "2.10.0",
+    "superagent": "1.2.0"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.11.2",
     "grunt-contrib-watch": "^0.6.1",
     "grunt-mocha-cli": "^1.13.0",
+    "lodash": "^3.10.1",
     "mocha": "^2.2.5",
-    "sinon": "^1.14.1",
-    "underscore": "^1.8.3"
+    "should": "^7.1.0",
+    "should-promised": "^0.3.1",
+    "should-sinon": "0.0.3",
+    "sinon": "^1.14.1"
   },
   "license": "MIT"
 }

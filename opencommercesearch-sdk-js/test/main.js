@@ -1,172 +1,215 @@
-var _ = require('underscore');
-var assert = require('assert');
-var sinon = require('sinon');
-var ProductApi = require('../ProductApi');
+'use strict';
 
+var _ = require('lodash');
+var request = require('superagent');
+var http = require('http');
+var should = require('should');
+var sinon = require('sinon');
+var Promise = require('bluebird');
+
+require('should-promised');
+require('should-sinon');
+
+var productApi = require('../productApi');
 
 // setup
 beforeEach(function() {
-    var defaultSettings = {
-        debug: true,
-        host: 'api.backcountry.com',
-        preview: false,
-        site: 'bcs'
-    };
+  var defaultSettings = {
+    debug: true,
+    host: 'api.backcountry.com',
+    isServer: true,
+    preview: false,
+    site: 'bcs',
+    version: 1
+  };
 
-    ProductApi.config(defaultSettings);
+  productApi.config(defaultSettings);
 });
-
-
 // the tests
 describe('core', function() {
-    it('should return helpers when debug is true', function() {
-        assert(ProductApi.helpers, 'helper methods were returned');
-    });
+  it('should return helpers when debug is true', function() {
+    productApi.should.have.property('helpers');
+  });
 
-    it('should not return helpers when debug is false', function() {
-        ProductApi.config({ debug: false });
-        assert(!ProductApi.helpers, 'helper methods were not returned');
+  it('should not return helpers when debug is false', function() {
+    productApi.config({
+      debug: false
     });
+    productApi.should.not.have.property('helpers');
+  });
 
-    it('should return 26 properties', function() {
-        assert.equal(_.size(ProductApi), 26, 'all properties were returned');
-    });
+  it('should return all properties', function() {
+    Object.keys(productApi).should.have.lengthOf(25);
+  });
 });
 
 describe('helpers.template', function() {
-    it('should replace tpl keys with the specified data', function() {
-        var tpl = '/some/endpoint/{{productId}}/and/{{query}}';
-            result = ProductApi.helpers.template(tpl, { productId: 'foo', query: 'bar' });
-
-        assert.equal(result, '/some/endpoint/foo/and/bar', 'template keys were not replaced');
+  it('should replace tpl keys with the specified data', function() {
+    var tpl = '/some/endpoint/{{productId}}/and/{{query}}';
+    var result = productApi.helpers.template(tpl, {
+      productId: 'foo',
+      query: 'bar'
     });
+
+    result.should.equal('/some/endpoint/foo/and/bar');
+  });
 });
 
 describe('helpers.buildOptions', function() {
-    var optDefault = { a: 'foo', b: 'foo' },
-        optCustom = { a: 'bar', b: 'baz', c: 'foo' };
+  var optDefault = {
+      a: 'foo',
+      b: 'foo'
+    },
+    optCustom = {
+      a: 'bar',
+      b: 'baz',
+      c: 'foo'
+    };
 
-    it('should return default options when defaults are passed', function() {
-        var actual = ProductApi.helpers.buildOptions(optDefault, {});
-        assert.deepEqual(actual, optDefault, 'custom options not returned');
-    });
+  it('should return default options when defaults are passed', function() {
+    var actual = productApi.helpers.buildOptions(optDefault, {});
+    actual.should.eql(optDefault);
+  });
 
-    it('should override default options when custom values are passed', function() {
-        var actual = ProductApi.helpers.buildOptions(optDefault, optCustom);
-        assert.deepEqual(actual, optCustom, 'custom options not returned');
+  it('should override default options when custom values are passed', function() {
+    var actual = productApi.helpers.buildOptions(optDefault, optCustom);
+    actual.should.eql(optCustom);
+  });
+
+  it('should not add productId to params', function() {
+    var actual = productApi.helpers.buildOptions({}, {
+      productId: ['foo','bar','baz'],
+      a: 'foo'
     });
+    var expected = {
+      a: 'foo'
+    };
+
+    actual.should.eql(expected);
+  });
 });
 
 describe('helpers.buildRequest', function() {
-    it('should generate the correct method/url/params then callApi', function() {
-        var actual = ProductApi.helpers.buildRequest(
-                //endpoint
-                { tpl: '/testEndpoint/{{productId}}' },
-                // request
-                { site: 'bcs', productId: 'foo', fields: 'id,title,brand' }
-                // options
-            ),
-            expected = {
-                method: 'GET',
-                url: 'http://api.backcountry.com/v1/testEndpoint/foo',
-                params: {
-                    site: 'bcs', productId: 'foo', fields: 'id,title,brand'
-                }
-            };
+  it('should generate the correct method/url/params then callApi', function() {
+    var actual = productApi.helpers.buildRequest(
+        //endpoint
+        {
+          tpl: '/testEndpoint/{{productId}}'
+        },
+        // request
+        {
+          site: 'bcs',
+          productId: 'foo',
+          fields: 'id,title,brand'
+        }
+        // options
+      ),
+      expected = {
+        method: 'GET',
+        url: 'http://api.backcountry.com/v1/testEndpoint/foo',
+        params: {
+          site: 'bcs',
+          fields: 'id,title,brand'
+        }
+      };
 
-        assert.deepEqual(actual, expected, 'returned correct data');
-    });
+    actual.should.eql(expected);
+  });
 });
 
 describe('helpers.apiCall', function() {
-    it('should return a promise object', function() {
-        var apiCall = ProductApi.helpers.apiCall({
-            method: 'GET',
-            url: '//api.backcountry.com/v1/testEndpoint/foo',
-            params: {
-                site: 'bcs', productId: 'foo', fields: 'id,title,brand'
-            }
-        });
-
-        assert(!!apiCall.then && !!apiCall.done && !!apiCall.fail, 'is not a promise');
+  it('should return a promise object', function() {
+    var apiCall = productApi.helpers.apiCall({
+      method: 'GET',
+      url: '//api.backcountry.com/v1/testEndpoint/foo',
+      params: {
+        site: 'bcs',
+        productId: 'foo',
+        fields: 'id,title,brand'
+      }
     });
 
-    it('should have additional mocked async tests');
+    apiCall.should.be.a.Promise();
+  });
+
+  it('should have additional mocked async tests', function() {
+
+  });
 });
 
 describe('getConfig', function() {
-    it('should return the config object', function() {
-        var config = ProductApi.getConfig();
+  it('should return the config object', function() {
+    var config = productApi.getConfig();
 
-        assert(_.isObject(config), 'config object returned');
-        assert.deepEqual(_.keys(config), ['debug','host','isServer','preview','site','version'], 'config keys match');
-    });
+    config.should.be.an.Object();
+    config.should.have.keys(['debug', 'host', 'isServer', 'preview', 'site', 'version']);
+  });
 });
 
 describe('config', function() {
-    it('should change the config settings', function() {
-        var newSettings = {
-            debug: false,
-            isServer: false,
-            preview: true,
-            version: 44,
-            host: 'a host',
-            site: 'a site'
-        };
+  it('should change the config settings', function() {
+    var newSettings = {
+      debug: false,
+      isServer: false,
+      preview: true,
+      version: 44,
+      host: 'a host',
+      site: 'a site'
+    };
 
-        ProductApi.config(newSettings);
-        var config = ProductApi.getConfig();
+    productApi.config(newSettings);
+    var config = productApi.getConfig();
 
-        assert.equal(config.isServer, newSettings.isServer, 'isServer is correct');
-        assert.equal(config.preview, newSettings.preview, 'preview is correct');
-        assert.equal(config.version, newSettings.version, 'version is correct');
-        assert.equal(config.debug, newSettings.debug, 'debug is correct');
-        assert.equal(config.host, newSettings.host, 'host is correct');
-        assert.equal(config.site, newSettings.site, 'site is correct');
-    });
+    config.should.eql(newSettings);
+  });
 });
 
 describe('setEndpoint', function() {
-    var name = 'myNewEndpoint',
-        endpoint = {
-            tpl: '/route/foo/{{id}}',
-            opt: {
-                fields: 'id',
-                limit: 999
-            }
-        };
+  var name = 'myNewEndpoint';
+  var endpoint = {
+    tpl: '/route/foo/{{id}}',
+    opt: {
+      fields: 'id',
+      limit: 999
+    }
+  };
 
-    it('should add a new endpoint method', function() {
-        ProductApi.setEndpoint(name, endpoint);
-        assert(_.isFunction(ProductApi[name]), 'new endpoint "' + name + '" was created');
-        delete ProductApi[name];
-    });
+  it('should add a new endpoint method', function() {
+    productApi.setEndpoint(name, endpoint);
+    productApi[name].should.be.a.Function();
+    delete productApi[name];
+  });
 
-    it('should call buildRequest and apiCall when used', function() {
-        var apiCall = sinon.stub(ProductApi.helpers, 'apiCall'),
-            buildRequest = sinon.spy(ProductApi.helpers, 'buildRequest'),
-            requestData = { id: 'bar', site: 'bcs' },
-            requestOptions = { foo: 'bar' };
+  it('should call buildRequest and apiCall when used', function() {
+    var apiCall = sinon.stub(productApi.helpers, 'apiCall');
+    var buildRequest = sinon.spy(productApi.helpers, 'buildRequest');
+    var requestData = {
+      id: 'bar',
+      site: 'bcs'
+    };
+    var requestOptions = {
+      foo: 'bar'
+    };
 
-        ProductApi.setEndpoint(name, endpoint);
-        ProductApi[name](requestData, _.clone(requestOptions));
+    productApi.setEndpoint(name, endpoint);
+    productApi[name](requestData, _.clone(requestOptions));
 
-        assert(buildRequest.called, 'buildRequest was called');
-        assert.deepEqual(buildRequest.firstCall.args[0], endpoint, 'buildRequest endpoint is correct');
-        assert.deepEqual(buildRequest.firstCall.args[1], requestData, 'buildRequest data is correct');
-        assert.deepEqual(buildRequest.firstCall.args[2].foo, 'bar', 'buildRequest custom params was added');
+    buildRequest.should.be.called();
+    buildRequest.should.be.calledWithExactly(endpoint, requestData, requestOptions);
 
-        ProductApi.helpers.apiCall.restore();
-        ProductApi.helpers.buildRequest.restore();
-        delete ProductApi[name];
-    });
+    productApi.helpers.apiCall.restore();
+    productApi.helpers.buildRequest.restore();
+    delete productApi[name];
+  });
 
-    it('should not let you overwrite an existing endpoint', function() {
-        var existingEndpoint = 'searchProducts',
-            setExistingEndpoint = function() {
-                ProductApi.setEndpoint(existingEndpoint, { tpl: 'template' });
-            };
+  it('should not let you overwrite an existing endpoint', function() {
+    var existingEndpoint = 'searchProducts';
+    var setExistingEndpoint = function() {
+      productApi.setEndpoint(existingEndpoint, {
+        tpl: 'template'
+      });
+    };
 
-        assert.throws(setExistingEndpoint, 'cant overwrite an existing endpoint');
-    });
+    setExistingEndpoint.should.throw();
+  });
 });
