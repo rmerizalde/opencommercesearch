@@ -79,7 +79,7 @@ object ProductController extends BaseController {
     val startTime = Some(System.currentTimeMillis())
     val storage = withNamespace(storageFactory)
     var productFuture: Future[Iterable[Product]] = null
-    val productIds = StringUtils.split(id, ",").map(i => (i, null))
+    val productIds = StringUtils.split(id, ",").take(MaxProductsLimit).map(i => (i, null))
 
     val fields = fieldList(allowStar = true)
 
@@ -864,6 +864,30 @@ object ProductController extends BaseController {
       None
     }
   }
+
+  def bulkUpdateFields(version: Int) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>
+    Json.fromJson[ProductList](request.body).map { productList =>
+
+      val products = productList.products
+      if (products.size > MaxProductIndexBatchSize) {
+        Future.successful(BadRequest(Json.obj(
+          "message" -> s"Exceeded number of products. Maximum is $MaxProductIndexBatchSize")))
+      } else {
+        val storage = withNamespace(storageFactory)
+        val future = storage.updateProductFields(products:_*) map { result =>
+          Created
+        }
+
+        withErrorHandling(future, s"Cannot update fields for products with ids [${products map (_.id.get) mkString ","}]")
+      }
+    }.recoverTotal {
+      case e: JsError =>
+        Future.successful(BadRequest(Json.obj(
+          // @TODO figure out how to pull missing field from JsError
+          "message" -> ("Missing required fields " + e.toString) )))
+    }
+  }
+
 
   def bulkCreateOrUpdate(version: Int) = ContextAction.async(parse.json(maxLength = 1024 * 2000)) { implicit context => implicit request =>
     Json.fromJson[ProductList](request.body).map { productList =>

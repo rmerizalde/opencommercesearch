@@ -62,6 +62,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val MinSuggestQuerySize = getConfig("suggester.query.size.min", 2)
   lazy val IndexOemProductsEnabled = getConfig("index.product.oem.enabled", default = false)
   lazy val FilterLiveProductsEnabled = getConfig("product.filter.live", default = false)
+  lazy val MaxProductsLimit = getConfig("product.limit.max", 20)
   lazy val ProductAvailabilityStatusSummary = availabilityStatusSummaryConfig
   lazy val SearchMinimumMatch = getConfig("search.minimummatch", "2<-1 3<-2 5<80%")
 
