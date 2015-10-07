@@ -40,7 +40,8 @@ public class ProductService extends GenericService {
         PRODUCTS,
         CATEGORIES,
         FACETS,
-        PRODUCT_CONTENT;
+        PRODUCT_CONTENT,
+        PRODUCT_FIELD_UPDATE;
 
         private String lowerCaseName;
 

@@ -167,17 +167,6 @@ Returns all generations of the product.
 ></table>
 
 ---
-#### **.findCrossSellProducts(options)**
-Returns cross-sell products for the specified product.
-><table>
->  <thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead>
->  <tbody>
->    <tr><td>productId</td><td>String</td><td>a single productId</td></tr>
->    <tr><td>site</td><td>String</td><td>site code</td></tr>
->  </tbody>
-></table>
-
----
 #### **.suggestProducts(options)**
 Returns products with brand and titles matching the query.
 ><table>
