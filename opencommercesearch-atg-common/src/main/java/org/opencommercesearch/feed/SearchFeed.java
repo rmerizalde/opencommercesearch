@@ -80,7 +80,7 @@ public abstract class SearchFeed extends GenericService {
     private int indexBatchSize;
     private ProductService productService;
     private ObjectMapper mapper;
-    private String endpointUrl;
+    protected String endpointUrl;
     private int workerCount;
     private ExecutorService productTaskExecutor;
     private AtomicInteger processedProductCount;

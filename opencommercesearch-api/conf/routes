@@ -29,6 +29,7 @@ GET           /v1/brands/:brandId/products                               org.ope
 GET           /v1/brands/:brandId/categories/:categoryId/products        org.opencommercesearch.api.controllers.ProductController.browseBrandCategory(version: Int = 1, site: String, brandId: String, categoryId: String, outlet: Boolean ?= false)
 GET           /v1/products/:id/content                                   org.opencommercesearch.api.controllers.ProductController.findProductContent(version: Int = 1, id: String, site: String ?= null)
 PUT           /v1/products                                               org.opencommercesearch.api.controllers.ProductController.bulkCreateOrUpdate(version: Int = 1)
+PUT           /v1/products/fields                                        org.opencommercesearch.api.controllers.ProductController.bulkUpdateFields(version: Int = 1)
 PUT           /v1/products/content                                       org.opencommercesearch.api.controllers.ProductController.bulkCreateOrUpdateProductContent(version: Int = 1, site: String ?= null)
 DELETE        /v1/products                                               org.opencommercesearch.api.controllers.ProductController.deleteByTimestamp(version: Int = 1, feedTimestamp: Long)
 DELETE        /v1/products/:id                                           org.opencommercesearch.api.controllers.ProductController.deleteById(version: Int = 1, id: String)
