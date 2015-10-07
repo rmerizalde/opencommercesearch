@@ -11,7 +11,8 @@ object AccessLog extends Filter {
       val msg = s"method=${request.method} uri=${request.uri} remote-address=${request.remoteAddress} " +
         s"domain=${request.domain} query-string=${request.rawQueryString} " +
         s"referer=${request.headers.get("referer").getOrElse("N/A")} " +
-        s"user-agent=[${request.headers.get("user-agent").getOrElse("N/A")}]"
+        s"user-agent=[${request.headers.get("user-agent").getOrElse("N/A")}]"+
+        s"trace=${request.headers.get("x-bc-trace-id").getOrElse("N/A")}"
       play.Logger.of("accesslog").info(msg)
       result
     }
