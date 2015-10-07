@@ -91,6 +91,14 @@ trait Storage[T] {
   def saveProduct(product: Product*) : Future[T]
 
   /**
+   * Update parts of a product. For the moment only the
+   * skus.countries update is supported
+   * @param product is one or more products to update
+   * @return the results of writing the last product update
+   */
+  def updateProductFields(product: Product*) : Future[T]
+
+  /**
    * Delete the product with the given id. Returns the result of the deleting the product
    * @param id is of the product to delete
    * @return the result of deleting the product

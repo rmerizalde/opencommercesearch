@@ -22,6 +22,7 @@ package org.opencommercesearch.api.service
 import java.sql.Timestamp
 import java.util.Calendar
 
+import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.api.models._
 import org.opencommercesearch.api.service.MongoStorage._
 import org.opencommercesearch.api.Global.{FilterLiveProductsEnabled}
@@ -91,21 +92,18 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
 
       // or like {$and: [{_id: {$in: [#,..,#]}}, {$or: [{skus.countries.launchDate: {$exists: false}}, {skus.countries.launchDate: {$lte: now()}}]},
       //                 {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
+      val elemMatch = if (site != null) {
+        BSONDocument("countries.code" -> country, "catalogs" -> site)
+      } else {
+        BSONDocument("countries.code" -> country)
+      }
+
       var andArray = BSONArray(
         BSONDocument(
           "_id" -> BSONDocument(
             "$in" -> (ids map {t => t._1})
           ),
-          "skus" -> BSONDocument(
-            "$elemMatch" -> BSONDocument(
-              if (site != null) {
-                "countries.code" -> country
-                "catalogs" -> site
-              } else {
-                "countries.code" -> country
-              }
-            )
-          )
+          "skus" -> BSONDocument("$elemMatch" -> elemMatch)
         )
       )
       if (FilterLiveProductsEnabled && !preview) {
@@ -149,8 +147,8 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
             }
             result
         }}
-      }
 
+      }
     } else {
       Future.successful(Seq.empty[Product])
     }
@@ -477,6 +475,33 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
 
   private def projectRule(fields: Seq[String]) : BSONDocument = {
     projectionAux(fields, DefaultRuleProjection)
+  }
+
+  def updateProductFields(productFieldUpdate: Product*) : Future[LastError] = {
+
+    val updates = productFieldUpdate.flatMap(product => {
+      var prodUpdates = Seq.empty[(BSONDocument, BSONDocument)]
+      if (product.skus.isDefined) {
+        val skusUpdates = product.skus.get.flatMap(sku => {
+            if (sku.countries.isDefined && sku.countries.get.size > 0) {
+              val selector = BSONDocument("_id" -> product.getId, "skus.id" -> sku.id.get)
+              val modifier = BSONDocument("$set" -> BSONDocument(
+                "skus.$.countries" -> sku.countries.get
+              ))
+              Some((selector, modifier))
+            } else {
+              //TODO gsegura: support other partial updates
+              None
+            }
+          })
+
+        prodUpdates ++= skusUpdates
+      }
+      prodUpdates
+    })
+
+    Future.sequence(updates.map(update => productCollection.update(update._1, update._2))).map(responses => responses.lastOption.orNull)
+
   }
 
   def saveProduct(product: Product*) : Future[LastError] = {
