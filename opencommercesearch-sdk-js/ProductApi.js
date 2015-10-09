@@ -14,7 +14,8 @@ module.exports = (function ProductApi(params) {
     host: '',
     isServer: true,
     preview: false,
-    site: '',
+    testEnabled: false,
+    testHost: '',
     version: 1
   };
 
@@ -163,8 +164,9 @@ module.exports = (function ProductApi(params) {
         throw new Error(moduleName + 'request for ' + endpoint.tpl + ' needs a site');
       }
 
-      var protocol = settings.isServer ? 'http:' : '',
-        url = protocol + '//' + settings.host + '/v' + settings.version + this.template(endpoint.tpl, requestParams);
+      var host = settings.testEnabled && requestParams.test && settings.testHost || settings.host;
+      var protocol = settings.isServer ? 'http:' : '';
+      var url = protocol + '//' + host + '/v' + settings.version + this.template(endpoint.tpl, requestParams);
 
       return {
         method: endpoint.method || 'GET',

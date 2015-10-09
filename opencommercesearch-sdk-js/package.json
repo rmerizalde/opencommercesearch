@@ -1,6 +1,6 @@
 {
   "name": "opencommercesearch-sdk-js",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Javascript SDK for the OpenCommerceSearch Product API.",
   "author": "opencommercesearch <dev@opencommercesearch.org>",
   "main": "ProductApi.js",
