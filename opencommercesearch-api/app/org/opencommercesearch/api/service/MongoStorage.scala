@@ -855,7 +855,8 @@ object MongoStorage {
     "skus.isCloseout" -> Include,
     "skus.isOutlet" -> Include,
     "skus.isPastSeason" -> Include,
-    "skus.id" -> Include
+    "skus.id" -> Include,
+    "tags" -> Include
   )
 
   val DefaultProductProjection = BSONDocument(
