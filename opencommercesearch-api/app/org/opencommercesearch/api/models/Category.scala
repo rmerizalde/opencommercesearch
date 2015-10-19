@@ -45,6 +45,7 @@ case class Category (
   var name: Option[String] = None,
   var alias: Option[String] = None,
   var seoUrlToken: Option[String] = None,
+  var canonicalUrl: Option[String] = None,
   var isRuleBased: Option[Boolean] = None,
   var ruleFilters: Option[Seq[String]] = None,
   var sites: Option[Seq[String]] = None,
@@ -60,6 +61,8 @@ case class Category (
   def getName : String = this.name.getOrElse(StringUtils.EMPTY)
 
   def getUrl : String = this.seoUrlToken.getOrElse(StringUtils.EMPTY)
+
+  def getCanonicalUrl : String = this.canonicalUrl.getOrElse(this.seoUrlToken.getOrElse(StringUtils.EMPTY))
 
   override def source = "category"
 
@@ -109,6 +112,11 @@ object Category {
     if(isCopyField("seoUrlToken")) {
       copy.seoUrlToken = category.seoUrlToken
     }
+
+    if (isCopyField("canonicalUrl")) {
+      copy.canonicalUrl = category.canonicalUrl
+    }
+
 
     if(isCopyField("isRuleBased")) {
       copy.isRuleBased = category.isRuleBased
@@ -198,6 +206,7 @@ object Category {
     (__ \ "name").readNullable[String] ~
     (__ \ "alias").readNullable[String] ~
     (__ \ "seoUrlToken").readNullable[String] ~
+    (__ \ "canonicalUrl").readNullable[String] ~
     (__ \ "isRuleBased").readNullable[Boolean] ~
     (__ \ "ruleFilters").readNullable[Seq[String]] ~
     (__ \ "sites").readNullable[Seq[String]] ~
@@ -212,6 +221,7 @@ object Category {
     (__ \ "name").writeNullable[String] ~
     (__ \ "alias").writeNullable[String] ~
     (__ \ "seoUrlToken").writeNullable[String] ~
+    (__ \ "canonicalUrl").writeNullable[String] ~
     (__ \ "isRuleBased").writeNullable[Boolean] ~
     (__ \ "ruleFilters").writeNullable[Seq[String]] ~
     (__ \ "sites").writeNullable[Seq[String]] ~
@@ -231,6 +241,7 @@ object Category {
       "name" -> category.name,
       "alias" -> category.alias,
       "seoUrlToken" -> category.seoUrlToken,
+      "canonicalUrl" -> category.canonicalUrl,
       "isRuleBased" -> category.isRuleBased,
       "ruleFilters" -> category.ruleFilters,
       "sites" -> category.sites,
@@ -249,6 +260,7 @@ object Category {
       doc.getAs[String]("name"),
       doc.getAs[String]("alias"),
       doc.getAs[String]("seoUrlToken"),
+      doc.getAs[String]("canonicalUrl"),
       doc.getAs[Boolean]("isRuleBased"),
       doc.getAs[Seq[String]]("ruleFilters"),
       doc.getAs[Seq[String]]("sites"),

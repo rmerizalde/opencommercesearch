@@ -63,6 +63,7 @@ public class DefaultProduct implements Product {
   private Generation generation;
   private Availability.Status availabilityStatus;
   private ProductSummary summary;
+  private List<String> tags;
 
   public String getId() {
     return id;
@@ -306,6 +307,24 @@ public class DefaultProduct implements Product {
 
   public void setGeneration(Generation generation) {
 	this.generation = generation;
+  }
+
+  public void getTags(List<String> tags) {
+	  this.tags = tags;
+  }
+  
+  @Override
+  public List<String> getTags() {
+	return tags;
+  }
+  
+  public void addTag(String tag) {
+	  if (tags == null){
+		  tags = new ArrayList<String>();
+	  }
+	  if (!tags.contains(tag)) {
+		  tags.add(tag);
+	  }
   }
 
 }

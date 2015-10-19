@@ -13,6 +13,8 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.common.params.{GroupParams, ExpandParams}
 
+import play.api.Logger
+
 /**
  * The base query to retrieve product results
  *
@@ -23,7 +25,28 @@ import org.apache.solr.common.params.{GroupParams, ExpandParams}
  *
  * @author rmerizalde
  */
-sealed class ProductQuery(q: String, site: String = null)(implicit context: Context, request: Request[AnyContent] = null) extends SolrQuery(q) {
+object ProductQuery {
+
+  def trimq(q: String) : String = {
+    if (q.length < MaxQueryLength) q
+    else{
+      Logger.warn("Trimming query too long.")
+      q.substring(0, MaxQueryLength)
+    }
+  }
+  
+  def trimfq(q: String) : String = {
+    if (q.length < MaxFilterQueryLength) q
+    else {
+        Logger.warn("Trimming filter query too long.")
+        val index = q.lastIndexOf('|', MaxFilterQueryLength)
+        q.substring(0, if (index < 0) MaxFilterQueryLength else index)
+    }
+  }
+
+}
+
+sealed class ProductQuery(q: String, site: String = null)(implicit context: Context, request: Request[AnyContent] = null) extends SolrQuery(ProductQuery.trimq(q)) {
   import Query._
   import org.opencommercesearch.api.Collection._
 
@@ -179,7 +202,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     import play.api.Play.current
     if (Play.configuration.getBoolean("siteSpecificFields").getOrElse(false)) site else StringUtils.EMPTY
   }
-  
+
   /**
    * Sets parameters to group skus by product
    *
@@ -192,7 +215,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
    */
   def withGrouping(groupMethod:String, totalCount: Boolean, limit: Int, collapse: Boolean) : ProductQuery = {
     if (getRows == null || getRows > 0) {
-      
+
       if ("filter" == groupMethod) {
         addField("productId")
         addFilterQuery("{!collapse field=productId tag=collapse}")
@@ -265,7 +288,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     addFilterQuery(s"ancestorCategoryId:$categoryId")
     this
   }
-  
+
   def withOutlet() : ProductQuery = {
     if(request != null && request.getQueryString("outlet").getOrElse("false").toBoolean) {
       addFilterQuery("isOutlet:true")
@@ -326,7 +349,8 @@ private object Query {
   }
 
   def setFilterQueriesFor(query : SolrQuery)(implicit request: Request[AnyContent]) = {
-    val filterQueries = FilterQuery.parseFilterQueries(decodeUrl(request.getQueryString("filterQueries").getOrElse(""), "UTF-8"))
+    val fqStr = decodeUrl(request.getQueryString("filterQueries").getOrElse(""), "UTF-8")
+    val filterQueries = FilterQuery.parseFilterQueries(ProductQuery.trimfq(fqStr))
 
     query.remove("rule.fq")
     filterQueries.foreach(fq => {
@@ -374,7 +398,7 @@ class ProductMoreLikeThisQuery(pid: String, site: String)(implicit context: Cont
     //exclude from similar results documents with the same productId
     addFilterQuery(s"-productId:$pid")
   }
-  
+
   override def withGrouping(): ProductQuery = {
     withGrouping("filter", groupTotalCount, 1, collapse = false)
   }
@@ -394,7 +418,7 @@ class ProductBrowseQuery(site: String)(implicit context: Context, request: Reque
     super.init()
     setParam("pageType", "category")
   }
-  
+
   override def withOutlet() : ProductQuery = {
      request.getQueryString("outlet") match {
       case Some(isOutlet) => addFilterQuery(s"isOutlet:$isOutlet")
@@ -451,7 +475,7 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
   import org.opencommercesearch.api.Collection._
 
   private val closeoutSites: Set[String] = Play.current.configuration.getString("sites.closeout").getOrElse(StringUtils.EMPTY).split(",").toSet
-  
+
   def this(facetField: String)(implicit context: Context, request: Request[AnyContent]) = this(facetField, null)
 
   private def init() = {
@@ -464,15 +488,15 @@ class ProductFacetQuery(facetField: String, site: String)(implicit context: Cont
     if (closeoutSites.contains(site)) {
       addFilterQuery("isRetail:true")
     }
-    
+
     // product params
     addFilterQuery(s"country:${context.lang.country}")
-    
+
     if (site != null) {
       addFilterQuery("categoryPath:" + site)
     }
     if (request != null) {
-      
+
       request.getQueryString("outlet") match {
 	    case Some(isOutlet) =>
 	      addFilterQuery(s"isOutlet:$isOutlet")
