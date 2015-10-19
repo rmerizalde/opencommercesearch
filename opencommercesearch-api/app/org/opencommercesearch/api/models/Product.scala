@@ -39,54 +39,73 @@ import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 
 object Product {
 
-  implicit val readsProduct : Reads[Product] = (
-    (__ \ "id").readNullable[String] ~
-    (__ \ "title").readNullable[String] ~
-    (__ \ "description").readNullable[String] ~
-    (__ \ "shortDescription").readNullable[String] ~
-    (__ \ "brand").readNullable[Brand] ~
-    (__ \ "gender").readNullable[String] ~
-    (__ \ "sizingChart").readNullable[String] ~
-    (__ \ "detailImages").readNullable[Seq[Image]] ~
-    (__ \ "bulletPoints").readNullable[Seq[String]] ~
-    (__ \ "attributes").readNullable[Seq[Attribute]] ~
-    (__ \ "features").readNullable[Seq[Attribute]] ~
-    (__ \ "listRank").readNullable[Int] ~
-    (__ \ "customerReviews").readNullable[CustomerReview] ~
-    (__ \ "freeGifts").lazyReadNullable(Reads.map[Seq[Product]]) ~
-    (__ \ "availabilityStatus").readNullable[String] ~
-    (__ \ "categories").readNullable[Seq[Category]] ~
-    (__ \ "skus").readNullable[Seq[Sku]] ~
-    (__ \ "generation").readNullable[Generation] ~
-    (__ \ "activationDate").readNullable[Date] ~
-    (__ \ "isPackage").readNullable[Boolean] ~
-    (__ \ "isOem").readNullable[Boolean]
-  ) (Product.apply _)
+  implicit val readsProduct : Reads[Product] = new Reads[Product] {  
 
-  implicit val writesProduct : Writes[Product] = (
-    (__ \ "id").writeNullable[String] ~
-    (__ \ "title").writeNullable[String] ~
-    (__ \ "description").writeNullable[String] ~
-    (__ \ "shortDescription").writeNullable[String] ~
-    (__ \ "brand").writeNullable[Brand] ~
-    (__ \ "gender").writeNullable[String] ~
-    (__ \ "sizingChart").writeNullable[String] ~
-    (__ \ "detailImages").writeNullable[Seq[Image]] ~
-    (__ \ "bulletPoints").writeNullable[Seq[String]] ~
-    (__ \ "attributes").writeNullable[Seq[Attribute]] ~
-    (__ \ "features").writeNullable[Seq[Attribute]] ~
-    (__ \ "listRank").writeNullable[Int] ~
-    (__ \ "customerReviews").writeNullable[CustomerReview] ~
-    (__ \ "freeGifts").lazyWriteNullable(Writes.map[Seq[Product]]) ~
-    (__ \ "availabilityStatus").writeNullable[String] ~
-    (__ \ "categories").writeNullable[Seq[Category]] ~
-    (__ \ "skus").writeNullable[Seq[Sku]] ~
-    (__ \ "generation").writeNullable[Generation] ~
-    (__ \ "activationDate").writeNullable[Date] ~
-    (__ \ "isPackage").writeNullable[Boolean] ~
-    (__ \ "isOem").writeNullable[Boolean]
-  ) (unlift(Product.unapply))
+      def reads(json: JsValue): JsResult[Product] = {
+        JsSuccess(Product(
+          (json \ "id").asOpt[String],
+          (json \ "title").asOpt[String],
+          (json \ "description").asOpt[String],
+          (json \ "shortDescription").asOpt[String],
+          (json \ "brand").asOpt[Brand],
 
+          (json \ "gender").asOpt[String],
+          (json \ "sizingChart").asOpt[String],
+          (json \ "detailImages").asOpt[Seq[Image]],
+          (json \ "bulletPoints").asOpt[Seq[String]],
+          (json \ "attributes").asOpt[Seq[Attribute]],
+
+          (json \ "features").asOpt[Seq[Attribute]],
+          (json \ "listRank").asOpt[Int],
+          (json \ "customerReviews").asOpt[CustomerReview],
+          (json \ "freeGifts").asOpt(Reads.map[Seq[Product]]),
+          (json \ "availabilityStatus").asOpt[String],
+
+          (json \ "categories").asOpt[Seq[Category]],
+          (json \ "skus").asOpt[Seq[Sku]],
+          (json \ "generation").asOpt[Generation],
+          (json \ "activationDate").asOpt[Date],
+          (json \ "isPackage").asOpt[Boolean],
+
+          (json \ "isOem").asOpt[Boolean],
+          (json \ "tags").asOpt[Seq[String]]))
+      }
+    }
+
+  implicit val writesProduct : Writes[Product] = new Writes[Product] {
+
+      def writes(product: Product) = {
+        var result = Json.obj("id" -> product.id.get)
+        if (product.title.isDefined) result = result + ("title" -> Json.toJson(product.title.get))
+        if (product.description.isDefined) result = result + ("description" -> Json.toJson(product.description.get))
+        if (product.shortDescription.isDefined) result = result + ("shortDescription" -> Json.toJson(product.shortDescription.get))
+        if (product.brand.isDefined) result = result + ("brand" -> Json.toJson(product.brand.get))
+
+        if (product.gender.isDefined) result = result + ("gender" -> Json.toJson(product.gender.get))
+        if (product.sizingChart.isDefined) result = result + ("sizingChart" -> Json.toJson(product.sizingChart.get))
+        if (product.detailImages.isDefined) result = result + ("detailImages" -> Json.toJson(product.detailImages.get))
+        if (product.bulletPoints.isDefined) result = result + ("bulletPoints" -> Json.toJson(product.bulletPoints.get))
+        if (product.attributes.isDefined) result = result + ("attributes" -> Json.toJson(product.attributes.get))
+
+        if (product.features.isDefined) result = result + ("features" -> Json.toJson(product.features.get))
+        if (product.listRank.isDefined) result = result + ("listRank" -> Json.toJson(product.listRank.get))
+        if (product.customerReviews.isDefined) result = result + ("customerReviews" -> Json.toJson(product.customerReviews.get))
+        if (product.freeGifts.isDefined) result = result + ("freeGifts" -> Json.toJson(product.freeGifts.get))
+        if (product.availabilityStatus.isDefined) result = result + ("availabilityStatus" -> Json.toJson(product.availabilityStatus.get))
+
+        if (product.categories.isDefined) result = result + ("categories" -> Json.toJson(product.categories.get))
+        if (product.skus.isDefined) result = result + ("skus" -> Json.toJson(product.skus.get))
+        if (product.generation.isDefined) result = result + ("generation" -> Json.toJson(product.generation.get))
+        if (product.activationDate.isDefined) result = result + ("activationDate" -> Json.toJson(product.activationDate.get))
+        if (product.isPackage.isDefined) result = result + ("isPackage" -> Json.toJson(product.isPackage.get))
+
+        if (product.isOem.isDefined) result = result + ("isOem" -> Json.toJson(product.isOem.get))
+        if (product.tags.isDefined) result = result + ("tags" -> Json.toJson(product.tags.get))
+
+        result
+    }
+
+  }
 
   implicit object ProductWriter extends BSONDocumentWriter[Product] {
     import reactivemongo.bson.DefaultBSONHandlers._
@@ -113,7 +132,8 @@ object Product {
       "generation" -> product.generation,
       "activationDate" -> product.activationDate,
       "isPackage" -> product.isPackage,
-      "isOem" -> product.isOem
+      "isOem" -> product.isOem,
+      "tags" -> product.tags
     )
   }
 
@@ -141,7 +161,8 @@ object Product {
       doc.getAs[Generation]("generation"),
       doc.getAs[Date]("activationDate"),
       doc.getAs[Boolean]("isPackage"),
-      doc.getAs[Boolean]("isOem")
+      doc.getAs[Boolean]("isOem"),
+      doc.getAs[Seq[String]]("tags")
     )
   }
 }
@@ -167,7 +188,8 @@ case class Product (
   var generation : Option[Generation] = None,
   var activationDate: Option[Date] = None,
   var isPackage: Option[Boolean] = None,
-  var isOem: Option[Boolean] = None) extends IndexableElement
+  var isOem: Option[Boolean] = None,
+  var tags: Option[Seq[String]] = None) extends IndexableElement
 {
   def getId : String = { this.id.get }
 

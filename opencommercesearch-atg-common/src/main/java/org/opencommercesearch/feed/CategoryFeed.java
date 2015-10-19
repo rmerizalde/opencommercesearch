@@ -65,15 +65,18 @@ public class CategoryFeed extends BaseRestFeed {
      */
     protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
         String seoUrlToken = (String)item.getPropertyValue("seoUrlToken");
+        String canonicalUrl = (String)item.getPropertyValue("canonicalUrl");
         if(StringUtils.isEmpty(seoUrlToken)) {
             return null;
         }
+
         
         JSONObject category = new JSONObject();
 
         category.put("id", item.getRepositoryId());
         category.put("name", item.getItemDisplayName());
         category.put("seoUrlToken", seoUrlToken);
+        category.put("canonicalUrl", canonicalUrl);
         boolean isRuleBased = RuleBasedCategoryProperty.ITEM_DESCRIPTOR.equals(item.getItemDescriptor().getItemDescriptorName());
         category.put("isRuleBased", isRuleBased);
         if(isRuleBased) {

@@ -84,6 +84,8 @@ public interface Product {
   
   Map<String, List<Product>> getFreeGifts();
   
+  List<String> getTags();
+  
   @JsonIgnore
   Boolean getOutOfStock();
   

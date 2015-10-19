@@ -26,12 +26,64 @@ import org.specs2.mock.Mockito
 import org.specs2.mutable.Specification
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
+import play.api.libs.json._
 
 class ProductSpec extends Specification with Mockito {
 
   import org.opencommercesearch.api.models.Availability._
 
   "Product" should {
+
+    "json deserialize" in {
+      running(FakeApplication()) {
+          val text = """{
+          "id": "PAT00FN", "title": "Down Sweater Jacket - Men's",
+          "brand": { "name": "Patagonia" },
+          "customerReviews": { "count": 25, "average": 4.5 },
+          "availabilityStatus": "InStock",
+          "categories": [],
+          "tags": ["tag1", "tag2"],
+          "skus": [ { "id": "PAT00FN-TURRD-L", "image": {
+            "url": "/images/items/medium/PAT/PAT00FN/TURRD.jpg"
+          },
+          "isPastSeason": false, "title": "Turkish Red, L", "isRetail": true, "isCloseout": false,
+          "isOutlet": false, "listPrice": 229, "salePrice": 137.4, "discountPercent": 40,
+          "onSale": true, "url": "/patagonia-down-sweater-mens",
+          "availability": { "status": "InStock", "stockLevel": 6  } } ] }
+          """
+          val json = Json.parse(text)
+          val productOpt = json.asOpt[Product]
+          productOpt.isDefined must beTrue
+          val product = productOpt.get
+          product.id.isDefined must beTrue
+          product.id.get must beEqualTo("PAT00FN")
+          product.title.isDefined must beTrue
+          product.title.get must beEqualTo("Down Sweater Jacket - Men's")
+          product.availabilityStatus.isDefined must beTrue
+          product.availabilityStatus.get must beEqualTo("InStock")
+          product.skus.isDefined must beTrue
+          product.skus.get.size must beEqualTo(1) // Rest of the Sku validation is delegated to Sku Test
+          product.tags.isDefined must beTrue
+          product.tags.get.size must beEqualTo(2)
+          product.tags.get.toList(0) must beEqualTo("tag1")
+          product.tags.get.toList(1) must beEqualTo("tag2")
+      }
+    }
+
+    "json serialize" in {
+      running(FakeApplication()) {
+        val tags = "tag1" :: "tag2" :: List.empty[String]
+        val product = Product(id = Option("ID123"), title=Option("MyTitle"), tags = Option(tags.toSeq))
+        val json = Json.toJson(product)
+        (json \ "id").asOpt[String].isDefined must beTrue
+        (json \ "id").as[String] must beEqualTo("ID123")
+        (json \ "title").asOpt[String].isDefined must beTrue
+        (json \ "title").as[String] must beEqualTo("MyTitle")
+        (json \ "tags").asOpt[Seq[String]].isDefined must beTrue
+        (json \ "tags").as[Seq[String]].toList(0) must beEqualTo("tag1")
+        (json \ "tags").as[Seq[String]].toList(1) must beEqualTo("tag2")
+      }
+    }
 
     "availability status should be None" in {
       running(FakeApplication()) {
