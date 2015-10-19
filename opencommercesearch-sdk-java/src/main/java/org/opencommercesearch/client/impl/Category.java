@@ -41,6 +41,8 @@ public class Category {
   private Category[] childCategories;
   @JsonProperty("seoUrlToken")
   private String url;
+  @JsonProperty("canonicalUrl")
+  private String canonicalUrl;
   private boolean isRuleBased;
   private Set<String> sites;
 
@@ -97,6 +99,16 @@ public class Category {
 
   public void setIsRuleBased(boolean isRuleBased) {
     this.isRuleBased = isRuleBased;
+  }
+
+  public String getCanonicalUrl() { return canonicalUrl; }
+
+  public void setCanonicalUrl(String canonicalUrl) {
+    if (canonicalUrl.startsWith("/")) {
+      this.canonicalUrl = canonicalUrl;
+    } else {
+      this.canonicalUrl = "/" + canonicalUrl;
+    }
   }
 
   public String getUrl() { return url; }
