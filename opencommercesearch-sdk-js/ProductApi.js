@@ -2,7 +2,6 @@
 
 var Promise = require('bluebird');
 var request = require('superagent');
-var querystring = require('querystring');
 
 module.exports = (function ProductApi(params) {
   var api = {},
@@ -99,7 +98,6 @@ module.exports = (function ProductApi(params) {
           xdr;
 
         if (settings.isServer || (window && !window.XDomainRequest)) {
-          helpers.logDebug(url + '?' + querystring.stringify(requestData.params));
           request(method, url)[dataMethod](params)
             .end(function(err, res) {
               if (corsRetry && err) {
