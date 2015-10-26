@@ -86,6 +86,24 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
     findProducts(ids, NoSite, country, fields, isSearch, preview)
   }
 
+  def findRawProducts(ids: Seq[String]) : Future[Iterable[Product]] = {
+    if (ids.size > 0) {
+      // the product query is like {_id: {$in: [#,..,#]}}
+      val query = BSONDocument(
+      "_id" -> BSONDocument(
+        "$in" -> ids
+      ))
+
+    productCollection
+      .find(query, DefaultEmptyProjection)
+      .cursor[Product]
+      .collect[Seq]()
+
+    } else {
+      Future.successful(Seq.empty[Product])
+    }
+  }
+
   def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean, preview:Boolean) : Future[Iterable[Product]] = {
     if (ids.size > 0) {
       // the product query is like {$and: [{_id: {$in: [#,..,#]}}, {skus: {$elemMatch: {countries.code:#, catalogs:#}}}]}
