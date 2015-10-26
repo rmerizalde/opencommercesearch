@@ -62,6 +62,15 @@ trait Storage[T] {
    */
   def findProducts(ids: Seq[(String, String)], site:String, country: String, fields: Seq[String], minimumFields:Boolean, preview:Boolean) : Future[Iterable[Product]]
 
+
+  /**
+   * Finds the products with the given ids. This method is a bit different from the findProducts ones. This one only retrieves all the product
+   * data from the storage, without filtering anything.
+   * @param ids  is the product id
+   * @return
+   */
+  def findRawProducts(ids: Seq[String]) : Future[Iterable[Product]]
+
   /**
    * Finds the product with the given id. Optionally, takes a list of fields to return
    * @param id is the product id

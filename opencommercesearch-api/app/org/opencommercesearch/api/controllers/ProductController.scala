@@ -874,11 +874,25 @@ object ProductController extends BaseController {
           "message" -> s"Exceeded number of products. Maximum is $MaxProductIndexBatchSize")))
       } else {
         val storage = withNamespace(storageFactory)
-        val future = storage.updateProductFields(products:_*) map { result =>
-          Created
+        val future = storage.updateProductFields(products:_*) flatMap { result =>
+
+          val futureList = storage.findRawProducts(products.map(p => p.getId)) map { products => {
+            val updatedProductList = new ProductList(products.toSeq, productList.feedTimestamp)
+            val skuDocs = updatedProductList.toDocuments(categoryService)
+            if (!skuDocs.isEmpty) {
+              val productUpdate = new ProductUpdate
+              productUpdate.add(skuDocs)
+              productUpdate.process(solrServer)
+            }
+           }
+          }
+
+          futureList map { resultSolrUpdate =>
+            Created
+          }
         }
 
-        withErrorHandling(future, s"Cannot update fields for products with ids [${products map (_.id.get) mkString ","}]")
+        withErrorHandling(future, s"Cannot update fields for products with ids [${products map (_.getId) mkString ","}]")
       }
     }.recoverTotal {
       case e: JsError =>
