@@ -21,6 +21,7 @@ package org.opencommercesearch.feed;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -63,7 +64,8 @@ public class CategoryFeed extends BaseRestFeed {
      * @throws atg.json.JSONException if there are format issues when creating the JSON object.
      * @throws atg.repository.RepositoryException if item data from the list can't be read.
      */
-    protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
+    @SuppressWarnings("unchecked")
+	protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
         String seoUrlToken = (String)item.getPropertyValue("seoUrlToken");
         String canonicalUrl = (String)item.getPropertyValue("canonicalUrl");
         if(StringUtils.isEmpty(seoUrlToken)) {
@@ -87,12 +89,14 @@ public class CategoryFeed extends BaseRestFeed {
         category.put("hierarchyTokens", buildHierarchyTokens(item));
         //TODO get rid of "catalogs", currently kept for backwards compatibility only
         setIdsProperty(category, "sites", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
-        setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true);
+        RepositoryItem parentCategory = (RepositoryItem) item.getPropertyValue("parentCategory");
+        setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true, parentCategory);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
         return category;
     }
 
-    private JSONArray buildRuleBasedCategory(RepositoryItem item) {
+    @SuppressWarnings("unchecked")
+	private JSONArray buildRuleBasedCategory(RepositoryItem item) {
         JSONArray array = new JSONArray();
         Locale[] locales = feedLocaleService.getSupportedLocales();
         if(locales != null) {
@@ -111,7 +115,8 @@ public class CategoryFeed extends BaseRestFeed {
         return new JSONArray(placeHolder);
     }
 
-    private void buildHierarchyTokensAux(RepositoryItem category, String groupedString, List<String> placeHolder, int depth) {
+    @SuppressWarnings("unchecked")
+	private void buildHierarchyTokensAux(RepositoryItem category, String groupedString, List<String> placeHolder, int depth) {
         
         Set<RepositoryItem> parentCategories = (Set<RepositoryItem>) category.getPropertyValue(CategoryProperty.FIXED_PARENT_CATEGORIES);
         
@@ -120,8 +125,7 @@ public class CategoryFeed extends BaseRestFeed {
             if(parentCatalogs != null && parentCatalogs.size() > 0) {
                 placeHolder.add(depth + "." + Iterables.get(parentCatalogs, 0).getRepositoryId() + "." + groupedString);
             }
-        }
-        else {
+        } else {
             for(RepositoryItem parentCategory : parentCategories) {
                 if(groupedString.isEmpty()) {
                     buildHierarchyTokensAux( parentCategory, category.getItemDisplayName(), placeHolder, depth+1);
@@ -132,20 +136,39 @@ public class CategoryFeed extends BaseRestFeed {
         }
     }
 
-    private void setIdsProperty(JSONObject obj, String propertyName, Collection<RepositoryItem> items, boolean asObject) throws JSONException {
+    private void setIdsProperty(JSONObject obj, String propertyName, Collection<RepositoryItem> items, boolean asObject, RepositoryItem...firstItems) throws JSONException {
+        JSONArray jsonItems = new JSONArray();
+        Set<String> insertedItems = new HashSet<String>();
+        for (RepositoryItem item : firstItems) {
+            if (item != null) {
+                addItemToJsArray(asObject, jsonItems, item, insertedItems);
+            }
+        }
         if (items != null) {
-            JSONArray jsonItems = new JSONArray();
             for (RepositoryItem item : items) {
-                if (asObject) {
-                    JSONObject itemObj = new JSONObject();
-                    itemObj.put("id", item.getRepositoryId());
-                    jsonItems.add(itemObj);
-                } else {
-                    jsonItems.add(item.getRepositoryId());
+                if (item != null) {
+                    addItemToJsArray(asObject, jsonItems, item, insertedItems);
                 }
             }
+        }
+        if (!insertedItems.isEmpty()) {
             obj.put(propertyName, jsonItems);
         }
+    }
+
+    private void addItemToJsArray(boolean asObject, JSONArray jsonItems, RepositoryItem item, Set<String> insertedItems) throws JSONException {
+        final String itemId = item.getRepositoryId();
+        JSONObject itemObj = new JSONObject();
+        if (insertedItems.contains(itemId)) {
+            return;
+        }
+        if (asObject) {
+            itemObj.put("id", itemId);
+            jsonItems.add(itemObj);
+        } else {
+            jsonItems.add(item.getRepositoryId());
+        }
+        insertedItems.add(itemId);
     }
 
     /**
