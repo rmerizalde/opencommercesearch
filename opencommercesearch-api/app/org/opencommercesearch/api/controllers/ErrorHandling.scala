@@ -20,22 +20,26 @@ package org.opencommercesearch.api.controllers
 */
 
 import play.api.libs.concurrent.Execution.Implicits._
-import play.api.mvc.{Controller, Result}
+import play.api.mvc.{AnyContent, Controller, Result, Request}
 import play.api.Logger
 import play.api.libs.json.Json
-
 import org.apache.solr.common.SolrException
 import org.apache.solr.search.SyntaxError
-
-
 import scala.concurrent.Future
 
 trait ErrorHandling {
   self: Controller =>
 
-  def withErrorHandling(f: Future[Result], message: String) : Future[Result]  = {
+  def withErrorHandling(f: Future[Result], message: String, request: Request[AnyContent] = null) : Future[Result]  = {
     def internalServerError(t: Throwable) = {
-      Logger.error(message, t)
+      var errorMessage = message
+      if (request != null) {
+        errorMessage += s" method=${request.method} uri=${request.uri}" +
+                        s" user-agent=[${request.headers.get("user-agent").getOrElse("N/A")}]" +
+                        s" trace=${request.headers.get("x-bc-trace-id").getOrElse("N/A")}"
+      }
+
+      Logger.error(errorMessage, t)
       InternalServerError(Json.obj(
         "message" -> message
       )).withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
@@ -43,7 +47,14 @@ trait ErrorHandling {
 
     def badRequest(t: Throwable) = {
       val syntaxErrorMessage = "Invalid query or filter queries"
-      Logger.error(syntaxErrorMessage, t)
+      var errorMessage =   syntaxErrorMessage
+      if (request != null) {
+        errorMessage += s" method=${request.method} uri=${request.uri}" +
+                        s" user-agent=[${request.headers.get("user-agent").getOrElse("N/A")}]" +
+                        s" trace=${request.headers.get("x-bc-trace-id").getOrElse("N/A")}"
+      }
+
+      Logger.error(errorMessage, t)
       BadRequest(Json.obj(
         "message" -> syntaxErrorMessage
       )).withHeaders(ACCESS_CONTROL_ALLOW_ORIGIN -> "*")
