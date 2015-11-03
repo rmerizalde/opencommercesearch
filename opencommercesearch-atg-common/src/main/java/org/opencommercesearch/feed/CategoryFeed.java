@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
@@ -44,6 +45,7 @@ import com.google.common.collect.Iterables;
 /**
  * A feed for categories.
  */
+@SuppressWarnings("unchecked")
 public class CategoryFeed extends BaseRestFeed {
 
     public static String[] REQUIRED_FIELDS = { "id", "name", "seoUrlToken" };
@@ -88,15 +90,22 @@ public class CategoryFeed extends BaseRestFeed {
         //to access products to avoid performance issues
         category.put("hierarchyTokens", buildHierarchyTokens(item));
         //TODO get rid of "catalogs", currently kept for backwards compatibility only
-        setIdsProperty(category, "sites", (Collection<RepositoryItem>) item.getPropertyValue("catalogs"), false);
+        Collection<RepositoryItem> catalogs = (Collection<RepositoryItem>) item.getPropertyValue("catalogs");
+        setIdsProperty(category, "sites", catalogs, false);
         RepositoryItem parentCategory = (RepositoryItem) item.getPropertyValue("parentCategory");
+        if (parentCategory == null && catalogs != null && !catalogs.isEmpty()) {
+            RepositoryItem firstSite = catalogs.iterator().next();
+            Map<String, RepositoryItem> parentCategories = (Map<String, RepositoryItem>) item.getPropertyValue("parentCategoriesForCatalog");
+            if (parentCategories != null) {
+                parentCategory = parentCategories.get(firstSite.getRepositoryId());
+            }
+        }
         setIdsProperty(category, "parentCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedParentCategories"), true, parentCategory);
         setIdsProperty(category, "childCategories", (Collection<RepositoryItem>) item.getPropertyValue("fixedChildCategories"), true);
         return category;
     }
 
-    @SuppressWarnings("unchecked")
-	private JSONArray buildRuleBasedCategory(RepositoryItem item) {
+    private JSONArray buildRuleBasedCategory(RepositoryItem item) {
         JSONArray array = new JSONArray();
         Locale[] locales = feedLocaleService.getSupportedLocales();
         if(locales != null) {
