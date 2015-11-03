@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,6 +105,10 @@ public class CategoryFeedTest {
 		catalogs = Lists.newArrayList(catalogBcs);
 		when(item.getPropertyValue("catalogs")).thenReturn(catalogs);
 
+		Map<String, RepositoryItem> parentCategoriesForCatalog = new HashMap<String, RepositoryItem>();
+		parentCategoriesForCatalog.put("bcs", parentB);
+		when(item.getPropertyValue("parentCategoriesForCatalog")).thenReturn(parentCategoriesForCatalog);
+
 	}
 
 	@Test
@@ -120,6 +125,12 @@ public class CategoryFeedTest {
 				+ "  \"isRuleBased\": false\n" + "}";
 
 		assertEquals(expected, json.toString(2));
+	}
+
+	@Test
+	public void testWithNoParentCateogry() throws RepositoryException, JSONException {
+		when(item.getPropertyValue("parentCategory")).thenReturn(null);
+		test();
 	}
 
 }
