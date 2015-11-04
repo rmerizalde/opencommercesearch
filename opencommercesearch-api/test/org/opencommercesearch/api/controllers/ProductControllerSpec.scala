@@ -894,6 +894,47 @@ class ProductControllerSpec extends BaseSpec {
       validateUpdateResult(result.get, CREATED)
     }
   }
+  
+  "send 201 when update country field" in new Products {
+    running(FakeApplication()) {
+      setupUpdate
+      val (expectedId, expectedName) = ("PRD0001", "A Product")
+      val jsonBrand = Json.obj("id" -> "PRD0001")
+      val product = Json.obj(
+            "id" -> (expectedId + "0"),
+            "title" -> expectedName,
+            "brand" -> jsonBrand,
+            "isOem" -> true,
+            "listRank" -> 1,
+            "activationDate" -> "2010-07-31T00:00:00Z",
+            "skus" -> Json.arr(Json.obj(
+              "id" -> (expectedId + "0" + "BLK"),
+              "image" -> "/images/black.jpg",
+              "isRetail" -> true,
+              "isCloseout" -> false,
+              "countries" -> Seq(Json.obj("code" -> "US"))
+            )))
+      val json = Json.obj(
+        "feedTimestamp" -> 1001,
+        "products" -> Json.arr(product)
+      )
+
+      val storage = storageFactory.getInstance("")
+
+      storage.updateProductFields(any) returns Future.successful(null)
+      val products = Json.fromJson[Product](product).get :: List.empty[Product]
+      storage.findRawProducts(any) returns Future.successful(products)
+
+      val url = routes.ProductController.bulkUpdateFields().url
+      val fakeRequest = FakeRequest(PUT, url)
+        .withHeaders((CONTENT_TYPE, "application/json"))
+        .withJsonBody(json)
+
+      val result = route(fakeRequest)
+      validateUpdateResult(result.get, CREATED)
+    }
+  }
+
 
   /**
    * Helper method to validate the debug section is available in the metadata
