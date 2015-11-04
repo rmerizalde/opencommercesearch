@@ -352,7 +352,7 @@ public abstract class BaseRestFeed extends GenericService {
 
         RepositoryView itemView = getRepository().getView(itemDescriptorName);
         int count = countRql.executeCountQuery(itemView, null);
-        int errorThreshold = (int) (count * getErrorThreshold());
+        int errorThreshold =  getErrorThreshold() <= Double.MIN_VALUE ? count : (int) Math.ceil((count * getErrorThreshold()));
 
         if (isLoggingInfo()) {
             logInfo("Started " + itemDescriptorName + " feed for " + count + " items." );
@@ -376,9 +376,31 @@ public abstract class BaseRestFeed extends GenericService {
                         failed += items.length - sent;
                     }
                     catch (Exception ex) {
-                        failed++;
+
                         if (isLoggingError()) {
                             logError("Cannot send " + itemDescriptorName + "[" + getIdsFromItemsArray(items) + "]", ex);
+                        }
+
+                        // Retry one by one
+                        if (isLoggingInfo()) {
+                            logInfo("Retrying batch one by one");
+                        }
+
+                        for (RepositoryItem item : items) {
+                            if (item == null) {
+                                continue;
+                            }
+                            RepositoryItem[] onlyOneItem = new RepositoryItem[] {item};
+                            try {
+                                int sent = sendItems(onlyOneItem, feedTimestamp);
+                                processed += sent;
+                                failed += onlyOneItem.length - sent;
+                            } catch (Exception ex2) {
+                                failed++;
+                                if (isLoggingError()) {
+                                    logError("Cannot resend " + itemDescriptorName + "[" + getIdsFromItemsArray(onlyOneItem) + "]", ex2);
+                                }
+                            }
                         }
                     }
 
@@ -452,6 +474,9 @@ public abstract class BaseRestFeed extends GenericService {
             final JSONArray jsonObjects = new JSONArray();
 
             for (RepositoryItem item : itemList) {
+                if (item == null) {
+                    continue;
+                }
                 JSONObject json = repositoryItemToJson(item);
                 setCustomProperties(item, json);
 
