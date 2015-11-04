@@ -26,6 +26,7 @@ import atg.json.JSONException;
 import atg.json.JSONObject;
 import atg.repository.*;
 import atg.repository.rql.RqlStatement;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,7 +102,11 @@ public class BaseRestFeedTest {
 
         @Override
         protected JSONObject repositoryItemToJson(RepositoryItem item) throws JSONException, RepositoryException {
-            return new JSONObject().put("id", item.getRepositoryId());
+            String id = item.getRepositoryId();
+            if (id == null) {
+                throw new NullPointerException();
+            }
+            return new JSONObject().put("id", id);
         }
 
         @Override
@@ -157,6 +162,14 @@ public class BaseRestFeedTest {
     public void testIndexItems() throws Exception {
         indexItems(true);
     }
+    
+    @Test
+    public void testIndexItemsWithRetry() throws Exception {
+        when(itemA.getRepositoryId()).thenReturn(null);
+        feed.setErrorThreshold(0.9);
+        indexItemsWithRetry(true);
+    }
+
 
     @Test
     public void testIndexItemsWithNestedCustomProperty() throws Exception {
@@ -261,6 +274,48 @@ public class BaseRestFeedTest {
         verify(rql, times(2)).executeQueryUncached(any(RepositoryView.class), any(Object[].class));
         verify(itemA, times(1)).getRepositoryId();
         verify(itemB, times(1)).getRepositoryId();
+        verifyNoMoreInteractions(rql);
+        verify(repository, times(1)).getView("TestDescriptor");
+        if (verifyAllInterations) {
+            verifyNoMoreInteractions(repository);
+            verifyNoMoreInteractions(itemA);
+            verifyNoMoreInteractions(itemB);
+        }
+
+        assertEquals(Method.POST, argument.getValue().getMethod());
+        assertEquals("http://localhost:9000/v1/brands/commit", argument.getValue().getResourceRef().toString());
+    }
+    
+    private void indexItemsWithRetry(boolean verifyAllInterations) throws Exception {
+        ArgumentCaptor<Request> argument = ArgumentCaptor.forClass(Request.class);
+        when(rqlCount.executeCountQuery(repositoryView, null)).thenReturn(2);
+        when(rql.executeQueryUncached(eq(repositoryView), (Object[]) anyObject())).thenReturn(new RepositoryItem[]{itemA, itemB}).thenReturn(null);
+
+        Response responseOk = new Response(new Request());
+        responseOk.setStatus(Status.SUCCESS_OK);
+
+        Response responseCreated = new Response(new Request());
+        responseCreated.setStatus(Status.SUCCESS_CREATED);
+        when(productService.handle(any(Request.class))).thenReturn(responseOk).thenReturn(responseCreated).thenReturn(responseOk);
+
+        feed.startFeed();
+
+        verify(productService, times(3)).handle(argument.capture());
+
+        GZIPInputStream is = new GZIPInputStream(argument.getAllValues().get(1).getEntity().getStream());
+        BufferedReader br = new BufferedReader(new InputStreamReader(is));
+        String jsonString = br.readLine();
+        assertNotNull(jsonString);
+        JSONObject jsonObject = new JSONObject(jsonString);
+        JSONArray items = (JSONArray) jsonObject.get("brands");
+
+        assertEquals(((JSONObject)items.get(0)).get("id"), "itemB");
+
+        verify(rqlCount, times(1)).executeCountQuery(any(RepositoryView.class), any(Object[].class));
+        verifyNoMoreInteractions(rqlCount);
+        verify(rql, times(2)).executeQueryUncached(any(RepositoryView.class), any(Object[].class));
+        verify(itemA, times(4)).getRepositoryId();
+        verify(itemB, times(2)).getRepositoryId();
         verifyNoMoreInteractions(rql);
         verify(repository, times(1)).getView("TestDescriptor");
         if (verifyAllInterations) {
