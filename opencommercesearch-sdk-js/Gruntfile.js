@@ -21,7 +21,7 @@ module.exports = function(grunt) {
     },
     mochacli: {
       options: {
-        bail: true
+        bail: false
       },
       all: ['test/*.js']
     }

@@ -1,5 +1,6 @@
 'use strict';
 
+var contextService = require('request-context');
 var Promise = require('bluebird');
 var request = require('superagent');
 
@@ -15,6 +16,7 @@ module.exports = (function ProductApi(params) {
     preview: false,
     testEnabled: false,
     testHost: '',
+    traceIdHeader: '',
     version: 1
   };
 
@@ -77,6 +79,7 @@ module.exports = (function ProductApi(params) {
   var helpers = {
     apiCall: function(requestData) {
       var method = requestData.method,
+        headers = requestData.headers,
         url = requestData.url,
         params = requestData.params,
         corsRetry = !settings.isServer,
@@ -99,6 +102,7 @@ module.exports = (function ProductApi(params) {
 
         if (settings.isServer || (window && !window.XDomainRequest)) {
           request(method, url)[dataMethod](params)
+            .set(headers)
             .end(function(err, res) {
               if (corsRetry && err) {
                 corsRetry = false;
@@ -142,8 +146,21 @@ module.exports = (function ProductApi(params) {
 
       return deferred.promise;
     },
+    buildHeaders: function() {
+      var headers = {};
+
+      if (settings.traceIdHeader) {
+        var traceId = contextService.get('request:traceId');
+        if (traceId) {
+          headers[settings.traceIdHeader] = traceId;
+        }
+      }
+
+      return headers;
+    },
     buildOptions: function(defaults, options) {
       options = typeof options === 'object' ? options : {};
+      options.preview = settings.preview;
 
       for (var key in defaults) {
         options[key] = options[key] || defaults[key];
@@ -169,7 +186,8 @@ module.exports = (function ProductApi(params) {
       return {
         method: endpoint.method || 'GET',
         url: url,
-        params: helpers.buildOptions(endpoint.opt, requestParams)
+        params: helpers.buildOptions(endpoint.opt, requestParams),
+        headers: helpers.buildHeaders()
       };
     },
     logDebug: function(message) {

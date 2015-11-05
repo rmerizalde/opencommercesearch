@@ -20,6 +20,7 @@ beforeEach(function() {
     isServer: true,
     preview: false,
     testHost: '',
+    traceIdHeader: 'TRACE-ID-HEADER-KEY',
     version: 1
   };
 
@@ -58,7 +59,8 @@ describe('helpers.template', function() {
 describe('helpers.buildOptions', function() {
   var optDefault = {
       a: 'foo',
-      b: 'foo'
+      b: 'foo',
+      preview: false
     },
     optCustom = {
       a: 'bar',
@@ -82,10 +84,43 @@ describe('helpers.buildOptions', function() {
       a: 'foo'
     });
     var expected = {
-      a: 'foo'
+      a: 'foo',
+      preview: false
     };
 
     actual.should.eql(expected);
+  });
+
+  it('should add settings.preview to the params', function() {
+    productApi.helpers.buildOptions({}, {}).should.eql({ preview: false });
+
+    productApi.config({ preview: true });
+    productApi.helpers.buildOptions({}, {}).should.eql({ preview: true });
+  });
+});
+
+describe('helpers.buildHelpers', function() {
+  var contextService = require('request-context');
+  var contextServiceStub;
+
+  beforeEach(function() {
+    contextServiceStub = sinon.stub(contextService, 'get', function(param) {
+      return param === 'request:traceId' ? 'aTraceId' : undefined;
+    });
+  });
+
+  afterEach(function() {
+    contextServiceStub.restore();
+  });
+
+  it('should return the traceId', function() {
+    var headers = productApi.helpers.buildHeaders();
+    var settings = productApi.getConfig();
+
+    headers[settings.traceIdHeader].should.equal('aTraceId');
+    contextServiceStub.should.be.called();
+
+    contextServiceStub.restore();
   });
 });
 
@@ -105,11 +140,13 @@ describe('helpers.buildRequest', function() {
         // options
       ),
       expected = {
+        headers: {},
         method: 'GET',
         url: 'http://api.backcountry.com/v1/testEndpoint/foo',
         params: {
           site: 'bcs',
-          fields: 'id,title,brand'
+          fields: 'id,title,brand',
+          preview: false
         }
       };
 
@@ -148,6 +185,7 @@ describe('helpers.buildRequest', function() {
 describe('helpers.apiCall', function() {
   it('should return a promise object', function() {
     var apiCall = productApi.helpers.apiCall({
+      headers: {},
       method: 'GET',
       url: '//api.backcountry.com/v1/testEndpoint/foo',
       params: {
@@ -170,7 +208,7 @@ describe('getConfig', function() {
     var config = productApi.getConfig();
 
     config.should.be.an.Object();
-    config.should.have.keys(['debug', 'host', 'isServer', 'preview', 'testHost', 'testEnabled', 'version']);
+    config.should.have.keys(['debug', 'host', 'isServer', 'preview', 'testHost', 'testEnabled', 'version', 'traceIdHeader']);
   });
 });
 
@@ -183,6 +221,7 @@ describe('config', function() {
       preview: true,
       testEnabled: false,
       testHost: 'a test host',
+      traceIdHeader: 'a-new-trace-id-header',
       version: 44
     };
 
