@@ -963,7 +963,7 @@ object ProductController extends BaseController {
     if (context.isPublic && context.lang.language == Lang.English) {
       val updateSuggestionsQuery = new AsyncUpdateRequest()
       updateSuggestionsQuery.setParam("collection", SuggestCollection)
-      updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)
+      updateSuggestionsQuery.deleteByQuery("+type:product -feedTimestamp:" + feedTimestamp)
       future = update.process(solrServer).flatMap( response => {
         updateSuggestionsQuery.process(solrServer).map{response => NoContent }
       })
