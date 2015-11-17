@@ -1059,7 +1059,7 @@ class ProductControllerSpec extends BaseSpec {
     query.get("group.field") must beEqualTo("productId")
     query.getBool("group.facet") must beEqualTo(false)
     if (expectedGroupSorting) {
-      query.get("group.sort") must beEqualTo("isCloseout asc, discountPercentUSmysite asc, sort asc, score desc")
+      query.get("group.sort") must beEqualTo("isCloseout asc, discountPercentUSmysite desc, sort asc, score desc")
     } else {
       query.get("group.sort") must beNull
     }
