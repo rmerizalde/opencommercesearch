@@ -18,27 +18,27 @@ package org.opencommercesearch.api.controllers
 * specific language governing permissions and limitations
 * under the License.
 */
-
+import com.wordnik.swagger.annotations._
+import javax.ws.rs.{PathParam, QueryParam}
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play
 import play.api.libs.json._
-
 import scala.concurrent.Future
 import scala.collection.mutable
-
 import org.opencommercesearch.api.Global._
+
 import org.opencommercesearch.search.suggester.MultiSuggester
 import org.opencommercesearch.search.Element
 import org.opencommercesearch.search.collector.{SimpleCollector, MultiSourceCollector}
+import org.opencommercesearch.api.models.FacetSuggestion
 
-//import com.wordnik.swagger.annotations._
 
 /**
  * The controller for generic suggestions
  *
  * @author rmerizalde
  */
-//@Api(value = "suggestions", basePath = "/api-docs/suggestions", description = "Suggestion API endpoints")
+@Api(value = "suggestions", basePath = "/api-docs/suggestions", description = "Suggestion API endpoints")
 object SuggestionController extends BaseController {
 
   val suggester = new MultiSuggester
@@ -51,19 +51,25 @@ object SuggestionController extends BaseController {
     Play.current.configuration.getInt(s"suggester.$source.collector.capacity").getOrElse(SimpleCollector.DefaultCapacity)
   }
 
-  //@ApiOperation(value = "Suggests user queries, products, categories, brands, etc.", notes = "Returns suggestions for given partial user query", response = classOf[UserQuery], httpMethod = "GET")
-  //@ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial product title is too short")))
+  @ApiOperation(
+      value = "Suggests user queries, products, categories, brands, etc.", 
+      notes = "Returns suggestions for given partial user query", 
+      httpMethod = "GET")
+  @ApiResponses(value = Array(new ApiResponse(code = 400, message = "Partial product title is too short")))
   def findSuggestions(
      version: Int,
-     //@ApiParam(value = "Partial user query", required = true)
-     //@QueryParam("q")
+     @ApiParam(value = "Partial user query", required = true)
+     @QueryParam("q")
      q: String,
-     //@ApiParam(value = "Site to search for suggestions", required = true)
-     //@QueryParam("site")
+     @ApiParam(value = "Site to search for suggestions", required = true)
+     @QueryParam("site")
      site: String,
-     //@ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
-     //@QueryParam("preview")
-     preview: Boolean) = ContextAction.async { implicit context => implicit request =>
+     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+     @QueryParam("preview")
+     preview: Boolean,
+     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+     @QueryParam("facet")
+     facet: Boolean) = ContextAction.async { implicit context => implicit request =>
 
     if (q == null || q.length < 2) {
       Future.successful(withCorsHeaders(BadRequest(Json.obj(
@@ -74,7 +80,7 @@ object SuggestionController extends BaseController {
       val collector = new MultiSourceCollector[Element]
       suggester.sources().map(source => collector.add(source, new SimpleCollector[Element](collectorCapacity(source))) )
       
-      suggester.search(q, site, collector, solrServer).flatMap(c => {
+      suggester.search(q, site, collector, solrServer, facet).flatMap(c => {
         if (!collector.isEmpty) {
           var futureList = new mutable.ArrayBuffer[Future[(String, Json.JsValueWrapper)]]
 
@@ -84,8 +90,12 @@ object SuggestionController extends BaseController {
             }
           }
 
-          Future.sequence(futureList).map( results => {
-            val suggestions = Json.obj(results: _*)
+          for {
+            results <- Future.sequence(futureList)
+          } yield {
+            val json = Json.obj(results: _*)
+            val facetsSuggestions = (json \\  "facetSuggestions")(0)
+            val suggestions = Json.obj(results: _*) - "facetSuggestions"
             val productIds = suggestions \ "products" match {
               case products: JsValue => products \\ "id" map {id => id.as[String]}
               case _ => Seq.empty[String]
@@ -93,9 +103,10 @@ object SuggestionController extends BaseController {
             withCacheHeaders(withCorsHeaders(Ok(Json.obj(
               "metadata" -> Json.obj(
                  "found" -> collector.size(),
-                 "time" -> (System.currentTimeMillis() - startTime)),
+                 "time" -> (System.currentTimeMillis() - startTime),
+                 "facets" -> facetsSuggestions),
               "suggestions" -> suggestions))), productIds)
-          })
+          }
 
         } else {
           Future.successful(withCorsHeaders(Ok(Json.obj(

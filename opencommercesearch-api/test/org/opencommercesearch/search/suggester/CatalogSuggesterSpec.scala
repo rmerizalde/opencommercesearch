@@ -54,7 +54,34 @@ class CatalogSuggesterSpec extends Specification with Mockito {
         val solrServer = setupSolrServer()
         setupMongo()
 
-        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, false)
+        val results = Await.result(searchFuture, Duration.Inf)
+
+        there was two(solrServer).query(any[SolrQuery])
+
+        results.elements().length must beEqualTo(4)
+
+        results.elements()(0).id.isEmpty must beFalse
+        results.elements()(0).id.get must beEqualTo("0")
+
+        results.elements()(1).id.isEmpty must beFalse
+        results.elements()(1).id.get must beEqualTo("1")
+
+        results.elements()(2).id.isEmpty must beFalse
+        results.elements()(2).id.get must beEqualTo("3")
+
+        results.elements()(3).id.isEmpty must beFalse
+        results.elements()(3).id.get must beEqualTo("2")
+      }
+    }
+    
+    "Return some suggestions with facets" in {
+      running(FakeApplication()) {
+        val suggester = new CatalogSuggester[Element]()
+        val solrServer = setupSolrServer()
+        setupMongo()
+
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, true)
         val results = Await.result(searchFuture, Duration.Inf)
 
         there was two(solrServer).query(any[SolrQuery])
@@ -82,7 +109,7 @@ class CatalogSuggesterSpec extends Specification with Mockito {
         val solrServer = setupSolrServer(returnUserQueries =  false)
         setupMongo()
 
-        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, false)
         val results = Await.result(searchFuture, Duration.Inf)
 
         there was two(solrServer).query(any[SolrQuery])
@@ -106,7 +133,7 @@ class CatalogSuggesterSpec extends Specification with Mockito {
         val solrServer = setupSolrServer(returnCatalogResults = true)
         setupMongo()
 
-        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, false)
         val results = Await.result(searchFuture, Duration.Inf)
 
         there was two(solrServer).query(any[SolrQuery])

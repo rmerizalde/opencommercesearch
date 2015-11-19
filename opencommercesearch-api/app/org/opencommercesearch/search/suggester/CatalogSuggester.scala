@@ -30,12 +30,14 @@ import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
 import org.apache.solr.client.solrj.beans.DocumentObjectBinder
 import org.opencommercesearch.api.Global.{storageFactory, SuggestCollection}
 import org.opencommercesearch.search.Element
-import org.opencommercesearch.api.models.{UserQuery, Category, Product, Brand}
+import org.opencommercesearch.api.models.{UserQuery, Category, Product, Brand, FacetSuggestion}
 import org.opencommercesearch.api.common.ContentPreview
 import org.opencommercesearch.common.Context
 import org.opencommercesearch.api.ProductSearchQuery
 import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang.StringUtils
+import org.opencommercesearch.api.common.{FacetHandler,FilterQuery}
+import org.apache.solr.common.util.NamedList
 
 
 /**
@@ -116,20 +118,55 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       })
     }
   }
+  
+  private class FacetSuggestionBinder extends ElementBinder {
+
+    val fields = Seq("id", "name")
+    
+    def getElement(doc: SolrDocument)(implicit context : Context) : Future[E] = {
+      Future.failed(null)
+    }
+
+    def getElements(docs: Seq[SolrDocument])(implicit context : Context) : Future[Seq[E]] = {
+      Future.failed(null)
+    }
+  }
 
   private object ProductSuggester extends ContentPreview {
 
     val fields = Seq("id", "title", "url", "brand.name", "skus.image", "skus.url")
     val empty = Seq[E]()
 
-    def search(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
+    def search(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[E]] = {
       val query = new ProductSearchQuery(q, site)(context, null)
         .withPagination(offset = 0, suggestionLimit)
         .withGrouping(totalCount = false, limit = 1, collapse = false)
+        
+      if (facets) {
+        query.withFaceting()
+        query.setFacetPrefix("category", "1." + site + ".")
+      }
 
       server.query(query).flatMap( response => {
         val ids = new ArrayBuffer[(String, String)](suggestionLimit)
 
+        val facetSuggestionsFuture = if (facets) {
+          val facetHandler = new FacetHandler(
+              query, 
+              response, 
+              Array.empty[FilterQuery], 
+              Seq.empty[NamedList[AnyRef]], 
+              withNamespace(storageFactory))
+          val futureFacets = facetHandler.getFacets
+          futureFacets.map { facets =>
+              facets.map { facet => 
+                FacetSuggestion(Some(facet.getName), Some(facet)) 
+              }.asInstanceOf[Seq[E]]
+          }
+        } else {
+          Future.successful(empty)
+        }
+        
         if (response.getGroupResponse != null) {
           for (command <- response.getGroupResponse.getValues) {
             for (group <- command.getValues) {
@@ -142,7 +179,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
         }
 
         if (ids.size > 0) {
-          withNamespace(storageFactory).findProducts(ids, context.lang.country, fields, minimumFields = true, context.isPreview).map(products => {
+          val productAsE = withNamespace(storageFactory).findProducts(ids, context.lang.country, fields, minimumFields = true, context.isPreview).map(products => {
             products.foreach(p => {
               for (skus <- p.skus) {
                 skus.foreach(sku => {
@@ -156,11 +193,23 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
                 })
               }
             })
-            products.toSeq.asInstanceOf[Seq[E]]
+            
+            products.toSeq.asInstanceOf[Seq[E]] 
           })
+
+          for { 
+            productsE <- productAsE
+            facetsE <- facetSuggestionsFuture
+          } yield {
+            val result = (productsE ++ facetsE).toSeq
+            result
+          }
+
         } else {
           Future.successful(empty)
         }
+        
+        
       })
     }
   }
@@ -171,21 +220,24 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       "brand" -> classOf[Brand],
       "product" -> classOf[Product],
       "category" -> classOf[Category],
-      "userQuery" -> classOf[UserQuery]
+      "userQuery" -> classOf[UserQuery],
+      "facetSuggestion" -> classOf[FacetSuggestion]
   )
 
   private val typeToBinder = Map[String, ElementBinder](
     "userQuery" -> new UserQueryBinder(),
     "brand" -> new BrandBinder(),
     "category" -> new CategoryBinder(),
-    "product" -> new ProductBinder()
+    "product" -> new ProductBinder(),
+    "facetSuggestion" -> new FacetSuggestionBinder()
   )
 
   private val source2ResponseName = Map(
     "product" -> "products",
     "userQuery" -> "queries",
     "category" -> "categories",
-    "brand" -> "brands"
+    "brand" -> "brands",
+    "facetSuggestion" -> "facetSuggestions"
   )
 
   val DoubleQuote = "\""
@@ -202,7 +254,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
   override def sources() = typeToClass.keySet
 
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]] = {
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[E]] = {
 
     val query = new SolrQuery(quote(q))
     query.setParam("collection", SuggestCollection)
@@ -250,7 +302,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       if (StringUtils.isEmpty(suggestedTerm)) {
         suggestedTerm = q
       }
-      futureList += ProductSuggester.search(suggestedTerm, site, server)
+      futureList += ProductSuggester.search(suggestedTerm, site, server, facets)
 
       if (suggestedProducts != null) {
         futureList += suggestedProducts

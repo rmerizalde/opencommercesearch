@@ -84,12 +84,12 @@ class MultiSuggester extends Suggester[Element] {
     case s if s.sources().contains(source) => s.responseName(source)
   }).getOrElse(source)
 
-  override def search(q: String, site: String, collector: Collector[Element], server: AsyncSolrServer)(implicit context : Context) : Future[Collector[Element]] = {
+  override def search(q: String, site: String, collector: Collector[Element], server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Collector[Element]] = {
     val futureList = new mutable.ArrayBuffer[Future[Collector[Element]]](suggesters.size)
 
     suggesters.foreach( suggester => {
       try {
-        futureList += suggester.search(q, site, collector, server)
+        futureList += suggester.search(q, site, collector, server, facets)
       }
       catch {
         case e: Exception =>
@@ -102,7 +102,7 @@ class MultiSuggester extends Suggester[Element] {
     })
   }
 
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[Element]] = {
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[Element]] = {
     // this suggester simply leverages other suggester's
     throw new UnsupportedOperationException()
   }
