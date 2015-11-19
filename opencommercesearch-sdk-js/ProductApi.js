@@ -1,8 +1,8 @@
 'use strict';
 
+var contextService = require('request-context');
 var Promise = require('bluebird');
 var request = require('superagent');
-var querystring = require('querystring');
 
 module.exports = (function ProductApi(params) {
   var api = {},
@@ -14,7 +14,9 @@ module.exports = (function ProductApi(params) {
     host: '',
     isServer: true,
     preview: false,
-    site: '',
+    testEnabled: false,
+    testHost: '',
+    traceIdHeader: '',
     version: 1
   };
 
@@ -77,6 +79,7 @@ module.exports = (function ProductApi(params) {
   var helpers = {
     apiCall: function(requestData) {
       var method = requestData.method,
+        headers = requestData.headers,
         url = requestData.url,
         params = requestData.params,
         corsRetry = !settings.isServer,
@@ -98,8 +101,8 @@ module.exports = (function ProductApi(params) {
           xdr;
 
         if (settings.isServer || (window && !window.XDomainRequest)) {
-          helpers.logDebug(url + '?' + querystring.stringify(requestData.params));
           request(method, url)[dataMethod](params)
+            .set(headers)
             .end(function(err, res) {
               if (corsRetry && err) {
                 corsRetry = false;
@@ -143,8 +146,21 @@ module.exports = (function ProductApi(params) {
 
       return deferred.promise;
     },
+    buildHeaders: function() {
+      var headers = {};
+
+      if (settings.traceIdHeader) {
+        var traceId = contextService.get('request:traceId');
+        if (traceId) {
+          headers[settings.traceIdHeader] = traceId;
+        }
+      }
+
+      return headers;
+    },
     buildOptions: function(defaults, options) {
       options = typeof options === 'object' ? options : {};
+      options.preview = settings.preview;
 
       for (var key in defaults) {
         options[key] = options[key] || defaults[key];
@@ -163,13 +179,15 @@ module.exports = (function ProductApi(params) {
         throw new Error(moduleName + 'request for ' + endpoint.tpl + ' needs a site');
       }
 
-      var protocol = settings.isServer ? 'http:' : '',
-        url = protocol + '//' + settings.host + '/v' + settings.version + this.template(endpoint.tpl, requestParams);
+      var host = settings.testEnabled && requestParams.test && settings.testHost || settings.host;
+      var protocol = settings.isServer ? 'http:' : '';
+      var url = protocol + '//' + host + '/v' + settings.version + this.template(endpoint.tpl, requestParams);
 
       return {
         method: endpoint.method || 'GET',
         url: url,
-        params: helpers.buildOptions(endpoint.opt, requestParams)
+        params: helpers.buildOptions(endpoint.opt, requestParams),
+        headers: helpers.buildHeaders()
       };
     },
     logDebug: function(message) {

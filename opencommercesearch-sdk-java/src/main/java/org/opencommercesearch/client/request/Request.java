@@ -1,5 +1,7 @@
 package org.opencommercesearch.client.request;
 
+import java.util.Map;
+
 import org.opencommercesearch.client.ProductApi;
 import org.opencommercesearch.client.ProductApiException;
 
@@ -32,6 +34,26 @@ public interface Request {
    * @param value The new value to add
    */
   void addParam(String name, String value);
+
+  /**
+   * Gets the value for the given header parameter name.
+   * @param name
+   * @return The value associated to the given header parameter name.
+   */
+  String getHeaderParam(String name);
+
+  /**
+   * Gets the map containing all header parameters
+   * @return The map containing all header parameters
+   */
+  Map<String, String> getHeaderParams();
+
+  /**
+   * Sets a header param on the request. If a previous value existed, is replaced with the new one.
+   * @param name
+   * @param value
+   */
+  void setHeaderParam(String name, String value);
 
   /**
    * Converts this request to a valid query string.

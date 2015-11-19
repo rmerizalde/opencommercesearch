@@ -131,7 +131,7 @@ object ProductController extends BaseController {
       }
     }
 
-    withErrorHandling(future, s"Cannot retrieve products with ids [$id]")
+    withErrorHandling(future, s"Cannot retrieve products with ids [$id]", request)
   }
 
   /**
@@ -463,7 +463,7 @@ object ProductController extends BaseController {
       }
     }
 
-    withErrorHandling(future, s"Cannot search for [${query.getQuery}]")
+    withErrorHandling(future, s"Cannot search for [${query.getQuery}]", request)
   }
 
   /**
@@ -681,7 +681,7 @@ object ProductController extends BaseController {
       @QueryParam("outlet")
       outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
     Logger.debug(s"Browsing brand $brandId")
-    withErrorHandling(doBrowse(version, null, site, brandId, isOutlet = false), s"Cannot browse brand [$brandId]")
+    withErrorHandling(doBrowse(version, null, site, brandId, isOutlet = false), s"Cannot browse brand [$brandId]", request)
   }
 
   @ApiOperation(value = "Browses brand's category products ", notes = "Returns products for a given brand category", response = classOf[Product], httpMethod = "GET")
@@ -709,7 +709,7 @@ object ProductController extends BaseController {
       @QueryParam("outlet")
       outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
     Logger.debug(s"Browsing category $categoryId for brand $brandId")
-    withErrorHandling(doBrowse(version, categoryId, site, brandId, isOutlet = false), s"Cannot browse brand category [$brandId - $categoryId]")
+    withErrorHandling(doBrowse(version, categoryId, site, brandId, isOutlet = false), s"Cannot browse brand category [$brandId - $categoryId]", request)
   }
 
   @ApiOperation(value = "Browses category products ", notes = "Returns products for a given category", response = classOf[Product], httpMethod = "GET")
@@ -734,7 +734,7 @@ object ProductController extends BaseController {
       @QueryParam("outlet")
       outlet: Boolean) = ContextAction.async { implicit context => implicit request =>
     Logger.debug(s"Browsing $categoryId")
-    withErrorHandling(doBrowse(version, categoryId, site, null, outlet), s"Cannot browse category [$categoryId]")
+    withErrorHandling(doBrowse(version, categoryId, site, null, outlet), s"Cannot browse category [$categoryId]", request)
   }
 
   
@@ -963,7 +963,7 @@ object ProductController extends BaseController {
     if (context.isPublic && context.lang.language == Lang.English) {
       val updateSuggestionsQuery = new AsyncUpdateRequest()
       updateSuggestionsQuery.setParam("collection", SuggestCollection)
-      updateSuggestionsQuery.deleteByQuery("type:product and -feedTimestamp:" + feedTimestamp)
+      updateSuggestionsQuery.deleteByQuery("+type:product -feedTimestamp:" + feedTimestamp)
       future = update.process(solrServer).flatMap( response => {
         updateSuggestionsQuery.process(solrServer).map{response => NoContent }
       })
@@ -1101,7 +1101,7 @@ object ProductController extends BaseController {
             "time" -> timer.stop())))))
       }
     })
-    withErrorHandling(future, s"Cannot search for [$q]")
+    withErrorHandling(future, s"Cannot search for [$q]", request)
   }
 
   @ApiOperation(value = "Searchs Product Generations", notes = "Returns products with same generation productId", response = classOf[Product], httpMethod = "GET")
@@ -1161,7 +1161,7 @@ object ProductController extends BaseController {
             "time" -> timer.stop())))))
       }
     })
-    withErrorHandling(future, s"Cannot find products for [$id]")
+    withErrorHandling(future, s"Cannot find products for [$id]", request)
   }
 
   
@@ -1183,7 +1183,7 @@ object ProductController extends BaseController {
       @QueryParam("site")
       site: String) = ContextAction.async { implicit context => implicit request =>
     Logger.debug(s"Find similar products $id")
-    withErrorHandling(findMoreLikeThis(version, id, site), s"Cannot find similar products for [$id]")
+    withErrorHandling(findMoreLikeThis(version, id, site), s"Cannot find similar products for [$id]", request)
   }
 
   private def findMoreLikeThis(version: Int, productId: String, site: String)(implicit context: Context, request: Request[AnyContent]) = {
@@ -1275,7 +1275,7 @@ object ProductController extends BaseController {
         }
       })
 
-      withErrorHandling(future, s"Cannot retrieve product contents")
+      withErrorHandling(future, s"Cannot retrieve product contents", request)
   }
 
   @ApiOperation(value = "Deletes product content by Id", notes = "Deletes the content for given product", httpMethod = "DELETE")
