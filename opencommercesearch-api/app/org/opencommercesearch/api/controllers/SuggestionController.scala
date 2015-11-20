@@ -67,7 +67,7 @@ object SuggestionController extends BaseController {
      @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
      @QueryParam("preview")
      preview: Boolean,
-     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display preview results", required = false)
+     @ApiParam(defaultValue="false", allowableValues="true,false", value = "Display facets", required = false)
      @QueryParam("facet")
      facet: Boolean) = ContextAction.async { implicit context => implicit request =>
 

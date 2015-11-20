@@ -64,6 +64,6 @@ case class FacetSuggestion (
 
   override def source = "facetSuggestion"
 
-  override def toJson : JsValue = Json.toJson(this)
+  override def toJson : JsValue = Json.toJson(this.facet)
   
 }
