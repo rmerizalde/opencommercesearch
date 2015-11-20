@@ -71,7 +71,7 @@ class MultiSuggesterSpec extends Specification with Mockito {
 
         storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
-        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, false)
         val results = Await.result(searchFuture, Duration.Inf)
 
         results.elements().length must beEqualTo(2)
@@ -95,7 +95,7 @@ class MultiSuggesterSpec extends Specification with Mockito {
 
         storage.findProducts(any[Seq[(String, String)]], any[String], any[Seq[String]], any[Boolean], any[Boolean]) returns Future.successful(Iterable.empty[Product])
 
-        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer)
+        val searchFuture = suggester.search("query", "testSite", new SimpleCollector[Element](), solrServer, false)
         val results = Await.result(searchFuture, Duration.Inf)
 
         results.elements().length must beEqualTo(2)
@@ -176,7 +176,7 @@ class MultiSuggesterSpec extends Specification with Mockito {
 class TestSuggester1 extends Suggester[Element] {
   override def sources(): Set[String] = Set("Suggester1")
 
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[Element]] = {
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[Element]] = {
     throw new UnsupportedOperationException()
   }
 }
@@ -184,7 +184,7 @@ class TestSuggester1 extends Suggester[Element] {
 class TestSuggester2 extends Suggester[Element] {
   override def sources(): Set[String] = Set("Suggester2")
 
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[Element]] = {
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[Element]] = {
     throw new UnsupportedOperationException()
   }
 }

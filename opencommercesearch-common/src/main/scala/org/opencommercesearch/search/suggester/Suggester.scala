@@ -54,10 +54,11 @@ trait Suggester[E <: Element] {
    * @param collector is the suggestion collector
    * @param server is the server used to execute the search
    * @param context is the search context
+   * @param facets add facets to the results
    * @return a future with the given collector
    */
-  def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer)(implicit context : Context) : Future[Collector[E]] = {
-    searchInternal(q, site, server).map(elements => {
+  def search(q: String, site: String, collector: Collector[E], server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Collector[E]] = {
+    searchInternal(q, site, server, facets).map(elements => {
       for (element <- elements) {
         if (element != null) {
           collector.add(element, element.source)
@@ -74,7 +75,8 @@ trait Suggester[E <: Element] {
    * @param site is the site to search in
    * @param server is the server used to execute the search
    * @param context is the search context
+   * @param facets add facets to the results 
    * @return all suggestion elements
    */
-  protected def searchInternal(q: String, site: String, server: AsyncSolrServer)(implicit context : Context) : Future[Seq[E]]
+  protected def searchInternal(q: String, site: String, server: AsyncSolrServer, facets: Boolean)(implicit context : Context) : Future[Seq[E]]
 }
