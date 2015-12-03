@@ -19,6 +19,8 @@ package org.opencommercesearch.search.suggester
 * under the License.
 */
 
+import org.apache.commons.lang.StringUtils
+import play.api.Play
 import play.api.libs.concurrent.Execution.Implicits._
 
 import scala.concurrent.Future
@@ -216,13 +218,18 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
 
   private val suggestionLimit = 10
 
+  private lazy val suggestersExclusions : Set[String] = {
+    val suggestersExclusionsFromConfig = Play.current.configuration.getString("suggester.catalog.exclude").getOrElse(StringUtils.EMPTY)
+    StringUtils.split(suggestersExclusionsFromConfig.replaceAll("\\s", ""), ",").toSet
+  }
+
   private val typeToClass = Map(
       "brand" -> classOf[Brand],
       "product" -> classOf[Product],
       "category" -> classOf[Category],
       "userQuery" -> classOf[UserQuery],
       "facetSuggestion" -> classOf[FacetSuggestion]
-  )
+  ).filterKeys(key => !suggestersExclusions.contains(key))
 
   private val typeToBinder = Map[String, ElementBinder](
     "userQuery" -> new UserQueryBinder(),
