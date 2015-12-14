@@ -476,7 +476,7 @@ object ProductController extends BaseController {
   def doSearch(query: ProductQuery, spellCheck: String, startTime: Long) : Future[(JsObject, Boolean, QueryResponse)] = {
     val q = query.getQuery
 
-    solrServer.query(query) flatMap { response =>
+    retry(solrServer.query(query)) flatMap { response =>
       def isRedirect = {
         val redirect = response.getResponse.get("redirect_url")
         redirect != null && StringUtils.isNotBlank(redirect.toString)
@@ -551,7 +551,7 @@ object ProductController extends BaseController {
     query.setParam("mm", SearchMinimumMatch)
 
     Logger.debug(s"Searching using partial matching '${query.getQuery}'")
-    solrServer.query(query) map { tentativeResponse =>
+    retry(solrServer.query(query)) map { tentativeResponse =>
       if (hasResults(tentativeResponse)) {
         (true, tentativeResponse)
       } else {
@@ -576,7 +576,7 @@ object ProductController extends BaseController {
 
       query.setQuery(tentativeQuery)
       Logger.debug(s"Searching spell check suggestion '$tentativeQuery'")
-      solrServer.query(query) flatMap { tentativeResponse =>
+      retry(solrServer.query(query)) flatMap { tentativeResponse =>
         if (hasResults(tentativeResponse)) {
           Future(Json.obj(
             "correctedTerms" -> tentativeQuery), false, tentativeResponse)

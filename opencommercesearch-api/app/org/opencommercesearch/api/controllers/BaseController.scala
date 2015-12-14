@@ -45,7 +45,7 @@ import scala.concurrent.Future
  *
  * @author rmerizalde
  */
-class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
+class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling with Retrying {
 
   private val timeZoneCode = "GMT"
   private val suggester = new CatalogSuggester[Element]
