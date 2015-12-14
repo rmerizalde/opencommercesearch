@@ -20,6 +20,7 @@ package org.opencommercesearch.search.suggester
 */
 
 import org.apache.commons.lang.StringUtils
+import org.opencommercesearch.api.controllers.Retrying
 import play.api.Play
 import play.api.libs.concurrent.Execution.Implicits._
 
@@ -35,7 +36,7 @@ import org.opencommercesearch.search.Element
 import org.opencommercesearch.api.models.{UserQuery, Category, Product, Brand, FacetSuggestion}
 import org.opencommercesearch.api.common.ContentPreview
 import org.opencommercesearch.common.Context
-import org.opencommercesearch.api.ProductSearchQuery
+import org.opencommercesearch.api.{Global, ProductSearchQuery}
 import scala.collection.mutable.ArrayBuffer
 import org.apache.commons.lang.StringUtils
 import org.opencommercesearch.api.common.{FacetHandler,FilterQuery}
@@ -49,7 +50,7 @@ import org.apache.solr.common.util.NamedList
  *
  * @author rmerizalde
  */
-class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
+class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview with Retrying {
 
   private trait ElementBinder {
     def getElement(doc: SolrDocument)(implicit context : Context) : Future[E]
@@ -149,7 +150,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
         query.setFacetPrefix("category", "1." + site + ".")
       }
 
-      server.query(query).flatMap( response => {
+      retry(server.query(query)).flatMap( response => {
         val ids = new ArrayBuffer[(String, String)](suggestionLimit)
 
         val facetSuggestionsFuture = if (facets) {
@@ -275,7 +276,7 @@ class CatalogSuggester[E <: Element] extends Suggester[E] with ContentPreview {
       .set("defType", "edismax")
       .set("qf", "userQuery ngrams")
 
-    server.query(query).flatMap( response => {
+    retry(server.query(query)).flatMap( response => {
       val futureList = new mutable.ArrayBuffer[Future[Seq[E]]](typeToBinder.size)
       var suggestedTerm = StringUtils.EMPTY 
       var suggestedProducts: Future[Seq[E]] = null

@@ -25,8 +25,9 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.solr.client.solrj.{AsyncSolrServer, SolrQuery}
 import org.apache.solr.common.SolrInputDocument
 import org.opencommercesearch.api.Global._
-import org.opencommercesearch.api.ProductFacetQuery
+import org.opencommercesearch.api.{Global, ProductFacetQuery}
 import org.opencommercesearch.api.common.{ContentPreview, FieldList}
+import org.opencommercesearch.api.controllers.Retrying
 import org.opencommercesearch.api.models.{Category, Product}
 import org.opencommercesearch.common.Context
 import play.api.Logger
@@ -51,7 +52,7 @@ object CategoryService {
  * Utility class that gives category / related data and operations.
  * @param server The Solr server used to fetch data from.
  */
-class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStorageFactory) extends FieldList with ContentPreview {
+class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStorageFactory) extends FieldList with ContentPreview with Retrying {
   import org.opencommercesearch.api.service.CategoryService._
 
   private val MaxTries = 3
@@ -583,7 +584,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
 
     Logger.debug(s"Getting taxonomy for brand $id with query ${categoryPathQuery.toString}")
 
-    solrServer.query(categoryPathQuery) flatMap { response =>
+    retry(solrServer.query(categoryPathQuery)) flatMap { response =>
       val storage = withNamespace(storageFactory)
       getTaxonomy(storage, context.isPreview) map { taxonomy =>
         val facetFields = response.getFacetFields
