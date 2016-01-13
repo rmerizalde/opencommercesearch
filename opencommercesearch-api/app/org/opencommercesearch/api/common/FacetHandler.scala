@@ -290,25 +290,28 @@ case class FacetHandler (
             if (!facetFieldName.equals(fieldName)) {
               facetFieldName = fieldName
               facet = createFacet(fieldName).orNull
-              filters = new mutable.ArrayBuffer[Filter]()
-              facet.filters = Some(filters)
-              facetMap.put(fieldName, facet)
+              if (facet != null) {
+                filters = new mutable.ArrayBuffer[Filter]()
+                facet.filters = Some(filters)
+                facetMap.put(fieldName, facet)
+              }
             }
 
-            val filterQuery = fieldName + ':' + expression
-                    
-            try{
-                val filter = new Filter(
-                  Some(FilterQuery.unescapeQueryChars(Util.getRangeName(originalFieldName(fieldName), expression))),
-                  Some(count),
-                  Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
-                  Some(URLEncoder.encode(filterQuery, "UTF-8")),
-                  None)
-                filter.setSelected(fieldName, expression, filterQueries)
-                filters.add(filter)
-            } catch {
-              case ex: ParseException =>
-                Logger.error("Invalid range expression for fieldName: " + fieldName + " and expression: " + expression)
+            if (facet != null) {
+              val filterQuery = fieldName + ':' + expression
+              try{
+                  val filter = new Filter(
+                    Some(FilterQuery.unescapeQueryChars(Util.getRangeName(originalFieldName(fieldName), expression))),
+                    Some(count),
+                    Some(URLEncoder.encode(getCountPath(expression, filterQuery, facet), "UTF-8")),
+                    Some(URLEncoder.encode(filterQuery, "UTF-8")),
+                    None)
+                  filter.setSelected(fieldName, expression, filterQueries)
+                  filters.add(filter)
+              } catch {
+                case ex: ParseException =>
+                  Logger.error("Invalid range expression for fieldName: " + fieldName + " and expression: " + expression)
+              }
             }
           }
         }

@@ -67,6 +67,7 @@ object Global extends WithFilters(new StatsdFilter(), new GzipFilter(), AccessLo
   lazy val SearchMinimumMatch = getConfig("search.minimummatch", "2<-1 3<-2 5<80%")
   lazy val MaxQueryLength = getConfig("request.query.length.max", 1000)
   lazy val MaxFilterQueryLength = getConfig("request.filterquery.length.max", 2000)
+  lazy val SolrErrorRetry = getConfig("solr.error.retry", 3);
 
   // @todo evaluate using dependency injection, for the moment lets be pragmatic
   private var _solrServer: AsyncSolrServer = null

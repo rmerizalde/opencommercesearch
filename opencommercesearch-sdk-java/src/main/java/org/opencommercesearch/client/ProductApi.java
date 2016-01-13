@@ -363,6 +363,12 @@ public class ProductApi {
             setHttpHeaderParameter(restletRequest, "X-Cache-Refresh", "true");
         }
 
+        if (request.getHeaderParams() != null) {
+           for (Map.Entry<String, String> entry : request.getHeaderParams().entrySet()) {
+               setHttpHeaderParameter(restletRequest, entry.getKey(), entry.getValue());
+           }
+        }
+
         if (logger.isDebugEnabled()) {
           logger.debug("Sending API request with base URL: " + restletRequest.getResourceRef());
         }

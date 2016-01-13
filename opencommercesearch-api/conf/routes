@@ -50,7 +50,7 @@ DELETE        /v1/categories                                             org.ope
 GET           /v1/categories/:id/brands                                  org.opencommercesearch.api.controllers.CategoryController.findBrandsByCategoryId(version: Int = 1, id: String, site: String, outlet: Boolean ?= false)
 
 # suggestion routes
-GET           /v1/suggestions                                            org.opencommercesearch.api.controllers.SuggestionController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
+GET           /v1/suggestions                                            org.opencommercesearch.api.controllers.SuggestionController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false, facet: Boolean ?= false)
 
 # query routes
 GET           /v1/queries/suggestions                                    org.opencommercesearch.api.controllers.QueryController.findSuggestions(version: Int = 1, q: String, site: String, preview: Boolean ?= false)
@@ -81,6 +81,7 @@ GET           /api-docs/queries                                          control
 GET           /api-docs/facets                                           controllers.ApiHelpController.getResource(path = "facets")
 GET           /api-docs/rules                                            controllers.ApiHelpController.getResource(path = "rules")
 GET           /api-docs/boosts                                           controllers.ApiHelpController.getResource(path = "boosts")
+GET           /api-docs/suggestions                                      controllers.ApiHelpController.getResource(path = "suggestions")
 
 GET           /images/*file                                              controllers.Assets.at(path="/public/images", file)
 GET           /assets/*file                                              controllers.Assets.at(path="/public", file)

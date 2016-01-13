@@ -28,6 +28,7 @@ public abstract class BaseRequest implements Request {
    */
   private Map<String, String> params = new LinkedHashMap<String, String>();
 
+  private Map<String, String> headerParams = new LinkedHashMap<String, String>();
   /**
    * Sets a param on the request. If a previous value existed, is replaced with the new one.
    *
@@ -71,6 +72,34 @@ public abstract class BaseRequest implements Request {
     } else if (value != null) {
       setParam(name, currentValue + separator + value);
     }
+  }
+
+  /**
+   * Gets the value for the given header parameter name.
+   *
+   * @param name The header parameter name.
+   * @return The value associated to the given header parameter name.
+   */
+  public String getHeaderParam(String name) {
+    return headerParams.get(name);
+  }
+
+  /**
+   * Gets the map containing all header parameters
+   * @return The map containing all header parameters
+   */
+  public Map<String, String> getHeaderParams() {
+      return headerParams;
+  }
+
+  /**
+   * Adds a param value to the header map.
+   *
+   * @param name  The name of the header param
+   * @param value The new value to add
+   */
+  public void setHeaderParam(String name, String value) {
+      headerParams.put(name, value);
   }
 
   /**
