@@ -126,7 +126,7 @@ class ProductControllerSpec extends BaseSpec {
         }
       }
     }
-    
+
     "send at least the limit of product query" in new Products {
       running(FakeApplication()) {
 
@@ -165,20 +165,20 @@ class ProductControllerSpec extends BaseSpec {
         product.title = Some("A Product")
         val sku = new Sku()
         product.skus = Some(Seq(sku))
-        
+
         var productQuery:SolrQuery = null
         val skuResponseEmpty = setupGroupQuery(Seq.empty, "correct")
-        
+
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any) returns Future.successful(Seq(product))
-        
+
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty)
-        
+
         val result = route(FakeRequest(GET, routes.ProductController.search(q = "incorrect", site = "mysite", spellCheck = "yes").url))
-        validateSpellChecking(Json.parse(contentAsString(result.get)), 0, false, null, "correct") 
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 0, false, null, "correct")
       }
     }
-    
+
     "send 200 when spellcheck=no fallback to partial matching" in new Products {
       running(fakeApplication()) {
         val product = new Product()
@@ -186,20 +186,20 @@ class ProductControllerSpec extends BaseSpec {
         product.title = Some("A Product")
         val sku = new Sku()
         product.skus = Some(Seq(sku))
-        
+
         var productQuery:SolrQuery = null
         val skuResponseEmpty = setupGroupQuery(Seq.empty)
         val skuResponseValid = setupGroupQuery(Seq(product))
-        
+
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any, any) returns Future.successful(Seq(product))
-        
+
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
         val result = route(FakeRequest(GET, routes.ProductController.search(q = "term to partial match", site = "mysite", spellCheck = "no").url))
         validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
     }
-    
+
     "send 200 when spellcheck=auto and no collation terms so fallback to partial matching" in new Products {
       running(fakeApplication()) {
         val product = new Product()
@@ -207,21 +207,21 @@ class ProductControllerSpec extends BaseSpec {
         product.title = Some("A Product")
         val sku = new Sku()
         product.skus = Some(Seq(sku))
-        
+
         var productQuery:SolrQuery = null
         val skuResponseEmpty = setupGroupQuery(Seq.empty)
         val skuResponseValid = setupGroupQuery(Seq(product))
-        
+
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any, any) returns Future.successful(Seq(product))
-        
+
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
-        
+
         val result = route(FakeRequest(GET, routes.ProductController.search("term to partial match", "mysite").url))
-        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null) 
+        validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
     }
-    
+
     "send 200 when spellcheck=auto and collation term generate results" in new Products {
       running(fakeApplication()) {
         val product = new Product()
@@ -229,21 +229,21 @@ class ProductControllerSpec extends BaseSpec {
         product.title = Some("A Product")
         val sku = new Sku()
         product.skus = Some(Seq(sku))
-        
+
         var productQuery:SolrQuery = null
         val skuResponseEmpty = setupGroupQuery(Seq.empty, "right term")
         val skuResponseValid = setupGroupQuery(Seq(product))
-        
+
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any, any) returns Future.successful(Seq(product))
-        
+
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseValid)
-        
+
         val result = route(FakeRequest(GET, routes.ProductController.search("wrong term", "mysite").url))
         validateSpellChecking(Json.parse(contentAsString(result.get)), 1, false, "right term")
       }
     }
-    
+
     "send 200 when spellcheck=auto and collation term generate no results so fallback to partial matching" in new Products {
       running(fakeApplication()) {
         val product = new Product()
@@ -251,17 +251,17 @@ class ProductControllerSpec extends BaseSpec {
         product.title = Some("A Product")
         val sku = new Sku()
         product.skus = Some(Seq(sku))
-        
+
         var productQuery:SolrQuery = null
         val skuResponseEmpty = setupGroupQuery(Seq.empty, "right term")
         val skuResponseCollationEmpty = setupGroupQuery(Seq.empty)
         val skuResponseValid = setupGroupQuery(Seq(product))
-        
+
         val storage = storageFactory.getInstance("namespace")
         storage.findProducts(any, any, any, any, any, any) returns Future.successful(Seq(product))
-        
+
         solrServer.query(any[SolrQuery]) returns Future.successful(skuResponseEmpty) thenReturn Future.successful(skuResponseCollationEmpty) thenReturn Future.successful(skuResponseValid)
-        
+
         val result = route(FakeRequest(GET, routes.ProductController.search("wrong term", "mysite").url))
         validateSpellChecking(Json.parse(contentAsString(result.get)), 1, true, null)
       }
@@ -309,7 +309,7 @@ class ProductControllerSpec extends BaseSpec {
         validateDebugMetadata(json)
       }
     }
-    
+
     "send 200 when a product is found when searching by query" in new Products {
       running(fakeApplication()) {
         val product = new Product()
@@ -895,6 +895,47 @@ class ProductControllerSpec extends BaseSpec {
     }
   }
 
+  "send 201 when update country field" in new Products {
+    running(FakeApplication()) {
+      setupUpdate
+      val (expectedId, expectedName) = ("PRD0001", "A Product")
+      val jsonBrand = Json.obj("id" -> "PRD0001")
+      val product = Json.obj(
+            "id" -> (expectedId + "0"),
+            "title" -> expectedName,
+            "brand" -> jsonBrand,
+            "isOem" -> true,
+            "listRank" -> 1,
+            "activationDate" -> "2010-07-31T00:00:00Z",
+            "skus" -> Json.arr(Json.obj(
+              "id" -> (expectedId + "0" + "BLK"),
+              "image" -> "/images/black.jpg",
+              "isRetail" -> true,
+              "isCloseout" -> false,
+              "countries" -> Seq(Json.obj("code" -> "US"))
+            )))
+      val json = Json.obj(
+        "feedTimestamp" -> 1001,
+        "products" -> Json.arr(product)
+      )
+
+      val storage = storageFactory.getInstance("")
+
+      storage.updateProductFields(any) returns Future.successful(null)
+      val products = Json.fromJson[Product](product).get :: List.empty[Product]
+      storage.findRawProducts(any) returns Future.successful(products)
+
+      val url = routes.ProductController.bulkUpdateFields().url
+      val fakeRequest = FakeRequest(PUT, url)
+        .withHeaders((CONTENT_TYPE, "application/json"))
+        .withJsonBody(json)
+
+      val result = route(fakeRequest)
+      validateUpdateResult(result.get, CREATED)
+    }
+  }
+
+
   /**
    * Helper method to validate the debug section is available in the metadata
    * @param json
@@ -968,7 +1009,7 @@ class ProductControllerSpec extends BaseSpec {
                                         isOutlet: Boolean, ruleFilter: String = null, escapedCategoryFilter: String) : Unit = {
     var expected = 3
     var isRuleCategory = false
-    
+
     productQuery.get("pageType") must beEqualTo("category")
 
     if (ruleFilter == null) {
@@ -991,11 +1032,11 @@ class ProductControllerSpec extends BaseSpec {
       productQuery.getBool("rulePage") must beEqualTo(true)
       productQuery.get("q") must beEqualTo("*:*")
     }
-    
+
     if (categoryId != null) {
         productQuery.get("categoryFilter") must beEqualTo(escapedCategoryFilter)
     }
-                
+
     productQuery.getBool("rule") must beEqualTo(true)
     productQuery.get("siteId") must beEqualTo(site)
     productQuery.getFilterQueries.size must beEqualTo(expected)
@@ -1018,7 +1059,7 @@ class ProductControllerSpec extends BaseSpec {
     query.get("group.field") must beEqualTo("productId")
     query.getBool("group.facet") must beEqualTo(false)
     if (expectedGroupSorting) {
-      query.get("group.sort") must beEqualTo("isCloseout asc, salePriceUSmysite asc, sort asc, score desc")
+      query.get("group.sort") must beEqualTo("isCloseout asc, discountPercentUSmysite desc, sort asc, score desc")
     } else {
       query.get("group.sort") must beNull
     }
@@ -1037,10 +1078,10 @@ class ProductControllerSpec extends BaseSpec {
   }
 
   /**
-   * Helper method to validate the spellchecking json within the metadata response. If any parameter is null then it won't be reviewed against the json 
+   * Helper method to validate the spellchecking json within the metadata response. If any parameter is null then it won't be reviewed against the json
    */
   private def validateSpellChecking(json: JsValue, numFound: Int, partialMatch: Boolean, correctedTerm: String, collationTerm: String = null): Unit = {
-   
+
     (json \ "metadata" \ "found" ).as[Int]  must beEqualTo(numFound)
     if  (correctedTerm != null) {
       (json \ "metadata" \ "spellCheck" \ "correctedTerms").as[String]  must beEqualTo(correctedTerm)
@@ -1049,12 +1090,12 @@ class ProductControllerSpec extends BaseSpec {
       val spellCheck = (json \ "metadata" \ "spellCheck" ).as[JsObject]
       (spellCheck \ "collation").as[String] must beEqualTo(collationTerm)
     }
-    val wasPartialMatch =(json \ "metadata" \ "partialMatch").asOpt[Boolean] 
+    val wasPartialMatch =(json \ "metadata" \ "partialMatch").asOpt[Boolean]
     if(wasPartialMatch.isDefined || partialMatch) {
         wasPartialMatch.get must beEqualTo(partialMatch)
     }
   }
-  
+
   /**
    * Helper method to mock the response for findById calls
    * @return a query response mock
@@ -1148,14 +1189,14 @@ class ProductControllerSpec extends BaseSpec {
     }
 
     if(collectedTerms != null) {
-      val spellCheckResponse = mock[SpellCheckResponse] 
+      val spellCheckResponse = mock[SpellCheckResponse]
       val suggestion = mock[SpellCheckResponse.Suggestion]
       spellCheckResponse.getSuggestions() returns List(suggestion)
       spellCheckResponse.getCollatedResult returns collectedTerms
       queryResponse.getSpellCheckResponse returns spellCheckResponse
     }
-    
-    
+
+
     val groupSummary = mock[NamedList[Object]]
     summary.get("groups_summary").asInstanceOf[NamedList[Object]] returns groupSummary
 
@@ -1166,7 +1207,7 @@ class ProductControllerSpec extends BaseSpec {
     groupResponse.getValues returns commandValues
     queryResponse.getGroupResponse returns groupResponse
     queryResponse.getResponse returns summary
-    
+
     queryResponse
   }
 

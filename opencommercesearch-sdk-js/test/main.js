@@ -19,7 +19,8 @@ beforeEach(function() {
     host: 'api.backcountry.com',
     isServer: true,
     preview: false,
-    site: 'bcs',
+    testHost: '',
+    traceIdHeader: 'TRACE-ID-HEADER-KEY',
     version: 1
   };
 
@@ -58,7 +59,8 @@ describe('helpers.template', function() {
 describe('helpers.buildOptions', function() {
   var optDefault = {
       a: 'foo',
-      b: 'foo'
+      b: 'foo',
+      preview: false
     },
     optCustom = {
       a: 'bar',
@@ -82,10 +84,43 @@ describe('helpers.buildOptions', function() {
       a: 'foo'
     });
     var expected = {
-      a: 'foo'
+      a: 'foo',
+      preview: false
     };
 
     actual.should.eql(expected);
+  });
+
+  it('should add settings.preview to the params', function() {
+    productApi.helpers.buildOptions({}, {}).should.eql({ preview: false });
+
+    productApi.config({ preview: true });
+    productApi.helpers.buildOptions({}, {}).should.eql({ preview: true });
+  });
+});
+
+describe('helpers.buildHelpers', function() {
+  var contextService = require('request-context');
+  var contextServiceStub;
+
+  beforeEach(function() {
+    contextServiceStub = sinon.stub(contextService, 'get', function(param) {
+      return param === 'request:traceId' ? 'aTraceId' : undefined;
+    });
+  });
+
+  afterEach(function() {
+    contextServiceStub.restore();
+  });
+
+  it('should return the traceId', function() {
+    var headers = productApi.helpers.buildHeaders();
+    var settings = productApi.getConfig();
+
+    headers[settings.traceIdHeader].should.equal('aTraceId');
+    contextServiceStub.should.be.called();
+
+    contextServiceStub.restore();
   });
 });
 
@@ -105,21 +140,52 @@ describe('helpers.buildRequest', function() {
         // options
       ),
       expected = {
+        headers: {},
         method: 'GET',
         url: 'http://api.backcountry.com/v1/testEndpoint/foo',
         params: {
           site: 'bcs',
-          fields: 'id,title,brand'
+          fields: 'id,title,brand',
+          preview: false
         }
       };
 
     actual.should.eql(expected);
+  });
+
+  it('should use the testHost when requestParams.test is provided', function() {
+    var testHost = 'www.aTestHost.com';
+    var host = productApi.getConfig().host;
+
+    productApi.config({
+      testEnabled: true,
+      testHost: testHost
+    });
+
+    var actual = productApi.helpers.buildRequest({ tpl: '/test' }, {
+      site: 'bcs',
+      test: 'api'
+    });
+
+    actual.url.should.match(new RegExp(testHost));
+    actual.url.should.not.match(new RegExp(host));
+  });
+
+  it('should use the regular host when requestParams.test is provided but testHost is not', function() {
+    var host = productApi.getConfig().host;
+    var actual = productApi.helpers.buildRequest({ tpl: '/test' }, {
+      site: 'bcs',
+      test: 'api'
+    });
+
+    actual.url.should.match(new RegExp(host));
   });
 });
 
 describe('helpers.apiCall', function() {
   it('should return a promise object', function() {
     var apiCall = productApi.helpers.apiCall({
+      headers: {},
       method: 'GET',
       url: '//api.backcountry.com/v1/testEndpoint/foo',
       params: {
@@ -142,7 +208,7 @@ describe('getConfig', function() {
     var config = productApi.getConfig();
 
     config.should.be.an.Object();
-    config.should.have.keys(['debug', 'host', 'isServer', 'preview', 'site', 'version']);
+    config.should.have.keys(['debug', 'host', 'isServer', 'preview', 'testHost', 'testEnabled', 'version', 'traceIdHeader']);
   });
 });
 
@@ -150,11 +216,13 @@ describe('config', function() {
   it('should change the config settings', function() {
     var newSettings = {
       debug: false,
+      host: 'a host',
       isServer: false,
       preview: true,
-      version: 44,
-      host: 'a host',
-      site: 'a site'
+      testEnabled: false,
+      testHost: 'a test host',
+      traceIdHeader: 'a-new-trace-id-header',
+      version: 44
     };
 
     productApi.config(newSettings);

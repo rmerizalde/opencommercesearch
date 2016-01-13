@@ -45,7 +45,7 @@ import scala.concurrent.Future
  *
  * @author rmerizalde
  */
-class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling {
+class BaseController extends Controller with ContentPreview with FieldList with FacetQuery with Pagination with ErrorHandling with Retrying {
 
   private val timeZoneCode = "GMT"
   private val suggester = new CatalogSuggester[Element]
@@ -80,7 +80,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
     case None => result
   }
 
-  protected def findSuggestionsFor(typeName: String, query: String, site: String)(implicit context: Context): Future[Result] = {
+  protected def findSuggestionsFor(typeName: String, query: String, site: String, facets: Boolean = false)(implicit context: Context): Future[Result] = {
     val startTime = System.currentTimeMillis()
 
     if (query == null || query.length < 2) {
@@ -91,7 +91,7 @@ class BaseController extends Controller with ContentPreview with FieldList with 
       val collector = new MultiSourceCollector[Element]
       collector.add(typeName, new SimpleCollector[Element])
 
-      val future = suggester.search(query, site, collector, solrServer) map { c =>
+      val future = suggester.search(query, site, collector, solrServer, facets) map { c =>
        Ok(Json.obj(
           "metadata" -> Json.obj(
              "found" -> c.size(),
