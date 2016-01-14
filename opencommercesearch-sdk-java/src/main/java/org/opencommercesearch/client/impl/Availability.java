@@ -2,11 +2,14 @@ package org.opencommercesearch.client.impl;
 
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Represents a sku's availability.
  *
  * @author rmerizalde
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Availability {
 
   public enum Status {

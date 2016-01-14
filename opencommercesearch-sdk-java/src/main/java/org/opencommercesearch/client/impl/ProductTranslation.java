@@ -1,5 +1,8 @@
 package org.opencommercesearch.client.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ProductTranslation {
     private String description;
     private String bottomLine;
