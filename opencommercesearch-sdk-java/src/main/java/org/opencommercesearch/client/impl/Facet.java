@@ -20,7 +20,9 @@ package org.opencommercesearch.client.impl;
 */
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opencommercesearch.FilterQuery;
 
 import java.util.ArrayList;
@@ -33,10 +35,12 @@ import java.util.Map;
  * for each possible value. A filter has the count of products that match its
  * filter query.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Facet {
     public static final Integer DEFAULT_MIN_BUCKETS = 2;
 
     private String name;
+    private String fieldName;
     private List<Filter> filters;
     private Map<String, String> metadata;
     private Integer minBuckets = DEFAULT_MIN_BUCKETS;
@@ -62,6 +66,22 @@ public class Facet {
      */
     public void setName(String name) {
         this.name = name;
+    }
+
+    /**
+     * @return the field name of the facet
+     */
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    /**
+     * Set the field name for this facet
+     *
+     * @param name The facet display name
+     */
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
     }
 
     /**

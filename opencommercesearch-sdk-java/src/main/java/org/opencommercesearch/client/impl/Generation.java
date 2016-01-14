@@ -21,6 +21,8 @@ package org.opencommercesearch.client.impl;
 
 import org.opencommercesearch.client.Product;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /**
  * Generation implementation.
  * Represents the generation of a product. 
@@ -28,7 +30,7 @@ import org.opencommercesearch.client.Product;
  * All other generations point to the master product.
  * @author nkumar
  */
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Generation {
 	private int number;
 	private Product master;

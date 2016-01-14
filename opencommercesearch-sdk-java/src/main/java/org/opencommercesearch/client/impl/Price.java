@@ -1,5 +1,7 @@
 package org.opencommercesearch.client.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -18,7 +20,7 @@ package org.opencommercesearch.client.impl;
 * specific language governing permissions and limitations
 * under the License.
 */
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Price {
     private Double listPrice;
     private Double salePrice;

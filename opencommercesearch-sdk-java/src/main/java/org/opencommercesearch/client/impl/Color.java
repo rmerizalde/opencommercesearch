@@ -1,5 +1,7 @@
 package org.opencommercesearch.client.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 /*
 * Licensed to OpenCommerceSearch under one
 * or more contributor license agreements. See the NOTICE file
@@ -24,6 +26,7 @@ package org.opencommercesearch.client.impl;
  *
  * @author jmendez
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Color {
   private String name;
   private String family;
