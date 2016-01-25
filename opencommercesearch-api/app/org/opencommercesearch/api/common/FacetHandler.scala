@@ -92,7 +92,6 @@ case class FacetHandler (
       }).map(facet => {
         // hide fields need internally only
         facet.id = None
-        facet.fieldName = None
         facet.isHardened = None
         facet.isByCountry = None
         facet.isBySite = None
