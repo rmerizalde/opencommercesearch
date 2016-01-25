@@ -1,6 +1,8 @@
 package org.opencommercesearch.client.impl;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.commons.lang.StringUtils;
 import org.opencommercesearch.client.ProductSummary;
 
@@ -36,6 +38,7 @@ import java.util.Map;
  * @author jmendez
  * @author rmerizalde
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DefaultProductSummary implements ProductSummary {
   /**
    * The group summary data for a given product, as a Json node.
