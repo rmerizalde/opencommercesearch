@@ -48,6 +48,9 @@ object CategoryService {
   def emptyTaxonomy = Map[String, Category]()
 }
 
+object TaxonomyLock {
+}
+
 /**
  * Utility class that gives category / related data and operations.
  * @param server The Solr server used to fetch data from.
@@ -64,7 +67,6 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   private val StatsdBuildBrandTaxonomyGraphMetric = "internal.service.buildBrandTaxonomyGraph"
   private val StatsdBuildProductTaxonomyGraphMetric = "internal.service.buildProductTaxonomyGraph"
   private val StatsdPruneTaxonomyGraphMetric = "internal.service.pruneTaxonomyGraph"
-  private val lock = new Object
   /**
    * Generate the category tokens to create a hierarchical facet in Solr. Each
    * token is formatted such that encodes the depth information for each node
@@ -464,7 +466,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
       Logger.debug("Using cached taxonomy graph")
       cachedTaxonomy.get
     } else {
-      lock.synchronized {
+      TaxonomyLock.synchronized {
         val latestCachedTaxonomy = Cache.get(taxonomyCacheKey).asInstanceOf[Option[Future[Taxonomy]]]
         if (latestCachedTaxonomy.isDefined) {
           Logger.debug("Using cached taxonomy graph")
