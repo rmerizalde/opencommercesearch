@@ -34,7 +34,13 @@ import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import reactivemongo.core.commands.LastError
 
-import scala.concurrent.Future
+import scala.annotation.tailrec
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import play.api.cache.{EhCachePlugin}
+import play.api.Play.current
+
+import scala.util.{Success, Failure}
 
 @RunWith(classOf[JUnitRunner])
 class CategoryServiceSpec extends Specification with Mockito {
@@ -62,72 +68,85 @@ class CategoryServiceSpec extends Specification with Mockito {
   
   private def setup() : Unit = {
     // Root
-    mockCategory(catRoot, "catRoot", "root", categoryCatalogs, null, isRuleBased = false)
+    mockCategory(catRoot, "catRoot", "root", categoryCatalogs, null,
+      newSet(catRulesBased, catShoesFootwear, catMensClothing, catSnowshoe), isRuleBased = false)
     // Rules Based
-    mockCategory(catRulesBased, "catRulesBased", "Rules Based", categoryCatalogs, newSet(catRoot), isRuleBased = true)
+    mockCategory(catRulesBased, "catRulesBased", "Rules Based", categoryCatalogs, newSet(catRoot), null, isRuleBased = true)
     // Shoes & Footwear
-    mockCategory(catShoesFootwear, "outdoorCat4000003", "Shoes & Footwear", categoryCatalogs, newSet(catRoot), isRuleBased = false)
+    mockCategory(catShoesFootwear, "outdoorCat4000003", "Shoes & Footwear", categoryCatalogs, newSet(catRoot),
+      newSet(catMensShoesBoots), isRuleBased = false)
     // Men's Shoes & Boots
-    mockCategory(catMensShoesBoots, "outdoorCat4100004", "Men's Shoes & Boots", categoryCatalogs, newSet(catShoesFootwear), isRuleBased = false)
+    mockCategory(catMensShoesBoots, "outdoorCat4100004", "Men's Shoes & Boots", categoryCatalogs, newSet(catShoesFootwear),
+      newSet(catMensRainBootsShoes), isRuleBased = false)
     // Men's Clothing
-    mockCategory(catMensClothing, "outdoorCat100003", "Men's Clothing", categoryCatalogs, newSet(catRoot), isRuleBased = false)
+    mockCategory(catMensClothing, "outdoorCat100003", "Men's Clothing", categoryCatalogs, newSet(catRoot), newSet(catMensShoesFootwear), isRuleBased = false)
     // Men's Shoes & Footwear
-    mockCategory(catMensShoesFootwear, "outdoorCat11000219", "Men's Shoes & Footwear", categoryCatalogs, newSet(catMensClothing), isRuleBased = false)
+    mockCategory(catMensShoesFootwear, "outdoorCat11000219", "Men's Shoes & Footwear", categoryCatalogs, newSet(catMensClothing),
+      newSet(catMensRainBootsShoes), isRuleBased = false)
     // Men's Rain Boots & Shoes
-    mockCategory(catMensRainBootsShoes, "outdoorCat41100024", "Men's Rain Boots & Shoes", categoryCatalogs, newSet(catMensShoesBoots, catMensShoesFootwear), isRuleBased = false)
+    mockCategory(catMensRainBootsShoes, "outdoorCat41100024", "Men's Rain Boots & Shoes", categoryCatalogs,
+      newSet(catMensShoesBoots, catMensShoesFootwear), newSet(catMensRainBootsShoes, catMensRainBootsShoes), isRuleBased = false)
     // Men's Rain Shoes
-    mockCategory(catMensRainShoes, "outdoorCat41110026", "Men's Rain Shoes", categoryCatalogs, newSet(catMensRainBootsShoes), isRuleBased = false)
+    mockCategory(catMensRainShoes, "outdoorCat41110026", "Men's Rain Shoes", categoryCatalogs, newSet(catMensRainBootsShoes), null, isRuleBased = false)
     // Men's Rain Boots
-    mockCategory(catMensRainBoots, "outdoorCat41110025", "Men's Rain Boots", categoryCatalogs, newSet(catMensRainBootsShoes), isRuleBased = false)
+    mockCategory(catMensRainBoots, "outdoorCat41110025", "Men's Rain Boots", categoryCatalogs, newSet(catMensRainBootsShoes), null, isRuleBased = false)
     // Snowshoe
-    mockCategory(catSnowshoe, "outdoorCat11000003", "Snowshoe", categoryCatalogs, newSet(catRoot), isRuleBased = false)
+    mockCategory(catSnowshoe, "outdoorCat11000003", "Snowshoe", categoryCatalogs, newSet(catRoot), newSet(catSnowshoeAccessories), isRuleBased = false)
     // Snowshoe Accessories
-    mockCategory(catSnowshoeAccessories, "outdoorCat111000028", "Snowshoe Accessories", categoryCatalogs, newSet(catSnowshoe), isRuleBased = false)
+    mockCategory(catSnowshoeAccessories, "outdoorCat111000028", "Snowshoe Accessories", categoryCatalogs, newSet(catSnowshoe),
+      newSet(catSnowshoeFootwear), isRuleBased = false)
     // Snowshoe Footwear
-    mockCategory(catSnowshoeFootwear, "outdoorCat111100030", "Snowshoe Footwear", categoryCatalogs, newSet(catSnowshoeAccessories), isRuleBased = false)
+    mockCategory(catSnowshoeFootwear, "outdoorCat111100030", "Snowshoe Footwear", categoryCatalogs, newSet(catSnowshoeAccessories),
+      newSet(catSnowshoeBoots), isRuleBased = false)
     // Snowshoe boots
-    mockCategory(catSnowshoeBoots, "outdoorCat111110031", "Snowshoe Boots", categoryCatalogs, newSet(catSnowshoeFootwear), isRuleBased = false)
+    mockCategory(catSnowshoeBoots, "outdoorCat111110031", "Snowshoe Boots", categoryCatalogs, newSet(catSnowshoeFootwear), null, isRuleBased = false)
 
-    mockCategory(rootOtherCategory, "rootOtherCategory", "Root Other Category", Seq(otherCatalog), null, isRuleBased = false)
-    mockCategory(otherCategory, "otherCategory", "Other Category", Seq(otherCatalog), newSet(rootOtherCategory), isRuleBased = false)
+    mockCategory(rootOtherCategory, "rootOtherCategory", "Root Other Category", Seq(otherCatalog), null, newSet(otherCategory), isRuleBased = false)
+    mockCategory(otherCategory, "otherCategory", "Other Category", Seq(otherCatalog), newSet(rootOtherCategory), null, isRuleBased = false)
 
   }
 
-  private def setupService() : CategoryService = {
+  val categoryMap = Map(
+    "catRoot" -> catRoot,
+    "catRulesBased" -> catRulesBased,
+    "outdoorCat4000003" -> catShoesFootwear,
+    "outdoorCat4100004" -> catMensShoesBoots,
+    "outdoorCat100003" -> catMensClothing,
+    "outdoorCat11000219" -> catMensShoesFootwear,
+    "outdoorCat41100024" -> catMensRainBootsShoes,
+    "outdoorCat41110026" -> catMensRainShoes,
+    "outdoorCat41110025" -> catMensRainBoots,
+    "outdoorCat11000003" -> catSnowshoe,
+    "outdoorCat111000028" -> catSnowshoeAccessories,
+    "outdoorCat111100030" -> catSnowshoeFootwear,
+    "outdoorCat111110031" -> catSnowshoeBoots,
+    "rootOtherCategory" -> rootOtherCategory,
+    "otherCategory" -> otherCategory)
+
+  private def setupService() : (CategoryService, MongoStorage) = {
     val server = mock[AsyncSolrServer]
     val storage = mock[MongoStorage]
     val storageFactory = mock[MongoStorageFactory]
     val service = spy(new CategoryService(server, storageFactory))
 
-    val categoryMap = Map(
-      "catRoot" -> catRoot,
-      "catRulesBased" -> catRulesBased,
-      "outdoorCat4000003" -> catShoesFootwear,
-      "outdoorCat4100004" -> catMensShoesBoots,
-      "outdoorCat100003" -> catMensClothing,
-      "outdoorCat11000219" -> catMensShoesFootwear,
-      "outdoorCat41100024" -> catMensRainBootsShoes,
-      "outdoorCat41110026" -> catMensRainShoes,
-      "outdoorCat41110025" -> catMensRainBoots,
-      "outdoorCat11000003" -> catSnowshoe,
-      "outdoorCat111000028" -> catSnowshoeAccessories,
-      "outdoorCat111100030" -> catSnowshoeFootwear,
-      "outdoorCat111110031" -> catSnowshoeBoots,
-      "rootOtherCategory" -> rootOtherCategory,
-      "otherCategory" -> otherCategory)
-    
     taxonomy = categoryMap
     storage.findCategory(any[String], any[Seq[String]]) answers { id =>
       Future.successful(categoryMap.get(id.asInstanceOf[String]).get)
     }
 
+    storage.findAllCategories(any[Seq[String]]) answers { fields =>
+      Future.successful({
+        categoryMap.values
+      })
+    }
+
     doReturn(storage).when(service).withNamespace(any[StorageFactory[LastError]])(any[Context])
 
-    service
+    (service, storage)
   }
 
   private def mockCategory(category: Category, categoryId: String, displayName: String, categoryCatalogs: Seq[String],
-    parentCategories: Seq[Category] , isRuleBased: Boolean) : Unit = {
+    parentCategories: Seq[Category], childCategories: Seq[Category], isRuleBased: Boolean) : Unit = {
     category.getId returns categoryId
     category.id returns Some(categoryId)
     category.name returns Some(displayName)
@@ -138,6 +157,11 @@ class CategoryServiceSpec extends Specification with Mockito {
     } else {
       category.parentCategories returns None
     }
+    if (childCategories != null) {
+      category.childCategories returns Some(childCategories)
+    } else {
+      category.childCategories returns None
+    }
     category.isRuleBased returns Some(isRuleBased)
   }
 
@@ -145,12 +169,14 @@ class CategoryServiceSpec extends Specification with Mockito {
      Seq(items:_*)
   }
 
+  sequential
+
   "CategoryService" should {
     setup()
 
     "bottom up taxonomy with assignment in both categories" in {
       running(FakeApplication()) {
-        val categoryService = setupService()
+        val categoryService = setupService()._1
         implicit val context = Context(true, lang)
         val output = categoryService.getBottomUpCategoryIds(taxonomy, catalogOutdoor, Set("outdoorCat41110025", "outdoorCat111110031", "catRulesBased"))
         output must contain("outdoorCat41110025")
@@ -175,7 +201,7 @@ class CategoryServiceSpec extends Specification with Mockito {
     
     "bottom up taxonomy with assignment in one category" in {
       running(FakeApplication()) {
-        val categoryService = setupService()
+        val categoryService = setupService()._1
         implicit val context = Context(true, lang)
         val output = categoryService.getBottomUpCategoryIds(taxonomy, catalogOutdoor, Set("outdoorCat41110025"))
         output must contain("outdoorCat41110025")
@@ -200,7 +226,7 @@ class CategoryServiceSpec extends Specification with Mockito {
       running(FakeApplication()) {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
-        val categoryService = setupService()
+        val categoryService = setupService()._1
         implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
@@ -248,7 +274,7 @@ class CategoryServiceSpec extends Specification with Mockito {
       running(FakeApplication()) {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
-        val categoryService = setupService()
+        val categoryService = setupService()._1
         implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
@@ -323,7 +349,7 @@ class CategoryServiceSpec extends Specification with Mockito {
       running(FakeApplication()) {
         val product = mock[Product]
         val doc = mock[SolrInputDocument]
-        val categoryService = setupService()
+        val categoryService = setupService()._1
         implicit val context = Context(true, lang)
 
         product.id returns Some("PRD0001")
@@ -354,6 +380,91 @@ class CategoryServiceSpec extends Specification with Mockito {
         there was no(doc).addField("ancestorCategoryId", "otherCategory")
         there was atMost(5)(doc).addField(Matchers.eq("ancestorCategoryId"), any[String])
       }
+    }
+
+    "should get the taxonomy" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled"
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+        val (categoryService, storage) = setupService()
+        implicit val context = Context(true, lang)
+        val futureTaxonomy = validateTaxonomy(categoryService, storage)
+        Await.result(futureTaxonomy, Duration.Inf)
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+      }
+    }
+
+    "should get the taxonomy when concurrent gets calling mongo only once" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled"
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+
+        implicit val context = Context(true, lang)
+        val (categoryService, storage) = setupService()
+
+        val futureTaxonomyFirst = categoryService.getTaxonomy(storage, false) map { taxonomy =>
+          categoryMap.keys.foreach(key => {
+            taxonomy(key) must beEqualTo(categoryMap(key))
+          })
+          //plus two to include the 2 root catalog nodes this methods adds (outdoorCatalog & otherCatalog)
+          taxonomy must have size (categoryMap.size + 2)
+        }
+        val futureTaxonomySecond = categoryService.getTaxonomy(storage, false) map { taxonomy =>
+          categoryMap.keys.foreach(key => {
+            taxonomy(key) must beEqualTo(categoryMap(key))
+          })
+          //plus two to include the 2 root catalog nodes this methods adds (outdoorCatalog & otherCatalog)
+          taxonomy must have size (categoryMap.size + 2)
+        }
+
+        awaitSuccess(Seq(futureTaxonomyFirst, futureTaxonomySecond))
+
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+
+      }
+    }
+  }
+
+
+  def validateTaxonomy(categoryService: CategoryService, storage: MongoStorage) = {
+    categoryService.getTaxonomy(storage, false) map { taxonomy =>
+      categoryMap.keys.foreach(key => {
+        taxonomy(key) must beEqualTo(categoryMap(key))
+      })
+      //plus two to include the 2 root catalog nodes this methods adds (outdoorCatalog & otherCatalog)
+      taxonomy must have size (categoryMap.size + 2)
+    }
+  }
+
+  def cleanCache: Unit = {
+    for (p <- current.plugin[EhCachePlugin]) {
+      p.manager.clearAll
+    }
+  }
+
+  @tailrec final def awaitSuccess[A](fs: Seq[Future[A]], done: Seq[A] = Seq()):
+  Either[Throwable, Seq[A]] = {
+    val first = Future.firstCompletedOf(fs)
+    Await.ready(first, Duration.Inf).value match {
+      case None => awaitSuccess(fs, done)  // Shouldn't happen!
+      case Some(Failure(e)) => Left(e)
+      case Some(Success(_)) =>
+        val (complete, running) = fs.partition(_.isCompleted)
+        val answers = complete.flatMap(_.value)
+        answers.find(_.isFailure) match {
+          case Some(Failure(e)) => Left(e)
+          case _ =>
+            if (running.length > 0) awaitSuccess(running, answers.map(_.get) ++: done)
+            else Right( answers.map(_.get) ++: done )
+        }
     }
   }
 }
