@@ -64,7 +64,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   private val StatsdBuildBrandTaxonomyGraphMetric = "internal.service.buildBrandTaxonomyGraph"
   private val StatsdBuildProductTaxonomyGraphMetric = "internal.service.buildProductTaxonomyGraph"
   private val StatsdPruneTaxonomyGraphMetric = "internal.service.pruneTaxonomyGraph"
-
+  private val lock = new Object
   /**
    * Generate the category tokens to create a hierarchical facet in Solr. Each
    * token is formatted such that encodes the depth information for each node
@@ -459,22 +459,32 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
   def getTaxonomy(storage : Storage[LastError], preview : Boolean = false) : Future[Taxonomy] =  {
     //If returning complete taxonomy, see if we already have it on cache.
     val taxonomyCacheKey = TaxonomyCacheKey + getPreviewKeyPrefix(preview)
-    val cachedTaxonomy = Cache.get(taxonomyCacheKey)
-    if(cachedTaxonomy.isEmpty) {
-      Logger.debug("Generating taxonomy graph")
-      //Go to storage and get all existing categories. Then calculate taxonomy from them.
-      val startTime = System.currentTimeMillis()
-      val taxonomyFuture = buildTaxonomyGraph(storage.findAllCategories(Seq("*")))
-      Statsd.timing(StatsdBuildTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
-      taxonomyFuture map { taxonomy =>
-        val markedTaxonomy = markRootCategories(taxonomy, preview)
-        Cache.set(taxonomyCacheKey, markedTaxonomy, CategoryCacheTtl)
-        markedTaxonomy.toMap
-      }
-    }
-    else {
+    val cachedTaxonomy = Cache.get(taxonomyCacheKey).asInstanceOf[Option[Future[Taxonomy]]]
+    if(cachedTaxonomy.isDefined) {
       Logger.debug("Using cached taxonomy graph")
-      Future(cachedTaxonomy.get.asInstanceOf[Taxonomy])
+      cachedTaxonomy.get
+    } else {
+      lock.synchronized {
+        val latestCachedTaxonomy = Cache.get(taxonomyCacheKey).asInstanceOf[Option[Future[Taxonomy]]]
+        if (latestCachedTaxonomy.isDefined) {
+          Logger.debug("Using cached taxonomy graph")
+          latestCachedTaxonomy.get
+        }
+        else {
+          Logger.debug("Generating taxonomy graph")
+          //Go to storage and get all existing categories. Then calculate taxonomy from them.
+          val startTime = System.currentTimeMillis()
+          val taxonomyFuture = buildTaxonomyGraph(storage.findAllCategories(Seq("*")))
+
+          val result = taxonomyFuture map { taxonomy =>
+            val markedTaxonomy = markRootCategories(taxonomy, preview)
+            Statsd.timing(StatsdBuildTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
+            markedTaxonomy.toMap
+          }
+          Cache.set(taxonomyCacheKey, result, CategoryCacheTtl)
+          result
+        }
+      }
     }
   }
 
