@@ -22,6 +22,7 @@ package org.opencommercesearch.api.controllers
 import javax.ws.rs.{PathParam, QueryParam}
 
 import com.wordnik.swagger.annotations._
+import org.apache.commons.lang3.StringUtils
 import org.opencommercesearch.api.Global._
 import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.common.FacetQuery
@@ -59,20 +60,34 @@ object BrandController extends BaseController with FacetQuery {
 
     val timer = new Timer()
     val storage = withNamespace(storageFactory)
-    val storageFuture = storage.findBrand(id, fieldList(allowStar = true)).map( brand => {
-      if (brand != null) {
-        Logger.debug("Found brand " + id)
-        Ok(Json.obj(
-          "metadata" -> Json.obj("time" -> timer.stop()),
-          "brand" -> Json.toJson(brand)))
-      } else {
-        Logger.debug("Brand " + id + " not found")
-        NotFound(Json.obj(
-          "metadata" -> Json.obj("time" -> timer.stop()),
-          "message" -> s"Cannot find brand with id [$id]"
-        ))
+
+    val storageFuture = version match {
+      case 1 => {
+        storage.findBrand(id, fieldList(allowStar = true)).map(brand => {
+          if (brand != null) {
+            Logger.debug("Found brand " + id)
+            Ok(Json.obj(
+              "metadata" -> Json.obj("time" -> timer.stop()),
+              "brand" -> Json.toJson(brand)))
+          } else {
+            Logger.debug("Brand " + id + " not found")
+            NotFound(Json.obj(
+              "metadata" -> Json.obj("time" -> timer.stop()),
+              "message" -> s"Cannot find brand with id [$id]"
+            ))
+          }
+        })
       }
-    })
+      case _ =>  {
+        storage.findBrands(StringUtils.split(id, ",").take(MaxBrandsLimit), fieldList(allowStar = true)).map( brandList => {
+          Ok(Json.obj(
+            "metadata" -> Json.obj(
+              "time" -> timer.stop()),
+            "brands" -> Json.toJson(brandList))
+          )
+        })
+      }
+    }
 
     withErrorHandling(storageFuture , s"Cannot retrieve brand with id [$id]")
   }
@@ -100,7 +115,7 @@ object BrandController extends BaseController with FacetQuery {
           val suggestionFuture = IndexableElement.addToIndex(Seq(brand), fetchCount = true)
           val futureList = List[Future[Any]](storageFuture, suggestionFuture)
           val future: Future[Result] = Future.sequence(futureList) map { result =>
-            Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(id), request)))
+            Created.withHeaders((LOCATION, absoluteURL(routes.BrandController.findById(version = 1, id), request)))
           }
 
           withErrorHandling(future, s"Cannot store brand with id [$id]")
@@ -183,7 +198,8 @@ object BrandController extends BaseController with FacetQuery {
 
   /**
    * Helper method to check if any of the brand is missing a field.
-   * @param brands is the list of brands to be validated
+    *
+    * @param brands is the list of brands to be validated
    * @return true of any of the brands is missing a single field
    */
   private def hasMissingFields(brands: List[Brand]) : Boolean = {
