@@ -52,6 +52,8 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 
   private var _filterQueries: Array[FilterQuery] = null
   private val closeoutSites = Play.current.configuration.getString("sites.closeout").getOrElse("").split(",").toSet
+  private val excludeBackorderSites = Play.current.configuration.getString("sites.excludeBackorder").getOrElse("").split(",").toSet
+  private val excludeToosSites = Play.current.configuration.getString("sites.excludeToos").getOrElse("").split(",").toSet
   private val groupingFilters = Play.current.configuration.getConfig("search.group.collapse.fq").getOrElse(Configuration.empty)
   protected val metadataFields = if (request != null) StringUtils.split(request.getQueryString("metadata").getOrElse(""), ',') else Array.empty[String]
 
@@ -62,6 +64,14 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
 
     if (site == null || closeoutSites.contains(site)) {
       addFilterQuery("isRetail:true")
+    }
+
+    if (excludeBackorderSites.contains(site)) {
+      addFilterQuery(s"allowBackorder${context.lang.country}:false")
+    }
+
+    if (excludeToosSites.contains(site)) {
+      addFilterQuery("isToos:false")
     }
 
     // product params
