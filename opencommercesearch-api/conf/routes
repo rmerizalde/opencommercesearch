@@ -12,6 +12,7 @@ GET           /v1/brands/categories                                      org.ope
 # this endpoint is been deprecated
 GET           /v1/brand/categories                                       org.opencommercesearch.api.controllers.BrandController.findBrandCategories(version: Int = 1, site: String)
 GET           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 1, id: String)
+GET           /v2/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.findById(version: Int = 2, id: String)
 GET           /v1/brands/:id/categories                                  org.opencommercesearch.api.controllers.BrandController.findBrandCategoriesById(version: Int = 1, id: String, site: String)
 GET           /v1/brands                                                 org.opencommercesearch.api.controllers.BrandController.findAll(version: Int = 1, site: String)
 PUT           /v1/brands/:id                                             org.opencommercesearch.api.controllers.BrandController.createOrUpdate(version: Int = 1, id: String)

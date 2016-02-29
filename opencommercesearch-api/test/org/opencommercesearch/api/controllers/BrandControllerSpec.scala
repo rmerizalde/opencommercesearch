@@ -65,7 +65,7 @@ class BrandControllerSpec extends BaseSpec {
 
         storage.findBrand(anyString, any) returns Future.successful(null)
 
-        val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
+        val result = route(FakeRequest(GET, routes.BrandController.findById(version = 1, expectedId).url))
         validateQueryResult(result.get, NOT_FOUND, "application/json", s"Cannot find brand with id [$expectedId]")
         there was one(storage).findBrand(anyString, any)
       }
@@ -78,7 +78,7 @@ class BrandControllerSpec extends BaseSpec {
         val brand = new Brand(id = Some(expectedId), name = Some(expectedName), logo = Some(expectedLogo))
         storage.findBrand(anyString, any) returns Future.successful(brand)
 
-        val result = route(FakeRequest(GET, routes.BrandController.findById(expectedId).url))
+        val result = route(FakeRequest(GET, routes.BrandController.findById(version = 1, expectedId).url))
 
         validateQueryResult(result.get, OK, "application/json")
         there was one(storage).findBrand(anyString, any)
@@ -90,6 +90,33 @@ class BrandControllerSpec extends BaseSpec {
           brand.logo.get must beEqualTo(expectedLogo)
         } recoverTotal {
           e => failure("Invalid JSON for brand: " + JsError.toFlatJson(e))
+        }
+      }
+    }
+
+    "send 200 when multiple brands are found" in new Brands {
+      running(FakeApplication()) {
+        val (expectedId, expectedName, expectedLogo) = ("1000", "A Brand", "/brands/logo.jpg")
+
+        val brand1 = new Brand(id = Some(expectedId + "1"), name = Some(expectedName + "1"), logo = Some(expectedLogo))
+        val brand2 = new Brand(id = Some(expectedId + "2"), name = Some(expectedName + "2"), logo = Some(expectedLogo))
+        storage.findBrands(any[Iterable[String]], any) returns Future.successful(Seq(brand1, brand2))
+
+        val result = route(FakeRequest(GET, routes.BrandController.findById(version = 2, "10001,10002").url))
+
+        validateQueryResult(result.get, OK, "application/json")
+
+        val captor = capture[List[String]]
+        there was one(storage).findBrands(captor, any)
+        captor.value.head must beEqualTo("10001");
+        captor.value.tail.head must beEqualTo("10002");
+
+        val json = Json.parse(contentAsString(result.get))
+        (json \ "brands").validate[List[Brand]].map { brands =>
+          brands.head must beEqualTo(brand1)
+          brands.tail.head must beEqualTo(brand2)
+        } recoverTotal {
+          e => failure("Invalid JSON for brands: " + JsError.toFlatJson(e))
         }
       }
     }
