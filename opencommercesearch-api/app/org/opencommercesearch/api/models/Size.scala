@@ -24,7 +24,8 @@ import reactivemongo.bson.{BSONDocument, BSONDocumentReader, BSONDocumentWriter}
 case class Size(
     var name: Option[String] = None,
     var scale: Option[String] = None,
-    var preferred: Option[Size] = None) {
+    var preferred: Option[Size] = None,
+    var position: Option[Int] = None) {
 
 }
 
@@ -36,7 +37,8 @@ object Size {
     def write(size: Size): BSONDocument = BSONDocument(
       "name" -> size.name,
       "scale" -> size.scale,
-      "preferred" -> size.preferred
+      "preferred" -> size.preferred,
+      "position" -> size.position
     )
   }
 
@@ -44,7 +46,8 @@ object Size {
     def read(doc: BSONDocument): Size = Size(
       doc.getAs[String]("name"),
       doc.getAs[String]("scale"),
-      doc.getAs[Size]("preferred")
+      doc.getAs[Size]("preferred"),
+      doc.getAs[Int]("position")
     )
   }
 }

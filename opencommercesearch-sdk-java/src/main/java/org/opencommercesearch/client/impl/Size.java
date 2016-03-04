@@ -33,8 +33,15 @@ public class Size {
   private String name;
   private String scale;
   private Size preferred;
+  private Integer position;
 
   public Size() {}
+
+  public Size(String name, String scale, Integer position) {
+      this.name = name;
+      this.scale = scale;
+      this.position = position;
+    }
 
   public Size(String name, String scale) {
     this.name = name;
@@ -65,4 +72,11 @@ public class Size {
     this.preferred = preferred;
   }
 
+  public Integer getPosition() {
+    return position;
+  }
+
+  public void setPosition(Integer position) {
+    this.position = position;
+  }
 }
