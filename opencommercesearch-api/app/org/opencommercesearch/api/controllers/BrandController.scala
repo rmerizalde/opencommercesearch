@@ -66,24 +66,24 @@ object BrandController extends BaseController with FacetQuery {
         storage.findBrand(id, fieldList(allowStar = true)).map(brand => {
           if (brand != null) {
             Logger.debug("Found brand " + id)
-            Ok(Json.obj(
+            withCorsHeaders(Ok(Json.obj(
               "metadata" -> Json.obj("time" -> timer.stop()),
-              "brand" -> Json.toJson(brand)))
+              "brand" -> Json.toJson(brand))))
           } else {
             Logger.debug("Brand " + id + " not found")
-            NotFound(Json.obj(
+            withCorsHeaders(NotFound(Json.obj(
               "metadata" -> Json.obj("time" -> timer.stop()),
               "message" -> s"Cannot find brand with id [$id]"
-            ))
+            )))
           }
         })
       }
       case _ =>  {
         storage.findBrands(StringUtils.split(id, ",").take(MaxBrandsLimit), fieldList(allowStar = true)).map( brandList => {
-          Ok(Json.obj(
+          withCorsHeaders(Ok(Json.obj(
             "metadata" -> Json.obj(
               "time" -> timer.stop()),
-            "brands" -> Json.toJson(brandList))
+            "brands" -> Json.toJson(brandList)))
           )
         })
       }
