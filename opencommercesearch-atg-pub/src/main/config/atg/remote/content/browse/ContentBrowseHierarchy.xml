@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+
+<browse-hierarchy xml-combine="append">
+  <browse-item id="home" xml-combine="append">
+    <browse-item reference-id="search"/>
+  </browse-item>
+
+  <browse-item id="search" label="Search" is-root="true">
+    <browse-item reference-id="searchRules"/>
+    <browse-item reference-id="searchFacets"/>
+    <browse-item reference-id="searchSynonyms"/>
+  </browse-item>
+
+  <!-- search rules -->
+  <browse-item id="searchRules" label="Rules" is-root="true">
+    <browse-item reference-id="searchRankingRules"/>
+    <browse-item reference-id="searchFacetRules"/>
+    <browse-item reference-id="searchBoostsBlocks"/>
+    <browse-item reference-id="searchRedirectRules"/>
+  </browse-item>
+  <browse-item id="searchRankingRules" label="Ranking Rules" is-root="true">
+    <list-definition show-count-on-header="false" id="searchRankingRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:rankingRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchFacetRules" label="Facet Rules" is-root="true">
+    <list-definition show-count-on-header="false" id="searchFacetRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:facetRule">
+          <retriever-parameter name="query" value="ALL"/>
+        </list-definition>
+  </browse-item>
+  <browse-item id="searchRedirectRules" label="Redirect Rules" is-root="true">
+    <list-definition show-count-on-header="false" id="searchRedirectRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:redirectRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+
+  <!-- boosts & blocks -->
+  <browse-item id="searchBoostsBlocks" label="Boosts &amp; Blocks Rules" is-root="true">
+    <browse-item reference-id="searchBoosts"/>
+    <browse-item reference-id="searchBlocks"/>
+  </browse-item>
+  <browse-item id="searchBoosts" label="Boosts" is-root="true">
+    <list-definition show-count-on-header="false" id="searchBoostRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:boostRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchBlocks" label="Blocks" is-root="true">
+    <list-definition show-count-on-header="false" id="searchBlockRuleFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:blockRule">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+
+  <!-- facets -->
+  <browse-item id="searchFacets" label="Facets" is-root="true">
+    <browse-item reference-id="searchFieldFacets"/>
+    <browse-item reference-id="searchQueryFacets"/>
+    <browse-item reference-id="searchRangeFacets"/>
+    <browse-item reference-id="searchDateFacets"/>
+  </browse-item>
+  <browse-item id="searchFieldFacets" label="Field Facets" is-root="true">
+    <list-definition show-count-on-header="false" id="searchFiledFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:fieldFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchRangeFacets" label="Range Facets" is-root="true">
+    <list-definition show-count-on-header="false" id="searchRangeFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:rangeFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchDateFacets" label="Date Facets" is-root="true">
+    <list-definition show-count-on-header="false" id="searchDateFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:dateFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchQueryFacets" label="Query Facets" is-root="true">
+    <list-definition show-count-on-header="false" id="searchQueryFacetFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:queryFacet">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+
+  <!-- Synonyms -->
+  <browse-item id="searchSynonyms" label="Synonyms" is-root="true">
+    <browse-item reference-id="searchSynonymLists"/>
+    <browse-item reference-id="searchSynonymMappings"/>
+  </browse-item>
+  <browse-item id="searchSynonymLists" label="Synonym Lists" is-root="true">
+    <list-definition show-count-on-header="false" id="searchSynonymListFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:synonymList">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+  <browse-item id="searchSynonymMappings" label="Synonym Mappings" is-root="true">
+    <list-definition show-count-on-header="false" id="searchSynonymFolderChildContent" set-site-context-on-drilldown="false" retriever="query" allow-drilldown="false" show-count-on-children="false" show-header="conditionally" allow-load="true" child-type="/org/opencommercesearch/repository/SecuredSearchRepository:synonym">
+      <retriever-parameter name="query" value="ALL"/>
+    </list-definition>
+  </browse-item>
+</browse-hierarchy>      
