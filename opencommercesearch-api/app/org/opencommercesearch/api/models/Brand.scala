@@ -32,6 +32,7 @@ object Brand {
   implicit val writesBrand = Json.writes[Brand]
 
   implicit object BrandWriter extends BSONDocumentWriter[Brand] {
+    import org.opencommercesearch.bson.BSONFormats._
     import reactivemongo.bson._
 
     def write(brand: Brand): BSONDocument = BSONDocument(
@@ -39,17 +40,22 @@ object Brand {
       "name" -> brand.name,
       "logo" -> brand.logo,
       "url" -> brand.url,
-      "sites" -> brand.sites
+      "sites" -> brand.sites,
+      "siteAttributes" -> brand.siteAttributes
+
     )
   }
 
   implicit object BrandReader extends BSONDocumentReader[Brand] {
+    import org.opencommercesearch.bson.BSONFormats._
+
     def read(doc: BSONDocument): Brand = Brand(
       doc.getAs[String]("_id"),
       doc.getAs[String]("name"),
       doc.getAs[String]("logo"),
       doc.getAs[String]("url"),
-      doc.getAs[Seq[String]]("sites")
+      doc.getAs[Seq[String]]("sites"),
+      doc.getAs[Map[String, Map[String, String]]]("siteAttributes")
     )
   }
 
@@ -81,7 +87,8 @@ case class Brand(
    var name: Option[String] = None,
    var logo: Option[String] = None,
    var url: Option[String] = None,
-   var sites: Option[Seq[String]] = None) extends IndexableElement {
+   var sites: Option[Seq[String]] = None,
+   var siteAttributes: Option[Map[String, Map[String, String]]] = None) extends IndexableElement {
 
   def getId : String = this.id.orNull
   
