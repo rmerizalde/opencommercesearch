@@ -22,6 +22,7 @@ package org.opencommercesearch.client.impl;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Data holder for a product brand.
@@ -36,6 +37,7 @@ public class Brand {
   private String logo;
   private String url;
   private List<String> sites;
+  private Map<String, String> siteAttributes;
 
   public Brand() {}
 
@@ -87,4 +89,13 @@ public class Brand {
   public void setSites(List<String> sites) {
     this.sites = sites;
   }
+
+  public Map<String, String> getSiteAttributes() {
+    return siteAttributes;
+  }
+
+  public void setSiteAttributes(Map<String, String> siteAttributes) {
+    this.siteAttributes = siteAttributes;
+  }
+
 }
