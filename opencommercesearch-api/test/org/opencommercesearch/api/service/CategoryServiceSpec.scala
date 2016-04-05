@@ -19,20 +19,27 @@ package org.opencommercesearch.api.service
 * under the License.
 */
 
-import org.apache.solr.client.solrj.AsyncSolrServer
+import org.apache.solr.client.solrj.{SolrQuery, AsyncSolrServer}
+import org.apache.solr.client.solrj.beans.DocumentObjectBinder
+import org.apache.solr.client.solrj.response.{FacetField, QueryResponse}
 import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.common.params.SolrParams
 import org.junit.runner.RunWith
 import org.mockito.Matchers
 import org.mockito.Mockito.doReturn
+import org.opencommercesearch.api.Global._
+import org.opencommercesearch.api.ProductFacetQuery
 import org.opencommercesearch.api.models.{Category, Product}
 import org.opencommercesearch.common.Context
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import play.api.Logger
 import play.api.i18n.Lang
 import play.api.test.FakeApplication
 import play.api.test.Helpers._
 import reactivemongo.core.commands.LastError
+import collection.JavaConversions._
 
 import scala.annotation.tailrec
 import scala.concurrent.duration.Duration
@@ -65,7 +72,8 @@ class CategoryServiceSpec extends Specification with Mockito {
   val rootOtherCategory = mock[Category]
   val otherCategory = mock[Category]
   var taxonomy: CategoryService.Taxonomy = null
-  
+  var queryResponse = mock[QueryResponse]
+
   private def setup() : Unit = {
     // Root
     mockCategory(catRoot, "catRoot", "root", categoryCatalogs, null,
@@ -85,7 +93,7 @@ class CategoryServiceSpec extends Specification with Mockito {
       newSet(catMensRainBootsShoes), isRuleBased = false)
     // Men's Rain Boots & Shoes
     mockCategory(catMensRainBootsShoes, "outdoorCat41100024", "Men's Rain Boots & Shoes", categoryCatalogs,
-      newSet(catMensShoesBoots, catMensShoesFootwear), newSet(catMensRainBootsShoes, catMensRainBootsShoes), isRuleBased = false)
+      newSet(catMensShoesBoots, catMensShoesFootwear), newSet(catMensRainShoes, catMensRainBoots), isRuleBased = false)
     // Men's Rain Shoes
     mockCategory(catMensRainShoes, "outdoorCat41110026", "Men's Rain Shoes", categoryCatalogs, newSet(catMensRainBootsShoes), null, isRuleBased = false)
     // Men's Rain Boots
@@ -106,6 +114,24 @@ class CategoryServiceSpec extends Specification with Mockito {
 
   }
 
+  val categoryChildMap = Map(
+    "catRoot" -> Seq("catRulesBased", "outdoorCat4000003", "outdoorCat100003", "outdoorCat11000003"),
+    "catRulesBased" -> Seq.empty[String],
+    "outdoorCat4000003" -> Seq("outdoorCat4100004"),
+    "outdoorCat4100004" -> Seq("outdoorCat41100024"),
+    "outdoorCat100003" -> Seq("outdoorCat11000219"),
+    "outdoorCat11000219" -> Seq("outdoorCat41100024"),
+    "outdoorCat41100024" -> Seq("outdoorCat41110026", "outdoorCat41110025"),
+    "outdoorCat41110026" -> Seq.empty[String],
+    "outdoorCat41110025" -> Seq.empty[String],
+    "outdoorCat11000003" -> Seq("outdoorCat111000028"),
+    "outdoorCat111000028" -> Seq("outdoorCat111100030"),
+    "outdoorCat111100030" -> Seq("outdoorCat111110031"),
+    "outdoorCat111110031" -> Seq.empty[String],
+    "rootOtherCategory" -> Seq("otherCategory"),
+    "otherCategory" -> Seq.empty[String]
+  )
+
   val categoryMap = Map(
     "catRoot" -> catRoot,
     "catRulesBased" -> catRulesBased,
@@ -125,6 +151,12 @@ class CategoryServiceSpec extends Specification with Mockito {
 
   private def setupService() : (CategoryService, MongoStorage) = {
     val server = mock[AsyncSolrServer]
+    server.binder returns mock[DocumentObjectBinder]
+    val queryResponse2 = mock[QueryResponse]
+    queryResponse = queryResponse2
+    server.query(any[SolrQuery]) answers { q => {
+      Future.successful(queryResponse2)
+    }}
     val storage = mock[MongoStorage]
     val storageFactory = mock[MongoStorageFactory]
     val service = spy(new CategoryService(server, storageFactory))
@@ -141,7 +173,6 @@ class CategoryServiceSpec extends Specification with Mockito {
     }
 
     doReturn(storage).when(service).withNamespace(any[StorageFactory[LastError]])(any[Context])
-
     (service, storage)
   }
 
@@ -431,8 +462,126 @@ class CategoryServiceSpec extends Specification with Mockito {
 
       }
     }
-  }
 
+    "should get the taxonomy for a category Id" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled"
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+        val (categoryService, storage) = setupService()
+        implicit val context = Context(true, lang)
+
+        val futureTaxonomy = categoryService.getTaxonomyForCategory("outdoorCat100003",
+          Seq("outdoorCat11000219", "outdoorCat11000219.outdoorCat41100024", "outdoorCat11000219.outdoorCat41100024.outdoorCat41110026",
+              "outdoorCat11000219.outdoorCat41100024.outdoorCat41110025"), 2, 3, Seq.empty[String], storage)(context) map {
+          taxonomy => {
+            val parentCat = taxonomy.get
+            parentCat.getName must beEqualTo("Men's Clothing")
+
+            val firstLevelChildCats = parentCat.childCategories.get
+            firstLevelChildCats.size must beEqualTo(1)
+            firstLevelChildCats.head.getName must beEqualTo("Men's Shoes & Footwear")
+
+            val secondLevelChildCats = firstLevelChildCats.head.childCategories.get
+            secondLevelChildCats.size must beEqualTo(1)
+            secondLevelChildCats.head.getName must beEqualTo("Men's Rain Boots & Shoes")
+            secondLevelChildCats.head.childCategories.get.size must beEqualTo(0)
+          }
+        }
+
+        Await.result(futureTaxonomy, Duration.Inf)
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+      }
+    }
+
+
+    "shouldn't get the taxonomy for a invalid category id" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled"
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+        val (categoryService, storage) = setupService()
+        implicit val context = Context(true, lang)
+
+        val futureTaxonomy = categoryService.getTaxonomyForCategory("invalid",
+          Seq.empty[String], 2, 3, Seq.empty[String], storage)(context) map {
+          taxonomy => {
+            taxonomy must beEqualTo(None)
+          }
+        }
+
+        Await.result(futureTaxonomy, Duration.Inf)
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+      }
+    }
+
+
+    "should return the taxonomy of a product" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled"
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+        val (categoryService, storage) = setupService()
+        implicit val context = Context(true, lang)
+
+        val futureTaxonomy = categoryService.getProductTaxonomy("pid", "outdoorCatalog", Seq.empty[String], Set("outdoorCat41110026")) map { categories =>
+          categories.size must beEqualTo(1)
+          categories.foreach( category => {
+            validateTree(category)
+          })
+        }
+
+        Await.result(futureTaxonomy, Duration.Inf)
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+      }
+    }
+
+    "should return the taxonomy of a brand" in {
+      running(FakeApplication(
+        additionalConfiguration = Map(
+          "ehcacheplugin" -> "enabled",
+          "solr.error.retry" -> 2
+        ),
+        withoutPlugins = Seq("com.typesafe.plugin.RedisPlugin")
+      )) {
+        val (categoryService, storage) = setupService()
+        val ancestorFacet = new FacetField("ancestorCategoryId")
+        ancestorFacet.add("catRoot", 15)
+        ancestorFacet.add("outdoorCat4000003", 15)
+        ancestorFacet.add("outdoorCat4100004", 15)
+        ancestorFacet.add("outdoorCat41100024", 15)
+        ancestorFacet.add("outdoorCat41110026", 10)
+        ancestorFacet.add("outdoorCat41110025", 5)
+        ancestorFacet.add("outdoorCat11000219", 15)
+        ancestorFacet.add("outdoorCat100003", 15)
+        queryResponse.getFacetFields returns List(ancestorFacet)
+        implicit val context = Context(true, lang)
+
+        val futureTaxonomy = categoryService.getBrandTaxonomy("brandId", "outdoorCatalog", Seq.empty[String]) map { categories => {
+          categories.size must beEqualTo(1)
+          categories.foreach( category => {
+            val expectedChildren = categoryChildMap + ("catRoot" -> Seq("outdoorCat4000003", "outdoorCat100003"))
+            validateTree(category, expectedChildren)
+          })
+        }}
+
+        Await.result(futureTaxonomy, Duration.Inf)
+        cleanCache
+        there was one(storage).findAllCategories(any[Seq[String]])
+
+      }
+    }
+
+  }
 
   def validateTaxonomy(categoryService: CategoryService, storage: MongoStorage) = {
     categoryService.getTaxonomy(storage, false) map { taxonomy =>
@@ -448,6 +597,25 @@ class CategoryServiceSpec extends Specification with Mockito {
     for (p <- current.plugin[EhCachePlugin]) {
       p.manager.clearAll
     }
+  }
+
+  def validateTree(category: Category, taxonomy: Map[String, Seq[String]]): Unit = {
+    category.childCategories match {
+      case Some(childCats) => {
+        childCats.foreach(childCat => {
+          taxonomy(category.getId) must contain(childCat.getId)
+          Logger.debug(taxonomy(category.getId) + " contains " + childCat.getId)
+          validateTree(childCat)
+        })
+      }
+      case _ => {
+        Logger.debug("leaf category: " + category.getId)
+      }
+    }
+  }
+
+  def validateTree(category: Category): Unit = {
+    validateTree(category, categoryChildMap)
   }
 
   @tailrec final def awaitSuccess[A](fs: Seq[Future[A]], done: Seq[A] = Seq()):

@@ -181,7 +181,9 @@ module.exports = (function ProductApi(params) {
 
       var host = settings.testEnabled && requestParams.test && settings.testHost || settings.host;
       var protocol = settings.isServer ? 'http:' : '';
-      var url = protocol + '//' + host + '/v' + settings.version + this.template(endpoint.tpl, requestParams);
+      var version = requestParams.version || settings.version;
+      delete requestParams.version;
+      var url = protocol + '//' + host + '/v' + version + this.template(endpoint.tpl, requestParams);
 
       return {
         method: endpoint.method || 'GET',
