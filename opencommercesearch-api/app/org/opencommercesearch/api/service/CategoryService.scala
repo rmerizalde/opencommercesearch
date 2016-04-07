@@ -382,7 +382,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
    */
   def getTaxonomyForCategory(categoryId: String, categoryPaths: Iterable[String] = Set.empty, maxLevels: Int,
                              maxChildren: Int, fields: Seq[String], storage : Storage[LastError])
-                            (implicit context: Context) : Future[Category] =  {
+                            (implicit context: Context) : Future[Option[Category]] =  {
     //First get the taxonomy
     val taxonomyFuture = getTaxonomy(storage, context.isPreview)
 
@@ -403,10 +403,10 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
         val prunedCategory = withParents(Category.prune(category.get, categories.toSet, maxLevels, maxChildren, updatedFields), updatedFields, taxonomy)
 
         Statsd.timing(StatsdPruneTaxonomyGraphMetric, System.currentTimeMillis() - startTime)
-        prunedCategory
+        Some(prunedCategory)
       }
       else {
-        null
+        None
       }
     }
   }
@@ -596,7 +596,7 @@ class CategoryService(var server: AsyncSolrServer, var storageFactory: MongoStor
 
     Logger.debug(s"Getting taxonomy for brand $id with query ${categoryPathQuery.toString}")
 
-    retry(solrServer.query(categoryPathQuery)) flatMap { response =>
+    retry(server.query(categoryPathQuery)) flatMap { response =>
       val storage = withNamespace(storageFactory)
       getTaxonomy(storage, context.isPreview) map { taxonomy =>
         val facetFields = response.getFacetFields

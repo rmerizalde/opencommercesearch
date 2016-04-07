@@ -153,6 +153,35 @@ describe('helpers.buildRequest', function() {
     actual.should.eql(expected);
   });
 
+ it('should generate the correct method/url/params then callApi with custom endpoint version', function() {
+    var actual = productApi.helpers.buildRequest(
+        //endpoint
+        {
+          tpl: '/testEndpoint/{{productId}}'
+        },
+        // request
+        {
+          site: 'bcs',
+          productId: 'foo',
+          fields: 'id,title,brand',
+          version: 2
+        }
+        // options
+      ),
+      expected = {
+        headers: {},
+        method: 'GET',
+        url: 'http://api.backcountry.com/v2/testEndpoint/foo',
+        params: {
+          site: 'bcs',
+          fields: 'id,title,brand',
+          preview: false
+        }
+      };
+
+    actual.should.eql(expected);
+  });
+  
   it('should use the testHost when requestParams.test is provided', function() {
     var testHost = 'www.aTestHost.com';
     var host = productApi.getConfig().host;
