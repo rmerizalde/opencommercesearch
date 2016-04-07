@@ -1,6 +1,6 @@
 {
   "name": "opencommercesearch-sdk-js",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Javascript SDK for the OpenCommerceSearch Product API.",
   "author": "opencommercesearch <dev@opencommercesearch.org>",
   "main": "ProductApi.js",
@@ -15,7 +15,7 @@
   "dependencies": {
     "bluebird": "2.10.0",
     "request-context": "0.1.5",
-    "superagent": "1.2.0"
+    "superagent": "1.7.2"
   },
   "devDependencies": {
     "grunt": "^0.4.5",
