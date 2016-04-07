@@ -100,9 +100,7 @@ object CategoryController extends BaseController with FacetQuery {
               }
 
               val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
-              categoryService.getTaxonomyForCategory(catId, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage) map { cat =>
-                Some(cat)
-              }
+              categoryService.getTaxonomyForCategory(catId, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage)
             } else {
               storage.findCategory(catId, fieldList(allowStar = true)) map { cat =>
                 Option(cat) filter { _.isRuleBased.getOrElse(false) }
@@ -191,16 +189,18 @@ object CategoryController extends BaseController with FacetQuery {
 
               val maxChildren = Integer.parseInt(request.getQueryString("maxChildren").getOrElse("-1"))
               taxonomyFuture = categoryService.getTaxonomyForCategory(site, categoryPaths, maxLevels, maxChildren, fieldList(allowStar = true), storage).map( category => {
-                if(category != null) {
-                  Ok(Json.obj(
-                    "metadata" -> Json.obj(
-                      "time" -> timer.stop()),
-                    "categories" -> category.childCategories))
-                }
-                else {
-                  Logger.debug(s"Category [$site] does not exist in storage")
-                  NotFound(Json.obj("message" -> s"Cannot retrieve category with id $site"))
-                }
+                 category match {
+                   case Some(cat) => {
+                     Ok(Json.obj(
+                       "metadata" -> Json.obj(
+                         "time" -> timer.stop()),
+                       "categories" -> cat.childCategories))
+                   }
+                   case _ => {
+                     Logger.debug(s"Category [$site] does not exist in storage")
+                     NotFound(Json.obj("message" -> s"Cannot retrieve category with id $site"))
+                   }
+                 }
               })
             }
           }
