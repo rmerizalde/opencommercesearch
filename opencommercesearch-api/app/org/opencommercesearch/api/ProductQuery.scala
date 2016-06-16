@@ -67,7 +67,7 @@ sealed class ProductQuery(q: String, site: String = null)(implicit context: Cont
     }
 
     if (excludeBackorderSites.contains(site)) {
-      addFilterQuery(s"allowBackorder${context.lang.country}:false")
+      addFilterQuery(s"(allowBackorder${context.lang.country}:false OR stockLevel${context.lang.country}:[1 TO *])")
     }
 
     if (excludeToosSites.contains(site)) {
