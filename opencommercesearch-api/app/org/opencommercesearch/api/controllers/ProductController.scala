@@ -45,6 +45,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json._
 import play.api.mvc._
+import reactivemongo.core.commands.LastError
 
 import scala.collection.JavaConversions._
 import scala.collection.convert.Wrappers.JIterableWrapper
@@ -1330,8 +1331,16 @@ object ProductController extends BaseController {
 
   def deleteContentFromStorage(timer:Timer, id: String = null, feedTimestamp: Long = 0, site: String)(implicit context: Context, request: Request[AnyContent]):Future[Result] ={
     val storage = withNamespace(storageFactory)
-    Logger.info(s"Deleting product content $id from storage with timestamp $feedTimestamp")
-    storage.deleteContent(id, feedTimestamp, site).map { lastError =>
+    var deleteOperation : Future[LastError] = null;
+    if (StringUtils.isNotBlank(site)) {
+      Logger.info(s"Deleting product content from storage with id [$id] site [$site] and timestamp [$feedTimestamp]")
+      deleteOperation = storage.deleteContent(id, feedTimestamp, site);
+    } else {
+      Logger.info(s"Deleting product content from storage with  id [$id] timestamp [$feedTimestamp]")
+      deleteOperation = storage.deleteContent(id, feedTimestamp);
+    }
+
+    deleteOperation.map { lastError =>
       if (lastError.ok) {
         NoContent
       } else {
