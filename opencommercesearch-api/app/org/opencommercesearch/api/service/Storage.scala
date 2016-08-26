@@ -265,4 +265,11 @@ trait Storage[T] {
    * @return the result of deleting the content
    */
   def deleteContent(id: String, feedTimestamp: Long, site: String) : Future[LastError]
+
+  /**
+    * Delete the content with the given id. Returns the result of deleting the content
+    * @param id is of the content to delete
+    * @return the result of deleting the content
+    */
+  def deleteContent(id: String, feedTimestamp: Long) : Future[LastError]
 }
