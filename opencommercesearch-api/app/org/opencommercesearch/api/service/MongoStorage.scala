@@ -764,18 +764,31 @@ class MongoStorage(database: DefaultDB) extends Storage[LastError] {
 
   def deleteContent(feedTimestamp: Long, site: String) : Future[LastError] = deleteContent(null, feedTimestamp, site)
 
+  def deleteContent(id: String, feedTimestamp: Long) : Future[LastError] = {
+    val query = if (id == null ) {
+        BSONDocument("feedTimestamp" -> BSONDocument("$lt" -> feedTimestamp))
+    } else {
+      BSONDocument("$and" -> BSONArray(
+        BSONDocument("productId" -> id),
+        BSONDocument("feedTimestamp" -> BSONDocument("$lt" -> feedTimestamp)))
+      )
+    }
+
+    contentCollection.remove(query)
+  }
+
   def deleteContent(id: String, feedTimestamp: Long, site: String) : Future[LastError] = {
 
     val query = if (id == null ) {
       BSONDocument("$and" -> BSONArray(
           BSONDocument("site" -> site),
-          BSONDocument("$lt" -> BSONDocument("feedTimestamp" -> feedTimestamp)))
+          BSONDocument("feedTimestamp" -> BSONDocument("$lt" -> feedTimestamp)))
         )
       } else {
         BSONDocument("$and" -> BSONArray(
           BSONDocument("productId" -> id),
           BSONDocument("site" -> site),
-          BSONDocument("$lt" -> BSONDocument("feedTimestamp" -> feedTimestamp)))
+          BSONDocument("feedTimestamp" -> BSONDocument("$lt" -> feedTimestamp)))
         )
       }
 

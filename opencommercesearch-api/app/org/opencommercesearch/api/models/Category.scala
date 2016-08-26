@@ -77,7 +77,7 @@ case class Category (
 }
 
 object Category {
-  val defaultFields = Seq("id", "name", "seoUrlToken")
+  val defaultFields = Seq("id", "name", "seoUrlToken", "alias")
 
   def getInstance(id: Option[String]) = new Category(id)
 
